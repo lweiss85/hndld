@@ -48,20 +48,39 @@ export function AIChat() {
 
   if (!isOpen) {
     return (
-      <Button
-        size="icon"
-        className="ai-chat-bubble fixed bottom-24 h-12 w-12 rounded-full shadow-lg bg-[#1D2A44] hover:bg-[#2a3a5a] z-50"
-        onClick={() => setIsOpen(true)}
-        data-testid="button-ai-chat-open"
+      <div 
+        style={{ 
+          position: 'fixed', 
+          bottom: '6rem', 
+          right: '1rem', 
+          left: 'auto',
+          zIndex: 9999 
+        }}
       >
-        <Sparkles className="h-5 w-5 text-[#F6F2EA]" />
-      </Button>
+        <Button
+          size="icon"
+          className="h-12 w-12 rounded-full shadow-lg bg-[#1D2A44] hover:bg-[#2a3a5a]"
+          onClick={() => setIsOpen(true)}
+          data-testid="button-ai-chat-open"
+        >
+          <Sparkles className="h-5 w-5 text-[#F6F2EA]" />
+        </Button>
+      </div>
     );
   }
 
   return (
+    <div
+      style={{ 
+        position: 'fixed', 
+        bottom: '6rem', 
+        right: '1rem', 
+        left: 'auto',
+        zIndex: 9999 
+      }}
+    >
     <Card 
-      className="ai-chat-bubble fixed bottom-24 z-50 w-80 sm:w-96 shadow-2xl border-0 overflow-hidden"
+      className="w-80 sm:w-96 shadow-2xl border-0 overflow-hidden"
       data-testid="card-ai-chat"
     >
       <CardHeader className="p-3 bg-[#1D2A44] text-[#F6F2EA]">
@@ -144,5 +163,6 @@ export function AIChat() {
         </form>
       </div>
     </Card>
+    </div>
   );
 }
