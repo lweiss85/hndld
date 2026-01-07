@@ -50,8 +50,8 @@ export function AIChat() {
     return (
       <Button
         size="icon"
-        className="fixed bottom-24 z-40 h-12 w-12 rounded-full shadow-lg bg-[#1D2A44] hover:bg-[#2a3a5a]"
-        style={{ right: '1rem' }}
+        className="fixed bottom-24 left-auto h-12 w-12 rounded-full shadow-lg bg-[#1D2A44] hover:bg-[#2a3a5a]"
+        style={{ right: '16px', left: 'auto' }}
         onClick={() => setIsOpen(true)}
         data-testid="button-ai-chat-open"
       >
@@ -62,8 +62,8 @@ export function AIChat() {
 
   return (
     <Card 
-      className="fixed bottom-24 z-40 w-80 sm:w-96 shadow-2xl border-0 overflow-hidden"
-      style={{ right: '1rem' }}
+      className="fixed bottom-24 left-auto z-40 w-80 sm:w-96 shadow-2xl border-0 overflow-hidden"
+      style={{ right: '16px', left: 'auto' }}
       data-testid="card-ai-chat"
     >
       <CardHeader className="p-3 bg-[#1D2A44] text-[#F6F2EA]">
