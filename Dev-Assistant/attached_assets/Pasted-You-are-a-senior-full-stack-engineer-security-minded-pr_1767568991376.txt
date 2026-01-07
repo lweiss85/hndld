@@ -1,0 +1,297 @@
+You are a senior full-stack engineer + security-minded product builder working inside my existing Replit project currently named “HouseOps” (Node/Express + TypeScript + Prisma + SQLite + React/Vite + Tailwind). The app is running and deployed as a mobile-first PWA.
+
+IMPORTANT: We are rebranding the product name to: **hndld** (lowercase). Update UI copy, titles, manifest/app name, and any visible branding from “HouseOps” to “hndld”, while keeping internal code identifiers stable unless changes are low-risk. Do not break existing routes or APIs.
+
+Implement a “Premium Platform Upgrade” that adds: reliability (backups/export/restore), notifications (email/SMS baseline), global search/filters, richer roles/permissions, audit logging, quick request buttons, playbooks/SOPs, handoff packet exports (PDF), vault hardening, legal consent basics, and an Organization→Households foundation for concierge professionals (multi-tenancy). Do this incrementally and safely: do not break existing flows.
+
+Where external services are needed (email/SMS/object storage), implement a clean abstraction with a “local/demo fallback” so everything still works with DEMO_MODE=true.
+
+========================================================
+A) REBRAND: “HouseOps” → “hndld”
+========================================================
+1) UI branding
+- Replace visible app name text “HouseOps” with “hndld” across:
+  - top bars / headers
+  - login screen
+  - settings/about
+  - emails (from name)
+  - PDFs generated (handoff packet/weekly brief)
+  - empty states and onboarding text
+- Use brand voice: calm, premium, “Handled.”
+
+2) PWA metadata
+- Update PWA manifest:
+  - name: "hndld"
+  - short_name: "hndld"
+  - description: "White-glove household operations, handled."
+- Update page <title> and any SEO/meta tags.
+- If icons exist, keep them but rename references if needed; otherwise keep placeholders.
+
+3) Repo text
+- Update README title to “hndld”
+- Keep internal technical folder names and package names unless changing them is safe.
+- If there are environment variable names referencing HouseOps, keep them (no breaking changes).
+
+========================================================
+0) PRODUCT OUTCOME
+========================================================
+We are evolving hndld into:
+- Premium Household OS for wealthy households (client calm UI)
+- Concierge Pro Platform for professionals (org + multiple households)
+
+========================================================
+1) DATABASE & MULTI-TENANCY FOUNDATION (ORG → HOUSEHOLDS)
+========================================================
+Add these Prisma models and migrate:
+
+A) Organization
+- id, name, createdAt
+B) OrganizationMember
+- id, organizationId, userId, role enum: OWNER|ADMIN|STAFF
+- unique (organizationId, userId)
+C) Household
+- add organizationId (required)
+- add displayName if missing (this is the household name shown in UI)
+D) HouseholdMember
+- id, householdId, userId, role enum: ASSISTANT|CLIENT|NANNY|SITTER|CLEANER|VENDOR_VIEWER
+- permissionsJson (optional) or link to RoleTemplate
+- unique (householdId, userId)
+
+Migration strategy:
+- Existing households: create a default Organization “hndld Demo Concierge” and attach existing household to it.
+- Existing users: create OrganizationMember for assistant user as OWNER and clients as STAFF.
+- Keep existing login and household selection simple:
+  - If user belongs to only one household: auto-enter.
+  - If multiple: show a “Select Household” screen (mobile-first).
+
+========================================================
+2) ROLES, PERMISSIONS, AND SENSITIVE DATA MASKING
+========================================================
+Implement a permission system that is SIMPLE but real:
+
+A) Permission checks (server middleware)
+- Every request is scoped to householdId AND verified against membership.
+- Define permission gates:
+  - CAN_EDIT_TASKS, CAN_APPROVE, CAN_VIEW_VAULT, CAN_EDIT_VAULT, CAN_VIEW_SPENDING, CAN_EDIT_SPENDING, CAN_MANAGE_MEMBERS, CAN_MANAGE_SETTINGS
+- Map default permissions by HouseholdMember role:
+  - ASSISTANT: all
+  - CLIENT: view most; approve; request; react; view updates; view limited household profile; vault view is masked unless explicitly allowed
+  - NANNY/SITTER: view schedule + assigned tasks only; no spending; no vault
+  - CLEANER: assigned tasks + updates only; no approvals
+  - VENDOR_VIEWER: vendor-specific limited view (optional)
+
+B) Vault masking rules
+- Any AccessItem isSensitive=true:
+  - clients see masked value “•••••” + no reveal
+  - assistant can reveal with an extra step (see Vault hardening below)
+
+========================================================
+3) SYSTEM-WIDE AUDIT LOG (TRUST LAYER)
+========================================================
+Add model AuditLog:
+- id, householdId, userId, action (string), entityType enum, entityId string, beforeJson, afterJson, createdAt, ip, userAgent
+Log events for:
+- task create/update/status changes
+- approvals created/approved/declined
+- preferences + onboarding changes
+- vault reveal attempts (log but do not store revealed value)
+Implementation:
+- Create helper logAudit({action, entityType, entityId, before, after})
+- Call it in service layer or route handlers.
+- Add “Audit” view for assistant only:
+  - filter by entity type, date range, user
+
+========================================================
+4) RELIABILITY: BACKUPS, EXPORTS, RESTORE (DB + UPLOADS)
+========================================================
+A) Add export endpoints (assistant only):
+- POST /api/admin/export
+  - Produces a ZIP containing:
+    - sqlite db file
+    - uploads folder
+    - JSON exports (household profile, vendors, preferences, tasks, approvals, updates)
+  - Store exports in /backups with timestamp
+  - Return a downloadable link
+
+B) Add restore endpoints (assistant only; DEMO_MODE must be true OR require a special RESTORE_KEY env var):
+- POST /api/admin/restore (multipart upload zip)
+  - Validate zip structure
+  - Replace db + uploads safely (stop server writes briefly with a lock)
+  - Keep a “pre-restore” backup automatically
+  - Return status
+
+C) Add scheduled backups:
+- Use node-cron:
+  - daily at 2:00 AM: create ZIP backup
+  - keep last 14 daily backups; delete older
+- Add settings to toggle scheduled backups (on by default)
+
+D) README: document backup/restore clearly.
+
+========================================================
+5) FILE STORAGE STRATEGY (PREMIUM DURABILITY)
+========================================================
+Implement a storage abstraction with two backends:
+
+A) LocalStorageProvider (default)
+- stores in /uploads and serves statically
+
+B) S3CompatibleStorageProvider (optional)
+- supports AWS S3 or Cloudflare R2
+- env vars:
+  - OBJECT_STORAGE_ENDPOINT (optional for R2)
+  - OBJECT_STORAGE_BUCKET
+  - OBJECT_STORAGE_ACCESS_KEY
+  - OBJECT_STORAGE_SECRET_KEY
+  - OBJECT_STORAGE_REGION
+- When configured, uploads are stored remotely and database stores URLs.
+
+Make it easy:
+- If object storage env vars exist: use S3 provider
+- Else: use local provider
+In both cases, export ZIP still includes metadata and local files if available.
+
+========================================================
+6) REAL NOTIFICATIONS (EMAIL/SMS) + DIGESTS
+========================================================
+Implement notifications in a resilient way:
+
+A) NotificationPreferences in HouseholdSettings:
+- approvals: IMMEDIATE|DAILY_DIGEST|OFF
+- dailyDigestTime (e.g., 18:00)
+- weeklyBriefDay/time (Monday 08:00)
+
+B) NotificationProvider abstraction with two providers:
+1) Email (baseline): SMTP via nodemailer
+   - env vars: SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, FROM_EMAIL
+   - FROM_NAME should default to "hndld"
+   - fallback in DEMO_MODE: log + in-app notification center only
+2) SMS (optional): Twilio
+   - env vars: TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_FROM_NUMBER
+   - fallback: disabled if not configured
+
+C) Implement “Notification Center” in-app (client + assistant)
+- Table Notification:
+  - id, householdId, userId, type, title, body, linkUrl, isRead, createdAt
+- Always create in-app notifications even if email/sms is sent.
+
+D) Notification triggers:
+- Approval needed → notify clients (IMMEDIATE)
+- Task marked “Waiting on Client” → notify
+- Daily digest at configured time
+- Weekly brief email + in-app item
+
+E) Email templates:
+- minimal HTML + text, calm “white glove” voice, branded as hndld.
+
+========================================================
+7) GLOBAL SEARCH + FILTERS (FIND IT FAST)
+========================================================
+Implement global search:
+- Prefer SQLite FTS5 with fallback to LIKE-based if FTS not feasible.
+- API: GET /api/search?q=...&types=...
+- UI: universal search button in header + filters/chips + saved views optional.
+
+========================================================
+8) QUICK REQUEST BUTTONS (CLIENT FRICTIONLESS)
+========================================================
+Add QuickRequestTemplate model and UI:
+- client sees quick request buttons on Requests tab
+- assistant can manage templates in Household Settings
+- include starter templates (groceries, appointment, returns, flowers, date night, car service, pickup change)
+
+========================================================
+9) PLAYBOOKS / SOP TEMPLATES (CONCIERGE PRO SECRET SAUCE)
+========================================================
+Add Playbooks scoped to Organization:
+- “Run playbook” generates tasks for selected household
+- include starter playbooks (weekly meal prep, travel mode, back-to-school, seasonal maintenance, host guests)
+
+========================================================
+10) HANDOFF PACKET + EXPORTABLE BRIEF (PDF)
+========================================================
+Add PDF generation for:
+- Household Office Binder (handoff packet) branded as hndld
+- Optional weekly brief PDF
+Include safe masking; require vault unlock to include sensitive data.
+
+========================================================
+11) VAULT HARDENING (PREMIUM SECURITY SIGNAL)
+========================================================
+Add Vault PIN unlock:
+- store bcrypt hash
+- unlock session expires after vaultAutoLockMinutes
+- audit log attempts
+- clients cannot reveal sensitive data by default
+
+========================================================
+12) LEGAL + CONSENT BASICS
+========================================================
+- Consent UI on Google Calendar connect (read-only, choose calendars)
+- Terms/Privacy routes: /terms and /privacy
+- Store acceptance timestamps for non-demo orgs.
+
+========================================================
+13) ACCESSIBILITY + HIGH-END UX POLISH
+========================================================
+- tap targets >=44px
+- focus states
+- prefers-reduced-motion
+- calm empty states with subtle icons
+- “Last updated” in key views
+
+========================================================
+14) FRONTEND NAV & FLOWS
+========================================================
+- Household picker if user has multiple households
+- Add new assistant screens: Organization, Playbooks, Audit, Exports/Backups, Quick Requests manager, Search
+- Add new client screens: Search, Notification Center
+
+========================================================
+15) DEMO MODE / FEATURE FLAGS
+========================================================
+Add env vars:
+- DEMO_MODE=true enables restore endpoint + console email fallback
+- FEATURE_OBJECT_STORAGE, FEATURE_SMS optional
+- RESTORE_KEY optional
+
+========================================================
+16) SEED DATA + MIGRATIONS
+========================================================
+Update seed:
+- org + memberships
+- 2 households (optional)
+- templates + playbooks
+- sample notifications
+- ensure demo logins still work
+
+========================================================
+17) README UPDATE
+========================================================
+Update docs:
+- New name “hndld”
+- Env vars for SMTP/Twilio/Object storage/Restore
+- How to backup/export/restore
+- How to run playbooks
+- How to unlock vault
+
+========================================================
+18) IMPLEMENTATION ORDER
+========================================================
+1) migrations + org/household membership
+2) permission middleware + scoping
+3) audit log
+4) backups/export/restore
+5) notification center + email provider + digests
+6) global search
+7) quick requests
+8) playbooks
+9) pdf handoff packet
+10) vault lock
+11) legal/consent screens
+12) polish/accessibility
+
+========================================================
+19) DELIVERABLE
+========================================================
+Implement all above with safe defaults. Do not break existing single-household flows. Ensure npm run dev works, seeded demo accounts can explore new features, and UI branding reads “hndld” everywhere it’s visible. After implementing, list files changed and where each new feature lives.

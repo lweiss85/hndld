@@ -1,0 +1,127 @@
+You are working inside the existing “hndld” codebase (Express + Drizzle + React/TanStack Query). 
+
+GOAL: Make hndld production-grade for premium households by fixing (1) multi-tenant row-level security, (2) permissions enforcement, (3) correct household handling in invites, and (4) a small “white glove” UI polish pass (greeting + household name + softer cards). Do NOT remove existing features. Keep everything working. After changes, run `npm run check`.
+
+========================
+A) P0 SECURITY: ROW-LEVEL TENANCY (HOUSEHOLD SCOPING)
+========================
+1) Add a strict pattern for ALL update/delete/get-by-id actions:
+   - Any endpoint that reads a single record by id must also confirm it belongs to req.householdId.
+   - Any update/delete must include householdId in the WHERE clause (not just id).
+   - If not found in this household, return 404.
+
+2) Implement helper utilities in `server/lib/tenancy.ts`:
+   - `assertBelongsToHousehold<T>(table, idField, householdField, id, householdId)`:
+      - SELECT where id AND householdId
+      - throw/return 404 if missing
+   - `scopedUpdate(table, idField, householdField, id, householdId, patch)`:
+      - UPDATE ... WHERE id AND householdId
+   - `scopedDelete(table, idField, householdField, id, householdId)`:
+      - DELETE ... WHERE id AND householdId
+
+3) Apply the helpers everywhere we mutate by id. Prioritize these first:
+   - Tasks: POST/PATCH/DELETE + checklist items + templates
+   - Requests: PATCH
+   - Approvals: PATCH
+   - Updates: PATCH
+   - Vendors: PATCH/DELETE
+   - Spending: any future update/delete routes (add them if UI has them)
+   - Calendar Events: update/delete/sync cleanups if applicable
+   - Messages: mark-read must verify message belongs to a conversation in this household
+
+4) In `server/storage.ts`, refactor the “update/delete/get-by-id” methods to become household-scoped:
+   - Change signatures like:
+     - updateTask(id, data) -> updateTask(householdId, id, data)
+     - deleteTask(id) -> deleteTask(householdId, id)
+     - getVendor(id) -> getVendor(householdId, id)
+   - Update the underlying Drizzle queries to filter by BOTH id AND householdId.
+   - Update all callers across `server/routes.ts` accordingly.
+
+5) Remove multi-household ambiguity:
+   - Do NOT use “first profile” logic for anything household-scoped.
+   - In `server/routes.ts`, replace calls to any local `getUserProfile(userId)` helper with `req.userProfile` that is already set by householdContext middleware.
+   - Only use DB lookups if absolutely needed.
+
+========================
+B) P0 SECURITY: PERMISSIONS ENFORCEMENT
+========================
+1) Use `server/middleware/requirePermission.ts` consistently.
+2) Add requirePermission guards to routes in `server/routes.ts` (minimum):
+   - Tasks:
+     - GET tasks: requirePermission("CAN_VIEW_TASKS")
+     - POST/PATCH/DELETE tasks: requirePermission("CAN_EDIT_TASKS")
+     - Checklist + templates mutations: requirePermission("CAN_EDIT_TASKS")
+   - Requests:
+     - GET requests: requirePermission("CAN_VIEW_REQUESTS")
+     - POST request (client allowed): requirePermission("CAN_CREATE_REQUEST")
+     - PATCH request: requirePermission("CAN_UPDATE_REQUEST")
+   - Approvals:
+     - GET approvals: requirePermission("CAN_VIEW_APPROVALS")
+     - PATCH approvals: requirePermission("CAN_APPROVE")
+   - Updates:
+     - GET updates: requirePermission("CAN_VIEW_UPDATES")
+     - POST updates: requirePermission("CAN_CREATE_UPDATE")
+     - PATCH updates: requirePermission("CAN_EDIT_UPDATES")
+   - Vendors:
+     - GET vendors: requirePermission("CAN_VIEW_VENDORS")
+     - POST/PATCH/DELETE vendors: requirePermission("CAN_EDIT_VENDORS")
+   - Spending:
+     - GET spending: requirePermission("CAN_VIEW_SPENDING")
+     - POST spending: requirePermission("CAN_EDIT_SPENDING")
+   - Access/Vault areas:
+     - Ensure any “access items / vault” endpoints requirePermission("CAN_VIEW_VAULT") for reads and appropriate edit permissions for writes.
+
+3) Ensure every “assistant-only” admin route is enforced ONLY by permissions (not UI role checks).
+   - Remove any leftover `if (profile.role !== "ASSISTANT")` checks and replace with requirePermission where appropriate, using `req.userProfile`.
+
+========================
+C) INVITES: FIX MULTI-HOUSEHOLD CORRECTNESS
+========================
+In `server/routes/invites.ts`:
+1) Remove the internal getUserProfile() that returns the first profile.
+2) Make invites rely on `req.householdId` and `req.userProfile` from householdContext.
+3) Require permissions:
+   - Create invite: requirePermission("CAN_MANAGE_MEMBERS")
+   - List invites: requirePermission("CAN_MANAGE_MEMBERS")
+4) Ensure accepting an invite attaches the user to the correct household + org, and prevents duplicates.
+
+Mounting:
+- Keep `app.use("/api", isAuthenticated, householdContext, inviteRoutes)` OR adjust routes so the router paths are consistent (prefer `app.use("/api/invites", ...)` and router uses relative paths).
+
+========================
+D) MESSAGES: MARK-READ MUST BE HOUSEHOLD-SAFE
+========================
+In `server/routes.ts` message read endpoint:
+- When PATCH /api/messages/:id/read:
+  1) Find the message
+  2) Join/verify its conversation belongs to req.householdId
+  3) Only then update readBy
+If it’s not in this household, return 404.
+
+========================
+E) SMALL “WHITE GLOVE” UI POLISH PASS (VISIBLE)
+========================
+1) Header personalization:
+   - In `client/src/components/layout/header.tsx`, show:
+     - “Good morning, {firstName}” (time-based greeting)
+     - Active household name (even in Client mode), pulled from the household switcher query or a small new endpoint /api/households/active.
+   - Keep the “hndld” brand wordmark but make it smaller, and place greeting as the main line.
+
+2) Softer high-end geometry:
+   - Increase card rounding and spacing on the home screen tiles:
+     - Use `rounded-2xl` on primary cards, with more vertical padding.
+   - Make “HIGH/MEDIUM” look premium:
+     - Replace the red pill with a subtle dot + label (e.g., “● High”) using muted colors in light theme.
+   - Keep dark mode but ensure light mode (“porcelain”) is the default vibe.
+
+3) Confirm skeleton loaders and swipe-to-complete remain working.
+
+========================
+F) SAFETY CHECK
+========================
+- Run `npm run check` and fix all TypeScript errors.
+- Do not break existing routes.
+- Ensure multi-household switching still works via X-Household-Id.
+- Keep all existing features intact.
+
+When finished, summarize the files changed and what was fixed.

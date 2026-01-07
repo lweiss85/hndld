@@ -1,0 +1,191 @@
+You are a senior full-stack engineer working inside my existing Replit project “hndld” (React/Vite + Tailwind + shadcn/ui + TanStack Query; Node/Express + TypeScript + Drizzle/SQLite). We are implementing Option B payments (workflow inside hndld, actual payment via Venmo link or Zelle copy).
+
+NEW REQUIREMENT (DO THIS FIRST):
+Add a proper place for ASSISTANTS to enter their Venmo/Zelle once (org-level “Payment Profile”), with an OPTIONAL per-household override. Then wire the “Pay now” flow to use the effective payment profile.
+
+Do this incrementally. Keep existing routes stable unless necessary. Ensure household scoping and permissions are enforced.
+
+========================================================
+1) DATA MODEL: ORG PAYMENT PROFILE + HOUSEHOLD OVERRIDE
+========================================================
+A) Add OrganizationPaymentProfile (NEW TABLE)
+- organizationPaymentProfiles:
+  - id (pk)
+  - organizationId (unique, fk)
+  - venmoUsername (nullable text)
+  - zelleRecipient (nullable text) // phone or email
+  - defaultPaymentMethod (text: "VENMO"|"ZELLE", default "VENMO")
+  - payNoteTemplate (text, default:
+      "hndld • Reimbursement {ref} • {category} • {date}"
+    )
+  - createdAt, updatedAt
+
+Rules:
+- One org → one payment profile (unique organizationId).
+- This is the default used for all households.
+
+B) Add HouseholdPaymentOverride (NEW TABLE) OR embed in householdSettings (choose the cleanest existing pattern)
+Preferred: NEW TABLE householdPaymentOverrides with unique householdId:
+- id (pk)
+- householdId (unique, fk)
+- useOrgDefaults (boolean, default true)
+- venmoUsername (nullable text)
+- zelleRecipient (nullable text)
+- defaultPaymentMethod (nullable text)
+- payNoteTemplate (nullable text)
+- createdAt, updatedAt
+
+Resolution logic:
+- If override exists AND useOrgDefaults=false, use override values (fallback to org values if a field is null).
+- Else use org payment profile.
+
+C) Ensure spending items store:
+- paymentMethodUsed (nullable)
+- paymentNote (nullable)
+- paymentReferenceCode (text, e.g., "HN-<shortid>")
+- status enum lifecycle:
+  DRAFT → NEEDS_APPROVAL → APPROVED → PAYMENT_SENT → RECONCILED
+
+Run Drizzle migrations + update seed.
+
+========================================================
+2) SERVER: ENDPOINTS (PERMISSIONED + SCOPED)
+========================================================
+A) Organization Payment Profile endpoints (assistant/org admins only)
+- GET  /api/org/payment-profile
+- PUT  /api/org/payment-profile
+Permissions:
+- requirePermission("CAN_MANAGE_ORG_SETTINGS") OR reuse existing org/admin permission gate:
+  - Org OWNER/ADMIN can edit
+  - STAFF can read (optional) or restrict to assistant role
+
+Behavior:
+- GET returns current org profile or creates one with defaults (safe).
+- PUT validates:
+  - venmoUsername: strip leading '@', allow [a-zA-Z0-9_-]
+  - zelleRecipient: basic email/phone validation (lightweight)
+  - template length limits
+- Audit log: org_payment_profile_updated
+
+B) Household Payment Override endpoints (assistant only; optionally allow clients to read)
+- GET /api/household/payment-settings
+- PUT /api/household/payment-settings
+Permissions:
+- GET: allow client read (so they can see “payments go to …”), but only within household
+- PUT: assistant only requirePermission("CAN_MANAGE_SETTINGS") OR "CAN_MANAGE_HOUSEHOLD_SETTINGS"
+Audit log: household_payment_override_updated
+
+C) Pay Options endpoint must use EFFECTIVE profile
+- GET /api/spending/:id/pay-options
+Returns:
+{
+  ref, amount, note,
+  venmo: { enabled, username, url },
+  zelle: { enabled, recipient, note },
+  preferredMethod,
+  display: { payToLine } // e.g. "Pay to @laurenweiss (Venmo) or lauren@email.com (Zelle)"
+}
+Implementation:
+- Load spending (must belong to req.householdId)
+- Resolve effective payment profile:
+  1) org profile
+  2) household override if useOrgDefaults=false
+- Build note from template:
+  - Support tokens: {ref}, {category}, {date}, {vendor}, {amount}
+- Build Venmo URL:
+  https://venmo.com/<USERNAME>?txn=pay&amount=<AMOUNT>&note=<ENCODED_NOTE>
+- For Zelle:
+  provide recipient + note and copy-friendly instructions
+If both venmoUsername and zelleRecipient are missing:
+- return venmo.enabled=false, zelle.enabled=false and include a friendly message
+
+D) Optional: status guardrails
+- Client can only mark paid if spending.status is APPROVED or PAYMENT_SENT
+- Assistant can reconcile only if PAYMENT_SENT
+
+========================================================
+3) CLIENT UI: WHERE ASSISTANT ENTERS THEIR PAYMENT INFO
+========================================================
+A) Assistant Settings → “Payment Profile”
+Add a new settings page:
+- Route: /app/settings/payment-profile (assistant only)
+- Sections:
+  1) “How clients reimburse you”
+     - Venmo username input
+     - Zelle email/phone input
+     - Default method selector
+  2) “Payment note template”
+     - textarea with token helper chips: {ref} {category} {date} {vendor} {amount}
+     - live preview line showing how it will look
+- Save button (sticky footer on mobile)
+- Micro-UX:
+  - toast on save: “Payment profile saved.”
+  - toast on invalid: “Please enter a valid Venmo username.”
+
+B) Household Settings → “Payments”
+Route: /app/households/:id/settings/payments (assistant only)
+- Toggle: “Use my default payment profile” (default ON)
+- If OFF:
+  - override Venmo username
+  - override Zelle recipient
+  - override default method
+  - override note template
+- Show a preview of what client will see:
+  “Payments go to: @username / zelle@email.com”
+
+Micro-UX:
+- toast: “Household payment settings updated.”
+
+C) Client display (read-only)
+On the Pay Now sheet, show a subtle line:
+- “Paying to: @username / zelle@email.com”
+with copy buttons (recipient + note).
+
+========================================================
+4) PAY NOW SHEET: SCROLL + LUXE TOASTS (KEEP/ADD)
+========================================================
+Ensure the PayNowSheet uses a mobile Drawer with:
+- max-height and internal scroll region
+- sticky bottom action bar with safe-area padding
+Toasts:
+- “Opening Venmo…”
+- “Copied recipient”
+- “Copied note”
+- “Marked as paid. Thank you.”
+
+First-time helper text (once):
+- “Venmo opens pre-filled. Zelle copies details.”
+
+If no payment methods configured:
+- show calm empty state with CTA:
+  - For clients: “Payment method not set up yet.” and a message “Please notify your assistant.”
+  - For assistants viewing their own client preview: CTA button “Set up Payment Profile” linking to settings.
+
+========================================================
+5) NAVIGATION / DISCOVERABILITY (DO NOT MISS)
+========================================================
+- Add “Payment Profile” to assistant Settings list (near Notifications/Branding).
+- On assistant Spending screen, if org profile missing venmo/zelle:
+  - show a small non-intrusive banner:
+    “Set up your payment profile to enable Pay Now.”
+    button → Payment Profile page
+
+========================================================
+6) PERMISSIONS + TENANCY
+========================================================
+- All reads/writes must be scoped to req.householdId (and org where appropriate).
+- Org profile endpoints must confirm user is an OrganizationMember with role OWNER/ADMIN.
+- Household overrides must confirm user is HouseholdMember with role ASSISTANT (or correct permission).
+- Add audit logs for all edits.
+
+========================================================
+7) DELIVERABLE
+========================================================
+- Add org payment profile + household override DB tables (migrations + seeds)
+- Add server routes: org payment profile, household payment override, update pay-options to resolve effective profile
+- Add client UI pages and nav links
+- Ensure mobile scroll patterns and luxe toasts
+- Ensure npm run dev works and TypeScript passes
+- List files changed at the end
+
+Proceed to implement now in this repo.

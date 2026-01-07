@@ -1,0 +1,717 @@
+You are a senior full-stack engineer + luxury UX/UI designer working inside my existing Replit project "hndld" (Node/Express + TypeScript + Drizzle ORM + PostgreSQL + React/Vite + Tailwind + shadcn/ui). The app is running as a mobile-first PWA with comprehensive backend features already implemented: billing, AI, analytics, multi-tenancy, audit logs, vault security, playbooks, and more.
+
+CRITICAL CONTEXT: The current UI uses Material Design 3, but the brand promise is "white-glove luxury concierge service" with a porcelain + navy aesthetic. The UI needs a complete visual transformation from "task manager" to "luxury digital experience" - think Chanel app meets high-end hotel concierge, not productivity software.
+
+========================================================
+LUXURY UI DESIGN PHILOSOPHY & INSPIRATION
+========================================================
+
+## A) Core Luxury Design Principles
+
+Beautiful, high-polished luxury app UIs are characterized by **minimalist elegance, rich imagery, subtle animations, premium typography, and intuitive flow**. We're drawing inspiration from:
+
+**Benchmark Apps:**
+- **Chanel** - Minimalist elegance, premium black/white/gold palette, exquisite typography
+- **PARFS** (luxury perfume/jewelry e-commerce) - Rich product imagery, sophisticated interactions
+- **High-end car apps** (Mercedes, Porsche configurators) - Sleek interfaces, smooth 3D transitions
+- **Airbnb/Spotify** - Seamless, effortless navigation despite complexity
+- **Luxury hotel apps** (Four Seasons, Aman) - Calm, reassuring, personalized experiences
+- **Wealth management apps** (Wealthfront, Private Banking) - Complex data made inviting and clear
+
+**Design Platforms for Reference:**
+- Dribbble: Search "luxury app", "high polish UI", "luxury e-commerce", "concierge app"
+- Behance: "Luxury mobile experience", "premium service app"
+- Awwwards: Award-winning luxury brand websites
+- Muzli: Contemporary luxury digital design examples
+
+## B) Key Characteristics to Implement
+
+### 1. Minimalism & Strategic White Space
+**Principle:** Clean layouts with uncluttered interfaces create exclusivity and focus
+
+**Implementation:**
+- Generous margins and padding (more than you think)
+- One primary action per screen
+- Hide complexity behind progressive disclosure
+- "Breathing room" around every element
+- Never crowd the interface - if in doubt, add more space
+
+**Examples:**
+- This Week page: Large hero card with ample padding (p-8), followed by well-spaced modules
+- Cards: Minimum 24px between cards, 20-24px internal padding
+- Text: Generous line-height (1.75 for body text)
+- Navigation: Simplified to essentials, "More" menu for advanced features
+
+### 2. Rich Visuals & Imagery
+**Principle:** High-quality photography and realistic renders showcase content beautifully
+
+**Implementation:**
+- Large, high-resolution images (but optimized for performance)
+- Subtle background gradients (porcelain to white)
+- Product-quality photography for updates/receipts
+- Elegant placeholder states (not boring gray boxes)
+- Consider subtle parallax effects on scroll (very subtle)
+
+**Examples:**
+- Update photos: Full-width hero images, not thumbnails
+- Empty states: Illustrated with elegant line art icons
+- Profile avatars: Circular, high-quality, soft shadows
+- Background: Very subtle radial gradient from center
+
+### 3. Premium Typography
+**Principle:** Elegant fonts convey heritage and quality
+
+**Implementation:**
+- **Primary font:** Inter (sophisticated sans-serif, excellent for UI)
+- **Display font (optional):** Consider a refined serif for special moments (page titles, hero cards)
+  - Suggestions: Freight Display, Canela, Tiempos Headline
+  - Use sparingly - only for "Good morning, Lauren" and hero headlines
+- **Letter spacing:** Slightly increased for uppercase labels (+0.025em)
+- **Line height:** More generous than default (1.5-1.75)
+- **Font weights:** Use 400 (normal), 500 (medium), 600 (semibold) - avoid extremes
+- **Hierarchy:** Clear but subtle - don't rely on bold for everything
+
+**Typography Scale (refined):**
+Hero display (serif optional): 32px / 2rem - font-weight: 600
+Page title: 24px / 1.5rem - font-weight: 600
+Section header: 14px / 0.875rem - font-weight: 600, uppercase, tracking-wide
+Card title: 16px / 1rem - font-weight: 500
+Body text: 15px / 0.9375rem - font-weight: 400, line-height: 1.75
+Metadata: 13px / 0.8125rem - font-weight: 400, line-height: 1.5
+Small: 12px / 0.75rem - font-weight: 400
+
+### 4. Subtle Interactions & Animations
+**Principle:** Smooth transitions and micro-interactions add depth and premium feel
+
+**Implementation:**
+- **Transitions:** All interactions use ease-in-out curves, 200-300ms duration
+- **Button press:** Scale down to 0.98 with subtle haptic (if supported)
+- **Card hover (desktop):** Gentle lift (translateY: -2px) + shadow increase
+- **Page transitions:** Crossfade between views (200ms)
+- **Loading states:** Elegant shimmer animation (not spinner)
+- **Success moments:** Gentle scale-up + fade-in checkmark
+- **Scroll animations:** Subtle fade-in-up for cards (IntersectionObserver)
+- **NO:** Bouncing, spinning, or flashy animations - keep it refined
+
+**Micro-interaction Examples:**
+- Approval button: Ripple effect on tap, smooth color transition
+- Task completion: Gentle fade-out + checkmark scale-in
+- Photo upload: Smooth scale-in when image loads
+- Pull-to-refresh: Elegant arc animation, not jarring
+
+### 5. Dark/Light Theme Strategy
+**Principle:** Deep dark themes with high contrast OR crisp light themes to highlight content
+
+**Implementation:**
+- **Default: WHITE_GLOVE (light)** - Porcelain background, navy accents
+- **Optional: EVENING_SERVICE (dark)** - Deep charcoal with warm undertones
+- **Dark theme colors (if implementing):**
+--bg-primary: #0F1419 (deep charcoal with warm undertone)
+--bg-secondary: #1A1F26
+--bg-tertiary: #242A32
+--text-primary: #F5F4F2
+--text-secondary: #C8C6C3
+--accent-navy: #5B8FCC (lighter navy for dark mode)
+--accent-gold: #D4C5A0 (champagne works in dark too)
+- **High contrast:** Ensure all text meets WCAG AAA in both themes
+- **Smooth theme toggle:** Crossfade transition, not instant flip
+
+### 6. Intuitive Navigation & Guided Flow
+**Principle:** Despite complexity, the journey feels effortless and guided
+
+**Implementation:**
+- **Progressive disclosure:** Show 3 items, then "View all"
+- **Contextual actions:** Right action at right time (no hunting)
+- **Breadcrumb clarity:** Always know where you are
+- **Escape routes:** Clear way back from every screen
+- **Smart defaults:** Pre-fill forms, suggest next actions
+- **Gestural navigation:** Swipe back, swipe actions on cards
+- **One-tap frequency:** Most common actions one tap away
+
+**Navigation Patterns:**
+- Client: 4 tabs max, "More" for extras
+- Assistant: 6 tabs, hide complexity in sheets/modals
+- Deep pages: Smooth slide-in from right, swipe-back to return
+- Modals: Bottom sheets on mobile, centered on desktop
+
+## C) Luxury UI Pattern Library
+
+### Color & Contrast
+**Deep color contrast for drama:**
+- Navy buttons on porcelain background (high contrast)
+- White text on navy (WCAG AAA)
+- Champagne accents sparingly (highlights, not primary)
+- Muted status colors (no neon)
+
+### Elevation & Depth
+**Create depth without heavy shadows:**
+- Primary cards: Very subtle shadow (0 4px 12px rgba(26,29,46,0.06))
+- Elevated elements: Soft, wide shadows
+- Layering: Use opacity and blur for depth
+- 3D elements (optional): Very subtle transform on hover
+```css
+  transform: perspective(1000px) rotateX(1deg);
+```
+
+### Imagery Treatment
+**Product-quality photo standards:**
+- Aspect ratios: 16:9 for landscape, 4:3 for portraits, 1:1 for avatars
+- Rounded corners: 12-16px for photos
+- Border: 1px subtle border (rgba(255,255,255,0.1) on dark images)
+- Loading: Blur-up effect (load tiny blur, fade to sharp)
+- Lightbox: Full-screen with smooth zoom transition
+
+### Glass Morphism (Subtle Use)
+**For floating elements only:**
+```css
+background: rgba(255, 255, 255, 0.95);
+backdrop-filter: blur(20px);
+-webkit-backdrop-filter: blur(20px);
+border: 1px solid rgba(255, 255, 255, 0.2);
+```
+Use for: Bottom nav, modals, floating action buttons
+
+### Luxury Loading States
+**Never show boring spinners:**
+- Skeleton loaders: Shimmer animation with champagne highlight
+- Progress indicators: Elegant line progress, not circular
+- Page transitions: Crossfade, not blank screen
+- Image loading: Blur-up from thumbnail
+
+### Premium Empty States
+**Turn "nothing here" into calm reassurance:**
+- Large, elegant icon (48-64px, single color, minimal line art)
+- Headline: "All set." / "Nothing urgent." / "Enjoy the calm."
+- Subtext: One sentence of context
+- Optional CTA: Single, clear action
+- Background: Subtle illustration (10% opacity)
+
+**Examples:**
+┌─────────────────────────────────────┐
+│                                     │
+│            [calm icon]              │
+│                                     │
+│         All approvals done          │
+│    Take a moment to enjoy the calm  │
+│                                     │
+│                                     │
+└─────────────────────────────────────┘
+
+## D) Luxury Brand Touchpoints
+
+### Welcome Moments
+**First impression sets the tone:**
+- Personalized greeting: "Good morning, Lauren" (with actual time-of-day)
+- Onboarding: Elegant step-by-step with progress dots
+- First success: Celebrate with subtle animation + message
+
+### Delight Details
+**Small touches that signal "premium":**
+- Custom cursor states (pointer with subtle scale on hover)
+- Smooth scroll behavior (CSS scroll-behavior: smooth)
+- Elegant focus states (not harsh blue outline)
+- Time-based greetings (morning/afternoon/evening)
+- Personalization everywhere (use names, not "user")
+
+### Language & Tone
+**Write like a luxury concierge, not a robot:**
+- Confident: "Handled." not "Task marked as complete."
+- Reassuring: "We'll take care of it." not "Request submitted."
+- Warm: "Good morning, Lauren" not "Hello, user"
+- Efficient: "Done." not "Your action has been successfully processed."
+- Never apologize unnecessarily: "Please try again" not "Oops! Sorry!"
+
+### Transitions & Flow
+**Every screen change feels intentional:**
+- Page enter: Fade + slight upward slide (20px)
+- Page exit: Fade out
+- Modal enter: Scale from 0.95 to 1.0 + fade
+- Modal exit: Reverse scale + fade
+- Duration: 200-250ms (quick but smooth)
+- Easing: cubic-bezier(0.4, 0, 0.2, 1) - material easing
+
+## E) Technical Implementation of Luxury Feel
+
+### CSS Custom Properties (Enhanced)
+Add to existing color variables:
+```css
+:root {
+  /* Luxury-specific values */
+  --transition-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  --blur-glass: blur(20px);
+  --blur-subtle: blur(8px);
+  
+  /* Luxury shadows */
+  --shadow-luxury-sm: 0 2px 8px rgba(26, 29, 46, 0.04);
+  --shadow-luxury-md: 0 4px 16px rgba(26, 29, 46, 0.06);
+  --shadow-luxury-lg: 0 8px 32px rgba(26, 29, 46, 0.08);
+  --shadow-luxury-xl: 0 16px 64px rgba(26, 29, 46, 0.12);
+  
+  /* Premium gradients */
+  --gradient-hero: linear-gradient(135deg, #F8F6F3 0%, #FFFFFF 100%);
+  --gradient-shimmer: linear-gradient(90deg, 
+    transparent 0%, 
+    rgba(212, 197, 160, 0.2) 50%, 
+    transparent 100%);
+}
+```
+
+### Tailwind Luxury Utilities
+Add to tailwind.config.ts:
+```typescript
+theme: {
+  extend: {
+    transitionTimingFunction: {
+      'luxury': 'cubic-bezier(0.4, 0, 0.2, 1)',
+      'luxury-bounce': 'cubic-bezier(0.68, -0.55, 0.265, 1.55)',
+    },
+    animation: {
+      'shimmer': 'shimmer 2s infinite',
+      'fade-in-up': 'fadeInUp 0.4s ease-out',
+      'scale-in': 'scaleIn 0.3s ease-out',
+    },
+    keyframes: {
+      shimmer: {
+        '0%': { transform: 'translateX(-100%)' },
+        '100%': { transform: 'translateX(100%)' },
+      },
+      fadeInUp: {
+        '0%': { opacity: '0', transform: 'translateY(20px)' },
+        '100%': { opacity: '1', transform: 'translateY(0)' },
+      },
+      scaleIn: {
+        '0%': { opacity: '0', transform: 'scale(0.95)' },
+        '100%': { opacity: '1', transform: 'scale(1)' },
+      },
+    },
+  },
+}
+```
+
+### Framer Motion Integration (Optional Enhancement)
+If you want to add sophisticated animations:
+```tsx
+import { motion } from 'framer-motion';
+
+// Page transition wrapper
+const pageVariants = {
+  initial: { opacity: 0, y: 20 },
+  animate: { opacity: 1, y: 0 },
+  exit: { opacity: 0, y: -20 },
+};
+
+function Page({ children }) {
+  return (
+    <motion.div
+      variants={pageVariants}
+      initial="initial"
+      animate="animate"
+      exit="exit"
+      transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+// Staggered list animation
+const listVariants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.05,
+    },
+  },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 10 },
+  show: { opacity: 1, y: 0 },
+};
+
+function TaskList({ tasks }) {
+  return (
+    <motion.div variants={listVariants} initial="hidden" animate="show">
+      {tasks.map(task => (
+        <motion.div key={task.id} variants={itemVariants}>
+          <TaskRow task={task} />
+        </motion.div>
+      ))}
+    </motion.div>
+  );
+}
+```
+
+### Intersection Observer for Scroll Animations
+```typescript
+// Custom hook for fade-in on scroll
+function useFadeInOnScroll() {
+  const ref = useRef(null);
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (ref.current) {
+      observer.observe(ref.current);
+    }
+
+    return () => observer.disconnect();
+  }, []);
+
+  return { ref, isVisible };
+}
+
+// Usage
+function Card({ children }) {
+  const { ref, isVisible } = useFadeInOnScroll();
+  
+  return (
+    <div
+      ref={ref}
+      className={`transition-all duration-500 ${
+        isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
+      }`}
+    >
+      {children}
+    </div>
+  );
+}
+```
+
+## F) Luxury Component Examples (Reference Implementations)
+
+### LuxuryHeroCard (Signature Component)
+```tsx
+export function LuxuryHeroCard({
+  greeting,
+  headline,
+  summary,
+  primaryAction,
+  secondaryAction,
+  lastUpdated,
+}: LuxuryHeroCardProps) {
+  return (
+    <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-bg-primary to-bg-secondary p-8 shadow-luxury-lg">
+      {/* Subtle background illustration */}
+      <div className="absolute top-0 right-0 opacity-5">
+        <BellIcon className="w-48 h-48 text-accent-gold" />
+      </div>
+      
+      {/* Content */}
+      <div className="relative z-10">
+        <p className="text-sm text-tertiary mb-1">{greeting}</p>
+        <h1 className="text-3xl font-semibold text-primary mb-3 tracking-tight">
+          {headline}
+        </h1>
+        <p className="text-base text-secondary mb-6">{summary}</p>
+        
+        {/* Actions */}
+        <div className="flex gap-3">
+          <button className="flex-1 bg-accent-navy text-inverse py-3 px-6 rounded-xl font-medium shadow-md hover:shadow-lg hover:bg-accent-navy-hover transition-all duration-200 active:scale-98">
+            {primaryAction}
+          </button>
+          {secondaryAction && (
+            <button className="flex-1 bg-tertiary text-primary py-3 px-6 rounded-xl font-medium border border-subtle hover:bg-hover transition-all duration-200 active:scale-98">
+              {secondaryAction}
+            </button>
+          )}
+        </div>
+        
+        {lastUpdated && (
+          <p className="text-xs text-tertiary mt-4">
+            Last updated {lastUpdated}
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+```
+
+### LuxuryItemRow (Airy List Item)
+```tsx
+export function LuxuryItemRow({
+  title,
+  subtitle,
+  metadata,
+  urgency,
+  status,
+  image,
+  actions,
+  onClick,
+}: LuxuryItemRowProps) {
+  return (
+    <div
+      onClick={onClick}
+      className="group flex items-center gap-4 py-5 px-5 border-b border-subtle last:border-0 hover:bg-hover active:bg-hover/80 transition-all duration-200 cursor-pointer"
+    >
+      {/* Optional image/avatar */}
+      {image && (
+        <div className="flex-shrink-0">
+          <img 
+            src={image} 
+            alt="" 
+            className="w-12 h-12 rounded-xl object-cover"
+          />
+        </div>
+      )}
+      
+      {/* Content */}
+      <div className="flex-1 min-w-0">
+        <div className="flex items-start justify-between gap-2">
+          <h3 className="font-medium text-primary text-base leading-tight mb-1 truncate">
+            {title}
+          </h3>
+          
+          {/* Urgency dot */}
+          {urgency && (
+            <div className="flex items-center gap-1.5 flex-shrink-0">
+              <div className={`w-2 h-2 rounded-full ${
+                urgency === 'HIGH' ? 'bg-status-progress' :
+                urgency === 'MEDIUM' ? 'bg-status-planned' :
+                'bg-status-inbox'
+              }`} />
+              <span className="text-xs text-tertiary capitalize">
+                {urgency.toLowerCase()}
+              </span>
+            </div>
+          )}
+        </div>
+        
+        {subtitle && (
+          <p className="text-sm text-secondary leading-relaxed mb-1 line-clamp-2">
+            {subtitle}
+          </p>
+        )}
+        
+        {metadata && (
+          <p className="text-xs text-tertiary">
+            {metadata}
+          </p>
+        )}
+      </div>
+      
+      {/* Optional actions */}
+      {actions && (
+        <div className="flex-shrink-0">
+          {actions}
+        </div>
+      )}
+      
+      {/* Chevron hint */}
+      <ChevronRightIcon className="w-5 h-5 text-tertiary opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex-shrink-0" />
+    </div>
+  );
+}
+```
+
+### LuxuryButton (Premium Button System)
+```tsx
+export function LuxuryButton({
+  variant = 'primary',
+  size = 'md',
+  children,
+  leftIcon,
+  rightIcon,
+  isLoading,
+  ...props
+}: LuxuryButtonProps) {
+  const baseStyles = "inline-flex items-center justify-center font-medium transition-all duration-200 active:scale-98 disabled:opacity-50 disabled:cursor-not-allowed";
+  
+  const variants = {
+    primary: "bg-accent-navy text-inverse hover:bg-accent-navy-hover shadow-md hover:shadow-lg",
+    secondary: "bg-tertiary text-primary border border-subtle hover:bg-hover",
+    ghost: "bg-transparent text-primary hover:bg-hover",
+    link: "bg-transparent text-accent-navy hover:underline underline-offset-4",
+  };
+  
+  const sizes = {
+    sm: "text-sm px-4 py-2 rounded-lg gap-2",
+    md: "text-base px-6 py-3 rounded-xl gap-2",
+    lg: "text-lg px-8 py-4 rounded-xl gap-3",
+  };
+  
+  return (
+    <button
+      className={`${baseStyles} ${variants[variant]} ${sizes[size]}`}
+      {...props}
+    >
+      {isLoading ? (
+        <LoadingSpinner size={size} />
+      ) : (
+        <>
+          {leftIcon && <span className="flex-shrink-0">{leftIcon}</span>}
+          <span>{children}</span>
+          {rightIcon && <span className="flex-shrink-0">{rightIcon}</span>}
+        </>
+      )}
+    </button>
+  );
+}
+```
+
+## G) Mobile-Specific Luxury Touches
+
+### Pull-to-Refresh (Elegant)
+```typescript
+// Implement with smooth arc animation, not jarring spinner
+let startY = 0;
+let pulling = false;
+
+function handleTouchStart(e: TouchEvent) {
+  startY = e.touches[0].clientY;
+  pulling = window.scrollY === 0;
+}
+
+function handleTouchMove(e: TouchEvent) {
+  if (!pulling) return;
+  
+  const currentY = e.touches[0].clientY;
+  const pullDistance = Math.min(Math.max(currentY - startY, 0), 80);
+  
+  // Update pull indicator with smooth arc transform
+  pullIndicator.style.transform = `translateY(${pullDistance}px) scale(${pullDistance / 80})`;
+  pullIndicator.style.opacity = String(pullDistance / 80);
+}
+
+function handleTouchEnd() {
+  if (pullDistance > 60) {
+    triggerRefresh(); // With elegant animation
+  }
+  // Reset with spring animation
+}
+```
+
+### Haptic Feedback (iOS/Android)
+```typescript
+// Subtle vibration on key interactions
+function triggerHaptic(type: 'light' | 'medium' | 'heavy' = 'light') {
+  if ('vibrate' in navigator) {
+    const patterns = {
+      light: 10,
+      medium: [10, 50, 10],
+      heavy: [10, 50, 10, 50, 10],
+    };
+    navigator.vibrate(patterns[type]);
+  }
+}
+
+// Use on:
+// - Button press (light)
+// - Success action (medium)
+// - Approval/important action (heavy)
+```
+
+### Swipe Gestures (Premium Feel)
+```typescript
+// Smooth swipe-to-complete with visual feedback
+interface SwipeConfig {
+  threshold: number; // 60px
+  resistance: number; // 0.4 (adds friction)
+  damping: number; // spring back speed
+}
+
+// Show colored background as user swipes
+// Green for "done", purple for "waiting"
+// Smooth spring-back if threshold not met
+// Haptic feedback at threshold point
+```
+
+========================================================
+CONTINUE WITH EXISTING PROMPT SECTIONS...
+========================================================
+
+[Keep all existing sections from Part 1B onwards: Color Palette, Typography, Component Library, Page Redesigns, etc.]
+
+[Add this new section after Part 1 but before Part 2:]
+
+========================================================
+PART 1.5: LUXURY UI QUALITY CHECKLIST
+========================================================
+
+Before considering the UI transformation complete, verify:
+
+**Visual Polish:**
+[ ] Every screen has generous white space
+[ ] Typography hierarchy is clear and elegant
+[ ] Colors meet WCAG AAA contrast standards
+[ ] Shadows are subtle, not harsh
+[ ] Borders are hairline thin where used
+[ ] Photos have consistent rounded corners
+[ ] Empty states are calm and reassuring
+
+**Interaction Quality:**
+[ ] All transitions are smooth (200-300ms)
+[ ] Button presses have subtle scale effect
+[ ] Hover states are elegant, not jarring
+[ ] Loading states use shimmer, not spinners
+[ ] Success moments have gentle animations
+[ ] Error states are calm, not alarming
+[ ] Haptic feedback on key interactions (if supported)
+
+**Attention to Detail:**
+[ ] Time-based greetings (morning/afternoon/evening)
+[ ] User's name appears naturally throughout
+[ ] Timestamps are relative ("2h ago", not ISO dates)
+[ ] Numbers are formatted with commas ($1,234)
+[ ] Empty states have contextual messaging
+[ ] Icons are consistent (same stroke weight)
+[ ] Focus states are elegant, not harsh blue
+
+**Mobile Experience:**
+[ ] Touch targets are 48px+ for primary actions
+[ ] Swipe gestures feel natural
+[ ] Pull-to-refresh is smooth
+[ ] Bottom nav doesn't obscure content
+[ ] Safe areas respected on iOS
+[ ] Keyboard pushes up content smoothly
+[ ] Orientation changes gracefully
+
+**Performance Perception:**
+[ ] Skeleton loaders match real content layout
+[ ] Images blur-up from thumbnails
+[ ] Page transitions never show blank screen
+[ ] Optimistic UI updates (instant feedback)
+[ ] Network requests feel instant (<100ms perceived)
+[ ] Smooth 60fps scrolling
+[ ] No layout shift as content loads
+
+**Brand Consistency:**
+[ ] Every screen feels "hndld"
+[ ] Language is confident and warm
+[ ] No generic error messages
+[ ] Microcopy is concise and elegant
+[ ] Illustrations match brand style
+[ ] Photography quality is high
+[ ] Overall feeling is "calm luxury"
+
+========================================================
+[Continue with Part 2: Google Calendar Integration, etc.]
+========================================================
+
+[All remaining sections stay exactly the same]
+
+========================================================
+FINAL IMPLEMENTATION NOTE
+========================================================
+
+This UI transformation is NOT about adding features - it's about ELEVATING the experience. Every pixel, every transition, every word should reinforce "white-glove luxury."
+
+Think: "Would this feel at home in a Four Seasons app or a Chanel boutique experience?"
+
+If the answer is no, refine it until it does.
+
+Quality over speed. Elegance over efficiency. Delight over utility.
+
+PROCEED TO IMPLEMENT NOW.

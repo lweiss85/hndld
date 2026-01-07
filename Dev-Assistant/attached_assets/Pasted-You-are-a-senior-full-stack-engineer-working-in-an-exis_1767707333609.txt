@@ -1,0 +1,134 @@
+You are a senior full-stack engineer working in an existing Replit codebase (Node/Express + React + TanStack Query + Tailwind + shadcn + Framer Motion). Implement the following fixes and enhancements with production-ready quality, minimal regressions, and clean UX.
+
+GOALS
+1) Fix a client-side 404 that occurs when a CLIENT navigates to /payment-profile.
+2) Make the bottom navigation bar feel “premium/white-glove” and ensure it works beautifully across screen sizes with horizontal scrolling.
+3) Add an “Hours/Time Returned” (time saved) metric on the CLIENT dashboard (This Week page) and compute it accurately using estimatedMinutes, with sane fallbacks.
+4) (Optional enhancement) Use existing AI provider infrastructure to auto-estimate estimatedMinutes for tasks that don’t have it, and store the result.
+
+IMPORTANT CONSTRAINTS
+- Keep “Files” as a bottom-nav destination.
+- The bottom nav icons must remain accessible on any screen size via horizontal scroll.
+- Do not break existing invoice/pay flows.
+- Prefer small, well-scoped edits over large refactors.
+
+-----------------------------------------
+(1) FIX CLIENT 404 FOR /payment-profile
+-----------------------------------------
+Problem: /payment-profile route exists only in AssistantRouter. If a Client lands on that route, they get the NotFound page.
+Fix:
+- In client/src/App.tsx, add the route to ClientRouter too:
+  <Route path="/payment-profile" component={PaymentProfile} />
+- PaymentProfile already shows role-based UI; keep it. The goal is to prevent 404.
+
+Acceptance:
+- As CLIENT, navigating to /payment-profile no longer shows NotFound.
+- As CLIENT, the page should not allow editing assistant payment settings (keep current role guard behavior).
+
+-----------------------------------------
+(2) PREMIUM BOTTOM NAV (“JUICY”)
+-----------------------------------------
+File: client/src/components/layout/bottom-nav.tsx
+
+Enhance styling + interaction:
+- Add frosted/porcelain look:
+  - backdrop blur
+  - subtle shadow
+  - thin top border hairline
+- Active tab:
+  - create an animated “active pill” background behind the active tab (Framer Motion)
+  - icon and label subtly lift/brighten on active
+- Horizontal scrolling UX:
+  - Add scroll-snap (snap-x snap-mandatory) to the container and snap-center to items
+  - Add subtle left/right edge gradient fades to indicate scrollability
+  - Ensure touch scrolling is smooth; hide scrollbars aesthetically (webkit + firefox)
+- Micro-UX:
+  - On tab press, tiny haptic vibration where supported (navigator.vibrate(8))
+  - Add a small toast the first time the user scrolls the nav: “More tabs →”
+- Keep the existing conditional “Pay Now” CTA behavior:
+  - When pending invoices exist, animate the Pay Now button in with a slide/fade.
+  - When none, it disappears cleanly.
+  - Ensure the Pay Now CTA does not overflow on small screens; it should remain reachable via the horizontal nav scroll.
+
+Do not change the nav destinations, but you may slightly adjust spacing/tap targets (min 44px height).
+
+Acceptance:
+- Bottom nav looks premium and polished.
+- On small screens, nav is horizontally scrollable with clear affordance.
+- Active tab has an animated pill indicator.
+- Pay Now appears/disappears smoothly and remains accessible.
+
+-----------------------------------------
+(3) “TIME RETURNED” METRIC ON CLIENT DASHBOARD
+-----------------------------------------
+We want “You saved X hours so far” shown on the CLIENT dashboard (This Week page).
+
+PLACEMENT (IMPORTANT UI NOTE):
+- Place the new “Time Returned” LuxuryCard directly UNDER the main hero card on This Week
+  (the hero that summarizes top priorities / “This week is handled” style).
+- This placement makes it feel like a premium KPI and reinforces value immediately before they scroll further.
+
+Backend:
+- Update analytics computation to use real task estimates:
+  - For completed tasks, total minutes = SUM(COALESCE(estimatedMinutes, fallbackMinutes)).
+  - fallbackMinutes default: 15.
+- Prefer to implement a helper in server/services/analytics.ts:
+  - Add function getTimeReturned(householdId, period) returning minutes and hours.
+  - Use date ranges like week/month/all-time.
+- Then include this in /api/dashboard response (server/routes.ts):
+  - Add an `impact` object:
+    impact: {
+      minutesReturnedWeek,
+      minutesReturnedMonth,
+      minutesReturnedAllTime,
+      hoursReturnedWeek,
+      hoursReturnedMonth,
+      hoursReturnedAllTime
+    }
+- Keep existing dashboard fields unchanged (tasks, approvals, events, spending); just append impact.
+
+Frontend:
+- In client/src/pages/this-week.tsx:
+  - Update DashboardData typing to include impact.
+  - Add a new premium LuxuryCard (directly under the hero) titled “Time Returned”.
+  - Display:
+    - This week: Xh Ym
+    - This month: Xh Ym
+    - Total: Xh
+  - Make it feel rewarding:
+    - count-up animation on first load (simple requestAnimationFrame is fine)
+    - a subtle badge like “White Glove Impact”
+    - optional equivalence line: “That’s ~N workdays back” (1 workday = 8h)
+  - Add a small tasteful toast when a milestone is crossed (10h, 25h, 50h all-time). Store the last milestone shown in localStorage so it doesn’t spam.
+
+Acceptance:
+- Client This Week dashboard shows Time Returned metric in the specified placement.
+- Values are consistent and based on estimatedMinutes where available.
+- If estimatedMinutes is null, it falls back to 15 minutes per completed task.
+- No performance issues (use aggregated SQL queries, not fetching all tasks to sum on the client).
+
+-----------------------------------------
+(4) OPTIONAL: AI AUTO-ESTIMATE estimatedMinutes
+-----------------------------------------
+If AI is available (existing server/services/ai-provider.ts), implement:
+- On task creation (POST /api/tasks) if estimatedMinutes is not provided:
+  - Estimate minutes once and store it.
+  - Use a safe prompt and request structured JSON output: { "estimatedMinutes": number, "confidence": "low|medium|high" }
+  - Clamp result to sane bounds (5 to 240 minutes).
+- If AI is unavailable, use category defaults.
+
+Also add UI affordance:
+- In task detail or list, show the estimate subtly (e.g., “~35m”) only if it exists; don’t clutter.
+
+Acceptance:
+- New tasks get estimatedMinutes automatically when absent.
+- No repeated AI calls for the same task.
+- Works even when AI keys are not present (fallback).
+
+-----------------------------------------
+DELIVERABLES
+- Implement in the existing repo (no new project).
+- Verify TypeScript builds.
+- Ensure routes and UI work for both Assistant and Client roles.
+- Do not remove the Files tab from bottom nav.
+- Provide a short summary of what changed and where.

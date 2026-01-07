@@ -1,0 +1,89 @@
+// In today.tsx
+<Card className={cn(isPast && item.status !== "DONE" && "opacity-60")}>
+  <CardContent className="p-3">
+    <div className="flex items-start justify-between gap-2">
+      <div className="flex-1 min-w-0">
+        {/* existing content */}
+      </div>
+      
+      {/* ACTIONABLE BUTTONS */}
+      {item.type === "task" && item.status !== "DONE" && (
+        <div className="flex items-center gap-1">
+          {/* Quick done button */}
+          <Button
+            size="icon"
+            variant="ghost"
+            className="h-8 w-8"
+            onClick={(e) => {
+              e.stopPropagation();
+              updateTaskMutation.mutate({ 
+                id: item.id, 
+                status: "DONE" 
+              });
+              triggerHaptic("medium");
+              toast({ title: "Task completed" });
+            }}
+          >
+            <CheckCircle2 className="h-5 w-5 text-success" />
+          </Button>
+          
+          {/* Quick start button */}
+          {item.status !== "IN_PROGRESS" && (
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-8 w-8"
+              onClick={(e) => {
+                e.stopPropagation();
+                updateTaskMutation.mutate({ 
+                  id: item.id, 
+                  status: "IN_PROGRESS" 
+                });
+              }}
+            >
+              <Play className="h-4 w-4" />
+            </Button>
+          )}
+          
+          {/* More options */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button size="icon" variant="ghost" className="h-8 w-8">
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => {
+                updateTaskMutation.mutate({ 
+                  id: item.id, 
+                  dueAt: setHours(new Date(), 17) 
+                });
+              }}>
+                <Clock className="h-4 w-4 mr-2" />
+                Move to 5pm
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => {
+                updateTaskMutation.mutate({ 
+                  id: item.id, 
+                  dueAt: setHours(addDays(new Date(), 1), 9) 
+                });
+              }}>
+                <Calendar className="h-4 w-4 mr-2" />
+                Move to tomorrow
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => {
+                updateTaskMutation.mutate({ 
+                  id: item.id, 
+                  status: "WAITING_ON_CLIENT" 
+                });
+              }}>
+                <Clock className="h-4 w-4 mr-2" />
+                Mark waiting
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      )}
+    </div>
+  </CardContent>
+</Card>

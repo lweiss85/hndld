@@ -1,0 +1,199 @@
+You are a senior full-stack engineer working inside this existing Replit project: “hndld” (Node/Express + TypeScript + Drizzle/SQLite on the server; React/Vite + Tailwind + shadcn/ui + TanStack Query on the client).
+
+GOAL:
+Fix and complete the CLIENT-SIDE payments/spending experience so clients can clearly access a “Money” area, view reimbursements/service charges, approve, pay externally via Venmo or Zelle, and confirm payment—all with a premium “white glove” UX. Also ensure navigation is mobile-safe with proper safe-area padding and horizontal scrolling if tabs overflow.
+
+CONTEXT (current repo reality):
+- There is a Spending page at client/src/pages/spending.tsx routed at /spending, but it isn’t surfaced well for clients.
+- There is a Pay Now sheet at client/src/components/pay-now-sheet.tsx that fetches GET /api/pay-options (but this endpoint is missing).
+- The server has org payment profile endpoints:
+  - GET/PUT /api/org/payment-profile (assistant-only)
+- Spending APIs exist:
+  - GET/POST /api/spending
+  - PATCH /api/spending/:id/status
+- Bottom nav exists at client/src/components/layout/bottom-nav.tsx and needs mobile safe-area + overflow handling.
+
+IMPORTANT PRODUCT PRINCIPLES (WHITE GLOVE):
+- Client should only see what they need: approve → pay → confirm → receipt.
+- Avoid “accounting software” complexity. No editing amounts/vendors by clients.
+- Make it feel calm: fewer choices, more guided actions.
+- Micro-UX teaches instantly via small premium toasts; no clutter.
+
+========================================================
+LEADER-TIER CLIENT “MONEY” EXPERIENCE (MUST IMPLEMENT)
+========================================================
+The Spending page for CLIENTS should feel like a concierge billing desk, not a spreadsheet.
+
+CLIENT SHOULD SEE (surfaces):
+1) “Waiting on you” (most important)
+   - Items needing approval
+   - Items approved and ready to pay
+   - A single primary CTA per item: Approve / Pay / I paid
+2) “Recent receipts” (trust + closure)
+   - Reconciled items with receipts attached
+   - Simple filters: This month / Last month
+3) “Monthly summary” (optional, small)
+   - “This month: $X reimbursed • Y items”
+   - “Export statement” can be hidden for now (assistant-only initially)
+
+CLIENT SHOULD NOT SEE (hide for simplicity & luxury):
+- Raw vendor management screens
+- Categories/tax breakdowns beyond a simple label
+- Editing line items, splitting, reimburse vs invoice nuance
+- Complex tables, lots of columns, “accounting language”
+- “Delete” actions
+- Internals like who created the entry, status enums, audit fields
+
+CLIENT LANGUAGE (copy tone):
+- Use “Reimbursement” and “Receipt”, not “spend ledger”.
+- Use “Pay now” not “settle balance”.
+- Use calm microcopy: “Noted. Thank you — we’ll reconcile and attach your receipt.”
+
+========================================================
+DELIVERABLES (IMPLEMENT ALL)
+========================================================
+
+1) SERVER: Add a client-safe endpoint: GET /api/pay-options
+- File: server/routes.ts (or suitable routes module)
+- Auth: require isAuthenticated + householdContext
+- Permissions: clients must be able to read pay options (NO assistant-only gates)
+- Behavior:
+  a) Determine organizationId for req.householdId (load household by householdId)
+  b) Load organization payment profile (create defaults if missing)
+  c) Return sanitized JSON ONLY:
+     {
+       venmoUsername: string | null,
+       zelleRecipient: string | null,
+       defaultPaymentMethod: "VENMO" | "ZELLE",
+       payNoteTemplate: string
+     }
+- IMPORTANT: never return any assistant-only secrets; only these fields.
+
+2) CLIENT NAV: Make “Money/Spending” clearly accessible for CLIENTS + mobile safe
+- File: client/src/components/layout/bottom-nav.tsx
+- Add a new tab for clients:
+  { path: "/spending", icon: Receipt (lucide-react), label: "Money" }  // label “Money” feels premium
+- Handle overflow on small screens:
+  - Convert tabs container to horizontal scroll:
+    overflow-x-auto, scroll-smooth, no-scrollbar
+    snap-x snap-mandatory; each tab snap-center
+- Add safe-area support:
+  - Create a utility class or inline style to add padding-bottom: env(safe-area-inset-bottom)
+  - Ensure nav is above home indicator:
+    bottom: 0; padding-bottom includes safe-area; keep height consistent
+- Update AppLayout padding:
+  - File: client/src/components/layout/app-layout.tsx
+  - Replace pb-20 with:
+    pb-[calc(5.5rem+env(safe-area-inset-bottom))]
+
+3) CLIENT SPENDING PAGE: Rebuild IA to “leader-tier”
+- File: client/src/pages/spending.tsx
+- Detect role (CLIENT vs ASSISTANT) and render different UI.
+- For CLIENTS, render these sections in order:
+
+A) Page header
+- Title: “Money”
+- Subtitle: “Reimbursements and receipts, handled.”
+- Optional: small “Payments go to” line (if pay options exist):
+  “Paying to: @venmo / zelle@email.com” with copy buttons (recipient + note)
+  Keep it subtle.
+
+B) Section 1: “Waiting on you”
+- Query spending items filtered to:
+  statuses: NEEDS_APPROVAL, APPROVED, PAYMENT_SENT (if client already marked paid but not reconciled)
+- Sort order:
+  NEEDS_APPROVAL first, then APPROVED, then PAYMENT_SENT
+- For each item show only:
+  - label (Vendor OR category, whichever is available; keep short)
+  - amount
+  - date
+  - short status label (human):
+    NEEDS_APPROVAL → “Approval needed”
+    APPROVED → “Ready to pay”
+    PAYMENT_SENT → “Marked paid”
+- Row actions (one primary action at a time):
+  - If NEEDS_APPROVAL: primary “Approve”
+  - If APPROVED: primary “Pay now” (opens PayNowSheet)
+  - If PAYMENT_SENT: show “Thanks — we’re reconciling.” (no action)
+- After client taps Approve:
+  - instantly show a toast: “Approved.”
+  - automatically open PayNowSheet for that item (premium guided flow)
+
+C) Section 2: “Recent receipts”
+- Query reconciled items (RECONCILED) for last 60 days (server filter if available).
+- Each row:
+  - label, amount, date
+  - “Receipt” button if attachment exists
+- If you don’t have receipt download yet, show “Receipt attached” with open file action.
+
+D) Section 3: “This month”
+- Tiny summary card:
+  - total reimbursed (sum of RECONCILED in current month)
+  - count
+- Keep minimal—no charts for now.
+
+E) States + polish
+- Always show skeleton loaders while loading.
+- Empty states must feel luxe:
+  - Waiting on you empty: “All set. Nothing needs your attention.”
+  - Receipts empty: “Receipts will appear here as items are reconciled.”
+
+4) PAY NOW SHEET: Wire to new endpoint + Venmo + Zelle
+- File: client/src/components/pay-now-sheet.tsx
+- Replace/fix pay options fetch to use GET /api/pay-options response shape above.
+- Generate a note using template tokens:
+  Support tokens: {ref} {category} {date} {vendor} {amount}
+  If missing fields, replace with blank gracefully (no “undefined”).
+- Venmo:
+  - Provide deep link + web fallback:
+    venmo://paycharge?txn=pay&recipients=<username>&amount=<amount>&note=<encoded_note>
+    https://venmo.com/<username>?txn=pay&amount=<amount>&note=<encoded_note>
+  - Prefer deep link on mobile, fallback to web.
+- Zelle:
+  - No universal deep link—show:
+    Recipient (email/phone) + Copy
+    Amount + Copy
+    Note + Copy
+    Instruction line: “Pay in your bank’s Zelle, then tap ‘I paid’.”
+- “I paid”:
+  - Call PATCH /api/spending/:id/status with { status: "PAYMENT_SENT", paymentMethodUsed: "VENMO"|"ZELLE", paymentNote }
+    (If server doesn’t accept extra fields yet, add them or ignore safely.)
+  - Optimistic update.
+  - Toast: “Marked as paid. Thank you.”
+- Micro-UX toasts:
+  - Copy recipient/note/amount → “Copied.”
+  - Opening Venmo → “Opening Venmo…”
+  - Payment not configured → “Payment method not set up yet.”
+
+First-time helper (teach instantly, then disappear):
+- On first open only (localStorage flag):
+  Show a small helper line:
+  “Venmo opens pre-filled. Zelle copies details.”
+
+Scroll + safe areas (required):
+- PayNowSheet must be a mobile Drawer with:
+  - max-height: calc(100vh - env(safe-area-inset-top) - 16px)
+  - internal scroll region overflow-y-auto
+  - sticky bottom action bar with padding-bottom env(safe-area-inset-bottom)
+
+5) OPTIONAL BUT IMPORTANT: Add a “Money” entry point inside Approvals for clients
+- File: client/src/pages/approvals.tsx
+- If role is CLIENT:
+  - Add a compact card at top:
+    “Payments waiting” + badge count + button → /spending
+  - Keep it subtle, premium.
+
+6) QA CHECKLIST (MUST PASS)
+- Client can reach /spending from bottom nav (“Money” tab).
+- /api/pay-options works for clients (no permission errors).
+- Client spending page shows “Waiting on you” with guided actions.
+- Approving an item triggers toast and opens PayNowSheet.
+- Venmo button opens with amount/note prefilled (deep link + web fallback).
+- Zelle flow supports copy buttons + toasts.
+- “I paid” updates status to PAYMENT_SENT and reflects in UI.
+- Content never hides behind bottom nav on iOS (safe-area padding).
+- Nav remains usable on small screens (horizontal scroll/snap works).
+
+Implement with minimal disruption to existing code style, reuse UI primitives/toast utilities, and keep assistant flows intact.
+
+At the end, list files changed and briefly describe each change.

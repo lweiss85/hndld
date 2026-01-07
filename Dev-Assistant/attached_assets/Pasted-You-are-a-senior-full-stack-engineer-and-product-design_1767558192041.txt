@@ -1,0 +1,238 @@
+You are a senior full-stack engineer and product designer working inside my existing Replit project “HouseOps” (Node/Express + Prisma + SQLite + Prisma + React/Vite + Tailwind). The app is already running and deployed as a mobile-first PWA. I need you to ADD a premium “Household Concierge Setup” onboarding flow and supporting data model + screens + automations.
+
+PRIMARY GOAL
+Create a “Preferences Brain” for a single-household family so my app becomes a world-class personal concierge OS. The onboarding must be mobile-first, fast (6–8 minutes), skippable, and progressive (Phase 1 required, Phase 2/3 optional). Data collected should power smart suggestions later.
+
+HIGH-LEVEL REQUIREMENTS
+1) Add a first-run onboarding wizard called “Household Concierge Setup”.
+2) Make it appear automatically when:
+   - A household has not completed Phase 1 onboarding
+   - The logged-in user is the ASSISTANT (only assistant can complete household setup)
+   Clients can VIEW the household profile and preferences later, but only assistant edits (unless you already support client edit permissions—keep it simple: assistant only edits).
+3) Add a household “Profile” area accessible after onboarding:
+   - Assistant: full edit access
+   - Client: read-only (except possibly small preference toggles if easy)
+4) Add “Moments Mode” weekly prompts (automation) that creates tasks from upcoming important dates/events:
+   - Weekly check (every Monday at 8am local) to look ahead 30 days:
+     - birthdays, anniversaries, memorial dates, observed holidays
+   - If any are coming up, create suggested tasks:
+     - “Plan gift for ____”
+     - “Order flowers for ____”
+     - “Book dinner reservation for ____”
+     - “Buy card + write note for ____”
+   - If the household has “Delight Budget” enabled, create 1 small surprise suggestion task per month (optional, controlled by settings).
+5) Keep onboarding extremely pleasant:
+   - minimal typing
+   - lots of picklists/chips
+   - “Skip for now” on every screen
+   - progress indicator (Step X of Y)
+   - Save on each step so user can exit and resume.
+
+ONBOARDING PHASES (MUST IMPLEMENT)
+PHASE 1 (Required – must complete to dismiss onboarding):
+A) Household Basics
+- Household display name
+- Primary address (street/city/state/zip) + optional secondary address
+- Timezone (default to America/Chicago if unknown)
+- Key locations (simple list): schools, clinics, studios, grandparents, favorite stores (name + address optional)
+- Entry instructions (text)
+- Quiet hours (start/end)
+B) People & Pets
+For each household member and pet:
+- Full name
+- Nickname/preferred name
+- Role (Parent, Child, Pet, Other)
+- Birthday (date) + optional “How they like to be celebrated” (chips: low-key, party, dinner out, gifts, experiences)
+- Allergies/sensitivities (chips + free text)
+- Dietary rules (chips: none, vegetarian, pescatarian, gluten-free, dairy-free, nut-free, etc.)
+- Clothing sizes and shoe sizes (optional in Phase 1 but allow)
+C) Rules of Engagement
+- Purchase approval threshold (number; default 100)
+- Communication preference (push/email/sms placeholder; implement push in-app only if needed; otherwise store preference)
+- “When in doubt” rules (chips + text):
+  - choose earlier appointment
+  - buy organic produce
+  - text before entering home
+  - substitute brand ok/not ok
+D) Calendar Connect (Read-only)
+- Reuse existing Google Calendar connect and selection flow.
+- Encourage dedicated “Kids + Household Ops” calendar with a friendly note.
+- Must allow skipping, but show warning “You can connect later in Settings.”
+
+PHASE 2 (Optional but included in onboarding; can be completed later):
+E) Preferences Brain
+Food & Drink:
+- Coffee/tea preferences (chips + text)
+- Favorite restaurants (list)
+- Go-to takeout orders (list)
+- Alcohol preferences (optional): spirits/wine/beer (chips: red/white/rosé/sparkling; dry/sweet; preferred brands)
+Pantry staples:
+- Always-keep-stocked items (list)
+Gifts & Flowers:
+- Preferred flowers (chips/list) + no-go flowers
+- Favorite scents (chips: vanilla, citrus, lavender, none/fragrance-free)
+- Gift style (chips: practical, sentimental, experience, luxury, minimal)
+- “Do not buy” list
+Home:
+- Cleaning products preference (fragrance-free, bleach ok, etc.)
+- Thermostat preference ranges (summer/winter)
+- Design style (chips: modern, transitional, farmhouse, eclectic, minimalist, etc.)
+- Preferred retailers (chips/list)
+
+PHASE 3 (Optional power):
+F) Access & Emergency (secure fields)
+- Emergency contacts
+- Pediatrician/primary care, preferred urgent care, vet
+- Pharmacy
+- Insurance card images upload (optional) – if too complex, store placeholders and allow uploads later
+- School pickup notes / authorization text
+G) Vendor Ecosystem
+- Preferred vendors list with: category (HVAC, plumber, electrician, lawn, babysitter, etc.), contact, notes
+- Vendor rules (chips):
+  - can enter without client home
+  - requires scheduling approval
+  - allowed days/times
+
+POST-ONBOARDING: HOUSEHOLD PROFILE UI
+Add a “Household” section (assistant nav already has House tab; enhance it):
+- “Overview” card: household name, addresses, quiet hours, approval threshold
+- “People & Pets” list with detail pages
+- “Preferences Brain” with categories and searchable preferences
+- “Important Dates” list and reminders
+- “Vendors” list
+- “Emergency & Access” (permission gated; client read-only if present)
+
+IMPORTANT DATES & REMINDERS
+Add support for:
+- Birthdays (from People)
+- Anniversary(s) (household-level)
+- Memorial dates (optional)
+- Observed holidays (select list; store as recurring annual)
+Each date should support reminder offsets (e.g., 30/14/7/3 days before). Default to 14 days for birthdays/anniversaries.
+
+DATA MODEL (Prisma) – ADD THESE MODELS/FIELDS
+1) HouseholdSettings
+- id, householdId unique
+- timezone
+- quietHoursStart, quietHoursEnd
+- approvalThreshold
+- communicationPreference enum (IN_APP, EMAIL, SMS_PLACEHOLDER)
+- whenInDoubtRules string[] (json)
+- delightBudgetEnabled boolean
+- delightBudgetAmount number nullable
+- onboardingPhase1Complete boolean
+- onboardingPhase2Complete boolean
+- onboardingPhase3Complete boolean
+- createdAt, updatedAt
+
+2) HouseholdLocation
+- id, householdId, name, type enum (SCHOOL, CLINIC, STORE, FAMILY, OTHER), address, notes
+
+3) Person
+- id, householdId
+- fullName, preferredName
+- role enum (PARENT, CHILD, PET, OTHER)
+- birthday date nullable
+- celebrationStyle string[] (json)
+- allergies string[] (json) + allergyNotes text
+- dietaryRules string[] (json) + dietNotes text
+- clothingSize text nullable
+- shoeSize text nullable
+- createdAt, updatedAt
+
+4) Preference
+- id, householdId
+- category enum (FOOD_DRINK, PANTRY, GIFTS_FLOWERS, HOME, COMMUNICATION, OTHER)
+- key text (e.g. “Flowers” “No-go flowers” “Wine” “Thermostat Winter”)
+- value text
+- tags string[] (json)
+- isNoGo boolean default false
+- createdByUserId
+- createdAt, updatedAt
+
+5) ImportantDate
+- id, householdId
+- type enum (ANNIVERSARY, MEMORIAL, HOLIDAY, OTHER)
+- title text
+- date (store month/day; easiest: store full date and treat as recurring yearly)
+- recurrence enum YEARLY
+- reminderOffsetsDays int[] (json)
+- notes text
+- createdAt, updatedAt
+
+6) AccessItem (secure-ish)
+- id, householdId
+- category enum (ENTRY, WIFI, ALARM, LOCKS, GARAGE, OTHER)
+- title, value, notes
+- isSensitive boolean default true
+- createdAt, updatedAt
+Implementation: For MVP, store in DB but NEVER show to clients unless you choose; at minimum allow client read-only but mask sensitive values (e.g., show “•••••” with reveal only for assistant).
+
+7) Enhance Vendor + Spending if needed:
+- Vendor already exists; add fields if missing: address, canEnterAlone boolean, requiresApproval boolean, preferredTimes text.
+- Spending add “weekStart” aggregator not needed; compute in queries.
+
+AUTOMATIONS (“MOMENTS MODE”)
+- Add node-cron job running weekly Monday 08:00 household timezone (approx; if timezone handling is hard, run 8am server time and note in README).
+- Job checks next 30 days for ImportantDates + birthdays from Person.
+- For each found, if no existing task already created for that date in the last 60 days, create tasks in Planned status:
+  - “Plan birthday for {name}”
+  - “Order flowers for {title/name}”
+  - “Buy card + write note for {title/name}”
+- If delightBudgetEnabled, create one monthly task: “Delight moment: small surprise idea this month” (only if not created in last 30 days).
+- Log job activity safely (no secrets).
+
+API ENDPOINTS
+Add REST endpoints with auth + household validation + Zod:
+- GET/PUT /api/household/settings
+- CRUD /api/household/locations
+- CRUD /api/people
+- CRUD /api/preferences
+- CRUD /api/important-dates
+- CRUD /api/access-items (assistant-only; clients read-only or hidden)
+Also add:
+- GET /api/onboarding/status
+- POST /api/onboarding/complete-phase (phase=1|2|3)
+
+FRONTEND UI
+1) Onboarding Wizard (mobile-first):
+- Route: /onboarding
+- Steps with progress indicator and “Skip for now” where allowed.
+- Phase 1 steps must end with “Complete Phase 1” button (required fields validated).
+- Use chips/pills for common options; allow “Other” text.
+- Save each step (autosave or next button) to backend.
+
+2) Household Profile (after onboarding):
+- Accessible from Assistant “House” tab as “Household Concierge Profile”
+- Client view: add read-only view under a simple “Household” link in client nav or in Settings.
+
+3) Use collected preferences in UI immediately:
+- In Requests form, add optional “Use household preference” suggestions (simple dropdowns).
+- In Approvals creation, show preferred retailers and “no-go” notes if available.
+
+SEED & MIGRATIONS
+- Create prisma migrations.
+- Update seed to populate:
+  - HouseholdSettings
+  - 2 parents, 1 child, 1 pet with sample birthdays
+  - 10 preferences (flowers, wine, coffee, thermostat, no-go list)
+  - 2 important dates (anniversary, holiday)
+  - 3 locations (school, clinic, favorite store)
+  - 2 vendors
+- Ensure demo logins still work.
+
+SECURITY / PERMISSIONS
+- Only ASSISTANT can edit household settings, people, preferences, important dates, access items, vendors.
+- Clients can view (read-only) most profile data, BUT:
+  - Mask AccessItem sensitive values for clients.
+- Ensure every query is scoped by householdId.
+
+DELIVERABLE
+Implement all required backend + frontend changes, with no breaking changes. Ensure:
+- npm run dev works
+- onboarding triggers for assistant if Phase 1 incomplete
+- after completing Phase 1, onboarding no longer blocks
+- household profile pages render on mobile cleanly
+- weekly cron creates tasks as described (can be tested with a manual trigger endpoint /api/admin/run-moments-mode that is ASSISTANT-only and only enabled in DEMO_MODE=true)
+
+After implementing, briefly list which files were added/modified and where the onboarding entry point is.

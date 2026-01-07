@@ -1,0 +1,85 @@
+Feature Request: Task Cancellation with Assistant Notification
+Implement a task cancellation feature that lets clients cancel requests while automatically notifying their assistants. This replaces hard delete with a soft status change.
+Requirements
+Schema Changes (shared/schema.ts):
+
+Add "CANCELLED" to the taskStatusEnum
+Add "TASK_CANCELLED" to the notificationTypeEnum
+Add three new fields to the tasks table:
+
+cancelledAt: timestamp (nullable)
+cancelledBy: varchar (nullable) - references user who cancelled
+cancellationReason: text (nullable) - optional reason provided by client
+
+
+
+Database Migration:
+Create migration to add CANCELLED to task_status enum, TASK_CANCELLED to notification_type enum, and add the three new columns to tasks table.
+Backend - Notification Service (server/services/notifications.ts):
+Add a notifyTaskCancelled function that:
+
+Takes householdId, assistantUserIds array, taskTitle, taskId, cancelledByName, optional reason
+Creates in-app notification for each assistant
+Sends email if configured
+Uses type "TASK_CANCELLED"
+Message format: "{userName} cancelled: {taskTitle}" with reason on new line if provided
+
+Backend - New Endpoint (server/routes.ts):
+Add POST /api/tasks/:id/cancel endpoint:
+
+Requires authentication and household context
+Request body: { reason?: string } (optional)
+Validates task exists and isn't already DONE or CANCELLED
+Updates task with: status=CANCELLED, cancelledAt=now, cancelledBy=userId, cancellationReason=reason
+Finds all ASSISTANT role users in household
+Calls notifyTaskCancelled for each assistant
+Creates audit log entry with action "TASK_CANCELLED"
+Returns: { task, message, notifiedAssistants: number }
+
+Frontend - New Component (client/src/components/cancel-task-dialog.tsx):
+Create a dialog component with:
+
+Props: open, onOpenChange, taskTitle, onConfirm(reason?: string), isLoading
+Centered XCircle icon in muted circle at top
+Title: "Cancel Request?"
+Subtitle: "Your assistant will be notified that you've cancelled this request."
+Task title displayed in muted rounded box
+"Add a note (optional)" expandable link that reveals a textarea
+Two buttons: "Keep Request" (outline) and "Cancel Request" (destructive style)
+Reset state when dialog closes
+
+Frontend - Tasks Page Updates (client/src/pages/tasks.tsx):
+
+Add to STATUSES array: { value: "CANCELLED", label: "Cancelled" }
+Add to STATUS_COLORS: CANCELLED: "bg-muted text-muted-foreground line-through"
+Add state: showCancelDialog, taskToCancel
+Add cancelTaskMutation using POST /api/tasks/:id/cancel
+Add handleCancelTask(task) and confirmCancelTask(reason) handlers
+Replace context menu "Delete coming soon" item with:
+
+Icon: XCircle
+Label: "Cancel Request"
+Disabled if task.status is DONE or CANCELLED
+onClick: calls handleCancelTask(task)
+
+
+Add CancelTaskDialog component at end of JSX, wired to state
+Import XCircle from lucide-react and CancelTaskDialog component
+
+Design Requirements:
+
+Follow existing design_guidelines.md (porcelain/navy colors, luxury shadows)
+Use existing animation classes (animate-fade-in-up)
+Dialog should feel effortless, not scary
+Optional reason input should be inviting, not required
+Success toast: "Request cancelled" with description "Your assistant has been notified"
+
+Testing Considerations:
+
+Client can cancel tasks from context menu
+Dialog shows correctly with task title
+Optional reason field works
+Task moves to CANCELLED status
+Assistant receives notification
+Cancelled tasks show with line-through style
+Already cancelled/completed tasks can't be cancelled again

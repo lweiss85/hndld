@@ -1,0 +1,97 @@
+You are a senior full-stack engineer working inside my existing Replit project “HouseOps” (Node/Express + Prisma + SQLite + React/Vite + Tailwind). The app is already running. I need you to ADD “Client Quick Reactions” (5 options) to Completed Tasks and Updates.
+
+GOAL
+Busy clients should be able to tap a simple button instead of typing. Add 5 reactions:
+1) ✅ LOOKS_GOOD
+2) ❓ NEED_DETAILS
+3) 🔁 PLEASE_ADJUST
+4) ❤️ LOVE_IT
+5) 📌 SAVE_THIS
+
+WHERE IT APPEARS (UI)
+A) Updates feed:
+- On every Update card in the feed AND on the Update detail page.
+- Show a compact row of 5 buttons with icon + short label.
+B) Completed tasks:
+- On Task detail page when status === DONE.
+- Also show on the “Done” list cards if there’s room; if not, only on detail.
+C) Approvals (optional, nice-to-have if quick):
+- On Approval detail page after status is APPROVED/DECLINED, allow reactions too, but only if it’s easy and does not break anything.
+
+BEHAVIOR
+- Tapping a reaction should create OR update the user’s reaction for that entity (one reaction per user per entity).
+- If the user taps the same reaction again, it should toggle off (remove reaction).
+- Show a small count next to each reaction (e.g., ✅ 2, ❤️ 1) aggregated across household users.
+- If the current user already reacted, visually highlight their selected reaction.
+- For ❓ NEED_DETAILS and 🔁 PLEASE_ADJUST only:
+  - After tapping, open a bottom sheet/modal asking for optional context with:
+    - quick chips: “Cost?”, “Timeline?”, “Photos?”, “What’s next?”, “Why this option?”
+    - a single-line optional text input: “Add a note…”
+    - Submit button.
+  - Save the note as a Comment linked to the entity (entityType + entityId) AND also store it on the Reaction record as optional note (if you prefer). The comment should be authored by the client.
+- For 📌 SAVE_THIS:
+  - When tapped, create a “Preference” entry (if you can do quickly) OR store it as a reaction only for now.
+  - If you implement Preferences: show a toast “Saved to household preferences.”
+
+DATA / DB (Prisma)
+1) Add a new model Reaction:
+- id (uuid/cuid)
+- entityType enum: TASK | UPDATE | APPROVAL
+- entityId string
+- reactionType enum: LOOKS_GOOD | NEED_DETAILS | PLEASE_ADJUST | LOVE_IT | SAVE_THIS
+- note optional string (nullable)
+- userId (FK)
+- householdId (FK)
+- createdAt, updatedAt
+Constraints:
+- Unique compound index on (entityType, entityId, userId) so each user has at most one reaction per item.
+- Index for (householdId, entityType, entityId) for fast counts.
+
+2) If you add Preferences (optional, only if easy):
+- Preference model: id, householdId, type (enum), title, details, sourceEntityType, sourceEntityId, createdBy, createdAt.
+But keep MVP safe: it’s OK to defer Preferences and only store SAVE_THIS as a reaction.
+
+BACKEND API
+Create REST endpoints:
+- POST /api/reactions
+  body: { entityType, entityId, reactionType, note? }
+  behavior: upsert reaction for current user; if same reaction exists -> delete (toggle off)
+- GET /api/reactions?entityType=UPDATE&entityIds=1,2,3
+  returns aggregated counts per entityId + currentUserReaction per entity
+Add analogous support for TASK and APPROVAL.
+Security:
+- Must require auth
+- Must verify entity belongs to the user’s household before writing/reading reactions.
+- Validate with Zod.
+
+FRONTEND
+- Create a reusable component <QuickReactions entityType entityId /> that:
+  - fetches current aggregated counts + current user reaction
+  - renders 5 buttons
+  - handles toggle/upsert
+  - opens modal for NEED_DETAILS / PLEASE_ADJUST
+  - shows toasts for success/errors
+- Keep it mobile-first and clean; use Tailwind; no heavy UI library.
+- Ensure optimistic UI feels responsive but stays correct on error.
+
+COMMENTS INTEGRATION
+- When NEED_DETAILS / PLEASE_ADJUST note submitted:
+  - Create a Comment via existing comments endpoint OR add a new endpoint if needed.
+  - Comment should appear in the existing comment thread on that entity.
+
+MIGRATION + SEED
+- Add Prisma migration for Reaction model.
+- Update seed script to create a few sample reactions from the demo client user on a couple updates and tasks.
+
+TESTING / VERIFICATION
+- Ensure:
+  - Client can tap reactions on updates & completed tasks
+  - Highlighting works
+  - Counts update correctly
+  - Toggle off works
+  - Notes create comments
+  - Assistant can also react (optional) but typically clients will.
+- Run the app and confirm no TypeScript errors.
+
+DELIVERABLE
+Make all necessary code changes in server + client, update Prisma schema, migrate, update seed, and ensure npm run dev still works. Explain briefly what files changed and where the new component is used.

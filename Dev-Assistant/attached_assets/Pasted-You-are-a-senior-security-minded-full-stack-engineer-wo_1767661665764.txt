@@ -1,0 +1,195 @@
+You are a senior security-minded full-stack engineer working inside my existing Replit project “hndld” (Node/Express + TypeScript + Drizzle/SQLite + React/Vite). The app works, BUT it is not multi-household-safe because many routes ignore the active household and use getOrCreateHousehold(userId). Fix this properly.
+
+GOAL (P0)
+Make household scoping + role/permission enforcement correct end-to-end WITHOUT breaking current single-household behavior.
+
+IMPORTANT CONSTRAINTS
+- Keep existing routes and response shapes unless absolutely necessary.
+- Keep the frontend behavior: it already sends X-Household-Id.
+- After changes, the app must support:
+  1) assistants managing multiple households safely
+  2) clients only seeing their own household
+  3) no data leakage between households
+
+========================================================
+1) ADD A REAL HOUSEHOLD CONTEXT MIDDLEWARE
+========================================================
+Create server/middleware/householdContext.ts
+
+Behavior:
+- Reads household id from (in order):
+  1) req.header("X-Household-Id")
+  2) req.query.householdId (fallback for older calls)
+- If missing:
+  - If user belongs to exactly 1 household, use that household id automatically.
+  - If user belongs to 0 households:
+    - If role selection/bootstrap flow exists, allow the bootstrap endpoints only (see allowlist below)
+    - Otherwise return 400 with a clear error: { error: "household_required" }
+  - If user belongs to >1 household, return 409 with { error: "household_selection_required" }
+
+Authorization:
+- Verify the authenticated user is a member of that household.
+- Attach to request:
+  - req.householdId
+  - req.householdRole (ASSISTANT/CLIENT/…)
+  - req.organizationId (if available)
+  - req.userId (already exists)
+
+Allowlist (bootstrap endpoints only):
+- /api/auth/* (if present)
+- /api/role-selection/*
+- /api/onboarding/* (only status/init)
+- /api/organizations/create (if present)
+- /api/households/create (if present)
+All other endpoints REQUIRE household context.
+
+TypeScript:
+- Add a declaration merge to extend Express.Request with householdId, householdRole, organizationId.
+  Create server/types/express.d.ts and update tsconfig include if needed.
+
+========================================================
+2) STOP USING getOrCreateHousehold(userId) IN ROUTES
+========================================================
+Right now server/routes.ts uses getOrCreateHousehold(userId) in many endpoints.
+Refactor so that:
+- Most routes use req.householdId from middleware.
+- getOrCreateHousehold(userId) is used ONLY for first-time bootstrap paths (creating the first household for a user).
+
+Implementation:
+- In server/routes.ts, mount householdContext middleware globally for /api/* EXCEPT the allowlist.
+Example:
+  app.use("/api", authMiddleware, householdContextMiddleware);
+  then override for allowlist routes by mounting them before householdContext.
+
+Then update every route handler:
+- Replace:
+    const household = await getOrCreateHousehold(req.user!.id);
+  with:
+    const householdId = req.householdId!;
+    // if you need the household record, fetch by id
+    const household = await getHouseholdById(householdId);
+
+Add helper in server/storage.ts:
+- getHouseholdById(householdId)
+
+========================================================
+3) FIX PROFILE LOOKUP: MAKE IT HOUSEHOLD-AWARE
+========================================================
+Current bug:
+- getUserProfile(userId) returns the first row which is unsafe when multiple households exist.
+
+Create in server/storage.ts:
+- getUserProfileForHousehold(userId, householdId)
+  - returns the user profile row for THAT household (or membership row)
+  - if not found, return null
+
+Update all code to stop calling getUserProfile(userId) inside household-scoped endpoints.
+Instead use:
+- const profile = await getUserProfileForHousehold(req.userId, req.householdId)
+
+If your profile data is actually stored in householdMembers, prefer using that membership table as truth.
+
+========================================================
+4) ENFORCE PERMISSIONS (NOT JUST ROLE STRINGS)
+========================================================
+You already have server/lib/permissions.ts but it isn’t used.
+
+Implement middleware:
+- server/middleware/requirePermission.ts
+
+API:
+- requirePermission("CAN_EDIT_TASKS")
+- requirePermission("CAN_APPROVE")
+- requirePermission("CAN_VIEW_VAULT")
+- requirePermission("CAN_EDIT_VAULT")
+- requirePermission("CAN_MANAGE_MEMBERS")
+- requirePermission("CAN_MANAGE_SETTINGS")
+- requirePermission("CAN_EDIT_SPENDING")
+- requirePermission("CAN_VIEW_SPENDING")
+- requirePermission("CAN_ADMIN_EXPORTS")
+
+Rules:
+- Map Household roles to permissions (ASSISTANT gets all).
+- Allow household-specific overrides if permissionsJson exists.
+
+Apply middleware to sensitive routes in server/routes.ts:
+- Spending create/update/delete: CAN_EDIT_SPENDING
+- Approvals approve/decline: CAN_APPROVE
+- Vault pin set/unlock/reveal: CAN_VIEW_VAULT (and CAN_EDIT_VAULT for pin changes)
+- Exports/backups/restore: CAN_ADMIN_EXPORTS
+- Member/invite management: CAN_MANAGE_MEMBERS
+- Household settings changes: CAN_MANAGE_SETTINGS
+
+Also ensure every household-scoped query includes householdId in WHERE.
+
+========================================================
+5) ADD MISSING RESTORE ENDPOINT (GUARDED)
+========================================================
+Replit claimed restore exists, but in this codebase it is missing.
+Implement:
+- POST /api/admin/restore
+
+Guard:
+- Only allow if DEMO_MODE=true OR request includes header "X-Restore-Key" matching process.env.RESTORE_KEY
+- Also requirePermission("CAN_ADMIN_EXPORTS")
+
+Behavior:
+- Accept multipart form-data with a .zip file (same structure as export)
+- Before restore, create a "pre-restore" backup zip automatically
+- Restore:
+  - replace SQLite db file
+  - replace uploads folder (or merge safely)
+- Use a simple write lock so the server doesn’t write while restoring.
+- Return { ok: true } and log an Audit event "restore_performed"
+
+Also ensure backups endpoints are household-agnostic admin operations but permission-gated.
+
+========================================================
+6) FIX “SET DEFAULT HOUSEHOLD” TO ACTUALLY PERSIST
+========================================================
+If /api/households/set-default exists and returns success but doesn’t save:
+- Add a field for default household selection:
+  Option A: userProfiles.defaultHouseholdId
+  Option B: a new table userSettings with defaultHouseholdId
+Choose the simplest existing place.
+
+Update:
+- POST /api/households/set-default { householdId }
+  - verifies membership
+  - persists default household id
+
+Update middleware householdContext:
+- If no X-Household-Id and user has >1 household:
+  - if default exists, use it
+  - else return 409 selection required
+
+========================================================
+7) MINIMUM TESTS / VERIFICATION (DO THIS)
+========================================================
+Add a small script or route-level checks to verify:
+1) Assistant with 2 households:
+   - switching X-Household-Id changes returned tasks/updates correctly
+   - no cross-household leakage
+2) Client in household A:
+   - cannot access household B even if they pass B’s X-Household-Id
+3) Permissions:
+   - client cannot export/restore
+   - nanny cannot see spending/vault
+4) Bootstrap:
+   - first-time user with 0 households can still complete role selection and create a household
+
+Add server-side logs only in DEMO_MODE for easier debugging.
+
+========================================================
+8) DELIVERABLE
+========================================================
+- Implement householdContext middleware and apply it correctly.
+- Remove most getOrCreateHousehold usage from routes.
+- Replace getUserProfile with getUserProfileForHousehold everywhere.
+- Add requirePermission and apply to sensitive endpoints.
+- Add restore endpoint (guarded).
+- Make default household persistence real.
+- Ensure npm run dev works and existing UI continues working.
+- At the end, print a short list of files changed.
+
+Proceed to implement now in this repo.

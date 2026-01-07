@@ -1,0 +1,186 @@
+// Enhanced task detail modal
+<Dialog open={!!selectedTask} onOpenChange={() => setSelectedTask(null)}>
+  <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+    <DialogHeader>
+      <DialogTitle>Edit Task</DialogTitle>
+    </DialogHeader>
+    {selectedTask && (
+      <div className="space-y-4">
+        {/* EDITABLE TITLE */}
+        <div>
+          <label className="text-sm font-medium mb-1 block">Title</label>
+          <Input
+            value={selectedTask.title}
+            onChange={(e) => setSelectedTask({ ...selectedTask, title: e.target.value })}
+            onBlur={() => {
+              updateTaskMutation.mutate({ 
+                id: selectedTask.id, 
+                title: selectedTask.title 
+              });
+            }}
+          />
+        </div>
+
+        {/* EDITABLE DESCRIPTION */}
+        <div>
+          <label className="text-sm font-medium mb-1 block">Description</label>
+          <Textarea
+            value={selectedTask.description || ""}
+            onChange={(e) => setSelectedTask({ ...selectedTask, description: e.target.value })}
+            onBlur={() => {
+              updateTaskMutation.mutate({ 
+                id: selectedTask.id, 
+                description: selectedTask.description 
+              });
+            }}
+            rows={3}
+          />
+        </div>
+
+        {/* EDITABLE DUE DATE */}
+        <div>
+          <label className="text-sm font-medium mb-1 block">Due Date</label>
+          <div className="flex gap-2">
+            <Input
+              type="datetime-local"
+              value={selectedTask.dueAt ? format(new Date(selectedTask.dueAt), "yyyy-MM-dd'T'HH:mm") : ""}
+              onChange={(e) => {
+                const newDueAt = e.target.value ? new Date(e.target.value) : null;
+                setSelectedTask({ ...selectedTask, dueAt: newDueAt });
+                updateTaskMutation.mutate({ 
+                  id: selectedTask.id, 
+                  dueAt: newDueAt 
+                });
+              }}
+              className="flex-1"
+            />
+            {selectedTask.dueAt && (
+              <Button 
+                variant="ghost" 
+                size="icon"
+                onClick={() => {
+                  setSelectedTask({ ...selectedTask, dueAt: null });
+                  updateTaskMutation.mutate({ id: selectedTask.id, dueAt: null });
+                }}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {/* QUICK RESCHEDULE CHIPS */}
+        <div>
+          <label className="text-sm font-medium mb-2 block">Quick Reschedule</label>
+          <div className="flex flex-wrap gap-2">
+            {[
+              { label: "Today 5pm", value: setHours(new Date(), 17) },
+              { label: "Tomorrow 9am", value: setHours(addDays(new Date(), 1), 9) },
+              { label: "Next Monday", value: nextMonday(new Date()) },
+              { label: "Next Week", value: addWeeks(new Date(), 1) },
+            ].map((preset) => (
+              <Button
+                key={preset.label}
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setSelectedTask({ ...selectedTask, dueAt: preset.value });
+                  updateTaskMutation.mutate({ 
+                    id: selectedTask.id, 
+                    dueAt: preset.value 
+                  });
+                }}
+              >
+                {preset.label}
+              </Button>
+            ))}
+          </div>
+        </div>
+
+        {/* EDITABLE LOCATION */}
+        <div>
+          <label className="text-sm font-medium mb-1 block">Location</label>
+          <Input
+            value={selectedTask.location || ""}
+            onChange={(e) => setSelectedTask({ ...selectedTask, location: e.target.value })}
+            onBlur={() => {
+              updateTaskMutation.mutate({ 
+                id: selectedTask.id, 
+                location: selectedTask.location 
+              });
+            }}
+            placeholder="Add location"
+          />
+        </div>
+
+        {/* CATEGORY & URGENCY IN GRID */}
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="text-sm font-medium mb-1 block">Category</label>
+            <Select
+              value={selectedTask.category}
+              onValueChange={(value) => {
+                setSelectedTask({ ...selectedTask, category: value as any });
+                updateTaskMutation.mutate({ id: selectedTask.id, category: value as any });
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {CATEGORIES.map((cat) => (
+                  <SelectItem key={cat.value} value={cat.value}>
+                    {cat.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <label className="text-sm font-medium mb-1 block">Urgency</label>
+            <Select
+              value={selectedTask.urgency}
+              onValueChange={(value) => {
+                setSelectedTask({ ...selectedTask, urgency: value as any });
+                updateTaskMutation.mutate({ id: selectedTask.id, urgency: value as any });
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="LOW">Low</SelectItem>
+                <SelectItem value="MEDIUM">Medium</SelectItem>
+                <SelectItem value="HIGH">High</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {/* STATUS DROPDOWN (keep existing) */}
+        <div>
+          <label className="text-sm font-medium mb-2 block">Status</label>
+          <Select
+            value={selectedTask.status}
+            onValueChange={(value) => {
+              setSelectedTask({ ...selectedTask, status: value as any });
+              updateTaskMutation.mutate({ id: selectedTask.id, status: value as any });
+            }}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {STATUSES.map((status) => (
+                <SelectItem key={status.value} value={status.value}>
+                  {status.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+    )}
+  </DialogContent>
+</Dialog>

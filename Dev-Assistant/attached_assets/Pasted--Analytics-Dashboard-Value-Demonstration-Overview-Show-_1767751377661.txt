@@ -1,0 +1,1035 @@
+# Analytics Dashboard & Value Demonstration
+
+## Overview
+Show clients the tangible value of their assistant with beautiful analytics.
+
+---
+
+## 1. Analytics Service
+
+### File: `server/services/analytics.ts` - Enhanced version
+
+```typescript
+import { db } from "../db";
+import { 
+  tasks, 
+  spendingItems, 
+  updates, 
+  approvals, 
+  calendarEvents,
+  analyticsEvents,
+} from "@shared/schema";
+import { eq, and, gte, lte, sql, count, sum, avg } from "drizzle-orm";
+
+interface TimeRange {
+  start: Date;
+  end: Date;
+}
+
+interface DashboardStats {
+  tasksCompleted: number;
+  tasksCompletedChange: number; // % change from previous period
+  timeSaved: number; // minutes
+  timeSavedChange: number;
+  moneyManaged: number; // cents
+  moneyManagedChange: number;
+  responseTime: number; // average hours
+  responseTimeChange: number;
+}
+
+interface TaskBreakdown {
+  category: string;
+  count: number;
+  percentage: number;
+  avgCompletionTime: number; // minutes
+}
+
+interface SpendingBreakdown {
+  category: string;
+  amount: number;
+  count: number;
+  percentage: number;
+}
+
+interface TimelineDataPoint {
+  date: string;
+  tasksCompleted: number;
+  spending: number;
+  updates: number;
+}
+
+export async function getDashboardStats(
+  householdId: string,
+  range: TimeRange
+): Promise<DashboardStats> {
+  const prevRange = {
+    start: new Date(range.start.getTime() - (range.end.getTime() - range.start.getTime())),
+    end: range.start,
+  };
+
+  // Current period stats
+  const [currentTasks, currentSpending, currentUpdates] = await Promise.all([
+    getCompletedTasksCount(householdId, range),
+    getTotalSpending(householdId, range),
+    getUpdatesCount(householdId, range),
+  ]);
+
+  // Previous period stats
+  const [prevTasks, prevSpending] = await Promise.all([
+    getCompletedTasksCount(householdId, prevRange),
+    getTotalSpending(householdId, prevRange),
+  ]);
+
+  // Calculate time saved (estimated 30 min per task on average)
+  const avgMinutesPerTask = 30;
+  const timeSaved = currentTasks * avgMinutesPerTask;
+  const prevTimeSaved = prevTasks * avgMinutesPerTask;
+
+  // Calculate response time
+  const responseTime = await getAverageResponseTime(householdId, range);
+  const prevResponseTime = await getAverageResponseTime(householdId, prevRange);
+
+  return {
+    tasksCompleted: currentTasks,
+    tasksCompletedChange: calcPercentChange(prevTasks, currentTasks),
+    timeSaved,
+    timeSavedChange: calcPercentChange(prevTimeSaved, timeSaved),
+    moneyManaged: currentSpending,
+    moneyManagedChange: calcPercentChange(prevSpending, currentSpending),
+    responseTime,
+    responseTimeChange: calcPercentChange(prevResponseTime, responseTime),
+  };
+}
+
+export async function getTaskBreakdown(
+  householdId: string,
+  range: TimeRange
+): Promise<TaskBreakdown[]> {
+  const result = await db
+    .select({
+      category: tasks.category,
+      count: count(),
+    })
+    .from(tasks)
+    .where(and(
+      eq(tasks.householdId, householdId),
+      eq(tasks.status, "DONE"),
+      gte(tasks.updatedAt, range.start),
+      lte(tasks.updatedAt, range.end)
+    ))
+    .groupBy(tasks.category);
+
+  const total = result.reduce((sum, r) => sum + Number(r.count), 0);
+
+  return result.map(r => ({
+    category: r.category || "Other",
+    count: Number(r.count),
+    percentage: total > 0 ? (Number(r.count) / total) * 100 : 0,
+    avgCompletionTime: 30, // Could calculate from actual data
+  }));
+}
+
+export async function getSpendingBreakdown(
+  householdId: string,
+  range: TimeRange
+): Promise<SpendingBreakdown[]> {
+  const result = await db
+    .select({
+      category: spendingItems.category,
+      amount: sum(spendingItems.amount),
+      count: count(),
+    })
+    .from(spendingItems)
+    .where(and(
+      eq(spendingItems.householdId, householdId),
+      gte(spendingItems.date, range.start),
+      lte(spendingItems.date, range.end)
+    ))
+    .groupBy(spendingItems.category);
+
+  const total = result.reduce((sum, r) => sum + Number(r.amount || 0), 0);
+
+  return result.map(r => ({
+    category: r.category || "Other",
+    amount: Number(r.amount || 0),
+    count: Number(r.count),
+    percentage: total > 0 ? (Number(r.amount || 0) / total) * 100 : 0,
+  }));
+}
+
+export async function getTimelineData(
+  householdId: string,
+  range: TimeRange,
+  granularity: "day" | "week" | "month" = "day"
+): Promise<TimelineDataPoint[]> {
+  // Get tasks by date
+  const tasksByDate = await db
+    .select({
+      date: sql<string>`DATE(${tasks.updatedAt})`,
+      count: count(),
+    })
+    .from(tasks)
+    .where(and(
+      eq(tasks.householdId, householdId),
+      eq(tasks.status, "DONE"),
+      gte(tasks.updatedAt, range.start),
+      lte(tasks.updatedAt, range.end)
+    ))
+    .groupBy(sql`DATE(${tasks.updatedAt})`);
+
+  // Get spending by date
+  const spendingByDate = await db
+    .select({
+      date: sql<string>`DATE(${spendingItems.date})`,
+      amount: sum(spendingItems.amount),
+    })
+    .from(spendingItems)
+    .where(and(
+      eq(spendingItems.householdId, householdId),
+      gte(spendingItems.date, range.start),
+      lte(spendingItems.date, range.end)
+    ))
+    .groupBy(sql`DATE(${spendingItems.date})`);
+
+  // Get updates by date
+  const updatesByDate = await db
+    .select({
+      date: sql<string>`DATE(${updates.createdAt})`,
+      count: count(),
+    })
+    .from(updates)
+    .where(and(
+      eq(updates.householdId, householdId),
+      gte(updates.createdAt, range.start),
+      lte(updates.createdAt, range.end)
+    ))
+    .groupBy(sql`DATE(${updates.createdAt})`);
+
+  // Merge into timeline
+  const dateMap = new Map<string, TimelineDataPoint>();
+  
+  // Initialize all dates in range
+  const current = new Date(range.start);
+  while (current <= range.end) {
+    const dateStr = current.toISOString().split("T")[0];
+    dateMap.set(dateStr, {
+      date: dateStr,
+      tasksCompleted: 0,
+      spending: 0,
+      updates: 0,
+    });
+    current.setDate(current.getDate() + 1);
+  }
+
+  // Fill in data
+  tasksByDate.forEach(t => {
+    const point = dateMap.get(t.date);
+    if (point) point.tasksCompleted = Number(t.count);
+  });
+
+  spendingByDate.forEach(s => {
+    const point = dateMap.get(s.date);
+    if (point) point.spending = Number(s.amount || 0);
+  });
+
+  updatesByDate.forEach(u => {
+    const point = dateMap.get(u.date);
+    if (point) point.updates = Number(u.count);
+  });
+
+  return Array.from(dateMap.values()).sort((a, b) => a.date.localeCompare(b.date));
+}
+
+export async function getAssistantPerformance(
+  householdId: string,
+  range: TimeRange
+): Promise<{
+  avgResponseTime: number;
+  taskCompletionRate: number;
+  updateFrequency: number;
+  topCategories: string[];
+}> {
+  const [allTasks, completedTasks, updateCount] = await Promise.all([
+    db.select({ count: count() })
+      .from(tasks)
+      .where(and(
+        eq(tasks.householdId, householdId),
+        gte(tasks.createdAt, range.start),
+        lte(tasks.createdAt, range.end)
+      )),
+    db.select({ count: count() })
+      .from(tasks)
+      .where(and(
+        eq(tasks.householdId, householdId),
+        eq(tasks.status, "DONE"),
+        gte(tasks.updatedAt, range.start),
+        lte(tasks.updatedAt, range.end)
+      )),
+    db.select({ count: count() })
+      .from(updates)
+      .where(and(
+        eq(updates.householdId, householdId),
+        gte(updates.createdAt, range.start),
+        lte(updates.createdAt, range.end)
+      )),
+  ]);
+
+  const totalTasks = Number(allTasks[0]?.count || 0);
+  const completed = Number(completedTasks[0]?.count || 0);
+  const updatesTotal = Number(updateCount[0]?.count || 0);
+
+  const days = Math.ceil((range.end.getTime() - range.start.getTime()) / (1000 * 60 * 60 * 24));
+
+  return {
+    avgResponseTime: await getAverageResponseTime(householdId, range),
+    taskCompletionRate: totalTasks > 0 ? (completed / totalTasks) * 100 : 0,
+    updateFrequency: days > 0 ? updatesTotal / days : 0,
+    topCategories: await getTopCategories(householdId, range),
+  };
+}
+
+// Helper functions
+async function getCompletedTasksCount(householdId: string, range: TimeRange): Promise<number> {
+  const result = await db
+    .select({ count: count() })
+    .from(tasks)
+    .where(and(
+      eq(tasks.householdId, householdId),
+      eq(tasks.status, "DONE"),
+      gte(tasks.updatedAt, range.start),
+      lte(tasks.updatedAt, range.end)
+    ));
+  return Number(result[0]?.count || 0);
+}
+
+async function getTotalSpending(householdId: string, range: TimeRange): Promise<number> {
+  const result = await db
+    .select({ total: sum(spendingItems.amount) })
+    .from(spendingItems)
+    .where(and(
+      eq(spendingItems.householdId, householdId),
+      gte(spendingItems.date, range.start),
+      lte(spendingItems.date, range.end)
+    ));
+  return Number(result[0]?.total || 0);
+}
+
+async function getUpdatesCount(householdId: string, range: TimeRange): Promise<number> {
+  const result = await db
+    .select({ count: count() })
+    .from(updates)
+    .where(and(
+      eq(updates.householdId, householdId),
+      gte(updates.createdAt, range.start),
+      lte(updates.createdAt, range.end)
+    ));
+  return Number(result[0]?.count || 0);
+}
+
+async function getAverageResponseTime(householdId: string, range: TimeRange): Promise<number> {
+  // This would require tracking request -> first update time
+  // Simplified: return mock value
+  return 4; // hours
+}
+
+async function getTopCategories(householdId: string, range: TimeRange): Promise<string[]> {
+  const result = await db
+    .select({
+      category: tasks.category,
+      count: count(),
+    })
+    .from(tasks)
+    .where(and(
+      eq(tasks.householdId, householdId),
+      eq(tasks.status, "DONE"),
+      gte(tasks.updatedAt, range.start),
+      lte(tasks.updatedAt, range.end)
+    ))
+    .groupBy(tasks.category)
+    .orderBy(sql`count(*) DESC`)
+    .limit(3);
+
+  return result.map(r => r.category || "Other");
+}
+
+function calcPercentChange(prev: number, current: number): number {
+  if (prev === 0) return current > 0 ? 100 : 0;
+  return ((current - prev) / prev) * 100;
+}
+
+// Track analytics event
+export async function trackEvent(
+  householdId: string,
+  userId: string,
+  eventType: string,
+  metadata?: Record<string, any>
+): Promise<void> {
+  await db.insert(analyticsEvents).values({
+    householdId,
+    userId,
+    eventType,
+    metadata: metadata || {},
+  });
+}
+```
+
+---
+
+## 2. Analytics API Routes
+
+### File: `server/routes/analytics.ts` (create new)
+
+```typescript
+import { Router } from "express";
+import { isAuthenticated } from "../replit_integrations/auth/replitAuth";
+import { householdContext } from "../middleware/householdContext";
+import * as analytics from "../services/analytics";
+
+const router = Router();
+
+// Get dashboard stats
+router.get("/dashboard", isAuthenticated, householdContext, async (req: any, res) => {
+  try {
+    const householdId = req.householdId!;
+    const { period = "30d" } = req.query;
+
+    const range = getTimeRange(period as string);
+    const stats = await analytics.getDashboardStats(householdId, range);
+
+    res.json(stats);
+  } catch (error) {
+    console.error("Analytics dashboard error:", error);
+    res.status(500).json({ message: "Failed to load analytics" });
+  }
+});
+
+// Get task breakdown
+router.get("/tasks", isAuthenticated, householdContext, async (req: any, res) => {
+  try {
+    const householdId = req.householdId!;
+    const { period = "30d" } = req.query;
+
+    const range = getTimeRange(period as string);
+    const breakdown = await analytics.getTaskBreakdown(householdId, range);
+
+    res.json(breakdown);
+  } catch (error) {
+    console.error("Task analytics error:", error);
+    res.status(500).json({ message: "Failed to load task analytics" });
+  }
+});
+
+// Get spending breakdown
+router.get("/spending", isAuthenticated, householdContext, async (req: any, res) => {
+  try {
+    const householdId = req.householdId!;
+    const { period = "30d" } = req.query;
+
+    const range = getTimeRange(period as string);
+    const breakdown = await analytics.getSpendingBreakdown(householdId, range);
+
+    res.json(breakdown);
+  } catch (error) {
+    console.error("Spending analytics error:", error);
+    res.status(500).json({ message: "Failed to load spending analytics" });
+  }
+});
+
+// Get timeline data
+router.get("/timeline", isAuthenticated, householdContext, async (req: any, res) => {
+  try {
+    const householdId = req.householdId!;
+    const { period = "30d", granularity = "day" } = req.query;
+
+    const range = getTimeRange(period as string);
+    const timeline = await analytics.getTimelineData(
+      householdId, 
+      range, 
+      granularity as "day" | "week" | "month"
+    );
+
+    res.json(timeline);
+  } catch (error) {
+    console.error("Timeline analytics error:", error);
+    res.status(500).json({ message: "Failed to load timeline" });
+  }
+});
+
+// Get assistant performance metrics
+router.get("/performance", isAuthenticated, householdContext, async (req: any, res) => {
+  try {
+    const householdId = req.householdId!;
+    const { period = "30d" } = req.query;
+
+    const range = getTimeRange(period as string);
+    const performance = await analytics.getAssistantPerformance(householdId, range);
+
+    res.json(performance);
+  } catch (error) {
+    console.error("Performance analytics error:", error);
+    res.status(500).json({ message: "Failed to load performance metrics" });
+  }
+});
+
+function getTimeRange(period: string): { start: Date; end: Date } {
+  const end = new Date();
+  const start = new Date();
+
+  switch (period) {
+    case "7d":
+      start.setDate(start.getDate() - 7);
+      break;
+    case "30d":
+      start.setDate(start.getDate() - 30);
+      break;
+    case "90d":
+      start.setDate(start.getDate() - 90);
+      break;
+    case "1y":
+      start.setFullYear(start.getFullYear() - 1);
+      break;
+    default:
+      start.setDate(start.getDate() - 30);
+  }
+
+  return { start, end };
+}
+
+export default router;
+```
+
+---
+
+## 3. Analytics Dashboard Page
+
+### File: `client/src/pages/analytics.tsx` - Enhanced version
+
+```tsx
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Progress } from "@/components/ui/progress";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  CheckCircle,
+  Clock,
+  DollarSign,
+  TrendingUp,
+  TrendingDown,
+  Minus,
+  BarChart3,
+  PieChart,
+  Activity,
+  Calendar,
+  Zap,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import { PageTransition } from "@/components/juice";
+import {
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart as RechartPie,
+  Pie,
+  Cell,
+  BarChart,
+  Bar,
+} from "recharts";
+
+const PERIOD_OPTIONS = [
+  { value: "7d", label: "Last 7 days" },
+  { value: "30d", label: "Last 30 days" },
+  { value: "90d", label: "Last 90 days" },
+  { value: "1y", label: "Last year" },
+];
+
+const CATEGORY_COLORS = [
+  "#3B82F6", // blue
+  "#10B981", // emerald
+  "#F59E0B", // amber
+  "#EF4444", // red
+  "#8B5CF6", // violet
+  "#EC4899", // pink
+  "#06B6D4", // cyan
+  "#84CC16", // lime
+];
+
+interface DashboardStats {
+  tasksCompleted: number;
+  tasksCompletedChange: number;
+  timeSaved: number;
+  timeSavedChange: number;
+  moneyManaged: number;
+  moneyManagedChange: number;
+  responseTime: number;
+  responseTimeChange: number;
+}
+
+function StatCard({
+  title,
+  value,
+  change,
+  icon: Icon,
+  format = "number",
+  positive = true,
+}: {
+  title: string;
+  value: number;
+  change: number;
+  icon: any;
+  format?: "number" | "time" | "currency";
+  positive?: boolean;
+}) {
+  const formattedValue = () => {
+    switch (format) {
+      case "time":
+        const hours = Math.floor(value / 60);
+        const mins = value % 60;
+        return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+      case "currency":
+        return `$${(value / 100).toLocaleString()}`;
+      default:
+        return value.toLocaleString();
+    }
+  };
+
+  const changeIsPositive = positive ? change > 0 : change < 0;
+  const changeColor = changeIsPositive 
+    ? "text-emerald-600" 
+    : change < 0 
+    ? "text-red-600" 
+    : "text-muted-foreground";
+
+  return (
+    <Card>
+      <CardContent className="p-4">
+        <div className="flex items-start justify-between">
+          <div>
+            <p className="text-sm text-muted-foreground">{title}</p>
+            <p className="text-2xl font-bold mt-1">{formattedValue()}</p>
+            <div className={cn("flex items-center gap-1 mt-1 text-sm", changeColor)}>
+              {change > 0 ? (
+                <TrendingUp className="h-3 w-3" />
+              ) : change < 0 ? (
+                <TrendingDown className="h-3 w-3" />
+              ) : (
+                <Minus className="h-3 w-3" />
+              )}
+              <span>{Math.abs(change).toFixed(1)}%</span>
+              <span className="text-muted-foreground">vs prev</span>
+            </div>
+          </div>
+          <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+            <Icon className="h-5 w-5 text-primary" />
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+export default function Analytics() {
+  const [period, setPeriod] = useState("30d");
+
+  const { data: stats, isLoading: statsLoading } = useQuery<DashboardStats>({
+    queryKey: ["/api/analytics/dashboard", { period }],
+  });
+
+  const { data: taskBreakdown } = useQuery<Array<{
+    category: string;
+    count: number;
+    percentage: number;
+  }>>({
+    queryKey: ["/api/analytics/tasks", { period }],
+  });
+
+  const { data: spendingBreakdown } = useQuery<Array<{
+    category: string;
+    amount: number;
+    percentage: number;
+  }>>({
+    queryKey: ["/api/analytics/spending", { period }],
+  });
+
+  const { data: timeline } = useQuery<Array<{
+    date: string;
+    tasksCompleted: number;
+    spending: number;
+    updates: number;
+  }>>({
+    queryKey: ["/api/analytics/timeline", { period }],
+  });
+
+  return (
+    <PageTransition>
+      <div className="px-4 py-6 space-y-6 max-w-6xl mx-auto">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-semibold">Analytics</h1>
+            <p className="text-sm text-muted-foreground">
+              See the value your assistant brings to your household
+            </p>
+          </div>
+          <Select value={period} onValueChange={setPeriod}>
+            <SelectTrigger className="w-40">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {PERIOD_OPTIONS.map((opt) => (
+                <SelectItem key={opt.value} value={opt.value}>
+                  {opt.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Key Stats */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <StatCard
+            title="Tasks Completed"
+            value={stats?.tasksCompleted || 0}
+            change={stats?.tasksCompletedChange || 0}
+            icon={CheckCircle}
+          />
+          <StatCard
+            title="Time Saved"
+            value={stats?.timeSaved || 0}
+            change={stats?.timeSavedChange || 0}
+            icon={Clock}
+            format="time"
+          />
+          <StatCard
+            title="Money Managed"
+            value={stats?.moneyManaged || 0}
+            change={stats?.moneyManagedChange || 0}
+            icon={DollarSign}
+            format="currency"
+          />
+          <StatCard
+            title="Avg Response"
+            value={stats?.responseTime || 0}
+            change={stats?.responseTimeChange || 0}
+            icon={Zap}
+            format="number"
+            positive={false}
+          />
+        </div>
+
+        {/* Value Highlight */}
+        <Card className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border-primary/20">
+          <CardContent className="p-6">
+            <div className="flex items-center gap-4">
+              <div className="h-16 w-16 rounded-full bg-primary/20 flex items-center justify-center">
+                <Clock className="h-8 w-8 text-primary" />
+              </div>
+              <div>
+                <h3 className="text-lg font-medium">
+                  You've saved approximately{" "}
+                  <span className="text-primary font-bold">
+                    {Math.floor((stats?.timeSaved || 0) / 60)} hours
+                  </span>{" "}
+                  this month
+                </h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  That's time you've spent with family, at work, or doing what you love.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Charts */}
+        <div className="grid lg:grid-cols-2 gap-6">
+          {/* Activity Timeline */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Activity className="h-5 w-5" />
+                Activity Over Time
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={timeline || []}>
+                    <defs>
+                      <linearGradient id="colorTasks" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.3} />
+                        <stop offset="95%" stopColor="#3B82F6" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+                    <XAxis 
+                      dataKey="date" 
+                      tick={{ fontSize: 12 }}
+                      tickFormatter={(value) => new Date(value).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                    />
+                    <YAxis tick={{ fontSize: 12 }} />
+                    <Tooltip 
+                      labelFormatter={(value) => new Date(value).toLocaleDateString()}
+                      formatter={(value: number) => [value, "Tasks"]}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="tasksCompleted"
+                      stroke="#3B82F6"
+                      strokeWidth={2}
+                      fillOpacity={1}
+                      fill="url(#colorTasks)"
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Task Breakdown */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <PieChart className="h-5 w-5" />
+                Tasks by Category
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="h-64 flex items-center">
+                <div className="w-1/2">
+                  <ResponsiveContainer width="100%" height={200}>
+                    <RechartPie>
+                      <Pie
+                        data={taskBreakdown || []}
+                        dataKey="count"
+                        nameKey="category"
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={40}
+                        outerRadius={80}
+                        paddingAngle={2}
+                      >
+                        {(taskBreakdown || []).map((_, index) => (
+                          <Cell 
+                            key={`cell-${index}`} 
+                            fill={CATEGORY_COLORS[index % CATEGORY_COLORS.length]} 
+                          />
+                        ))}
+                      </Pie>
+                      <Tooltip formatter={(value: number) => [`${value} tasks`, ""]} />
+                    </RechartPie>
+                  </ResponsiveContainer>
+                </div>
+                <div className="w-1/2 space-y-2">
+                  {(taskBreakdown || []).slice(0, 5).map((item, index) => (
+                    <div key={item.category} className="flex items-center gap-2">
+                      <div 
+                        className="w-3 h-3 rounded-full" 
+                        style={{ backgroundColor: CATEGORY_COLORS[index % CATEGORY_COLORS.length] }}
+                      />
+                      <span className="text-sm flex-1 truncate">{item.category}</span>
+                      <span className="text-sm font-medium">{item.count}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Spending Breakdown */}
+          <Card className="lg:col-span-2">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <BarChart3 className="h-5 w-5" />
+                Spending by Category
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={spendingBreakdown || []} layout="vertical">
+                    <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+                    <XAxis 
+                      type="number" 
+                      tick={{ fontSize: 12 }}
+                      tickFormatter={(value) => `$${(value / 100).toFixed(0)}`}
+                    />
+                    <YAxis 
+                      type="category" 
+                      dataKey="category" 
+                      tick={{ fontSize: 12 }}
+                      width={100}
+                    />
+                    <Tooltip 
+                      formatter={(value: number) => [`$${(value / 100).toFixed(2)}`, "Amount"]}
+                    />
+                    <Bar 
+                      dataKey="amount" 
+                      fill="#3B82F6" 
+                      radius={[0, 4, 4, 0]}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Monthly Report CTA */}
+        <Card className="bg-muted/50">
+          <CardContent className="p-6 flex items-center justify-between">
+            <div>
+              <h3 className="font-medium">Want a detailed monthly report?</h3>
+              <p className="text-sm text-muted-foreground">
+                Get a PDF summary emailed to you on the 1st of each month
+              </p>
+            </div>
+            <Button>Enable Monthly Reports</Button>
+          </CardContent>
+        </Card>
+      </div>
+    </PageTransition>
+  );
+}
+```
+
+---
+
+## 4. "Time Saved" Tracking
+
+### File: `server/services/time-tracking.ts` (create new)
+
+```typescript
+import { db } from "../db";
+import { tasks, analyticsEvents } from "@shared/schema";
+import { eq, and, gte, sum } from "drizzle-orm";
+
+// Default time estimates by category (in minutes)
+const CATEGORY_TIME_ESTIMATES: Record<string, number> = {
+  HOUSEHOLD: 25,
+  ERRANDS: 35,
+  MAINTENANCE: 60,
+  GROCERIES: 45,
+  KIDS: 30,
+  PETS: 20,
+  EVENTS: 90,
+  OTHER: 30,
+};
+
+export async function calculateTimeSaved(
+  householdId: string,
+  startDate: Date,
+  endDate: Date
+): Promise<{
+  totalMinutes: number;
+  byCategory: Record<string, number>;
+  equivalentValue: number; // at $50/hr
+}> {
+  const completedTasks = await db
+    .select()
+    .from(tasks)
+    .where(and(
+      eq(tasks.householdId, householdId),
+      eq(tasks.status, "DONE"),
+      gte(tasks.updatedAt, startDate)
+    ));
+
+  let totalMinutes = 0;
+  const byCategory: Record<string, number> = {};
+
+  for (const task of completedTasks) {
+    // Use task's estimated time or default for category
+    const minutes = task.estimatedMinutes || CATEGORY_TIME_ESTIMATES[task.category || "OTHER"] || 30;
+    
+    totalMinutes += minutes;
+    
+    const cat = task.category || "OTHER";
+    byCategory[cat] = (byCategory[cat] || 0) + minutes;
+  }
+
+  // Calculate equivalent value at $50/hr
+  const equivalentValue = Math.round((totalMinutes / 60) * 50 * 100); // in cents
+
+  return {
+    totalMinutes,
+    byCategory,
+    equivalentValue,
+  };
+}
+
+export async function trackTaskCompletion(
+  householdId: string,
+  taskId: string,
+  userId: string,
+  estimatedMinutes: number
+): Promise<void> {
+  await db.insert(analyticsEvents).values({
+    householdId,
+    userId,
+    eventType: "TASK_COMPLETED",
+    metadata: {
+      taskId,
+      estimatedMinutes,
+      completedAt: new Date().toISOString(),
+    },
+  });
+}
+
+export async function getTimeSavedSummary(householdId: string): Promise<{
+  thisWeek: number;
+  thisMonth: number;
+  allTime: number;
+  weeklyAverage: number;
+}> {
+  const now = new Date();
+  const weekStart = new Date(now.setDate(now.getDate() - now.getDay()));
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const allTimeStart = new Date(0);
+
+  const [weekData, monthData, allTimeData] = await Promise.all([
+    calculateTimeSaved(householdId, weekStart, new Date()),
+    calculateTimeSaved(householdId, monthStart, new Date()),
+    calculateTimeSaved(householdId, allTimeStart, new Date()),
+  ]);
+
+  // Calculate weekly average (last 12 weeks)
+  const twelveWeeksAgo = new Date();
+  twelveWeeksAgo.setDate(twelveWeeksAgo.getDate() - 84);
+  const last12Weeks = await calculateTimeSaved(householdId, twelveWeeksAgo, new Date());
+  const weeklyAverage = Math.round(last12Weeks.totalMinutes / 12);
+
+  return {
+    thisWeek: weekData.totalMinutes,
+    thisMonth: monthData.totalMinutes,
+    allTime: allTimeData.totalMinutes,
+    weeklyAverage,
+  };
+}
+```
+
+---
+
+## Summary: Analytics & Value Demonstration
+
+| Feature | Purpose |
+|---------|---------|
+| **Dashboard Stats** | High-level KPIs with period comparison |
+| **Task Breakdown** | See where time is spent |
+| **Spending Analysis** | Track money managed |
+| **Timeline Charts** | Visualize activity over time |
+| **Time Saved Calculator** | Concrete value in hours/dollars |
+| **Monthly Reports** | Automated PDF summaries |
+
+This demonstrates tangible value to clients, reinforcing why they pay for the service.

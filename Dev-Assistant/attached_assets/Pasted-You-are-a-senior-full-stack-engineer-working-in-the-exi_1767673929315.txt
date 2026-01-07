@@ -1,0 +1,327 @@
+You are a senior full-stack engineer working in the existing hndld codebase (React + Tailwind + shadcn/ui on the client, Express + Drizzle + Postgres on the server). Implement a premium invoice flow:
+
+GOALS
+
+Assistants can create + send an invoice to a household.
+
+When an invoice is sent and unpaid, clients see a green “Pay now” CTA fixed at the bottom attached to the bottom navigation area (and it disappears once paid).
+
+All invoices are automatically saved to Files (so we keep bottom nav clean). Clients can later view old invoices in Files.
+
+Keep the Files page in the bottom nav (do not remove it).
+
+Bottom nav icons must be accessible on any screen size: make the nav horizontally scrollable with subtle UX cues and safe-area support.
+
+Add micro-UX: luxe toast confirmations and instant clarity.
+
+IMPLEMENTATION PLAN
+A) DATA MODEL (Drizzle)
+
+We will treat invoices as a first-class concept, but we will reuse the existing “spendingItems” payment workflow because it already supports:
+
+APPROVED → client can pay → PAYMENT_SENT → assistant reconciles → RECONCILED
+
+Pay options (Venmo / Zelle) already exist
+
+1) Update schema
+In shared/schema.ts:
+
+Add a new enum:
+
+export const spendingKindEnum = pgEnum("spending_kind", ["REIMBURSEMENT", "INVOICE"]);
+
+Add fields to spendingItems:
+
+kind: spendingKindEnum("kind").default("REIMBURSEMENT").notNull()
+
+title: text("title") (invoice title like “Weekly House Management”)
+
+dueDate: timestamp("due_date")
+
+invoiceNumber: varchar("invoice_number", { length: 30 })
+
+sentAt: timestamp("sent_at")
+
+Add an index to speed lookups:
+
+index on (householdId, kind, status)
+
+2) Run migration
+Use the project’s existing drizzle workflow (drizzle-kit push/migrate as the repo currently does). Ensure server still boots.
+
+B) SERVER: INVOICE ENDPOINTS + PDF/FILE SAVE
+
+Create these endpoints in server/routes.ts (or a new server/routes/invoices.ts and register it):
+
+1) POST /api/invoices/send (assistant only)
+
+Creates an invoice and “sends” it:
+
+Validate: only assistants can send invoices
+
+Body:
+
+title (string, required)
+
+amount (integer cents, required)
+
+note (string optional)
+
+dueDate (optional date)
+
+Server behavior:
+
+Create a spendingItems row with:
+
+kind = "INVOICE"
+
+status = "APPROVED" (so client action is to pay, not approve)
+
+vendor = "hndld Concierge" or the assistant/org display name if available
+
+title, note, dueDate
+
+sentAt = now()
+
+paymentReferenceCode if present in your system; otherwise generate a short ref like HNDLD-XXXXXX
+
+Generate invoiceNumber like INV-YYYYMMDD-<last6_of_id> or a deterministic short format
+
+Generate a simple Invoice PDF (or HTML file if PDF is too heavy) that includes:
+
+Invoice number
+
+Household name
+
+Title + note
+
+Amount
+
+Due date (if present)
+
+Payment instructions (Venmo username + Zelle destination) based on the effective payment profile logic already used by pay-options.
+
+Save that invoice document into Files:
+
+category: DOCUMENT
+
+tags include: ["invoice", invoiceNumber]
+
+description: Invoice <invoiceNumber> • <title>
+
+Link it to the spending entity using existing fileLinks:
+
+entityType should use the existing “SPENDING” entity type (already supported by file links)
+
+entityId = spending item id
+
+Post an Update so the client sees it:
+
+Create a row in updates with text like:
+
+Invoice sent: <title> • $XX.XX
+
+Put the saved invoice file id into updates.receipts so it shows as an attachment.
+
+Return:
+
+the created invoice spending item id
+
+invoiceNumber
+
+fileId
+
+success
+
+Add luxe toast copy on the client later (“Invoice sent ✓”).
+
+2) GET /api/invoices/pending (client only)
+
+Returns whether the client needs to pay.
+
+Query for spending items where:
+
+kind="INVOICE"
+
+status="APPROVED" (unpaid/actionable)
+
+Return:
+
+count
+
+totalAmount (sum of amounts)
+
+latestInvoiceId (most recently sent)
+
+latestInvoiceTitle
+
+latestInvoiceNumber
+
+latestDueDate (optional)
+
+This endpoint drives the “Pay now” CTA visibility.
+
+3) GET /api/invoices (optional but useful)
+
+Return invoice list (spendingItems where kind=INVOICE) for assistant and client.
+(This is optional since we’re using Files to archive, but it helps future scalability.)
+
+C) CLIENT: GREEN “PAY NOW” CTA THAT APPEARS/DISAPPEARS
+1) Keep Files in bottom nav + make it horizontally scrollable
+
+In client/src/components/layout/bottom-nav.tsx:
+
+Ensure Files is included in the client bottom nav array (and assistant too).
+
+Make the nav container horizontally scrollable:
+
+overflow-x-auto
+
+gap-1
+
+each tab button uses:
+
+min-w-[72px] shrink-0
+
+Add subtle premium cues when overflow exists:
+
+Add left/right gradient fades (pointer-events-none) to hint scrollability.
+
+Add snap-x snap-mandatory so icons snap into place.
+
+Keep safe-area padding.
+
+2) Add a Pending Invoice query
+
+Create a hook: client/src/hooks/usePendingInvoices.ts:
+
+React Query to GET /api/invoices/pending
+
+enabled only when activeRole is CLIENT
+
+refetchOnWindowFocus: true
+
+optional refetchInterval: 30000 (so if an invoice arrives while app is open, it appears quickly)
+
+3) Add the green CTA in BottomNav
+
+In BottomNav, if:
+
+activeRole === "CLIENT" AND pending count > 0
+Render a green CTA bar/button just above the icon row but inside the nav area:
+
+Button text:
+
+Pay now • $XX.XX (use total or latest)
+
+small subtext: Invoice <invoiceNumber>
+
+On tap:
+
+open a Pay drawer using existing PayNowSheet
+
+use latestInvoiceId as spendingId
+
+pass vendorName as invoice title
+
+Micro-UX:
+
+show a small toast: “Opening payment options…”
+
+after client taps “I paid” in PayNowSheet, invalidate:
+
+/api/invoices/pending
+
+/api/spending
+…and show toast: “Payment marked as sent ✓”
+
+4) IMPORTANT: Fix layout padding when CTA is visible
+
+In client/src/components/layout/app-layout.tsx:
+
+Replace fixed paddingBottom with a CSS variable:
+
+paddingBottom: "calc(var(--hndld-bottom-pad, 5.5rem) + env(safe-area-inset-bottom))"
+Then in BottomNav, whenever the Pay CTA is visible:
+
+set document.documentElement.style.setProperty("--hndld-bottom-pad", "8.5rem")
+
+otherwise set it back to "5.5rem"
+This prevents content from being hidden behind the CTA.
+
+D) CLIENT FILES: INVOICE ARCHIVE (KEEP NAV CLEAN)
+
+In client/src/pages/files.tsx:
+
+Add a quick filter chip/button near the top: Invoices
+
+When selected, call /api/files?tags=["invoice"] (or tags=invoice depending on server parsing)
+
+Ensure the server properly parses tags:
+
+In server/routes/files.ts, if tags is a string:
+
+If it looks like JSON, parse JSON
+
+else split by commas into string[]
+This makes “Invoices” filter instantly useful.
+
+E) ASSISTANT UI: SEND INVOICE
+
+Add a simple “Send Invoice” flow (do not overcomplicate):
+In client/src/pages/spending.tsx:
+
+If activeRole === ASSISTANT:
+
+Add a top button: Send Invoice
+
+Opens a dialog with fields:
+
+Title
+
+Amount (dollars input → convert to cents)
+
+Note
+
+Due date (optional)
+
+On submit:
+
+POST /api/invoices/send
+
+Toast: “Invoice sent ✓”
+
+Invalidate queries:
+
+/api/spending
+
+/api/updates
+
+/api/files
+This ensures the invoice appears everywhere immediately.
+
+F) TESTING CHECKLIST (DO THIS)
+
+Assistant sends invoice → Update created with invoice attachment → invoice document appears in Files with “invoice” tag.
+
+Client logs in → green “Pay now” CTA appears.
+
+Tap Pay now → PayNowSheet opens for that invoice.
+
+Client taps “I paid” → invoice goes to PAYMENT_SENT → CTA disappears.
+
+Invoice remains in Files under the “Invoices” filter.
+
+OUTPUT REQUIREMENTS
+
+Implement all changes fully (schema, endpoints, UI).
+
+Keep styling consistent with the current luxe hndld design system (rounded, soft shadows, clean spacing).
+
+Do not remove Files from bottom navigation.
+
+Ensure nav works on small screens via horizontal scroll + visual cue.
+
+Add toasts for key moments: invoice sent, pay opened, payment marked paid.
+
+Now implement this in the repo.

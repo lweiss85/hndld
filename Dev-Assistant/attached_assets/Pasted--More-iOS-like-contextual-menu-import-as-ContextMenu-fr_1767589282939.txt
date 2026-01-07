@@ -1,0 +1,64 @@
+// More iOS-like contextual menu
+import * as ContextMenu from '@radix-ui/react-context-menu';
+
+<ContextMenu.Root>
+  <ContextMenu.Trigger asChild>
+    <Card>{/* task content */}</Card>
+  </ContextMenu.Trigger>
+  
+  <ContextMenu.Portal>
+    <ContextMenu.Content className="min-w-[200px] bg-card rounded-xl p-2 shadow-xl border">
+      <ContextMenu.Item 
+        className="px-3 py-2 hover:bg-accent rounded-lg flex items-center gap-2"
+        onSelect={() => updateTaskMutation.mutate({ id: task.id, status: "DONE" })}
+      >
+        <CheckCircle2 className="h-4 w-4" />
+        Mark as Done
+      </ContextMenu.Item>
+      
+      <ContextMenu.Item className="px-3 py-2 hover:bg-accent rounded-lg flex items-center gap-2">
+        <Play className="h-4 w-4" />
+        Start Now
+      </ContextMenu.Item>
+      
+      <ContextMenu.Separator className="h-px bg-border my-1" />
+      
+      <ContextMenu.Sub>
+        <ContextMenu.SubTrigger className="px-3 py-2 hover:bg-accent rounded-lg flex items-center gap-2">
+          <Calendar className="h-4 w-4" />
+          Reschedule
+          <ChevronRight className="h-4 w-4 ml-auto" />
+        </ContextMenu.SubTrigger>
+        
+        <ContextMenu.SubContent className="min-w-[160px] bg-card rounded-xl p-2 shadow-xl border">
+          <ContextMenu.Item className="px-3 py-2 hover:bg-accent rounded-lg">
+            Today 5pm
+          </ContextMenu.Item>
+          <ContextMenu.Item className="px-3 py-2 hover:bg-accent rounded-lg">
+            Tomorrow 9am
+          </ContextMenu.Item>
+          <ContextMenu.Item className="px-3 py-2 hover:bg-accent rounded-lg">
+            Next Monday
+          </ContextMenu.Item>
+          <ContextMenu.Item className="px-3 py-2 hover:bg-accent rounded-lg">
+            Custom...
+          </ContextMenu.Item>
+        </ContextMenu.SubContent>
+      </ContextMenu.Sub>
+      
+      <ContextMenu.Separator className="h-px bg-border my-1" />
+      
+      <ContextMenu.Item className="px-3 py-2 hover:bg-accent rounded-lg flex items-center gap-2">
+        <Edit className="h-4 w-4" />
+        Full Edit
+      </ContextMenu.Item>
+      
+      <ContextMenu.Item 
+        className="px-3 py-2 hover:bg-destructive/10 text-destructive rounded-lg flex items-center gap-2"
+      >
+        <Trash className="h-4 w-4" />
+        Delete
+      </ContextMenu.Item>
+    </ContextMenu.Content>
+  </ContextMenu.Portal>
+</ContextMenu.Root>

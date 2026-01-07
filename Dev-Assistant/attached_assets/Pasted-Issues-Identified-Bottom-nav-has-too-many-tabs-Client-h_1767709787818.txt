@@ -1,0 +1,234 @@
+Issues Identified
+
+Bottom nav has too many tabs - Client has 7 tabs, Assistant has 6 tabs. This causes horizontal scroll which confuses users.
+Payment feature not discoverable - Clients can't see payment history or access past invoices easily.
+No payment setup CTA for assistants - Assistants need to configure Venmo/Zelle but the link is hidden.
+
+
+Fix 1: Consolidate Bottom Navigation to 5 Tabs
+File: client/src/components/layout/bottom-nav.tsx
+Client tabs - change to:
+typescriptconst clientTabs: NavItem[] = [
+  { path: "/", icon: <Home className="h-5 w-5" />, label: "Home" },
+  { path: "/updates", icon: <FileText className="h-5 w-5" />, label: "Updates" },
+  { path: "/approvals", icon: <CheckSquare className="h-5 w-5" />, label: "Approvals" },
+  { path: "/spending", icon: <Receipt className="h-5 w-5" />, label: "Money" },
+  { path: "/messages", icon: <Mail className="h-5 w-5" />, label: "Messages" },
+];
+Assistant tabs - change to:
+typescriptconst assistantTabs: NavItem[] = [
+  { path: "/", icon: <Clock className="h-5 w-5" />, label: "Today" },
+  { path: "/tasks", icon: <ClipboardList className="h-5 w-5" />, label: "Tasks" },
+  { path: "/calendar", icon: <Calendar className="h-5 w-5" />, label: "Calendar" },
+  { path: "/spending", icon: <Receipt className="h-5 w-5" />, label: "Money" },
+  { path: "/house", icon: <Building2 className="h-5 w-5" />, label: "House" },
+];
+Remove horizontal scroll - replace the nav container:
+Change the scrollable div (lines 123-180) to use flexbox without scroll:
+tsx<div className="flex items-center justify-around h-14 px-1">
+  {tabs.map((tab) => {
+    const isActive = location === tab.path || 
+      (tab.path !== "/" && location.startsWith(tab.path));
+    
+    return (
+      <Link key={tab.path} href={tab.path} className="flex-1">
+        <button
+          onClick={handleTabClick}
+          className={cn(
+            "relative flex flex-col items-center justify-center gap-0.5 py-1.5 w-full min-h-[44px] transition-all duration-200",
+            isActive ? "text-foreground" : "text-muted-foreground"
+          )}
+          data-testid={`button-nav-${tab.label.toLowerCase().replace(/\s+/g, '-')}`}
+        >
+          {isActive && (
+            <div className="absolute inset-1 bg-primary/10 rounded-xl" />
+          )}
+          <span className={cn(
+            "relative z-10 transition-transform duration-200",
+            isActive && "scale-110"
+          )}>
+            {tab.icon}
+          </span>
+          <span className={cn(
+            "relative z-10 text-[10px] whitespace-nowrap",
+            isActive ? "font-semibold" : "font-normal"
+          )}>
+            {tab.label}
+          </span>
+        </button>
+      </Link>
+    );
+  })}
+</div>
+Remove the gradient fade divs (lines 124-131) and the scrollRef/handleScroll logic since we no longer scroll.
+
+Fix 2: Add "More" Menu to Header
+File: client/src/components/layout/header.tsx
+Add imports:
+typescriptimport { MoreHorizontal, Send, FolderOpen, Building2 } from "lucide-react";
+Add before the theme toggle button (around line 55):
+tsx{/* More Menu for secondary navigation */}
+<DropdownMenu>
+  <DropdownMenuTrigger asChild>
+    <Button variant="ghost" size="icon" data-testid="button-more-menu">
+      <MoreHorizontal className="h-5 w-5" />
+    </Button>
+  </DropdownMenuTrigger>
+  <DropdownMenuContent align="end" className="w-48">
+    <DropdownMenuLabel>More</DropdownMenuLabel>
+    <DropdownMenuSeparator />
+    {activeRole === "CLIENT" ? (
+      <>
+        <Link href="/requests">
+          <DropdownMenuItem className="gap-2 cursor-pointer">
+            <Send className="h-4 w-4" />
+            Requests
+          </DropdownMenuItem>
+        </Link>
+        <Link href="/files">
+          <DropdownMenuItem className="gap-2 cursor-pointer">
+            <FolderOpen className="h-4 w-4" />
+            Files
+          </DropdownMenuItem>
+        </Link>
+        <Link href="/house">
+          <DropdownMenuItem className="gap-2 cursor-pointer">
+            <Building2 className="h-4 w-4" />
+            House Profile
+          </DropdownMenuItem>
+        </Link>
+      </>
+    ) : (
+      <>
+        <Link href="/messages">
+          <DropdownMenuItem className="gap-2 cursor-pointer">
+            <MessageCircle className="h-4 w-4" />
+            Messages
+          </DropdownMenuItem>
+        </Link>
+        <Link href="/files">
+          <DropdownMenuItem className="gap-2 cursor-pointer">
+            <FolderOpen className="h-4 w-4" />
+            Files
+          </DropdownMenuItem>
+        </Link>
+      </>
+    )}
+  </DropdownMenuContent>
+</DropdownMenu>
+
+Fix 3: Add Invoice History to Client Money Page
+File: client/src/pages/spending.tsx
+In the ClientSpendingView component, add an Invoice History section after the "Recent Receipts" section (around line 330):
+tsx{/* Invoice History */}
+<div className="space-y-3">
+  <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-2">
+    <CreditCard className="h-4 w-4" />
+    Invoice History
+  </h2>
+  
+  {(() => {
+    const invoices = spending?.filter(s => s.kind === "INVOICE") || [];
+    if (invoices.length === 0) {
+      return (
+        <Card>
+          <CardContent className="p-6 text-center">
+            <CreditCard className="h-8 w-8 text-muted-foreground mx-auto mb-2 opacity-50" />
+            <p className="text-muted-foreground text-sm">No invoices yet</p>
+          </CardContent>
+        </Card>
+      );
+    }
+    return invoices.slice(0, 5).map((invoice) => (
+      <Card key={invoice.id} data-testid={`card-invoice-${invoice.id}`}>
+        <CardContent className="p-3 flex items-center justify-between">
+          <div>
+            <p className="font-medium">{invoice.title || `Invoice #${invoice.invoiceNumber}`}</p>
+            <p className="text-sm text-muted-foreground">
+              {invoice.sentAt ? format(new Date(invoice.sentAt), "MMM d, yyyy") : ""}
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="font-semibold">${(invoice.amount / 100).toFixed(2)}</span>
+            <Badge className={getStatusBadgeClass(invoice.status)}>
+              {getStatusLabel(invoice.status)}
+            </Badge>
+          </div>
+        </CardContent>
+      </Card>
+    ));
+  })()}
+</div>
+
+Fix 4: Add Payment Setup CTA for Assistants
+File: client/src/pages/spending.tsx
+In AssistantSpendingView, add this banner right after the page title (around line 400):
+tsx{/* Payment Setup CTA - show if no payment methods configured */}
+{!hasPaymentMethod && (
+  <Card className="border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-900/20">
+    <CardContent className="p-4">
+      <div className="flex items-start gap-3">
+        <div className="p-2 rounded-full bg-amber-100 dark:bg-amber-800">
+          <CreditCard className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+        </div>
+        <div className="flex-1">
+          <h3 className="font-medium">Set up payment methods</h3>
+          <p className="text-sm text-muted-foreground mt-1">
+            Add your Venmo or Zelle so clients can pay you directly from the app.
+          </p>
+          <Link href="/payment-profile">
+            <Button size="sm" className="mt-3" data-testid="button-setup-payment-cta">
+              Set Up Now
+            </Button>
+          </Link>
+        </div>
+      </div>
+    </CardContent>
+  </Card>
+)}
+Also add a settings icon to the page header for quick access:
+tsx<div className="flex items-center justify-between gap-4">
+  <div>
+    <h1 className="text-2xl font-semibold" data-testid="text-page-title">Money</h1>
+    <p className="text-muted-foreground mt-1">Track expenses and reimbursements</p>
+  </div>
+  <Link href="/payment-profile">
+    <Button variant="ghost" size="icon" data-testid="button-payment-settings">
+      <Settings className="h-5 w-5" />
+    </Button>
+  </Link>
+</div>
+Add Settings to imports from lucide-react.
+
+Fix 5: Enhance Pay Now Button Styling
+File: client/src/components/layout/bottom-nav.tsx
+Make the Pay Now button more attention-grabbing (around line 110):
+tsx{hasUnpaidInvoices && pendingInvoices && (
+  <div className="px-4 py-2 animate-in slide-in-from-bottom-2 fade-in duration-300">
+    <Button
+      onClick={() => setShowPaySheet(true)}
+      className="w-full h-12 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white shadow-lg shadow-emerald-500/25 font-semibold text-base"
+      data-testid="button-pay-now-cta"
+    >
+      <CreditCard className="h-5 w-5 mr-2" />
+      Pay {formatAmount(pendingInvoices.totalAmount)}
+      {pendingInvoices.count > 1 && (
+        <Badge variant="secondary" className="ml-2 bg-white/20 text-white border-0">
+          {pendingInvoices.count} invoices
+        </Badge>
+      )}
+    </Button>
+  </div>
+)}
+
+Testing Checklist
+After implementing:
+
+Client view: Bottom nav shows exactly 5 tabs (Home, Updates, Approvals, Money, Messages) without horizontal scroll
+Client view: "More" menu in header shows Requests, Files, House Profile
+Client view: Money page shows Invoice History section
+Client view: Pay Now button is prominently styled with emerald gradient when invoices are pending
+Assistant view: Bottom nav shows exactly 5 tabs (Today, Tasks, Calendar, Money, House) without scroll
+Assistant view: "More" menu shows Messages, Files
+Assistant view: Money page shows payment setup CTA if no Venmo/Zelle configured
+Assistant view: Settings gear in Money page header links to Payment Profile

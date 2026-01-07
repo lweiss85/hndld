@@ -1,0 +1,639 @@
+You are a senior full-stack engineer + product architect working inside my existing Replit project "hndld" (Node/Express + TypeScript + Prisma + SQLite + React/Vite + Tailwind). The app is running as a mobile-first PWA with existing features: tasks, approvals, updates, reactions, onboarding, preferences, org/households, audit logs, backups, playbooks, quick requests, and notifications.
+
+Implement "Phase 1: Launch-Critical Enhancements" that adds: payment/billing integration, enhanced analytics/reporting for pros, improved offline support, vendor portal, in-app messaging, AI-assisted features, emergency protocols, and performance optimizations. Do this incrementally and safely without breaking existing flows.
+
+IMPORTANT: Keep it workable on Replit. Where external services are needed (Stripe, AI APIs), implement clean abstractions with "local/demo fallback" so everything works with DEMO_MODE=true.
+
+========================================================
+1) PAYMENT & BILLING INTEGRATION (STRIPE)
+========================================================
+A) Add Prisma models:
+- Subscription
+  - id, organizationId, plan enum: FREE|HOUSEHOLD_BASIC|HOUSEHOLD_PREMIUM|PRO_STARTER|PRO_GROWTH|ENTERPRISE
+  - status enum: ACTIVE|PAST_DUE|CANCELED|TRIALING
+  - stripeCustomerId, stripeSubscriptionId
+  - currentPeriodStart, currentPeriodEnd
+  - trialEndsAt (nullable)
+  - seats (for PRO plans)
+  - householdLimit (for PRO plans)
+  - createdAt, updatedAt
+
+- PaymentMethod
+  - id, organizationId, stripePaymentMethodId
+  - brand, last4, expiryMonth, expiryYear
+  - isDefault boolean
+  - createdAt
+
+- Invoice
+  - id, organizationId, stripeInvoiceId
+  - amount, status enum: PAID|PENDING|FAILED
+  - invoiceUrl, invoicePdfUrl
+  - billingDate, dueDate, paidAt
+  - createdAt
+
+B) Implement Stripe integration:
+- env vars:
+  - STRIPE_SECRET_KEY
+  - STRIPE_PUBLISHABLE_KEY
+  - STRIPE_WEBHOOK_SECRET
+- Create /api/billing endpoints:
+  - GET /api/billing/plans (list available plans with pricing)
+  - POST /api/billing/checkout (create Stripe checkout session)
+  - GET /api/billing/subscription (current subscription details)
+  - POST /api/billing/portal (redirect to Stripe customer portal)
+  - POST /api/billing/webhooks (handle Stripe webhook events)
+- Webhook handlers for:
+  - checkout.session.completed
+  - customer.subscription.updated
+  - customer.subscription.deleted
+  - invoice.payment_succeeded
+  - invoice.payment_failed
+
+C) Subscription plans (pricing suggestions):
+FREE:
+  - 1 household
+  - 1 assistant user
+  - basic features
+  - 30-day history
+HOUSEHOLD_BASIC ($29/mo):
+  - 1 household
+  - 2 users
+  - all core features
+  - unlimited history
+  - email support
+HOUSEHOLD_PREMIUM ($79/mo):
+  - 1 household
+  - 5 users
+  - priority support
+  - advanced features (AI, integrations)
+  - white label emails
+PRO_STARTER ($149/mo):
+  - 3 households
+  - 5 seats
+  - playbooks library
+  - analytics
+  - API access
+PRO_GROWTH ($399/mo):
+  - 10 households
+  - 15 seats
+  - white label
+  - advanced analytics
+  - priority support
+ENTERPRISE (custom):
+  - unlimited households
+  - unlimited seats
+  - custom integrations
+  - dedicated support
+
+D) UI components:
+- Billing settings page (assistant only):
+  - current plan display
+  - upgrade/downgrade buttons
+  - payment method management
+  - invoice history
+- Plan selection during org creation
+- Usage limits enforcement:
+  - block household creation if over limit
+  - show upgrade prompt
+- Trial banner if in trial period
+
+E) DEMO_MODE fallback:
+- If STRIPE_SECRET_KEY not set:
+  - all plans appear as "DEMO - Full Access"
+  - no actual charges
+  - mock subscription status
+
+========================================================
+2) ENHANCED ANALYTICS & REPORTING (PRO FEATURE)
+========================================================
+A) Add Prisma models:
+- AnalyticsEvent
+  - id, householdId, userId, eventType, metadata json, createdAt
+  - indexed on (householdId, eventType, createdAt)
+
+B) Track events:
+- task_created, task_completed, task_overdue
+- approval_requested, approval_approved, approval_declined, approval_response_time
+- request_created, request_response_time
+- update_posted
+- login, session_duration
+
+C) Analytics dashboard (assistant only, PRO plans):
+- Time period selector (this week/month/quarter/year)
+- KPI cards:
+  - Tasks completed
+  - Average response time to approvals
+  - Average response time to requests
+  - Client satisfaction score (from reactions)
+  - Hours saved estimate (tasks × 15min avg)
+  - Spend managed (sum from spending items)
+- Charts:
+  - Tasks over time (line chart)
+  - Tasks by category (pie chart)
+  - Response time trends (line chart)
+  - Client engagement (reactions, approvals, requests over time)
+- Export as PDF report branded with hndld
+
+D) Client-facing "Impact Summary" (premium feature):
+- Monthly email/in-app card showing:
+  - "This month we handled X tasks"
+  - "Saved you approximately Y hours"
+  - "Managed $Z in household spending"
+  - Top 3 highlights
+
+E) Implementation:
+- Create analytics service with aggregation queries
+- Use recharts or similar for visualizations
+- Cache computed metrics (refresh daily via cron)
+
+========================================================
+3) VENDOR PORTAL (LIMITED ACCESS)
+========================================================
+A) Add vendor login capability:
+- VendorUser extends User with vendorId FK
+- Vendors can be invited via email
+- Login gives access ONLY to:
+  - Tasks assigned to them
+  - Ability to update task status
+  - Post updates with photos
+  - View household contact info (limited)
+  - NO access to: approvals, spending, vault, preferences
+
+B) UI for vendors (separate simplified view):
+- "My Jobs" list (assigned tasks)
+- Task detail with:
+  - job description
+  - location
+  - contact info
+  - ability to update status (Started/Completed/Need Help)
+  - upload photos
+  - add notes
+- Profile: vendor company info, insurance docs upload
+
+C) Assistant vendor management:
+- Invite vendor users
+- Assign tasks to vendors
+- View vendor completion history
+- Rate vendors (optional, simple 1-5 stars)
+
+========================================================
+4) IN-APP MESSAGING (REAL-TIME COMMUNICATION)
+========================================================
+A) Add Prisma models:
+- Conversation
+  - id, householdId, type enum: CLIENT_ASSISTANT|VENDOR_SPECIFIC|HOUSEHOLD_GENERAL
+  - participantIds json
+  - lastMessageAt
+  - createdAt
+
+- Message
+  - id, conversationId, senderId
+  - text, attachments json (urls)
+  - readBy json (userIds)
+  - createdAt
+
+B) Implement messaging:
+- WebSocket or polling-based real-time updates
+- Message threads in bottom sheet or dedicated tab
+- Typing indicators
+- Read receipts
+- File attachments (images, PDFs)
+- Voice message recording (using browser MediaRecorder API)
+  - store as audio files
+  - optional: transcription via AI (see AI features)
+
+C) UI:
+- Floating message button for clients
+- Unread count badge
+- Message thread view with grouped messages by day
+- Quick replies for common responses
+
+D) Notifications:
+- New message triggers in-app notification + optional email/SMS
+
+========================================================
+5) AI-ASSISTED FEATURES (PREMIUM/PRO)
+========================================================
+A) Implement AI provider abstraction:
+- Support multiple providers:
+  - Anthropic Claude (primary recommendation)
+  - OpenAI GPT-4 (fallback)
+- env vars:
+  - AI_PROVIDER (ANTHROPIC|OPENAI|NONE)
+  - ANTHROPIC_API_KEY
+  - OPENAI_API_KEY
+
+B) AI features to implement:
+1) Smart Request Parsing:
+   - Client types natural language request
+   - AI extracts: category, urgency, due date, checklist items
+   - Assistant reviews and confirms before creating task
+
+2) Voice Message Transcription:
+   - When voice message uploaded, auto-transcribe
+   - Display text alongside audio
+
+3) Weekly Brief Auto-Generation:
+   - AI generates natural language summary from structured data
+   - "This week you have 3 school events, 2 home maintenance tasks, and a birthday celebration for Emma on Thursday."
+
+4) Smart Suggestions:
+   - Based on household patterns, suggest:
+     - "It's been 3 months since HVAC filter change"
+     - "Grocery restock usually happens on Thursdays"
+     - "Anniversary in 2 weeks - would you like to plan something?"
+
+5) Expense Categorization:
+   - AI auto-categorizes spending items from receipt photos
+
+C) UI:
+- "AI Assistant" toggle in settings (PRO plans only)
+- Loading states during AI processing
+- Edit/regenerate options for AI outputs
+
+D) DEMO_MODE fallback:
+- If no AI keys: show "AI features require PRO plan" or use simple rule-based logic
+
+========================================================
+6) EMERGENCY PROTOCOLS & CONTACTS
+========================================================
+A) Add to Prisma:
+- EmergencyProtocol
+  - id, householdId
+  - type enum: MEDICAL|FIRE|SECURITY|UTILITY|OTHER
+  - title, instructions text
+  - contactIds json (FK to emergency contacts)
+  - priority enum: CRITICAL|HIGH|MEDIUM
+  - createdAt, updatedAt
+
+- EmergencyContact
+  - id, householdId
+  - name, relationship
+  - phone, email
+  - isPrimary boolean
+  - availableHours text
+  - notes
+
+B) Features:
+- Emergency contacts list (always accessible, even offline)
+- Quick dial buttons for emergency contacts
+- Emergency protocols with step-by-step instructions
+- "If I'm unavailable" delegation:
+  - backup assistant contact
+  - decision authority levels
+  - emergency fund access (vault integration)
+
+C) UI:
+- Dedicated "Emergency" section in Household tab
+- Red "Emergency" button in header (always visible)
+- Offline-first: cache emergency data in service worker
+
+========================================================
+7) IMPROVED OFFLINE SUPPORT (PWA ENHANCEMENT)
+========================================================
+A) Service worker enhancements:
+- Cache strategies:
+  - Network-first for: tasks, approvals, updates
+  - Cache-first for: static assets, household profile, emergency contacts
+  - Stale-while-revalidate for: preferences, vendors
+- Offline queue:
+  - Queue failed requests (task updates, messages, reactions)
+  - Auto-retry when back online
+  - Show "pending sync" indicator
+
+B) IndexedDB for offline data:
+- Store last 30 days of:
+  - tasks
+  - approvals
+  - updates
+  - household profile
+  - emergency contacts
+- Sync on reconnection
+
+C) UI:
+- Offline indicator banner
+- "Pending" badges on queued actions
+- Manual "Sync Now" button
+
+========================================================
+8) PERFORMANCE OPTIMIZATIONS
+========================================================
+A) Database optimizations:
+- Add indexes:
+  - tasks: (householdId, status, dueAt)
+  - updates: (householdId, createdAt)
+  - approvals: (householdId, status)
+  - notifications: (userId, isRead, createdAt)
+  - analytics_events: (householdId, eventType, createdAt)
+- Implement pagination on all list endpoints (default 20, max 100)
+- Add database query logging in dev mode to identify slow queries
+
+B) Image optimization:
+- Implement image resizing on upload:
+  - thumbnail: 300x300
+  - medium: 800x800
+  - original: max 2000x2000
+- Use WebP format when supported
+- Lazy loading for images in feeds
+- Progressive JPEG loading
+
+C) Caching:
+- Add Redis-compatible cache layer (use Replit KV or in-memory fallback):
+  - cache household settings (5 min TTL)
+  - cache user permissions (5 min TTL)
+  - cache analytics aggregates (1 hour TTL)
+- Add ETags for static resources
+
+D) Frontend optimizations:
+- Code splitting by route
+- Lazy load heavy components (PDF viewer, charts)
+- Virtual scrolling for long lists
+- Debounce search inputs
+- Optimize re-renders with React.memo and useMemo
+
+E) API rate limiting:
+- Implement per-user rate limits:
+  - 100 requests/min for regular users
+  - 1000 requests/min for API access (PRO plans)
+- Return proper 429 responses with Retry-After header
+
+========================================================
+9) INTEGRATION FRAMEWORK (FOUNDATION)
+========================================================
+A) Add Prisma model:
+- Integration
+  - id, householdId
+  - provider enum: INSTACART|AMAZON_FRESH|UBER|LYFT|TRIPIT|CUSTOM
+  - status enum: CONNECTED|DISCONNECTED|ERROR
+  - credentials json (encrypted)
+  - settings json
+  - lastSyncAt
+  - createdAt
+
+B) Integration manager:
+- UI for connecting/disconnecting integrations
+- OAuth flow support for integrations that use it
+- Webhook receiver for integration events
+
+C) Starter integrations (implement 1-2 as proof of concept):
+1) Grocery delivery (Instacart API if available):
+   - Import shopping list to Instacart
+   - Track delivery status
+   - Save receipts automatically
+
+2) Travel tracking (TripIt or similar):
+   - Auto-import travel itinerary
+   - Create "Travel Mode" tasks
+   - Track flight status
+
+D) Future-proof architecture:
+- Plugin system for adding integrations
+- Marketplace for PRO users (future)
+
+========================================================
+10) WHITE LABEL CAPABILITIES (PRO/ENTERPRISE)
+========================================================
+A) Add to Organization model:
+- whiteLabel boolean (default false)
+- customDomain nullable
+- brandColors json: {primary, secondary, accent}
+- logo url nullable
+- emailFromName
+- emailFromAddress (verified)
+
+B) White label features (ENTERPRISE plan):
+- Custom domain support (CNAME setup docs)
+- Custom email sender
+- Branded PDF exports
+- Branded email templates
+- Custom color scheme (override porcelain + navy)
+- Remove "Powered by hndld" from client view
+
+C) Implementation:
+- Theming system that reads from Organization settings
+- Email templates use dynamic branding
+- PDF generator uses org logo and colors
+
+========================================================
+11) COMPLIANCE & DATA MANAGEMENT
+========================================================
+A) GDPR/CCPA features:
+- User data export (JSON + CSV):
+  - endpoint: POST /api/user/export-data
+  - includes all user data across all households
+- Right to be forgotten:
+  - endpoint: POST /api/user/delete-account
+  - soft delete user + anonymize in audit logs
+  - schedule permanent deletion after 30 days
+  - notify household admins
+- Data retention settings:
+  - auto-delete old audit logs (configurable: 1/3/7 years)
+  - auto-delete completed tasks (configurable: never/1/2 years)
+
+B) Privacy enhancements:
+- Add consent tracking for data processing
+- Privacy policy + terms versioning
+- Cookie consent banner (if using analytics cookies)
+- Data processing agreement template (ENTERPRISE)
+
+C) Security enhancements:
+- Add 2FA support (TOTP via authenticator app):
+  - optional for all users
+  - required for ENTERPRISE
+- Session management:
+  - view active sessions
+  - revoke sessions remotely
+- Login history in audit log
+
+========================================================
+12) TESTING & QUALITY INFRASTRUCTURE
+========================================================
+A) Add testing setup:
+- Install: vitest, @testing-library/react, supertest, playwright
+- Create test structure:
+  - /server/tests (API tests)
+  - /client/tests (component tests)
+  - /e2e (end-to-end tests)
+
+B) Critical test coverage:
+- API tests:
+  - auth flows
+  - permission checks
+  - task CRUD
+  - approval flows
+  - webhook handlers
+- Component tests:
+  - quick reactions
+  - task forms
+  - approval cards
+- E2E tests:
+  - complete request → task → approval → completion flow
+  - onboarding flow
+  - calendar connect
+
+C) CI/CD foundation:
+- Add GitHub Actions workflow (or Replit equivalent):
+  - run tests on PR
+  - run linter
+  - check TypeScript compilation
+- Add test:watch script for local development
+
+========================================================
+13) ADMIN & SUPPORT TOOLS
+========================================================
+A) Super admin panel (owner only, hidden UI):
+- View all organizations
+- View all households
+- Impersonate user (for support)
+- View system health metrics
+- Manual subscription management
+
+B) Support features:
+- In-app help/support widget
+- Feature request submission
+- Bug report with auto-attached context:
+  - browser info
+  - last 10 actions (from analytics events)
+  - console errors
+
+C) Logging & monitoring:
+- Implement structured logging:
+  - use pino or winston
+  - log levels: error, warn, info, debug
+  - include correlation IDs for request tracing
+- Error tracking (optional external service):
+  - Sentry integration (if API key provided)
+  - fallback: log to file
+
+========================================================
+14) MOBILE APP PREPARATION (FUTURE-READY)
+========================================================
+A) API versioning:
+- Add /api/v1 prefix to all endpoints
+- Version response formats
+- Document breaking changes
+
+B) Mobile-friendly endpoints:
+- Add batch endpoints:
+  - POST /api/v1/batch/sync (sync multiple resources in one call)
+- Add delta sync support:
+  - GET /api/v1/tasks?since={timestamp}
+
+C) Push notification infrastructure:
+- Add device token storage:
+  - DeviceToken model: userId, token, platform enum (IOS|ANDROID|WEB), isActive
+- Web Push (PWA):
+  - implement VAPID key generation
+  - add push subscription endpoints
+  - send test push notification
+- Future: FCM/APNS setup documented in README
+
+========================================================
+15) ONBOARDING & ACTIVATION IMPROVEMENTS
+========================================================
+A) Enhanced first-run experience:
+- Interactive product tour (use react-joyride or similar)
+- Tooltips on first use of features
+- Progress checklist:
+  - Connect calendar ✓
+  - Add first person ✓
+  - Set preferences ✓
+  - Create first task ✓
+  - Complete onboarding ✓
+
+B) Email drip campaign (optional):
+- Welcome email
+- Day 3: Tips & tricks
+- Day 7: Invite household members
+- Day 14: Upgrade to premium
+
+C) Referral program foundation:
+- ReferralCode model: code, organizationId, usedCount, maxUses
+- Track referrals in Organization
+- Discount codes (integrate with Stripe)
+
+========================================================
+16) DOCUMENTATION & DEVELOPER EXPERIENCE
+========================================================
+A) API documentation:
+- Add /api/docs endpoint with OpenAPI/Swagger
+- Document all endpoints, request/response formats
+- Include authentication examples
+
+B) README enhancements:
+- Architecture overview diagram
+- Setup instructions (step-by-step)
+- Environment variables reference table
+- Troubleshooting section
+- Contributing guidelines
+
+C) Inline code documentation:
+- TSDoc comments for all public functions
+- Explain complex business logic
+- Document permission requirements
+
+========================================================
+17) SEED DATA & DEMO IMPROVEMENTS
+========================================================
+Update seed to include:
+- 2 organizations:
+  - Demo Concierge (FREE plan, 1 household)
+  - Premium Concierge (PRO plan, 2 households)
+- Sample analytics events
+- Sample integrations (disconnected)
+- Sample vendor user
+- Sample emergency protocols
+- Sample messages
+- Complete first household with realistic data:
+  - 30 days of tasks (some completed, some pending)
+  - 10 approvals (mix of states)
+  - 20 updates
+  - Preferences fully populated
+  - 2 playbooks with steps
+
+========================================================
+18) IMPLEMENTATION ORDER
+========================================================
+1) Payment/billing (Stripe) + subscription plans
+2) Analytics infrastructure + basic dashboard
+3) Performance optimizations (indexes, caching, images)
+4) Offline support enhancements
+5) AI integration framework + 2-3 AI features
+6) Vendor portal
+7) In-app messaging
+8) Emergency protocols
+9) Integration framework + 1 sample integration
+10) White label foundation
+11) GDPR/compliance features
+12) Testing infrastructure + critical tests
+13) Admin tools
+14) Enhanced onboarding
+15) Documentation
+
+========================================================
+19) DELIVERABLES
+========================================================
+- Implement all features with safe defaults
+- Maintain backward compatibility
+- Add feature flags for gradual rollout:
+  - FEATURE_BILLING=true
+  - FEATURE_AI=true
+  - FEATURE_MESSAGING=true
+  - FEATURE_VENDOR_PORTAL=true
+  - FEATURE_INTEGRATIONS=true
+- Ensure DEMO_MODE works for all features
+- Update README with all new env vars and setup instructions
+- Add migration guide for existing data
+- npm run dev works with full feature set
+- List all files changed and new components added
+
+IMPORTANT NOTES:
+- Use TypeScript strictly (no any types)
+- Follow existing code style and patterns
+- Add proper error handling everywhere
+- Log all external API calls
+- Keep UI responsive and accessible
+- Test on mobile viewport
+- Respect existing "quiet luxury" design language
+
+Proceed to implement now, starting with billing/payments as the foundation for the PRO platform business model.

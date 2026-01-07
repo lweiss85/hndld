@@ -1,0 +1,167 @@
+You are a senior UX engineer working inside my existing HouseOps React/Vite + Tailwind mobile-first PWA. Implement a premium “White Glove” experience upgrade (porcelain + navy) with high-end layout changes PLUS subtle illustrations/icons, skeleton loaders, and swipe-to-complete interactions.
+
+DO NOT change backend behavior or API contracts unless absolutely necessary for user/household name display. Keep changes safe and incremental.
+
+========================================================
+A) PREMIUM THEME + DESIGN SYSTEM
+========================================================
+1) Implement theming with CSS variables:
+- Default theme: WHITE_GLOVE (light porcelain)
+- Optional theme: EVENING_SERVICE (dark) via existing toggle
+- Persist preference in localStorage
+
+WHITE_GLOVE palette (warm, premium; not stark white):
+- --bg: #F6F2EA (porcelain)
+- --surface: #FFFFFF
+- --surface2: #FBF8F2
+- --text: #101828 (charcoal)
+- --muted: #667085
+- --border: #E6E0D8
+- --accent: #1D2A44 (ink navy)
+- --highlight: #E7D8B1 (champagne; use sparingly)
+- --success: #2E7D5B (muted)
+- --warning: #B07A2A (muted)
+- --danger: #B23A3A (muted)
+
+EVENING_SERVICE palette:
+- map current dark mode values into same variables (bg/surface/text/border/accent)
+
+2) Tailwind:
+- Update tailwind config to support using CSS variables for colors (either via theme extension or utility classes).
+- Increase radii: cards 22–24px, buttons 14–18px.
+- Add subtle shadows: soft, wide, low opacity.
+
+3) Typography and spacing:
+- More whitespace. Mobile padding 16–20px.
+- Page greeting: text-xl/2xl, semibold.
+- Section headers: text-sm semibold, slight tracking, muted color.
+
+========================================================
+B) CLIENT “THIS WEEK” SIGNATURE REDESIGN (MOST IMPORTANT)
+========================================================
+Redesign the Client This Week screen into a “Weekly Concierge Brief” experience:
+1) Personalized header:
+- “Good morning, {firstName}.”
+- Subline: household name (if available) else omit.
+- Tiny line: “Last updated {relative time}”.
+
+2) Hero brief card (large, premium):
+- Headline: “This week is handled.”
+- Summary: “{# priorities} priorities • {# events today} today • {# approvals} waiting”
+- Actions:
+  - Primary: “Request”
+  - Secondary: “Approvals (n)” only if n>0
+- Add a subtle, premium illustration/icon element on the right side of the hero card:
+  - Use minimal line icons or a faint abstract shape (e.g., thin-outline concierge bell, calendar, envelope) in accent color at very low opacity.
+  - Must feel classy: no cartoons, no loud gradients.
+  - Implement as inline SVG components under /client/src/components/illustrations
+
+3) Quick action pill row beneath hero:
+- Pill buttons with icons: Request, Approvals (if any), Updates, Household (or Preferences)
+- One-thumb reachable, large tap targets.
+
+4) Modules:
+Convert “Top Priorities” and “Key Events” into airy modules:
+- Show max 3 items each + “View all”.
+- Use ItemRow component with:
+  - title
+  - meta line (time/date + location)
+  - subtle divider or spacing
+  - Replace aggressive HIGH/MED badges with UrgencyDot:
+    - small dot + label (High/Med/Low) in muted style OR thin left border stripe
+- Add “Handled for you” module:
+  - show last 3 updates condensed (one line each) + “View all”.
+
+========================================================
+C) SKELETON LOADERS (PREMIUM POLISH)
+========================================================
+Add skeleton loaders for:
+- This Week hero summary + modules
+- Approvals list
+- Updates feed
+- Task lists
+
+Implementation notes:
+- Use a reusable <Skeleton /> and <SkeletonCard /> components.
+- Use subtle shimmer (CSS keyframes) but respect prefers-reduced-motion.
+- Skeleton should match the White Glove surfaces (surface2).
+
+========================================================
+D) SUBTLE ICONOGRAPHY / ILLUSTRATIONS
+========================================================
+1) Adopt a consistent icon set:
+- Use lucide-react if already installed; if not, add it (lightweight) OR use existing icons.
+- Keep stroke width consistent.
+2) Add 3–5 “signature” micro-illustrations as inline SVG components:
+- Concierge bell / briefcase / calendar / sparkle (very subtle)
+- Only used in hero card, empty states, and section headers.
+3) Empty states:
+- Add calm, premium empty states with a tiny illustration + reassuring copy:
+  - “No approvals right now. Enjoy the calm.”
+  - “Nothing urgent today. You’re in a good spot.”
+
+========================================================
+E) SWIPE-TO-COMPLETE (ASSISTANT EXPERIENCE)
+========================================================
+Add swipe gestures for assistant task rows (mobile):
+- On Assistant “Tasks” list rows and/or “Today” list:
+  - Swipe right: mark DONE
+  - Swipe left: move to WAITING_ON_CLIENT
+  - Long press: open quick actions (optional)
+- Provide subtle haptic-like feedback via animation (since PWA):
+  - row slides, background reveals action label + icon
+  - confirmation toast after action
+- Implement with pointer/touch events (no heavy libraries). Keep it reliable:
+  - threshold ~60px swipe
+  - cancel if vertical scroll is dominant
+- Add an Undo toast/snackbar for 5 seconds after swipe action.
+
+IMPORTANT: Do not break scrolling. Ensure gestures do not interfere with vertical scroll on mobile.
+
+========================================================
+F) APPLY COHESIVE POLISH ACROSS CLIENT TABS
+========================================================
+Approvals:
+- Card/list redesign to light theme with airy spacing.
+- Add skeleton loaders.
+- Make approve/decline buttons premium (pill buttons, clear hierarchy).
+
+Requests:
+- Make “Ask Lauren” button visually prominent.
+- Use chips for category/urgency; keep form calm and minimal.
+
+Updates:
+- Feed becomes airy cards with photo thumbnails.
+- Add reaction row styling (your new reactions feature) with subtle pill buttons.
+
+Bottom Nav:
+- Refine to “floating pill bar” feel:
+  - raised surface, rounded container, subtle shadow
+  - larger tap targets
+  - active indicator (ink underline or pill highlight)
+
+========================================================
+G) DATA / NAME DISPLAY (MINIMAL BACKEND CHANGES ONLY IF NEEDED)
+========================================================
+- Use existing user profile name and household name if available.
+- If user name isn’t stored, use:
+  - derive from email before @, capitalize, or display “there”.
+- If household name isn’t stored, omit gracefully.
+- Avoid backend changes unless absolutely necessary; if needed, add a small /api/me payload field.
+
+========================================================
+H) DELIVERABLE
+========================================================
+1) Update theme system (CSS variables + toggle persistence).
+2) Add reusable UI components:
+- AppShell, LuxuryCard, SectionHeader, ItemRow, UrgencyDot, QuickActionPills
+- Skeleton, SkeletonCard
+- Toast/Snackbar (if not present) with Undo
+3) Add illustration components under /client/src/components/illustrations
+4) Refactor Client This Week screen per spec.
+5) Add swipe-to-complete for Assistant task rows with Undo.
+6) Ensure animations respect prefers-reduced-motion.
+7) Ensure npm run dev works, no TS errors.
+8) Briefly list files changed and where new components are used.
+
+Proceed to implement now.

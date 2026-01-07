@@ -1,0 +1,99 @@
+// Add to task card
+const [showQuickActions, setShowQuickActions] = useState<string | null>(null);
+
+<Card 
+  onContextMenu={(e) => {
+    e.preventDefault();
+    setShowQuickActions(task.id);
+  }}
+  // Or use long-press hook
+>
+
+// Quick action sheet
+<Sheet open={showQuickActions === task.id} onOpenChange={() => setShowQuickActions(null)}>
+  <SheetContent side="bottom" className="rounded-t-2xl">
+    <SheetHeader>
+      <SheetTitle>{task.title}</SheetTitle>
+    </SheetHeader>
+    <div className="grid grid-cols-2 gap-2 mt-4">
+      {/* Quick actions */}
+      <Button 
+        variant="outline" 
+        className="h-20 flex-col gap-2"
+        onClick={() => {
+          updateTaskMutation.mutate({ id: task.id, status: "DONE" });
+          setShowQuickActions(null);
+        }}
+      >
+        <CheckCircle2 className="h-6 w-6" />
+        <span>Mark Done</span>
+      </Button>
+
+      <Button 
+        variant="outline" 
+        className="h-20 flex-col gap-2"
+        onClick={() => {
+          updateTaskMutation.mutate({ id: task.id, status: "IN_PROGRESS" });
+          setShowQuickActions(null);
+        }}
+      >
+        <Play className="h-6 w-6" />
+        <span>Start Now</span>
+      </Button>
+
+      <Button 
+        variant="outline" 
+        className="h-20 flex-col gap-2"
+        onClick={() => {
+          updateTaskMutation.mutate({ 
+            id: task.id, 
+            dueAt: setHours(new Date(), 17) 
+          });
+          setShowQuickActions(null);
+        }}
+      >
+        <Clock className="h-6 w-6" />
+        <span>Today 5pm</span>
+      </Button>
+
+      <Button 
+        variant="outline" 
+        className="h-20 flex-col gap-2"
+        onClick={() => {
+          updateTaskMutation.mutate({ 
+            id: task.id, 
+            dueAt: setHours(addDays(new Date(), 1), 9) 
+          });
+          setShowQuickActions(null);
+        }}
+      >
+        <Calendar className="h-6 w-6" />
+        <span>Tomorrow</span>
+      </Button>
+
+      <Button 
+        variant="outline" 
+        className="h-20 flex-col gap-2"
+        onClick={() => {
+          updateTaskMutation.mutate({ id: task.id, status: "WAITING_ON_CLIENT" });
+          setShowQuickActions(null);
+        }}
+      >
+        <Clock className="h-6 w-6" />
+        <span>Waiting</span>
+      </Button>
+
+      <Button 
+        variant="outline" 
+        className="h-20 flex-col gap-2"
+        onClick={() => {
+          setSelectedTask(task);
+          setShowQuickActions(null);
+        }}
+      >
+        <Edit className="h-6 w-6" />
+        <span>Full Edit</span>
+      </Button>
+    </div>
+  </SheetContent>
+</Sheet>

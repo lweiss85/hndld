@@ -1,0 +1,143 @@
+You are a senior full-stack engineer and product designer. Build a fully functional mobile-first household operations app (PWA) hosted on Replit.
+
+APP NAME: "HouseOps" (working name)
+
+PRIMARY GOAL:
+A personal assistant/house manager uses this app to run a single household. Clients (a family) can:
+- See a calm weekly briefing
+- Send requests
+- Approve purchases/decisions
+- View updates (proof-of-work)
+The assistant can:
+- Manage tasks + today timeline
+- Convert calendar events into tasks
+- Post updates with photos/receipts
+- Create approval items
+- Track statuses and comments in one place
+
+MUST-HAVE PRODUCT BEHAVIOR:
+1) Mobile-first UI with bottom tab navigation
+2) Two roles: ASSISTANT and CLIENT (same household)
+3) Core tabs:
+   - Client tabs: This Week, Approvals, Requests, Updates
+   - Assistant tabs: Today, Tasks, Calendar, House, Vendors, Spending
+   Provide a role switch in UI if user has assistant role; clients only see client tabs.
+4) Requests create structured tasks with category, urgency, due date, notes, attachments (photo upload), and comment thread.
+5) Approvals list pending items with quick approve/decline and comment. Approvals can have attached links/photos and a threshold amount field.
+6) Updates feed is chronological: assistant can post updates, attach photos/receipts, mark related task as done, clients can react (emoji) and comment.
+7) Task board supports statuses: Inbox, Planned, In Progress, Waiting on Client, Done. Tasks support checklists, due date/time, location, assignee, and comments.
+8) Calendar integration: Google Calendar READ-ONLY. The client connects their Google account via OAuth. The app only reads events from a selected calendar(s). The app can:
+   - sync events to internal “Calendar Events” table
+   - show calendar list + allow user to select which calendar(s) to sync
+   - create assistant tasks from events (one tap) and/or auto-suggest tasks based on keywords
+   - store sync tokens for incremental sync
+9) Privacy-first: encourage the household to choose a dedicated calendar (e.g., “Kids + Household Ops”), but allow selecting any calendar they want.
+10) PWA: Add manifest + service worker + installability (Add to Home Screen), app icon placeholders.
+11) Deployment on Replit: one command to run in dev and one command to build+start for deployment.
+
+TECH STACK (choose and implement exactly):
+- Node.js + Express (TypeScript)
+- SQLite database with Prisma ORM
+- React + TypeScript frontend using Vite
+- TailwindCSS for styling (mobile-first)
+- React Router
+- Zustand or Redux Toolkit for state (choose Zustand if simpler)
+- Zod for validation
+- Multer for file uploads (store in /uploads; serve static)
+- Google APIs: use official googleapis package for Calendar OAuth + API calls
+- Auth: email/password with secure hashing (bcrypt). Use JWT stored in httpOnly cookie OR secure token stored in localStorage with refresh token strategy; choose the simplest secure approach workable on Replit. Include logout.
+- Environment variables for secrets and Google OAuth credentials.
+
+REPLIT CONSTRAINTS / SETUP:
+- The app must run on Replit as a web app with a public HTTPS URL.
+- Provide clear instructions (README) for setting environment variables in Replit Secrets.
+- Provide “DEMO MODE” if Google credentials aren’t set: seed mock calendar events + allow exploring UI without OAuth.
+
+GOOGLE CALENDAR REQUIREMENTS (READ-ONLY):
+- Implement OAuth 2.0 web server flow.
+- Required scopes:
+  - https://www.googleapis.com/auth/calendar.events.readonly
+  - https://www.googleapis.com/auth/calendar.calendarlist.readonly
+- After OAuth, list calendars and allow selecting which ones to sync.
+- Implement incremental sync (store sync token per selected calendar).
+- Provide a “Sync Now” button and also schedule periodic sync every 15 minutes using node-cron.
+- Store tokens securely in DB (at minimum encrypt tokens using an APP_ENCRYPTION_KEY env var).
+- Never allow writing to calendar (no create/update/delete events).
+
+DATA MODEL (Prisma) MUST INCLUDE:
+- Household (one per client family)
+- User (email, name, role: ASSISTANT|CLIENT, householdId)
+- Task (title, description, status enum, category enum, urgency enum, dueAt, location, createdBy, assignedTo, householdId)
+- TaskChecklistItem (taskId, text, done)
+- Comment (entityType: TASK|APPROVAL|UPDATE, entityId, userId, text, createdAt)
+- Approval (title, details, amount, status enum PENDING|APPROVED|DECLINED, links json, images json, householdId, createdBy)
+- Update (text, images json, receipts json, relatedTaskId optional, householdId, createdBy)
+- CalendarConnection (householdId, provider=GOOGLE, encryptedAccessToken, encryptedRefreshToken, tokenExpiry)
+- CalendarSelection (calendarId, calendarName, householdId, syncToken nullable, isEnabled boolean)
+- CalendarEvent (providerEventId, calendarId, title, startAt, endAt, location, description, householdId, updatedAt)
+- SpendingItem (amount, category, vendor, note, date, receipt urls, householdId, createdBy)
+- Vendor (name, phone, email, notes, category, householdId)
+
+UI / UX SPEC:
+- Mobile-first. Bottom nav tabs. Clean cards. Minimal but polished.
+- “This Week” page: cards for Meals (placeholder), Key Events (from synced calendar), Top Priorities (tasks), Needs Approval (pending approvals), Deliveries (placeholder), Spend Snapshot (sum of spending this week).
+- “Approvals” page: list of pending; tap detail; approve/decline; comment thread.
+- “Requests” page: big “Ask” button; guided form with category/urgency/due date; attach photo; submit.
+- “Updates” page: feed; detail view includes comments and reactions.
+- Assistant “Today” page: timeline of tasks due today + calendar events today; “Next action” queue; quick add.
+- Assistant “Tasks” page: kanban-like but mobile friendly using segmented control for statuses.
+- Assistant “Calendar” page: show selected calendars, events list, “Sync Now”, “Create task from event” button.
+- House/Vendors/Spending can be functional but minimal for MVP.
+
+API DESIGN:
+- REST endpoints with consistent JSON responses.
+- Auth endpoints: register (assistant only or via seed), login, logout, me.
+- CRUD endpoints for tasks, approvals, updates, comments, vendors, spending.
+- Calendar endpoints: begin OAuth, callback, list calendars, select calendars, sync now, list events.
+
+SECURITY:
+- Use helmet, rate limiting, input validation, password hashing.
+- CORS configured correctly for Replit origin.
+- Use httpOnly cookie for auth if possible; otherwise implement secure token handling with refresh tokens.
+- Never log tokens. Mask secrets.
+
+PROJECT STRUCTURE:
+- /server (Express + Prisma)
+- /client (React Vite)
+- Root package.json with scripts:
+  - dev: run both client and server concurrently
+  - build: build client + prisma generate + migrate deploy
+  - start: serve built client from server
+- Server serves client build in production.
+
+DELIVERABLES:
+1) Complete working codebase with no TODOs blocking basic functionality.
+2) Prisma schema + migrations + seed script that creates:
+   - one household
+   - one assistant user (email: assistant@demo.com pass: Password123!)
+   - one client user (email: client@demo.com pass: Password123!)
+   - some tasks, approvals, updates, vendors, spending items
+3) README.md with step-by-step:
+   - how to run locally on Replit
+   - how to set Secrets:
+     DATABASE_URL (sqlite file)
+     JWT_SECRET
+     APP_ENCRYPTION_KEY
+     GOOGLE_CLIENT_ID
+     GOOGLE_CLIENT_SECRET
+     GOOGLE_REDIRECT_URI (must match deployed URL)
+   - how to enable demo mode (DEMO_MODE=true)
+   - how to deploy on Replit (npm run build && npm run start)
+4) Make sure the app is usable from a phone browser, and installable as a PWA.
+
+IMPORTANT IMPLEMENTATION NOTES:
+- Use SQLite file db for simplicity.
+- Encrypt google tokens at rest using APP_ENCRYPTION_KEY (use crypto).
+- Implement calendar sync robustly with incremental sync token; if token invalid, fall back to full sync.
+- Avoid overly complex UI libraries; keep it stable and fast.
+- Ensure uploads work on Replit (store files, serve static from /uploads).
+- Provide graceful error messages in UI.
+
+Now generate the full project code, including all config files needed for Replit. After generating, run/verify the build. If any dependency conflicts occur, resolve them. Ensure npm install works and app starts with one command.
+
+Start by outputting the folder tree and then create the files accordingly.

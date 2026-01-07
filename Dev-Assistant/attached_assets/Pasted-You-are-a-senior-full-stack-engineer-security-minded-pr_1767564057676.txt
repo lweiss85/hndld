@@ -1,0 +1,394 @@
+You are a senior full-stack engineer + security-minded product builder working inside my existing Replit project “HouseOps” (Node/Express + TypeScript + Prisma + SQLite + React/Vite + Tailwind). The app is running and deployed as a mobile-first PWA. Implement a “Premium Platform Upgrade” that adds: reliability (backups/export/restore), notifications (email/SMS baseline), global search/filters, richer roles/permissions, audit logging, quick request buttons, playbooks/SOPs, handoff packet exports (PDF), vault hardening, legal consent basics, and an Organization→Households foundation for concierge professionals (multi-tenancy). Do this incrementally and safely: do not break existing flows.
+
+IMPORTANT: Keep it workable on Replit. Where external services are needed (email/SMS/object storage), implement a clean abstraction with a “local/demo fallback” so everything still works with DEMO_MODE=true.
+
+========================================================
+0) PRODUCT OUTCOME
+========================================================
+We are evolving HouseOps into:
+- Premium Household OS for wealthy households (client calm UI)
+- Concierge Pro Platform for professionals (org + multiple households)
+while maintaining current single-household demo usability.
+
+========================================================
+1) DATABASE & MULTI-TENANCY FOUNDATION (ORG → HOUSEHOLDS)
+========================================================
+Add these Prisma models and migrate:
+
+A) Organization
+- id, name, createdAt
+B) OrganizationMember
+- id, organizationId, userId, role enum: OWNER|ADMIN|STAFF
+- unique (organizationId, userId)
+C) Household
+- add organizationId (required)
+- keep existing fields; add displayName if missing
+D) HouseholdMember
+- id, householdId, userId, role enum: ASSISTANT|CLIENT|NANNY|SITTER|CLEANER|VENDOR_VIEWER
+- permissionsJson (optional) or link to RoleTemplate
+- unique (householdId, userId)
+
+Migration strategy:
+- Existing households: create a default Organization “Demo Concierge” and attach existing household to it.
+- Existing users: create OrganizationMember for assistant user as OWNER and clients as STAFF.
+- Keep existing login and household selection simple:
+  - If user belongs to only one household: auto-enter.
+  - If multiple: show a “Select Household” screen (mobile-first).
+
+========================================================
+2) ROLES, PERMISSIONS, AND SENSITIVE DATA MASKING
+========================================================
+Implement a permission system that is SIMPLE but real:
+
+A) Permission checks (server middleware)
+- Every request is scoped to householdId AND verified against membership.
+- Define permission gates:
+  - CAN_EDIT_TASKS, CAN_APPROVE, CAN_VIEW_VAULT, CAN_EDIT_VAULT, CAN_VIEW_SPENDING, CAN_EDIT_SPENDING, CAN_MANAGE_MEMBERS, CAN_MANAGE_SETTINGS
+- Map default permissions by HouseholdMember role:
+  - ASSISTANT: all
+  - CLIENT: view most; approve; request; react; view updates; view limited household profile; vault view is masked unless explicitly allowed
+  - NANNY/SITTER: view schedule + assigned tasks only; no spending; no vault
+  - CLEANER: assigned tasks + updates only; no approvals
+  - VENDOR_VIEWER: vendor-specific limited view (optional)
+
+B) Vault masking rules
+- Any AccessItem isSensitive=true:
+  - clients see masked value “•••••” + no reveal
+  - assistant can reveal with an extra step (see Vault hardening below)
+
+========================================================
+3) SYSTEM-WIDE AUDIT LOG (TRUST LAYER)
+========================================================
+Add model AuditLog:
+- id, householdId, userId, action (string), entityType enum, entityId string, beforeJson, afterJson, createdAt, ip, userAgent
+Log events for:
+- task create/update/status changes
+- approvals created/approved/declined
+- preferences + onboarding changes
+- vault reveal attempts (log but do not store revealed value)
+Implementation:
+- Create helper logAudit({action, entityType, entityId, before, after})
+- Call it in service layer or route handlers.
+- Add “Audit” view for assistant only:
+  - filter by entity type, date range, user
+
+========================================================
+4) RELIABILITY: BACKUPS, EXPORTS, RESTORE (DB + UPLOADS)
+========================================================
+A) Add export endpoints (assistant only):
+- POST /api/admin/export
+  - Produces a ZIP containing:
+    - sqlite db file
+    - uploads folder
+    - JSON exports (household profile, vendors, preferences, tasks, approvals, updates)
+  - Store exports in /backups with timestamp
+  - Return a downloadable link
+
+B) Add restore endpoints (assistant only; DEMO_MODE must be true OR require a special RESTORE_KEY env var):
+- POST /api/admin/restore (multipart upload zip)
+  - Validate zip structure
+  - Replace db + uploads safely (stop server writes briefly with a lock)
+  - Keep a “pre-restore” backup automatically
+  - Return status
+
+C) Add scheduled backups:
+- Use node-cron:
+  - daily at 2:00 AM: create ZIP backup
+  - keep last 14 daily backups; delete older
+- Add settings to toggle scheduled backups (on by default)
+
+D) README: document backup/restore clearly.
+
+========================================================
+5) FILE STORAGE STRATEGY (PREMIUM DURABILITY)
+========================================================
+Implement a storage abstraction with two backends:
+
+A) LocalStorageProvider (default)
+- stores in /uploads and serves statically
+
+B) S3CompatibleStorageProvider (optional)
+- supports AWS S3 or Cloudflare R2
+- env vars:
+  - OBJECT_STORAGE_ENDPOINT (optional for R2)
+  - OBJECT_STORAGE_BUCKET
+  - OBJECT_STORAGE_ACCESS_KEY
+  - OBJECT_STORAGE_SECRET_KEY
+  - OBJECT_STORAGE_REGION
+- When configured, uploads are stored remotely and database stores URLs.
+
+Make it easy:
+- If object storage env vars exist: use S3 provider
+- Else: use local provider
+In both cases, export ZIP still includes metadata and local files if available.
+
+========================================================
+6) REAL NOTIFICATIONS (EMAIL/SMS) + DIGESTS
+========================================================
+Implement notifications in a resilient way:
+
+A) NotificationPreferences in HouseholdSettings:
+- approvals: IMMEDIATE|DAILY_DIGEST|OFF
+- dailyDigestTime (e.g., 18:00)
+- weeklyBriefDay/time (Monday 08:00)
+
+B) NotificationProvider abstraction with two providers:
+1) Email (baseline): SMTP via nodemailer
+   - env vars: SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, FROM_EMAIL
+   - fallback in DEMO_MODE: “In-app notifications only” + log to console + show in Notification Center
+2) SMS (optional): Twilio
+   - env vars: TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_FROM_NUMBER
+   - fallback: disabled if not configured
+
+C) Implement “Notification Center” in-app (client + assistant)
+- Table Notification:
+  - id, householdId, userId, type, title, body, linkUrl, isRead, createdAt
+- Always create an in-app notification even if email/sms is sent.
+
+D) Notification triggers:
+- Approval needed → notify clients (IMMEDIATE)
+- Task marked “Waiting on Client” → notify
+- Daily digest at configured time:
+  - approvals pending
+  - tomorrow’s key events
+  - top priorities
+- Weekly brief:
+  - same as “Weekly Concierge Brief” summary + link
+
+E) Email templates (simple, premium copy; no heavy HTML)
+- plain text + minimal HTML version
+- include safe links back to app
+
+========================================================
+7) GLOBAL SEARCH + FILTERS (FIND IT FAST)
+========================================================
+Implement a global search that works well on SQLite:
+
+A) Use SQLite FTS5 if possible:
+- Create a virtual table (raw SQL migration) indexing:
+  - tasks (title, description, location)
+  - updates (text)
+  - vendors (name, notes)
+  - preferences (key, value)
+- Keep it in sync:
+  - on create/update, update FTS rows
+If FTS is too complex in Prisma migrations:
+- Implement fallback: LIKE-based search with good indexing and pagination.
+
+B) API:
+- GET /api/search?q=...&types=tasks,updates,vendors,preferences&status=...&dateFrom=...&dateTo=...
+- return grouped results with counts
+
+C) UI:
+- Add a universal search icon in header for both roles
+- Search page:
+  - query input + recent searches
+  - filter chips (Tasks/Updates/Vendors/Preferences)
+  - status filters (for tasks)
+  - “waiting on client” quick filter
+
+========================================================
+8) QUICK REQUEST BUTTONS (CLIENT FRICTIONLESS)
+========================================================
+Add a “Quick Requests” feature:
+
+A) Model QuickRequestTemplate:
+- id, householdId, title, category, defaultUrgency, defaultDueOffsetHours, checklistTemplateJson, enabled, sortOrder
+
+B) Client Requests tab:
+- Show 6–10 quick request buttons (configurable)
+- Tapping one opens a tiny bottom sheet:
+  - “When?” chips: Today / This week / Pick date
+  - Optional note (1 line) + optional photo
+  - Submit
+- Creates a task with:
+  - prefilled title/category/urgency
+  - dueAt computed from offset or chosen date
+  - optional checklist from template
+
+C) Assistant can manage templates:
+- Add “Quick Requests” manager under Household Settings:
+  - reorder, enable/disable, edit defaults
+  - include starter templates:
+    - Restock groceries
+    - Schedule appointment
+    - Return package
+    - Order flowers
+    - Book date night
+    - Car service
+    - Kids pickup change
+
+========================================================
+9) PLAYBOOKS / SOP TEMPLATES (CONCIERGE PRO SECRET SAUCE)
+========================================================
+Add “Playbooks” that generate task bundles.
+
+A) Models:
+- Playbook
+  - id, organizationId (so pros can reuse across households), title, description, category
+- PlaybookStep
+  - id, playbookId, title, details, dayOffset, defaultAssigneeRole, checklistJson
+
+B) UI:
+- Assistant: “Playbooks” screen
+  - browse playbooks
+  - “Run playbook” → choose household, start date, include/exclude steps
+  - generates tasks with dueAt = startDate + dayOffset and checklists
+
+C) Starter playbooks:
+- Weekly Meal Prep
+- Travel Mode (packing + house shutdown + sitter brief)
+- Back-to-school reset
+- Seasonal maintenance (filters, gutters, HVAC check)
+- Host guests (prep + groceries + cleanup)
+
+========================================================
+10) HANDOFF PACKET + EXPORTABLE BRIEF (PDF)
+========================================================
+Create a premium “Handoff Packet” feature:
+
+A) Generate “Household Office Binder” PDF (assistant only)
+- includes:
+  - household overview
+  - key locations
+  - people & pets (allergies/dietary)
+  - preferences brain highlights
+  - important dates next 90 days
+  - vendors list
+  - emergency contacts (mask sensitive vault values; do not include codes unless assistant explicitly toggles “include sensitive” and passes vault PIN step)
+- Use a server-side PDF generator:
+  - Prefer Playwright or Puppeteer (render a styled HTML template) OR pdfkit if simpler
+- Endpoint:
+  - POST /api/admin/handoff-packet (options: includeSensitive true/false)
+  - returns link to pdf in /exports
+
+B) Also support “Weekly Brief PDF” for client (optional):
+- 1 page, calm layout.
+
+========================================================
+11) VAULT HARDENING (PREMIUM SECURITY SIGNAL)
+========================================================
+Add a “Vault Lock” layer:
+
+A) HouseholdSettings:
+- vaultPinHash (nullable)
+- vaultAutoLockMinutes (default 15)
+
+B) Behavior:
+- AccessItem values are always masked by default in UI.
+- Assistant must “Unlock Vault” to reveal sensitive values:
+  - Enter PIN (stored as bcrypt hash)
+  - Unlock session lasts vaultAutoLockMinutes
+- Log vault unlock attempts in AuditLog.
+- Clients never reveal sensitive values unless explicitly allowed (keep default: never).
+
+========================================================
+12) LEGAL + CONSENT BASICS (PRO PLATFORM READINESS)
+========================================================
+Add minimal but important screens and copy:
+
+A) During Google Calendar connect:
+- show a consent note:
+  - “Read-only access. We never edit your calendar. You choose which calendars to sync.”
+- store a CalendarConsent record:
+  - householdId, userId, consentedAt, scopes, calendarIdsSelected
+
+B) Add Terms + Privacy placeholders:
+- /terms and /privacy routes in frontend
+- simple text; configurable later
+- Show acceptance checkbox on first login if org is not DEMO_MODE:
+  - store UserAcceptance: userId, acceptedTermsAt, acceptedPrivacyAt
+
+========================================================
+13) ACCESSIBILITY + HIGH-END UX POLISH
+========================================================
+Apply:
+- Tap targets >= 44px
+- Proper focus states
+- Contrast checks in WHITE_GLOVE theme
+- prefers-reduced-motion support everywhere
+- Skeleton loaders (already planned) used consistently
+
+Also:
+- Add “Last updated” timestamps across modules
+- Add “Awaiting your decision” queue for approvals
+- Add calm empty states with subtle iconography
+
+========================================================
+14) FRONTEND NAV & FLOWS (MINIMAL DISRUPTION)
+========================================================
+A) Household selection:
+- If user has >1 household membership, show a household picker screen after login.
+- Persist selected household in localStorage; include it in API calls or infer on server via session.
+
+B) Add new screens (assistant):
+- Organization (basic: org name, members list)
+- Playbooks
+- Audit
+- Exports/Backups
+- Quick Requests manager
+- Search
+
+C) Add new screens (client):
+- Search
+- Notification Center
+- Quick Requests section on Requests tab
+- Weekly Brief (already exists; enhance)
+
+========================================================
+15) DEMO MODE / FEATURE FLAGS
+========================================================
+Add env var flags:
+- DEMO_MODE=true enables:
+  - restore endpoint
+  - manual trigger endpoints
+  - console logging for email/sms instead of sending
+- FEATURE_OBJECT_STORAGE=true (optional)
+- FEATURE_SMS=true (optional)
+
+========================================================
+16) SEED DATA UPDATE
+========================================================
+Update seed to include:
+- Organization + memberships
+- 2 households (optional) to test household picker
+- Quick request templates
+- 3 playbooks with steps
+- Sample audit logs (or generate after first actions)
+- Notification samples
+
+========================================================
+17) README UPDATE
+========================================================
+Document:
+- new env vars:
+  - SMTP_HOST/PORT/USER/PASS/FROM_EMAIL
+  - TWILIO_* (optional)
+  - OBJECT_STORAGE_* (optional)
+  - RESTORE_KEY (optional)
+- how to run backups/export/restore
+- how to run playbooks
+- how to unlock vault
+
+========================================================
+18) IMPLEMENTATION PLAN (DO IT IN THIS ORDER)
+========================================================
+1) DB migrations: org/household membership + audit log
+2) Permissions middleware + household scoping everywhere
+3) Backup/export zip + restore (demo)
+4) Notifications center + email provider + digest jobs
+5) Global search (FTS5 if possible) + UI
+6) Quick Requests templates + UI
+7) Playbooks + task generation
+8) Handoff packet PDF generator
+9) Vault lock PIN + masking
+10) Legal/consent screens
+
+========================================================
+19) DELIVERABLE
+========================================================
+- Implement all features above with safe defaults.
+- Do not break existing login and single-household usage.
+- Ensure npm run dev works, and demo accounts can explore everything.
+- Briefly list files changed and where each new feature lives.
+Proceed to implement now.

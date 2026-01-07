@@ -1,0 +1,38 @@
+EXACT FIXES NEEDED
+Fix 1: Add Files to Navigation (2 minutes)
+File: client/src/components/layout/bottom-nav.tsx
+Line 24-30: Change clientTabs to:
+typescriptconst clientTabs: NavItem[] = [
+  { path: "/", icon: <Home className="h-5 w-5" />, label: "This Week" },
+  { path: "/approvals", icon: <CheckSquare className="h-5 w-5" />, label: "Approvals" },
+  { path: "/requests", icon: <MessageSquare className="h-5 w-5" />, label: "Requests" },
+  { path: "/updates", icon: <FileText className="h-5 w-5" />, label: "Updates" },
+  { path: "/files", icon: <FolderOpen className="h-5 w-5" />, label: "Files" }, // ADD THIS LINE
+  { path: "/messages", icon: <Mail className="h-5 w-5" />, label: "Messages" },
+];
+Line 32-38: Change assistantTabs to:
+typescriptconst assistantTabs: NavItem[] = [
+  { path: "/", icon: <Clock className="h-5 w-5" />, label: "Today" },
+  { path: "/tasks", icon: <ClipboardList className="h-5 w-5" />, label: "Tasks" },
+  { path: "/calendar", icon: <Calendar className="h-5 w-5" />, label: "Calendar" },
+  { path: "/files", icon: <FolderOpen className="h-5 w-5" />, label: "Files" }, // ADD THIS LINE
+  { path: "/messages", icon: <Mail className="h-5 w-5" />, label: "Messages" },
+  { path: "/house", icon: <Building2 className="h-5 w-5" />, label: "House" },
+];
+
+Fix 2: Install Sharp (5 minutes)
+Run in terminal:
+bashnpm install sharp
+Then verify it imported correctly:
+Check server/services/storage-provider.ts - if there's an import error, you'll see it immediately.
+
+Fix 3: Add Rate Limiter to Backups (1 minute)
+File: server/routes.ts
+Find line ~2661:
+typescriptapp.post("/api/admin/backup", isAuthenticated, async (req: any, res) => {
+Change to:
+typescriptapp.post("/api/admin/backup", criticalLimiter, isAuthenticated, async (req: any, res) => {
+Find line ~2727:
+typescriptapp.delete("/api/admin/backups/:filename", isAuthenticated, async (req: any, res) => {
+Change to:
+typescriptapp.delete("/api/admin/backups/:filename", criticalLimiter, isAuthenticated, async (req: any, res) => {
