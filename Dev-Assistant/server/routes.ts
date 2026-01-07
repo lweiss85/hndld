@@ -3762,10 +3762,15 @@ export async function registerRoutes(
       const signature = req.headers["stripe-signature"] as string;
       const { handleStripeWebhook } = await import("./services/billing");
       const result = await handleStripeWebhook(req.body, signature);
+      
+      if (result.isServerError) {
+        return res.status(500).json({ message: result.error, received: false });
+      }
+      
       res.json(result);
     } catch (error) {
       console.error("Webhook error:", error);
-      res.status(400).json({ message: "Webhook handler failed" });
+      res.status(500).json({ message: "Webhook handler failed" });
     }
   });
 

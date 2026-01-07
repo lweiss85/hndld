@@ -66,7 +66,13 @@ export async function setupAuth(app: Express) {
   app.use(passport.initialize());
   app.use(passport.session());
 
-  const config = await getOidcConfig();
+  let config;
+  try {
+    config = await getOidcConfig();
+  } catch (oidcError) {
+    console.error("[Auth] Failed to fetch OIDC configuration:", oidcError);
+    throw new Error("Authentication setup failed: Unable to connect to identity provider");
+  }
 
   const verify: VerifyFunction = async (
     tokens: client.TokenEndpointResponse & client.TokenEndpointResponseHelpers,

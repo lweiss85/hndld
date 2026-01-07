@@ -208,7 +208,13 @@ export async function createCheckoutSession(
     };
   }
 
-  const Stripe = (await import("stripe")).default;
+  let Stripe;
+  try {
+    Stripe = (await import("stripe")).default;
+  } catch (importError) {
+    console.error("[Billing] Failed to import Stripe module:", importError);
+    throw new Error("Payment processing is unavailable. Please try again later.");
+  }
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
   const plan = getPlanById(planId);
@@ -265,7 +271,13 @@ export async function createBillingPortalSession(
     };
   }
 
-  const Stripe = (await import("stripe")).default;
+  let Stripe;
+  try {
+    Stripe = (await import("stripe")).default;
+  } catch (importError) {
+    console.error("[Billing] Failed to import Stripe module:", importError);
+    throw new Error("Payment processing is unavailable. Please try again later.");
+  }
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
   const [subscription] = await db
@@ -287,16 +299,29 @@ export async function createBillingPortalSession(
   };
 }
 
-export async function handleStripeWebhook(payload: Buffer, signature: string) {
+export async function handleStripeWebhook(payload: Buffer, signature: string): Promise<{ received: boolean; demo?: boolean; eventType?: string; error?: string; isServerError?: boolean }> {
   if (DEMO_MODE) {
     return { received: true, demo: true };
   }
 
-  const Stripe = (await import("stripe")).default;
+  let Stripe;
+  try {
+    Stripe = (await import("stripe")).default;
+  } catch (importError) {
+    console.error("[Billing] Failed to import Stripe module:", importError);
+    return { received: false, error: "Stripe module unavailable", isServerError: true };
+  }
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
-  const event = stripe.webhooks.constructEvent(payload, signature, webhookSecret);
+  
+  let event;
+  try {
+    event = stripe.webhooks.constructEvent(payload, signature, webhookSecret);
+  } catch (webhookError: any) {
+    console.error("[Billing] Webhook signature verification failed:", webhookError?.message || webhookError);
+    return { received: true, error: webhookError?.message || "Webhook signature verification failed" };
+  }
 
   switch (event.type) {
     case "checkout.session.completed": {
@@ -399,7 +424,7 @@ export async function handleStripeWebhook(payload: Buffer, signature: string) {
     }
   }
 
-  return { received: true };
+  return { received: true, eventType: event.type };
 }
 
 export async function getInvoices(organizationId: string) {

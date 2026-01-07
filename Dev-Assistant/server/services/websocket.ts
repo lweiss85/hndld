@@ -176,8 +176,13 @@ class WebSocketManager {
     householdClients.forEach((client) => {
       if (client.readyState === WebSocket.OPEN) {
         if (!excludeUserId || client.userId !== excludeUserId) {
-          client.send(message);
-          sentCount++;
+          try {
+            client.send(message);
+            sentCount++;
+          } catch (error) {
+            console.error("[WebSocket] Error sending message to client:", error);
+            this.removeClient(client);
+          }
         }
       }
     });
@@ -199,7 +204,12 @@ class WebSocketManager {
 
     userClients.forEach((client) => {
       if (client.readyState === WebSocket.OPEN) {
-        client.send(message);
+        try {
+          client.send(message);
+        } catch (error) {
+          console.error("[WebSocket] Error sending message to user:", error);
+          this.removeClient(client);
+        }
       }
     });
   }
