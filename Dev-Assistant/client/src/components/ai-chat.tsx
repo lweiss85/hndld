@@ -50,21 +50,23 @@ export function AIChat() {
     return (
       <Button
         size="icon"
-        className="fixed bottom-24 right-4 z-40 h-12 w-12 rounded-full shadow-lg bg-gradient-to-br from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700"
+        className="fixed bottom-24 z-40 h-12 w-12 rounded-full shadow-lg bg-[#1D2A44] hover:bg-[#2a3a5a]"
+        style={{ right: '1rem' }}
         onClick={() => setIsOpen(true)}
         data-testid="button-ai-chat-open"
       >
-        <Sparkles className="h-5 w-5 text-white" />
+        <Sparkles className="h-5 w-5 text-[#F6F2EA]" />
       </Button>
     );
   }
 
   return (
     <Card 
-      className="fixed bottom-24 right-4 z-40 w-80 sm:w-96 shadow-2xl border-0 overflow-hidden"
+      className="fixed bottom-24 z-40 w-80 sm:w-96 shadow-2xl border-0 overflow-hidden"
+      style={{ right: '1rem' }}
       data-testid="card-ai-chat"
     >
-      <CardHeader className="p-3 bg-gradient-to-r from-violet-500 to-purple-600 text-white">
+      <CardHeader className="p-3 bg-[#1D2A44] text-[#F6F2EA]">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <Sparkles className="h-4 w-4" />
