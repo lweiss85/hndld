@@ -36,6 +36,7 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { useLocation, Link } from "wouter";
+import { OnboardingSteps } from "@/components/onboarding-steps";
 
 const TOTAL_STEPS = 5;
 
@@ -607,7 +608,8 @@ export default function Onboarding() {
   return (
     <div className="min-h-screen bg-background">
       <div className="px-4 py-6 space-y-6 max-w-lg mx-auto">
-        <div className="space-y-2">
+        <div className="space-y-4">
+          <OnboardingSteps currentStep={step} />
           <div className="flex items-center justify-between">
             <Badge variant="outline" className="text-xs" data-testid="badge-phase">
               {phaseInfo.label}
@@ -623,10 +625,6 @@ export default function Onboarding() {
               </Button>
             )}
           </div>
-          <div className="flex items-center justify-between text-sm text-muted-foreground">
-            <span data-testid="text-step-indicator">Step {step} of {TOTAL_STEPS}</span>
-          </div>
-          <Progress value={progressPercent} className="h-2" data-testid="progress-bar" />
         </div>
 
         {step === 1 && (
