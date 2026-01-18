@@ -215,24 +215,52 @@ export function SkeletonRow({ className }: { className?: string }) {
   );
 }
 
+interface EmptyStateAction {
+  label: string;
+  onClick?: () => void;
+  href?: string;
+}
+
 interface EmptyStateProps {
   illustration?: React.ReactNode;
   title: string;
   description?: string;
+  action?: EmptyStateAction;
   className?: string;
 }
 
-export function EmptyState({ illustration, title, description, className }: EmptyStateProps) {
+export function EmptyState({ illustration, title, description, action, className }: EmptyStateProps) {
   return (
-    <div className={cn("flex flex-col items-center justify-center py-8 text-center", className)}>
+    <div className={cn("flex flex-col items-center justify-center py-12 text-center", className)}>
       {illustration && (
-        <div className="w-16 h-16 mb-4 text-primary">
-          {illustration}
+        <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
+          <div className="w-8 h-8 text-muted-foreground">
+            {illustration}
+          </div>
         </div>
       )}
-      <p className="text-sm font-medium text-muted-foreground">{title}</p>
+      <h3 className="font-medium text-lg mb-1">{title}</h3>
       {description && (
-        <p className="text-xs text-muted-foreground/70 mt-1 max-w-[200px]">{description}</p>
+        <p className="text-sm text-muted-foreground max-w-[280px]">{description}</p>
+      )}
+      {action && (
+        action.href ? (
+          <Link 
+            href={action.href} 
+            className="mt-4 text-sm font-medium text-primary hover:underline"
+            data-testid="empty-state-action"
+          >
+            {action.label}
+          </Link>
+        ) : action.onClick ? (
+          <button 
+            onClick={action.onClick}
+            className="mt-4 text-sm font-medium text-primary hover:underline"
+            data-testid="empty-state-action"
+          >
+            {action.label}
+          </button>
+        ) : null
       )}
     </div>
   );
