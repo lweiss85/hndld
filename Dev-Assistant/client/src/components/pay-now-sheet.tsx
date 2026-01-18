@@ -10,6 +10,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { 
   Copy, 
   ExternalLink, 
@@ -18,6 +20,8 @@ import {
   AlertCircle,
   Settings,
   Smartphone,
+  DollarSign,
+  Heart,
 } from "lucide-react";
 import { SiVenmo } from "react-icons/si";
 import { useLocation } from "wouter";
@@ -39,7 +43,17 @@ interface PayOptions {
     recipient: string | null;
     note: string;
   };
-  preferredMethod: "VENMO" | "ZELLE";
+  cashApp: {
+    enabled: boolean;
+    cashtag: string | null;
+    url: string | null;
+  };
+  paypal: {
+    enabled: boolean;
+    handle: string | null;
+    url: string | null;
+  };
+  preferredMethod: "VENMO" | "ZELLE" | "CASHAPP" | "PAYPAL";
   display: {
     payToLine: string;
   };
@@ -57,6 +71,8 @@ function isMobileDevice() {
   return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 }
 
+const TIP_PRESETS = [0, 500, 1000, 1500, 2000];
+
 export function PayNowSheet({ open, onOpenChange, spendingId, vendorName, onPaymentSent }: PayNowSheetProps) {
   const { toast } = useToast();
   const { userProfile } = useUser();
@@ -64,6 +80,9 @@ export function PayNowSheet({ open, onOpenChange, spendingId, vendorName, onPaym
   const [isMarkingPaid, setIsMarkingPaid] = useState(false);
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [showHelper, setShowHelper] = useState(true);
+  const [tipAmount, setTipAmount] = useState(0);
+  const [customTip, setCustomTip] = useState("");
+  const [selectedMethod, setSelectedMethod] = useState<string | null>(null);
 
   const handleSetupPayment = () => {
     onOpenChange(false);
@@ -99,7 +118,7 @@ export function PayNowSheet({ open, onOpenChange, spendingId, vendorName, onPaym
   const openVenmo = () => {
     if (!payOptions?.venmo.username) return;
     
-    const amount = (payOptions.amount / 100).toFixed(2);
+    const amount = (totalAmount / 100).toFixed(2);
     const note = encodeURIComponent(payOptions.note);
     const username = payOptions.venmo.username;
     
@@ -131,15 +150,62 @@ export function PayNowSheet({ open, onOpenChange, spendingId, vendorName, onPaym
     }).format(cents / 100);
   };
 
-  const noPaymentMethodsConfigured = payOptions && !payOptions.venmo.enabled && !payOptions.zelle.enabled;
+  const noPaymentMethodsConfigured = payOptions && 
+    !payOptions.venmo.enabled && 
+    !payOptions.zelle.enabled && 
+    !payOptions.cashApp?.enabled && 
+    !payOptions.paypal?.enabled;
 
-  const handleMarkAsPaid = async () => {
+  const handleTipPreset = (amount: number) => {
+    setTipAmount(amount);
+    setCustomTip("");
+  };
+
+  const handleCustomTipChange = (value: string) => {
+    setCustomTip(value);
+    const parsed = parseFloat(value);
+    if (!isNaN(parsed) && parsed >= 0 && parsed <= 500) {
+      setTipAmount(Math.round(parsed * 100));
+    } else if (value === "") {
+      setTipAmount(0);
+    }
+  };
+
+  const totalAmount = (payOptions?.amount || 0) + tipAmount;
+
+  const openCashApp = () => {
+    if (!payOptions?.cashApp?.cashtag) return;
+    
+    const amount = (totalAmount / 100).toFixed(2);
+    toast({ description: "Opening Cash App..." });
+    
+    const url = `https://cash.app/$${payOptions.cashApp.cashtag}/${amount}`;
+    window.open(url, "_blank");
+  };
+
+  const openPayPal = () => {
+    if (!payOptions?.paypal?.handle) return;
+    
+    const amount = (totalAmount / 100).toFixed(2);
+    toast({ description: "Opening PayPal..." });
+    
+    const url = `https://paypal.me/${payOptions.paypal.handle}/${amount}`;
+    window.open(url, "_blank");
+  };
+
+  const handleMarkAsPaid = async (method?: string) => {
     setIsMarkingPaid(true);
     try {
-      await apiRequest("PATCH", `/api/spending/${spendingId}/status`, { status: "PAYMENT_SENT" });
+      await apiRequest("PATCH", `/api/spending/${spendingId}/status`, { 
+        status: "PAYMENT_SENT",
+        tipAmount: tipAmount,
+        paymentMethodUsed: method || selectedMethod,
+      });
       toast({ description: "Marked as paid. Thank you." });
       onPaymentSent?.();
       onOpenChange(false);
+      setTipAmount(0);
+      setCustomTip("");
     } catch (e: any) {
       toast({ variant: "destructive", description: e.message || "Failed to mark as paid" });
     } finally {
@@ -220,14 +286,55 @@ export function PayNowSheet({ open, onOpenChange, spendingId, vendorName, onPaym
               )}
 
               <div className="bg-primary/10 rounded-lg p-4 text-center">
-                <p className="text-sm text-muted-foreground">Amount</p>
-                <p className="text-3xl font-bold" data-testid="text-pay-amount">
-                  {formatAmount(payOptions.amount)}
+                <p className="text-sm text-muted-foreground">
+                  {tipAmount > 0 ? "Total" : "Amount"}
                 </p>
+                <p className="text-3xl font-bold" data-testid="text-pay-amount">
+                  {formatAmount(totalAmount)}
+                </p>
+                {tipAmount > 0 && (
+                  <p className="text-sm text-green-600 mt-1">
+                    {formatAmount(payOptions.amount)} + {formatAmount(tipAmount)} tip
+                  </p>
+                )}
                 <Badge variant="outline" className="mt-2" data-testid="badge-pay-ref">
                   Ref: {payOptions.ref}
                 </Badge>
               </div>
+
+              {userProfile?.role === "CLIENT" && (
+                <div className="border rounded-lg p-4 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Heart className="w-5 h-5 text-pink-500" />
+                    <Label className="font-medium">Add a tip (optional)</Label>
+                  </div>
+                  <div className="flex gap-2 flex-wrap">
+                    {TIP_PRESETS.map((preset) => (
+                      <Button
+                        key={preset}
+                        variant={tipAmount === preset && !customTip ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => handleTipPreset(preset)}
+                      >
+                        {preset === 0 ? "No tip" : formatAmount(preset)}
+                      </Button>
+                    ))}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-muted-foreground">$</span>
+                    <Input
+                      type="number"
+                      placeholder="Custom amount"
+                      value={customTip}
+                      onChange={(e) => handleCustomTipChange(e.target.value)}
+                      className="w-32"
+                      min="0"
+                      max="500"
+                      step="0.01"
+                    />
+                  </div>
+                </div>
+              )}
 
               <p className="text-sm text-center text-muted-foreground" data-testid="text-pay-to">
                 {payOptions.display.payToLine}
@@ -301,12 +408,12 @@ export function PayNowSheet({ open, onOpenChange, spendingId, vendorName, onPaym
                     <div className="flex items-center justify-between gap-2 bg-muted/50 rounded p-2">
                       <div className="min-w-0 flex-1">
                         <p className="text-xs text-muted-foreground">Amount</p>
-                        <p className="text-sm font-medium">{formatAmount(payOptions.amount)}</p>
+                        <p className="text-sm font-medium">{formatAmount(totalAmount)}</p>
                       </div>
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => copyToClipboard(formatAmount(payOptions.amount), "amount")}
+                        onClick={() => copyToClipboard(formatAmount(totalAmount), "amount")}
                         data-testid="button-copy-amount"
                       >
                         {copiedField === "amount" ? (
@@ -338,6 +445,56 @@ export function PayNowSheet({ open, onOpenChange, spendingId, vendorName, onPaym
                   </div>
                 </div>
               )}
+
+              {payOptions.cashApp?.enabled && (
+                <div className="border rounded-lg p-4 space-y-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <DollarSign className="w-5 h-5 text-green-500" />
+                      <span className="font-medium">Cash App</span>
+                    </div>
+                    {payOptions.preferredMethod === "CASHAPP" && (
+                      <Badge variant="secondary" className="text-xs">Preferred</Badge>
+                    )}
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    ${payOptions.cashApp.cashtag}
+                  </p>
+                  <Button 
+                    className="w-full" 
+                    onClick={openCashApp}
+                    data-testid="button-open-cashapp"
+                  >
+                    <ExternalLink className="w-4 h-4 mr-2" />
+                    Open Cash App
+                  </Button>
+                </div>
+              )}
+
+              {payOptions.paypal?.enabled && (
+                <div className="border rounded-lg p-4 space-y-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <DollarSign className="w-5 h-5 text-blue-600" />
+                      <span className="font-medium">PayPal</span>
+                    </div>
+                    {payOptions.preferredMethod === "PAYPAL" && (
+                      <Badge variant="secondary" className="text-xs">Preferred</Badge>
+                    )}
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    paypal.me/{payOptions.paypal.handle}
+                  </p>
+                  <Button 
+                    className="w-full" 
+                    onClick={openPayPal}
+                    data-testid="button-open-paypal"
+                  >
+                    <ExternalLink className="w-4 h-4 mr-2" />
+                    Open PayPal
+                  </Button>
+                </div>
+              )}
             </>
           )}
         </div>
@@ -348,7 +505,7 @@ export function PayNowSheet({ open, onOpenChange, spendingId, vendorName, onPaym
         >
           {payOptions && !noPaymentMethodsConfigured && (
             <Button 
-              onClick={handleMarkAsPaid} 
+              onClick={() => handleMarkAsPaid()} 
               disabled={isMarkingPaid}
               data-testid="button-mark-paid"
             >
