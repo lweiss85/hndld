@@ -10,8 +10,8 @@ export function ConnectionStatus() {
       className={cn(
         "fixed bottom-20 right-4 z-50 flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-300",
         isConnected
-          ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 opacity-0 hover:opacity-100"
-          : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 animate-pulse"
+          ? "bg-success-muted text-success-muted-foreground opacity-0 hover:opacity-100"
+          : "bg-warning-muted text-warning-muted-foreground animate-pulse"
       )}
       data-testid="connection-status"
     >

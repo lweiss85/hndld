@@ -175,9 +175,9 @@ function OrganizationCard({ org }: { org: Organization }) {
   });
 
   const statusColor = {
-    ACTIVE: "bg-green-500/10 text-green-600 border-green-500/20",
-    SUSPENDED: "bg-red-500/10 text-red-600 border-red-500/20",
-    TRIAL: "bg-yellow-500/10 text-yellow-600 border-yellow-500/20",
+    ACTIVE: "bg-success-muted text-success-muted-foreground border-success/20",
+    SUSPENDED: "bg-destructive-muted text-destructive-muted-foreground border-destructive/20",
+    TRIAL: "bg-warning-muted text-warning-muted-foreground border-warning/20",
   };
 
   return (

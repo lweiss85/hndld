@@ -35,20 +35,20 @@ interface SmartRequestInputProps {
 }
 
 const CATEGORY_STYLES: Record<string, string> = {
-  HOUSEHOLD: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
-  ERRANDS: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
-  MAINTENANCE: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400",
-  GROCERIES: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
-  KIDS: "bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400",
-  PETS: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",
-  EVENTS: "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400",
-  OTHER: "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400",
+  HOUSEHOLD: "bg-info-muted text-info-muted-foreground",
+  ERRANDS: "bg-warning-muted text-warning-muted-foreground",
+  MAINTENANCE: "bg-warning-muted text-warning-muted-foreground",
+  GROCERIES: "bg-success-muted text-success-muted-foreground",
+  KIDS: "bg-info-muted text-info-muted-foreground",
+  PETS: "bg-info-muted text-info-muted-foreground",
+  EVENTS: "bg-info-muted text-info-muted-foreground",
+  OTHER: "bg-muted text-muted-foreground",
 };
 
 const URGENCY_STYLES: Record<string, string> = {
-  HIGH: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
-  MEDIUM: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
-  LOW: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
+  HIGH: "bg-destructive-muted text-destructive-muted-foreground",
+  MEDIUM: "bg-warning-muted text-warning-muted-foreground",
+  LOW: "bg-success-muted text-success-muted-foreground",
 };
 
 export function SmartRequestInput({

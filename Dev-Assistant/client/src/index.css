@@ -49,10 +49,23 @@
   /* Semantic colors - muted, premium feel */
   --success: 153 47% 33%; /* #2E7D5B */
   --success-foreground: 153 47% 97%;
+  --success-muted: 153 30% 94%; /* Subtle green background */
+  --success-muted-foreground: 153 45% 28%;
+  
   --warning: 36 61% 43%; /* #B07A2A */
   --warning-foreground: 36 61% 97%;
+  --warning-muted: 36 40% 93%; /* Subtle amber background */
+  --warning-muted-foreground: 36 55% 35%;
+  
   --destructive: 0 51% 46%; /* #B23A3A */
   --destructive-foreground: 0 51% 98%;
+  --destructive-muted: 0 35% 94%; /* Subtle red background */
+  --destructive-muted-foreground: 0 45% 40%;
+  
+  --info: 220 50% 45%; /* Muted navy-blue */
+  --info-foreground: 220 50% 98%;
+  --info-muted: 220 30% 94%; /* Subtle blue background */
+  --info-muted-foreground: 220 45% 38%;
   
   --highlight: 42 52% 80%; /* #E7D8B1 champagne */
   
@@ -169,10 +182,23 @@
   
   --success: 153 47% 45%;
   --success-foreground: 153 47% 10%;
+  --success-muted: 153 30% 18%;
+  --success-muted-foreground: 153 40% 65%;
+  
   --warning: 36 61% 55%;
   --warning-foreground: 36 61% 10%;
+  --warning-muted: 36 35% 18%;
+  --warning-muted-foreground: 36 50% 65%;
+  
   --destructive: 0 51% 55%;
   --destructive-foreground: 0 51% 98%;
+  --destructive-muted: 0 30% 18%;
+  --destructive-muted-foreground: 0 40% 65%;
+  
+  --info: 220 50% 60%;
+  --info-foreground: 220 50% 10%;
+  --info-muted: 220 30% 18%;
+  --info-muted-foreground: 220 40% 70%;
   
   --highlight: 42 30% 30%;
   
@@ -264,6 +290,39 @@
   .animate-card-enter {
     animation: fade-in-up 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
   }
+
+  /* Typography hierarchy - hndld Design System */
+  .heading-page {
+    @apply text-2xl font-semibold tracking-tight;
+  }
+  
+  .heading-section {
+    @apply text-sm font-medium text-muted-foreground uppercase tracking-wide;
+  }
+  
+  .heading-card {
+    @apply text-lg font-semibold;
+  }
+  
+  .text-body {
+    @apply text-sm leading-relaxed;
+  }
+  
+  .text-meta {
+    @apply text-xs text-muted-foreground;
+  }
+  
+  /* Premium card hover effect */
+  .card-interactive {
+    @apply transition-all duration-200 ease-luxury hover:shadow-md hover:-translate-y-0.5;
+  }
+  
+  /* Stagger animation delays for lists */
+  .stagger-1 { animation-delay: 50ms; }
+  .stagger-2 { animation-delay: 100ms; }
+  .stagger-3 { animation-delay: 150ms; }
+  .stagger-4 { animation-delay: 200ms; }
+  .stagger-5 { animation-delay: 250ms; }
 }
 
 /* Skeleton shimmer animation */

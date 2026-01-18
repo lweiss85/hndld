@@ -39,10 +39,10 @@ interface TodayData {
 }
 
 const STATUS_COLORS: Record<string, string> = {
-  PLANNED: "bg-blue-500/10 text-blue-600 dark:text-blue-400",
-  IN_PROGRESS: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
-  WAITING_ON_CLIENT: "bg-purple-500/10 text-purple-600 dark:text-purple-400",
-  DONE: "bg-green-500/10 text-green-600 dark:text-green-400",
+  PLANNED: "bg-info-muted text-info-muted-foreground",
+  IN_PROGRESS: "bg-warning-muted text-warning-muted-foreground",
+  WAITING_ON_CLIENT: "bg-warning-muted text-warning-muted-foreground",
+  DONE: "bg-success-muted text-success-muted-foreground",
 };
 
 function TodaySkeleton() {

@@ -16,7 +16,7 @@ export function OfflineIndicator({ className }: OfflineIndicatorProps) {
   return (
     <div 
       className={cn(
-        "fixed top-0 left-0 right-0 z-50 bg-amber-500 text-white py-2 px-4 text-center text-sm font-medium flex items-center justify-center gap-2",
+        "fixed top-0 left-0 right-0 z-50 bg-warning text-warning-foreground py-2 px-4 text-center text-sm font-medium flex items-center justify-center gap-2",
         className
       )}
       role="alert"

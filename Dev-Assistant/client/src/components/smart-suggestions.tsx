@@ -34,11 +34,11 @@ const TYPE_ICONS: Record<string, React.ReactNode> = {
 };
 
 const TYPE_COLORS: Record<string, string> = {
-  task: "bg-blue-500/10 text-blue-600 dark:text-blue-400",
-  reminder: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
-  vendor: "bg-purple-500/10 text-purple-600 dark:text-purple-400",
-  event: "bg-green-500/10 text-green-600 dark:text-green-400",
-  pattern: "bg-pink-500/10 text-pink-600 dark:text-pink-400",
+  task: "bg-info-muted text-info-muted-foreground",
+  reminder: "bg-warning-muted text-warning-muted-foreground",
+  vendor: "bg-muted text-muted-foreground",
+  event: "bg-success-muted text-success-muted-foreground",
+  pattern: "bg-warning-muted text-warning-muted-foreground",
 };
 
 function SuggestionSkeleton() {

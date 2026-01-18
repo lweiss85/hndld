@@ -23,10 +23,20 @@ export default {
         success: {
           DEFAULT: "hsl(var(--success) / <alpha-value>)",
           foreground: "hsl(var(--success-foreground) / <alpha-value>)",
+          muted: "hsl(var(--success-muted) / <alpha-value>)",
+          "muted-foreground": "hsl(var(--success-muted-foreground) / <alpha-value>)",
         },
         warning: {
           DEFAULT: "hsl(var(--warning) / <alpha-value>)",
           foreground: "hsl(var(--warning-foreground) / <alpha-value>)",
+          muted: "hsl(var(--warning-muted) / <alpha-value>)",
+          "muted-foreground": "hsl(var(--warning-muted-foreground) / <alpha-value>)",
+        },
+        info: {
+          DEFAULT: "hsl(var(--info) / <alpha-value>)",
+          foreground: "hsl(var(--info-foreground) / <alpha-value>)",
+          muted: "hsl(var(--info-muted) / <alpha-value>)",
+          "muted-foreground": "hsl(var(--info-muted-foreground) / <alpha-value>)",
         },
         card: {
           DEFAULT: "hsl(var(--card) / <alpha-value>)",
@@ -62,6 +72,8 @@ export default {
           DEFAULT: "hsl(var(--destructive) / <alpha-value>)",
           foreground: "hsl(var(--destructive-foreground) / <alpha-value>)",
           border: "var(--destructive-border)",
+          muted: "hsl(var(--destructive-muted) / <alpha-value>)",
+          "muted-foreground": "hsl(var(--destructive-muted-foreground) / <alpha-value>)",
         },
         ring: "hsl(var(--ring) / <alpha-value>)",
         chart: {
