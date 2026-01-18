@@ -131,10 +131,10 @@ export function PayNowSheet({ open, onOpenChange, spendingId, vendorName, onPaym
     
     toast({ description: "Opening Venmo..." });
     
-    const webFallback = `https://venmo.com/${username}?txn=pay&amount=${amount}&note=${note}`;
+    const webFallback = `https://venmo.com/${username}?txn=pay&amount=${amount}&note=${note}&audience=private`;
     
     if (isMobileDevice()) {
-      const deepLink = `venmo://paycharge?txn=pay&recipients=${username}&amount=${amount}&note=${note}`;
+      const deepLink = `venmo://paycharge?txn=pay&recipients=${username}&amount=${amount}&note=${note}&audience=private`;
       
       const timeout = setTimeout(() => {
         window.open(webFallback, "_blank");

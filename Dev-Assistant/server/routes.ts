@@ -1650,8 +1650,8 @@ export async function registerRoutes(
         : (householdOverride?.defaultPaymentMethod || orgProfile?.defaultPaymentMethod || "VENMO");
       
       const noteTemplate = useOrgDefaults
-        ? (orgProfile?.payNoteTemplate || "hndld • Reimbursement {ref} • {category} • {date}")
-        : (householdOverride?.payNoteTemplate || orgProfile?.payNoteTemplate || "hndld • Reimbursement {ref} • {category} • {date}");
+        ? (orgProfile?.payNoteTemplate || "hndld {ref} • {category}")
+        : (householdOverride?.payNoteTemplate || orgProfile?.payNoteTemplate || "hndld {ref} • {category}");
       
       // Generate reference code if not already set
       const ref = spending.paymentReferenceCode || `HN-${spending.id.substring(0, 6).toUpperCase()}`;
@@ -1665,9 +1665,9 @@ export async function registerRoutes(
         .replace(/{vendor}/g, spending.vendor || "")
         .replace(/{amount}/g, `$${amount}`);
       
-      // Build payment URLs
+      // Build payment URLs (Venmo: audience=private ensures transaction is private)
       const venmoUrl = venmoUsername 
-        ? `https://venmo.com/${venmoUsername}?txn=pay&amount=${amount}&note=${encodeURIComponent(paymentNote)}`
+        ? `https://venmo.com/${venmoUsername}?txn=pay&amount=${amount}&note=${encodeURIComponent(paymentNote)}&audience=private`
         : null;
       
       const cashAppUrl = cashAppCashtag
