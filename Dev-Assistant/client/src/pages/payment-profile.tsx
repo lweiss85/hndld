@@ -22,7 +22,7 @@ import {
   Save,
 } from "lucide-react";
 import { SiVenmo } from "react-icons/si";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useUser } from "@/lib/user-context";
@@ -66,12 +66,20 @@ function PaymentProfileSkeleton() {
 export default function PaymentProfilePage() {
   const { userProfile } = useUser();
   const { toast } = useToast();
+  const [, navigate] = useLocation();
+
+  useEffect(() => {
+    if (userProfile && userProfile.role === "CLIENT") {
+      toast({ description: "Payment details are set by your assistant." });
+      navigate("/pay");
+    }
+  }, [userProfile, navigate, toast]);
   
   const [venmoUsername, setVenmoUsername] = useState("");
   const [zelleRecipient, setZelleRecipient] = useState("");
   const [cashAppCashtag, setCashAppCashtag] = useState("");
   const [paypalMeHandle, setPaypalMeHandle] = useState("");
-  const [defaultMethod, setDefaultMethod] = useState<"VENMO" | "ZELLE" | "CASHAPP" | "PAYPAL">("VENMO");
+  const [defaultMethod, setDefaultMethod] = useState<"VENMO" | "ZELLE" | "CASH_APP" | "PAYPAL">("VENMO");
   const [noteTemplate, setNoteTemplate] = useState(DEFAULT_TEMPLATE);
   const [hasChanges, setHasChanges] = useState(false);
 
@@ -89,7 +97,7 @@ export default function PaymentProfilePage() {
       setZelleRecipient(override?.zelleRecipient || org?.zelleRecipient || "");
       setCashAppCashtag(override?.cashAppCashtag || org?.cashAppCashtag || "");
       setPaypalMeHandle(override?.paypalMeHandle || org?.paypalMeHandle || "");
-      setDefaultMethod((override?.defaultPaymentMethod || org?.defaultPaymentMethod || "VENMO") as "VENMO" | "ZELLE" | "CASHAPP" | "PAYPAL");
+      setDefaultMethod((override?.defaultPaymentMethod || org?.defaultPaymentMethod || "VENMO") as "VENMO" | "ZELLE" | "CASH_APP" | "PAYPAL");
       setNoteTemplate(override?.payNoteTemplate || org?.payNoteTemplate || DEFAULT_TEMPLATE);
       setHasChanges(false);
     }
@@ -296,7 +304,7 @@ export default function PaymentProfilePage() {
                   <Label>Default Payment Method</Label>
                   <Select
                     value={defaultMethod}
-                    onValueChange={(v: "VENMO" | "ZELLE" | "CASHAPP" | "PAYPAL") => {
+                    onValueChange={(v: "VENMO" | "ZELLE" | "CASH_APP" | "PAYPAL") => {
                       setDefaultMethod(v);
                       setHasChanges(true);
                     }}
@@ -307,7 +315,7 @@ export default function PaymentProfilePage() {
                     <SelectContent>
                       <SelectItem value="VENMO">Venmo (preferred)</SelectItem>
                       <SelectItem value="ZELLE">Zelle (preferred)</SelectItem>
-                      <SelectItem value="CASHAPP">Cash App (preferred)</SelectItem>
+                      <SelectItem value="CASH_APP">Cash App (preferred)</SelectItem>
                       <SelectItem value="PAYPAL">PayPal (preferred)</SelectItem>
                     </SelectContent>
                   </Select>

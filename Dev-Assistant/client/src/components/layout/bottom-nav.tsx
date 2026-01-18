@@ -29,7 +29,7 @@ const clientTabs: NavItem[] = [
   { path: "/", icon: <Home className="h-5 w-5" />, label: "Home" },
   { path: "/updates", icon: <FileText className="h-5 w-5" />, label: "Updates" },
   { path: "/approvals", icon: <CheckSquare className="h-5 w-5" />, label: "Approvals" },
-  { path: "/spending", icon: <Receipt className="h-5 w-5" />, label: "Money" },
+  { path: "/pay", icon: <CreditCard className="h-5 w-5" />, label: "Pay" },
   { path: "/messages", icon: <Mail className="h-5 w-5" />, label: "Messages" },
 ];
 

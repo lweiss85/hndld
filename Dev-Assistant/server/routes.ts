@@ -1383,7 +1383,11 @@ export async function registerRoutes(
         updateData.paidAt = new Date();
         // Include tip amount and payment method when marking as paid
         const { paymentMethodUsed, paymentNote, tipAmount } = req.body;
+        const validPaymentMethods = ["VENMO", "ZELLE", "CASH_APP", "PAYPAL"];
         if (paymentMethodUsed) {
+          if (!validPaymentMethods.includes(paymentMethodUsed)) {
+            return res.status(400).json({ message: `Invalid payment method. Must be one of: ${validPaymentMethods.join(", ")}` });
+          }
           updateData.paymentMethodUsed = paymentMethodUsed;
         }
         if (paymentNote) {

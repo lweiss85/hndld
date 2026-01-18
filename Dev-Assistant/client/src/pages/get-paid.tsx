@@ -76,7 +76,7 @@ function getPaymentMethodLabel(method: string | null) {
   switch (method) {
     case "VENMO": return "Venmo";
     case "ZELLE": return "Zelle";
-    case "CASHAPP": return "Cash App";
+    case "CASH_APP": return "Cash App";
     case "PAYPAL": return "PayPal";
     default: return method || "Unknown";
   }

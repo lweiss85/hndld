@@ -205,6 +205,10 @@ export interface IStorage {
   // Household Payment Overrides
   getHouseholdPaymentOverride(householdId: string): Promise<HouseholdPaymentOverride | undefined>;
   upsertHouseholdPaymentOverride(householdId: string, data: Partial<InsertHouseholdPaymentOverride>): Promise<HouseholdPaymentOverride>;
+  
+  // Multi-Household Support
+  getUserHouseholds(userId: string): Promise<{ id: string; name: string; organizationId: string | null; isDefault: boolean; role: string }[]>;
+  setDefaultHousehold(userId: string, householdId: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1050,6 +1054,44 @@ export class DatabaseStorage implements IStorage {
         .returning();
       return created;
     }
+  }
+
+  // Multi-Household Support
+  async getUserHouseholds(userId: string): Promise<{ id: string; name: string; organizationId: string | null; isDefault: boolean; role: string }[]> {
+    const profiles = await db
+      .select({
+        id: households.id,
+        name: households.name,
+        organizationId: households.organizationId,
+        isDefault: userProfiles.isDefault,
+        role: userProfiles.role,
+      })
+      .from(userProfiles)
+      .innerJoin(households, eq(userProfiles.householdId, households.id))
+      .where(eq(userProfiles.userId, userId));
+    
+    return profiles.map(p => ({
+      id: p.id,
+      name: p.name,
+      organizationId: p.organizationId,
+      isDefault: p.isDefault ?? false,
+      role: p.role,
+    }));
+  }
+
+  async setDefaultHousehold(userId: string, householdId: string): Promise<void> {
+    // First, clear all isDefault flags for this user
+    await db.update(userProfiles)
+      .set({ isDefault: false })
+      .where(eq(userProfiles.userId, userId));
+    
+    // Then, set the specified household as default
+    await db.update(userProfiles)
+      .set({ isDefault: true })
+      .where(and(
+        eq(userProfiles.userId, userId),
+        eq(userProfiles.householdId, householdId)
+      ));
   }
 }
 

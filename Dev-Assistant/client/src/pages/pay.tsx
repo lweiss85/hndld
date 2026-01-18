@@ -180,7 +180,7 @@ export default function PayPage() {
           url = `https://venmo.com/${payOptions.venmo.username}?txn=pay&amount=${totalAmount.toFixed(2)}&note=${encodeURIComponent(payOptions.note)}`;
         }
         break;
-      case "CASHAPP":
+      case "CASH_APP":
         if (payOptions.cashApp.cashtag) {
           url = `https://cash.app/$${payOptions.cashApp.cashtag}/${totalAmount.toFixed(2)}`;
         }
@@ -215,7 +215,7 @@ export default function PayPage() {
   const availableMethods = payOptions ? [
     payOptions.venmo.enabled && "VENMO",
     payOptions.zelle.enabled && "ZELLE",
-    payOptions.cashApp.enabled && "CASHAPP",
+    payOptions.cashApp.enabled && "CASH_APP",
     payOptions.paypal.enabled && "PAYPAL",
   ].filter(Boolean) as string[] : [];
 
@@ -428,7 +428,7 @@ export default function PayPage() {
                     <Button
                       variant="outline"
                       className="justify-between"
-                      onClick={() => handlePayNow("CASHAPP")}
+                      onClick={() => handlePayNow("CASH_APP")}
                     >
                       <div className="flex items-center gap-2">
                         <DollarSign className="w-4 h-4 text-green-500" />

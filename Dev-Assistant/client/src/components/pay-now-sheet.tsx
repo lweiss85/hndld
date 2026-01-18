@@ -53,7 +53,7 @@ interface PayOptions {
     handle: string | null;
     url: string | null;
   };
-  preferredMethod: "VENMO" | "ZELLE" | "CASHAPP" | "PAYPAL";
+  preferredMethod: "VENMO" | "ZELLE" | "CASH_APP" | "PAYPAL";
   display: {
     payToLine: string;
   };
@@ -183,7 +183,7 @@ export function PayNowSheet({ open, onOpenChange, spendingId, vendorName, onPaym
   const openCashApp = () => {
     if (!payOptions?.cashApp?.cashtag) return;
     
-    setSelectedMethod("CASHAPP");
+    setSelectedMethod("CASH_APP");
     const amount = (totalAmount / 100).toFixed(2);
     toast({ description: "Opening Cash App..." });
     
@@ -466,7 +466,7 @@ export function PayNowSheet({ open, onOpenChange, spendingId, vendorName, onPaym
                       <DollarSign className="w-5 h-5 text-green-500" />
                       <span className="font-medium">Cash App</span>
                     </div>
-                    {payOptions.preferredMethod === "CASHAPP" && (
+                    {payOptions.preferredMethod === "CASH_APP" && (
                       <Badge variant="secondary" className="text-xs">Preferred</Badge>
                     )}
                   </div>

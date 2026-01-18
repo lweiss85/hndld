@@ -1,0 +1,42 @@
+You are a senior full-stack engineer working in this repo (Dev-Assistant). Implement the following improvements cleanly and end-to-end:
+
+GOAL A — Separate the Client vs Assistant payment portals (they feel the same today):
+1) Update the bottom nav in client/src/components/layout/bottom-nav.tsx:
+   - If user role is CLIENT, the “Money” tab should navigate to /pay (not /spending).
+   - If user role is ASSISTANT, the “Money” tab should navigate to /spending (or /get-paid if you think that’s better).
+   Keep the Files tab in the nav.
+2) Ensure /payment-profile is assistant-only UX:
+   - If a CLIENT hits /payment-profile, redirect them to /pay and show a toast like “Payment details are set by your assistant.”
+   - In PayNowSheet, if payment methods are not configured, clients should NOT see a “Set up payment methods” button that routes to /payment-profile; instead show a message “Ask your assistant to set up payment methods.”
+
+GOAL B — Fix payment method enum mismatch and make tips work reliably:
+3) Standardize payment method constants to match the DB enum:
+   Use only: "VENMO" | "ZELLE" | "CASH_APP" | "PAYPAL"
+   Replace every usage of "CASHAPP" in:
+   - client/src/pages/payment-profile.tsx
+   - client/src/pages/get-paid.tsx
+   - client/src/pages/pay.tsx
+   - client/src/components/pay-now-sheet.tsx
+   with "CASH_APP"
+   Also update any labels accordingly.
+4) Add server-side validation in server/routes.ts in PATCH /api/spending/:id/status:
+   - If paymentMethodUsed is provided, it must be one of the allowed values; otherwise return 400.
+   This prevents enum write failures.
+5) Ensure tipAmount and paymentMethodUsed are persisted correctly when client marks PAYMENT_SENT (already mostly implemented). Confirm pay-now-sheet sends tipAmount and paymentMethodUsed and that the server stores them.
+
+GOAL C — Make assistant household switching fully functional:
+6) Fix storage import bug in server/storage.ts:
+   - users and type User must be imported from @shared/models/auth (shared/models/auth.ts), not @shared/schema.
+7) Implement missing multi-household functions referenced by household routes/middleware:
+   - Add to IStorage in server/storage.ts:
+     a) getUserHouseholds(userId): returns list of households the user belongs to (id, name, organizationId)
+     b) setDefaultHousehold(userId, householdId): sets isDefault=true for that user_profile and false for others
+   - Implement these methods in DatabaseStorage using joins between user_profiles and households.
+8) Confirm /api/households/mine and /api/households/set-default in server/routes/households.ts work end-to-end with the HouseholdSwitcher component.
+   - When a household is selected, store activeHouseholdId in localStorage (already done in client), and ensure requests include x-household-id header (already done in client/src/lib/queryClient.ts).
+   - Ensure householdContext middleware returns a clear 409 with households list if multiple and none selected/default.
+
+Deliverables:
+- Code changes in the above files.
+- Keep TypeScript types clean (no any where avoidable).
+- Test manually: assistant with 2+ households can switch; client sees /pay; marking PAYMENT_SENT with CASH_APP works and tipAmount persists.
