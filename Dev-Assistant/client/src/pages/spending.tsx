@@ -48,6 +48,9 @@ import { useToast } from "@/hooks/use-toast";
 import { useUser } from "@/lib/user-context";
 import { PayNowSheet } from "@/components/pay-now-sheet";
 import { Link } from "wouter";
+import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
+import { PullToRefreshIndicator } from "@/components/pull-to-refresh";
+import { PageTransition, triggerHaptic } from "@/components/juice";
 
 const SPENDING_CATEGORIES = [
   "Groceries",
@@ -94,6 +97,13 @@ function ClientSpendingView() {
     queryKey: ["/api/pay-options"],
   });
 
+  const { isRefreshing, pullDistance, threshold, progress } = usePullToRefresh({
+    onRefresh: async () => {
+      triggerHaptic("medium");
+      await queryClient.invalidateQueries({ queryKey: ["/api/spending"] });
+    },
+  });
+
   const updateStatusMutation = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
       return apiRequest("PATCH", `/api/spending/${id}/status`, { status });
@@ -137,6 +147,8 @@ function ClientSpendingView() {
   };
 
   if (isLoading) return <SpendingSkeleton />;
+
+  const pullToRefreshProps = { isRefreshing, pullDistance, threshold, progress };
 
   const waitingItems = spending?.filter(s => 
     s.status === "NEEDS_APPROVAL" || s.status === "APPROVED"
@@ -182,6 +194,8 @@ function ClientSpendingView() {
   };
 
   return (
+    <PageTransition className="relative">
+      <PullToRefreshIndicator {...pullToRefreshProps} />
     <div className="px-4 py-6 space-y-6 max-w-4xl mx-auto">
       <div>
         <h1 className="text-2xl font-semibold" data-testid="text-page-title">Money</h1>
@@ -413,6 +427,7 @@ function ClientSpendingView() {
         }}
       />
     </div>
+    </PageTransition>
   );
 }
 
@@ -448,6 +463,13 @@ function AssistantSpendingView() {
 
   const { data: payOptions } = useQuery<PayOptionsResponse>({
     queryKey: ["/api/pay-options"],
+  });
+
+  const { isRefreshing, pullDistance, threshold, progress } = usePullToRefresh({
+    onRefresh: async () => {
+      triggerHaptic("medium");
+      await queryClient.invalidateQueries({ queryKey: ["/api/spending"] });
+    },
   });
 
   const hasPaymentMethod = payOptions?.venmoUsername || payOptions?.zelleRecipient;
@@ -547,7 +569,11 @@ function AssistantSpendingView() {
     .sort((a, b) => b[1] - a[1])
     .slice(0, 5);
 
+  const pullToRefreshProps = { isRefreshing, pullDistance, threshold, progress };
+
   return (
+    <PageTransition className="relative">
+      <PullToRefreshIndicator {...pullToRefreshProps} />
     <div className="px-4 py-6 space-y-6 max-w-4xl mx-auto">
       <div className="flex items-center justify-between gap-4">
         <div>
@@ -940,6 +966,7 @@ function AssistantSpendingView() {
         }}
       />
     </div>
+    </PageTransition>
   );
 }
 

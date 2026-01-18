@@ -23,10 +23,13 @@ import {
   EmptyState
 } from "@/components/premium";
 import { CalendarIllustration, CheckmarkIllustration } from "@/components/illustrations";
-import { StaggeredList, PageTransition } from "@/components/juice";
+import { StaggeredList, PageTransition, triggerHaptic } from "@/components/juice";
 import { AIWeeklyBrief } from "@/components/ai-weekly-brief";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
+import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
+import { PullToRefreshIndicator } from "@/components/pull-to-refresh";
+import { queryClient } from "@/lib/queryClient";
 
 interface ImpactMetrics {
   minutesReturnedWeek: number;
@@ -215,6 +218,16 @@ export default function ThisWeek() {
     queryKey: ["/api/updates"],
   });
 
+  const { isRefreshing, pullDistance, threshold, progress } = usePullToRefresh({
+    onRefresh: async () => {
+      triggerHaptic("medium");
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] }),
+        queryClient.invalidateQueries({ queryKey: ["/api/updates"] }),
+      ]);
+    },
+  });
+
   if (isLoading) return <WeeklyBriefSkeleton />;
 
   const pendingApprovals = data?.approvals.filter(a => a.status === "PENDING") || [];
@@ -231,7 +244,13 @@ export default function ThisWeek() {
   const firstName = user?.firstName || "there";
 
   return (
-    <PageTransition>
+    <PageTransition className="relative">
+      <PullToRefreshIndicator
+        pullDistance={pullDistance}
+        threshold={threshold}
+        isRefreshing={isRefreshing}
+        progress={progress}
+      />
     <div className="px-5 py-6 space-y-6 max-w-4xl mx-auto pb-24">
       <header className="space-y-1 animate-fade-in-up">
         <h1 className="text-2xl font-semibold text-foreground" data-testid="text-greeting">

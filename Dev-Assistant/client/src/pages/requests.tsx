@@ -37,6 +37,10 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { QuickRequestButtons } from "@/components/quick-request-buttons";
 import { PhotoCapture } from "@/components/photo-capture";
+import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
+import { PullToRefreshIndicator } from "@/components/pull-to-refresh";
+import { PageTransition, triggerHaptic } from "@/components/juice";
+import { RequestStatusTimeline } from "@/components/status-timeline";
 
 const CATEGORIES = [
   { value: "HOUSEHOLD", label: "Household" },
@@ -81,6 +85,13 @@ export default function Requests() {
 
   const { data: requests, isLoading } = useQuery<RequestType[]>({
     queryKey: ["/api/requests"],
+  });
+
+  const { isRefreshing, pullDistance, threshold, progress } = usePullToRefresh({
+    onRefresh: async () => {
+      triggerHaptic("medium");
+      await queryClient.invalidateQueries({ queryKey: ["/api/requests"] });
+    },
   });
 
   const createRequestMutation = useMutation({
@@ -154,6 +165,13 @@ export default function Requests() {
   if (isLoading) return <RequestsSkeleton />;
 
   return (
+    <PageTransition className="relative">
+      <PullToRefreshIndicator
+        pullDistance={pullDistance}
+        threshold={threshold}
+        isRefreshing={isRefreshing}
+        progress={progress}
+      />
     <div className="px-4 py-6 space-y-6 max-w-4xl mx-auto">
       <div className="flex items-center justify-between gap-4">
         <h1 className="text-2xl font-semibold" data-testid="text-page-title">Requests</h1>
@@ -168,6 +186,11 @@ export default function Requests() {
         <Plus className="h-5 w-5 mr-2" />
         Ask for Something
       </Button>
+
+      <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/50 rounded-lg px-4 py-3">
+        <Clock className="h-4 w-4 text-primary shrink-0" />
+        <span>Your assistant typically responds within <span className="font-medium text-foreground">2 hours</span> during business hours</span>
+      </div>
 
       <QuickRequestButtons onRequestCreated={() => queryClient.invalidateQueries({ queryKey: ["/api/requests"] })} />
 
@@ -192,7 +215,7 @@ export default function Requests() {
               {requests?.filter(r => !r.taskId).map((request) => (
                 <Card key={request.id} data-testid={`card-request-${request.id}`}>
                   <CardContent className="p-4">
-                    <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-start justify-between gap-3 mb-3">
                       <div className="flex-1 min-w-0">
                         <h3 className="font-medium">{request.title}</h3>
                         {request.description && (
@@ -205,15 +228,18 @@ export default function Requests() {
                             <Tag className="h-3 w-3 mr-1" />
                             {request.category}
                           </Badge>
-                          <span className="text-xs text-muted-foreground flex items-center gap-1">
-                            <Clock className="h-3 w-3" />
-                            {format(new Date(request.createdAt!), "MMM d")}
-                          </span>
                         </div>
                       </div>
                       <Badge variant="secondary" className="shrink-0">
                         Pending
                       </Badge>
+                    </div>
+                    <div className="pt-3 border-t">
+                      <RequestStatusTimeline 
+                        createdAt={request.createdAt!} 
+                        acceptedAt={null}
+                        compact 
+                      />
                     </div>
                   </CardContent>
                 </Card>
@@ -247,7 +273,7 @@ export default function Requests() {
                         </div>
                       </div>
                       <Badge variant="default" className="shrink-0 bg-success hover:bg-success">
-                        Added to Tasks
+                        In Progress
                       </Badge>
                     </div>
                   </CardContent>
@@ -387,5 +413,6 @@ export default function Requests() {
         </DialogContent>
       </Dialog>
     </div>
+    </PageTransition>
   );
 }

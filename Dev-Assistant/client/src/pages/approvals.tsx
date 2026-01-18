@@ -31,7 +31,9 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useUser } from "@/lib/user-context";
 import { QuickReactions } from "@/components/quick-reactions";
-import { PageTransition, StaggeredList } from "@/components/juice";
+import { PageTransition, StaggeredList, triggerHaptic } from "@/components/juice";
+import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
+import { PullToRefreshIndicator } from "@/components/pull-to-refresh";
 
 interface ApprovalWithComments extends Approval {
   comments?: Comment[];
@@ -67,6 +69,13 @@ export default function Approvals() {
   const { data: spending } = useQuery<SpendingItem[]>({
     queryKey: ["/api/spending"],
     enabled: activeRole === "CLIENT",
+  });
+
+  const { isRefreshing, pullDistance, threshold, progress } = usePullToRefresh({
+    onRefresh: async () => {
+      triggerHaptic("medium");
+      await queryClient.invalidateQueries({ queryKey: ["/api/approvals"] });
+    },
   });
 
   const pendingPaymentsCount = spending?.filter(s => 
@@ -123,7 +132,13 @@ export default function Approvals() {
   const pastApprovals = approvals?.filter(a => a.status !== "PENDING") || [];
 
   return (
-    <PageTransition>
+    <PageTransition className="relative">
+      <PullToRefreshIndicator
+        pullDistance={pullDistance}
+        threshold={threshold}
+        isRefreshing={isRefreshing}
+        progress={progress}
+      />
     <div className="px-4 py-6 space-y-6 max-w-4xl mx-auto">
       <div className="flex items-center justify-between gap-4 animate-fade-in-up">
         <h1 className="text-2xl font-semibold" data-testid="text-page-title">Approvals</h1>
