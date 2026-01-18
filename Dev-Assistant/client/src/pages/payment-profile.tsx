@@ -34,6 +34,8 @@ interface HouseholdPaymentSettings {
     useOrgDefaults: boolean;
     venmoUsername: string | null;
     zelleRecipient: string | null;
+    cashAppCashtag: string | null;
+    paypalMeHandle: string | null;
     defaultPaymentMethod: string | null;
     payNoteTemplate: string | null;
   } | null;
@@ -41,6 +43,8 @@ interface HouseholdPaymentSettings {
     id: string;
     venmoUsername: string | null;
     zelleRecipient: string | null;
+    cashAppCashtag: string | null;
+    paypalMeHandle: string | null;
     defaultPaymentMethod: string;
     payNoteTemplate: string;
   } | null;
@@ -65,7 +69,9 @@ export default function PaymentProfilePage() {
   
   const [venmoUsername, setVenmoUsername] = useState("");
   const [zelleRecipient, setZelleRecipient] = useState("");
-  const [defaultMethod, setDefaultMethod] = useState<"VENMO" | "ZELLE">("VENMO");
+  const [cashAppCashtag, setCashAppCashtag] = useState("");
+  const [paypalMeHandle, setPaypalMeHandle] = useState("");
+  const [defaultMethod, setDefaultMethod] = useState<"VENMO" | "ZELLE" | "CASHAPP" | "PAYPAL">("VENMO");
   const [noteTemplate, setNoteTemplate] = useState(DEFAULT_TEMPLATE);
   const [hasChanges, setHasChanges] = useState(false);
 
@@ -81,7 +87,9 @@ export default function PaymentProfilePage() {
       
       setVenmoUsername(override?.venmoUsername || org?.venmoUsername || "");
       setZelleRecipient(override?.zelleRecipient || org?.zelleRecipient || "");
-      setDefaultMethod((override?.defaultPaymentMethod || org?.defaultPaymentMethod || "VENMO") as "VENMO" | "ZELLE");
+      setCashAppCashtag(override?.cashAppCashtag || org?.cashAppCashtag || "");
+      setPaypalMeHandle(override?.paypalMeHandle || org?.paypalMeHandle || "");
+      setDefaultMethod((override?.defaultPaymentMethod || org?.defaultPaymentMethod || "VENMO") as "VENMO" | "ZELLE" | "CASHAPP" | "PAYPAL");
       setNoteTemplate(override?.payNoteTemplate || org?.payNoteTemplate || DEFAULT_TEMPLATE);
       setHasChanges(false);
     }
@@ -91,6 +99,8 @@ export default function PaymentProfilePage() {
     mutationFn: async (data: {
       venmoUsername?: string;
       zelleRecipient?: string;
+      cashAppCashtag?: string;
+      paypalMeHandle?: string;
       defaultPaymentMethod?: string;
       payNoteTemplate?: string;
     }) => {
@@ -116,6 +126,8 @@ export default function PaymentProfilePage() {
     updateMutation.mutate({
       venmoUsername,
       zelleRecipient,
+      cashAppCashtag,
+      paypalMeHandle,
       defaultPaymentMethod: defaultMethod,
       payNoteTemplate: noteTemplate,
     });
@@ -196,7 +208,7 @@ export default function PaymentProfilePage() {
                   Payment Methods
                 </CardTitle>
                 <CardDescription>
-                  Add your Venmo and/or Zelle details so clients can reimburse you
+                  Add your payment details so clients can reimburse you
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -239,10 +251,52 @@ export default function PaymentProfilePage() {
                 </div>
 
                 <div className="space-y-2">
+                  <Label htmlFor="cashapp" className="flex items-center gap-2">
+                    <DollarSign className="w-4 h-4 text-green-500" />
+                    Cash App Cashtag
+                  </Label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                    <Input
+                      id="cashapp"
+                      placeholder="cashtag"
+                      value={cashAppCashtag}
+                      onChange={handleFieldChange(setCashAppCashtag)}
+                      className="pl-8"
+                      data-testid="input-cashapp-cashtag"
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Your Cash App cashtag without the $ symbol
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="paypal" className="flex items-center gap-2">
+                    <CreditCard className="w-4 h-4 text-blue-600" />
+                    PayPal.me Handle
+                  </Label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">paypal.me/</span>
+                    <Input
+                      id="paypal"
+                      placeholder="handle"
+                      value={paypalMeHandle}
+                      onChange={handleFieldChange(setPaypalMeHandle)}
+                      className="pl-20"
+                      data-testid="input-paypal-handle"
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Your PayPal.me handle (letters and numbers only)
+                  </p>
+                </div>
+
+                <div className="space-y-2">
                   <Label>Default Payment Method</Label>
                   <Select
                     value={defaultMethod}
-                    onValueChange={(v: "VENMO" | "ZELLE") => {
+                    onValueChange={(v: "VENMO" | "ZELLE" | "CASHAPP" | "PAYPAL") => {
                       setDefaultMethod(v);
                       setHasChanges(true);
                     }}
@@ -253,6 +307,8 @@ export default function PaymentProfilePage() {
                     <SelectContent>
                       <SelectItem value="VENMO">Venmo (preferred)</SelectItem>
                       <SelectItem value="ZELLE">Zelle (preferred)</SelectItem>
+                      <SelectItem value="CASHAPP">Cash App (preferred)</SelectItem>
+                      <SelectItem value="PAYPAL">PayPal (preferred)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

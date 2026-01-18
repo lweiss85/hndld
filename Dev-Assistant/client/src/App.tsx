@@ -42,6 +42,8 @@ const Emergency = lazy(() => import("@/pages/emergency"));
 const Messages = lazy(() => import("@/pages/messages"));
 const Files = lazy(() => import("@/pages/files"));
 const PaymentProfile = lazy(() => import("@/pages/payment-profile"));
+const GetPaid = lazy(() => import("@/pages/get-paid"));
+const Pay = lazy(() => import("@/pages/pay"));
 
 function LoadingScreen() {
   return (
@@ -86,6 +88,8 @@ function ClientRouter() {
         <Route path="/onboarding" component={Onboarding} />
         <Route path="/profile" component={HouseholdProfile} />
         <Route path="/payment-profile" component={PaymentProfile} />
+        <Route path="/pay" component={Pay} />
+        <Route path="/get-paid"><Redirect to="/pay" /></Route>
         <Route component={NotFound} />
       </Switch>
     </Suspense>
@@ -115,6 +119,8 @@ function AssistantRouter() {
         <Route path="/messages" component={Messages} />
         <Route path="/files" component={Files} />
         <Route path="/payment-profile" component={PaymentProfile} />
+        <Route path="/get-paid" component={GetPaid} />
+        <Route path="/pay"><Redirect to="/get-paid" /></Route>
         <Route component={NotFound} />
       </Switch>
     </Suspense>
