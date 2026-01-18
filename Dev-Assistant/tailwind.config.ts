@@ -99,6 +99,24 @@ export default {
         serif: ["var(--font-serif)"],
         mono: ["var(--font-mono)"],
       },
+      fontSize: {
+        /* Typography Scale - hndld Design System
+         * text-xs: 12px - timestamps, metadata, badges
+         * text-sm: 14px - body text, labels, descriptions
+         * text-base: 16px - primary body, form inputs
+         * text-lg: 18px - section headers, card titles
+         * text-xl: 20px - page subtitles, emphasis
+         * text-2xl: 24px - page titles
+         * text-3xl: 32px - hero text, onboarding headers
+         */
+        'xs': ['0.75rem', { lineHeight: '1rem' }],
+        'sm': ['0.875rem', { lineHeight: '1.25rem' }],
+        'base': ['1rem', { lineHeight: '1.5rem' }],
+        'lg': ['1.125rem', { lineHeight: '1.75rem' }],
+        'xl': ['1.25rem', { lineHeight: '1.75rem' }],
+        '2xl': ['1.5rem', { lineHeight: '2rem' }],
+        '3xl': ['2rem', { lineHeight: '2.25rem' }],
+      },
       transitionTimingFunction: {
         'luxury': 'cubic-bezier(0.4, 0, 0.2, 1)',
         'luxury-bounce': 'cubic-bezier(0.68, -0.55, 0.265, 1.55)',

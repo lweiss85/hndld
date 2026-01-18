@@ -19,7 +19,15 @@ Preferred communication style: Simple, everyday language.
 - **Routing**: Wouter for client-side routing with role-based route switching
 - **State Management**: TanStack React Query for server state and caching
 - **Styling**: TailwindCSS with shadcn/ui component library (New York style variant)
-- **Design System**: Material Design 3 with Linear-inspired minimalism, Inter font family
+- **Design System**: Premium "White Glove" theme with porcelain (#F6F2EA) and ink navy (#1D2A44) color palette, Inter font family
+- **Typography Scale**: 
+  - text-xs (12px): timestamps, metadata, badges
+  - text-sm (14px): body text, labels, descriptions
+  - text-base (16px): primary body, form inputs
+  - text-lg (18px): section headers, card titles
+  - text-xl (20px): page subtitles, emphasis
+  - text-2xl (24px): page titles
+  - text-3xl (32px): hero text, onboarding headers
 - **Mobile-First**: Bottom tab navigation, safe area padding for iOS, responsive layouts with max-w-4xl container
 
 ### Backend Architecture
