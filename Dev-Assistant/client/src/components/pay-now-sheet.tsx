@@ -99,6 +99,12 @@ export function PayNowSheet({ open, onOpenChange, spendingId, vendorName, onPaym
     if (helperSeen) setShowHelper(false);
   }, []);
 
+  useEffect(() => {
+    if (payOptions?.preferredMethod && !selectedMethod) {
+      setSelectedMethod(payOptions.preferredMethod);
+    }
+  }, [payOptions?.preferredMethod, selectedMethod]);
+
   const dismissHelper = () => {
     localStorage.setItem("hndld_pay_helper_seen", "true");
     setShowHelper(false);
@@ -118,6 +124,7 @@ export function PayNowSheet({ open, onOpenChange, spendingId, vendorName, onPaym
   const openVenmo = () => {
     if (!payOptions?.venmo.username) return;
     
+    setSelectedMethod("VENMO");
     const amount = (totalAmount / 100).toFixed(2);
     const note = encodeURIComponent(payOptions.note);
     const username = payOptions.venmo.username;
@@ -176,6 +183,7 @@ export function PayNowSheet({ open, onOpenChange, spendingId, vendorName, onPaym
   const openCashApp = () => {
     if (!payOptions?.cashApp?.cashtag) return;
     
+    setSelectedMethod("CASHAPP");
     const amount = (totalAmount / 100).toFixed(2);
     toast({ description: "Opening Cash App..." });
     
@@ -186,11 +194,16 @@ export function PayNowSheet({ open, onOpenChange, spendingId, vendorName, onPaym
   const openPayPal = () => {
     if (!payOptions?.paypal?.handle) return;
     
+    setSelectedMethod("PAYPAL");
     const amount = (totalAmount / 100).toFixed(2);
     toast({ description: "Opening PayPal..." });
     
     const url = `https://paypal.me/${payOptions.paypal.handle}/${amount}`;
     window.open(url, "_blank");
+  };
+
+  const selectZelle = () => {
+    setSelectedMethod("ZELLE");
   };
 
   const handleMarkAsPaid = async (method?: string) => {
@@ -394,7 +407,7 @@ export function PayNowSheet({ open, onOpenChange, spendingId, vendorName, onPaym
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => copyToClipboard(payOptions.zelle.recipient!, "recipient")}
+                        onClick={() => { selectZelle(); copyToClipboard(payOptions.zelle.recipient!, "recipient"); }}
                         data-testid="button-copy-recipient"
                       >
                         {copiedField === "recipient" ? (
@@ -413,7 +426,7 @@ export function PayNowSheet({ open, onOpenChange, spendingId, vendorName, onPaym
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => copyToClipboard(formatAmount(totalAmount), "amount")}
+                        onClick={() => { selectZelle(); copyToClipboard(formatAmount(totalAmount), "amount"); }}
                         data-testid="button-copy-amount"
                       >
                         {copiedField === "amount" ? (
@@ -432,7 +445,7 @@ export function PayNowSheet({ open, onOpenChange, spendingId, vendorName, onPaym
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => copyToClipboard(payOptions.zelle.note, "note")}
+                        onClick={() => { selectZelle(); copyToClipboard(payOptions.zelle.note, "note"); }}
                         data-testid="button-copy-note"
                       >
                         {copiedField === "note" ? (
