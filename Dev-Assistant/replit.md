@@ -126,6 +126,13 @@ Preferred communication style: Simple, everyday language.
 - **Web Push Notifications** (server/services/push-notifications.ts): VAPID-based browser notifications for approvals, tasks, updates; PushNotificationToggle in household profile Overview tab; pushSubscriptions table for subscription management
 - **Required Environment Variables**: VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY for push notifications
 
+### UI/UX Design System
+- **Semantic Status Colors**: Unified palette with muted variants (success-muted, warning-muted, destructive-muted, info-muted) for consistent badge styling across all pages
+- **Typography Utilities**: heading-page, heading-section, heading-card, text-body, text-meta classes for consistent hierarchy
+- **Micro-interactions**: card-interactive utility for hover effects, stagger-N classes for list animations, transition-luxury timing function
+- **Badge Variants**: Extended shadcn Badge with success, warning, info variants using semantic tokens
+- **StatusBadge Component**: Reusable component (client/src/components/ui/status-badge.tsx) for consistent status styling
+
 ### Development Tools
 - Replit-specific Vite plugins for development (cartographer, dev-banner, runtime-error-modal)
 - TypeScript with strict mode enabled
