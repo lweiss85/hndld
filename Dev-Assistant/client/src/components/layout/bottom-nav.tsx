@@ -102,31 +102,31 @@ export function BottomNav() {
               (tab.path !== "/" && location.startsWith(tab.path));
             
             return (
-              <Link key={tab.path} href={tab.path} className="flex-1">
-                <button
-                  onClick={handleTabClick}
-                  className={cn(
-                    "relative flex flex-col items-center justify-center gap-0.5 py-1.5 w-full min-h-[44px] transition-all duration-200",
-                    isActive ? "text-foreground" : "text-muted-foreground"
-                  )}
-                  data-testid={`button-nav-${tab.label.toLowerCase().replace(/\s+/g, '-')}`}
-                >
-                  {isActive && (
-                    <div className="absolute inset-1 bg-primary/10 rounded-xl" />
-                  )}
-                  <span className={cn(
-                    "relative z-10 transition-transform duration-200",
-                    isActive && "scale-110"
-                  )}>
-                    {tab.icon}
-                  </span>
-                  <span className={cn(
-                    "relative z-10 text-[10px] whitespace-nowrap",
-                    isActive ? "font-semibold" : "font-normal"
-                  )}>
-                    {tab.label}
-                  </span>
-                </button>
+              <Link
+                key={tab.path}
+                href={tab.path}
+                onClick={handleTabClick}
+                className={cn(
+                  "flex-1 relative flex flex-col items-center justify-center gap-0.5 py-1.5 min-h-[44px] transition-all duration-200",
+                  isActive ? "text-foreground" : "text-muted-foreground"
+                )}
+                data-testid={`button-nav-${tab.label.toLowerCase().replace(/\s+/g, '-')}`}
+              >
+                {isActive && (
+                  <div className="absolute inset-1 bg-primary/10 rounded-xl" />
+                )}
+                <span className={cn(
+                  "relative z-10 transition-transform duration-200",
+                  isActive && "scale-110"
+                )}>
+                  {tab.icon}
+                </span>
+                <span className={cn(
+                  "relative z-10 text-[10px] whitespace-nowrap",
+                  isActive ? "font-semibold" : "font-normal"
+                )}>
+                  {tab.label}
+                </span>
               </Link>
             );
           })}

@@ -341,8 +341,9 @@ export async function handleStripeWebhook(payload: Buffer, signature: string): P
 
     case "customer.subscription.updated": {
       const subscriptionData = event.data.object as any;
-      const organizationId = subscriptionData.metadata?.organizationId;
-      if (organizationId) {
+      // Look up by stripeSubscriptionId instead of metadata (more reliable)
+      const stripeSubId = subscriptionData.id;
+      if (stripeSubId) {
         await db
           .update(subscriptions)
           .set({
@@ -353,22 +354,23 @@ export async function handleStripeWebhook(payload: Buffer, signature: string): P
             currentPeriodEnd: new Date(subscriptionData.current_period_end * 1000),
             updatedAt: new Date(),
           })
-          .where(eq(subscriptions.organizationId, organizationId));
+          .where(eq(subscriptions.stripeSubscriptionId, stripeSubId));
       }
       break;
     }
 
     case "customer.subscription.deleted": {
-      const subscription = event.data.object;
-      const organizationId = subscription.metadata?.organizationId;
-      if (organizationId) {
+      const subscriptionData = event.data.object as any;
+      // Look up by stripeSubscriptionId instead of metadata (more reliable)
+      const stripeSubId = subscriptionData.id;
+      if (stripeSubId) {
         await db
           .update(subscriptions)
           .set({
             status: "CANCELED",
             updatedAt: new Date(),
           })
-          .where(eq(subscriptions.organizationId, organizationId));
+          .where(eq(subscriptions.stripeSubscriptionId, stripeSubId));
       }
       break;
     }
@@ -383,15 +385,36 @@ export async function handleStripeWebhook(payload: Buffer, signature: string): P
         .where(eq(subscriptions.stripeCustomerId, customerId));
 
       if (subscription) {
-        await db.insert(invoices).values({
-          organizationId: subscription.organizationId,
-          stripeInvoiceId: invoice.id,
-          amount: invoice.amount_paid,
-          status: "PAID",
-          invoiceUrl: invoice.hosted_invoice_url || null,
-          invoicePdfUrl: invoice.invoice_pdf || null,
-          paidAt: new Date(),
-        });
+        // Use upsert pattern to handle duplicate webhook deliveries
+        const existingInvoice = await db
+          .select()
+          .from(invoices)
+          .where(eq(invoices.stripeInvoiceId, invoice.id))
+          .limit(1);
+        
+        if (existingInvoice.length === 0) {
+          await db.insert(invoices).values({
+            organizationId: subscription.organizationId,
+            stripeInvoiceId: invoice.id,
+            amount: invoice.amount_paid,
+            status: "PAID",
+            invoiceUrl: invoice.hosted_invoice_url || null,
+            invoicePdfUrl: invoice.invoice_pdf || null,
+            paidAt: new Date(),
+          });
+        } else {
+          // Update existing invoice if status changed
+          await db
+            .update(invoices)
+            .set({
+              status: "PAID",
+              amount: invoice.amount_paid,
+              invoiceUrl: invoice.hosted_invoice_url || null,
+              invoicePdfUrl: invoice.invoice_pdf || null,
+              paidAt: new Date(),
+            })
+            .where(eq(invoices.stripeInvoiceId, invoice.id));
+        }
       }
       break;
     }
@@ -406,14 +429,34 @@ export async function handleStripeWebhook(payload: Buffer, signature: string): P
         .where(eq(subscriptions.stripeCustomerId, customerId));
 
       if (subscription) {
-        await db.insert(invoices).values({
-          organizationId: subscription.organizationId,
-          stripeInvoiceId: invoice.id,
-          amount: invoice.amount_due,
-          status: "FAILED",
-          invoiceUrl: invoice.hosted_invoice_url || null,
-          invoicePdfUrl: invoice.invoice_pdf || null,
-        });
+        // Use upsert pattern to handle duplicate webhook deliveries
+        const existingInvoice = await db
+          .select()
+          .from(invoices)
+          .where(eq(invoices.stripeInvoiceId, invoice.id))
+          .limit(1);
+        
+        if (existingInvoice.length === 0) {
+          await db.insert(invoices).values({
+            organizationId: subscription.organizationId,
+            stripeInvoiceId: invoice.id,
+            amount: invoice.amount_due,
+            status: "FAILED",
+            invoiceUrl: invoice.hosted_invoice_url || null,
+            invoicePdfUrl: invoice.invoice_pdf || null,
+          });
+        } else {
+          // Update existing invoice if not already paid
+          await db
+            .update(invoices)
+            .set({
+              status: "FAILED",
+              amount: invoice.amount_due,
+              invoiceUrl: invoice.hosted_invoice_url || null,
+              invoicePdfUrl: invoice.invoice_pdf || null,
+            })
+            .where(eq(invoices.stripeInvoiceId, invoice.id));
+        }
 
         await db
           .update(subscriptions)

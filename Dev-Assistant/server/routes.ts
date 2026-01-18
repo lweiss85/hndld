@@ -4,6 +4,18 @@ import { createServer, type Server } from "http";
 import { createReadStream, existsSync } from "fs";
 import { join, basename } from "path";
 import { storage } from "./storage";
+import { getStorageProvider } from "./services/storage-provider";
+
+function escapeHtml(text: string): string {
+  const htmlEscapes: Record<string, string> = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;',
+  };
+  return text.replace(/[&<>"']/g, (char) => htmlEscapes[char] || char);
+}
 import { setupAuth, registerAuthRoutes, isAuthenticated } from "./replit_integrations/auth";
 import { apiLimiter, authLimiter, expensiveLimiter, criticalLimiter } from "./lib/rate-limit";
 import { triggerImmediateSync } from "./services/scheduler";
@@ -1729,7 +1741,12 @@ export async function registerRoutes(
         ? orgProfile?.zelleRecipient
         : (householdOverride?.zelleRecipient || orgProfile?.zelleRecipient);
 
-      // Generate HTML invoice document
+      // Generate HTML invoice document with escaped user input
+      const safeTitle = escapeHtml(title);
+      const safeNote = note ? escapeHtml(note) : "";
+      const safeHouseholdName = escapeHtml(household?.name || "—");
+      const storagePath = `invoices/${invoiceNumber}.html`;
+      
       const invoiceHtml = `<!DOCTYPE html>
 <html>
 <head>
@@ -1757,20 +1774,20 @@ export async function registerRoutes(
   
   <div class="details">
     <div class="detail-row"><span>Invoice Number</span><span>${invoiceNumber}</span></div>
-    <div class="detail-row"><span>Household</span><span>${household?.name || "—"}</span></div>
+    <div class="detail-row"><span>Household</span><span>${safeHouseholdName}</span></div>
     <div class="detail-row"><span>Date</span><span>${now.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}</span></div>
     ${dueDate ? `<div class="detail-row"><span>Due Date</span><span>${new Date(dueDate).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}</span></div>` : ""}
   </div>
   
-  <div class="detail-row"><span style="font-weight: 600;">${title}</span></div>
-  ${note ? `<div style="color: #666; margin-top: 10px;">${note}</div>` : ""}
+  <div class="detail-row"><span style="font-weight: 600;">${safeTitle}</span></div>
+  ${safeNote ? `<div style="color: #666; margin-top: 10px;">${safeNote}</div>` : ""}
   
   <div class="amount">$${(amount / 100).toFixed(2)}</div>
   
   <div class="payment-section">
     <div class="payment-title">Payment Instructions</div>
-    ${venmoUsername ? `<div class="payment-method">Venmo: @${venmoUsername}</div>` : ""}
-    ${zelleRecipient ? `<div class="payment-method">Zelle: ${zelleRecipient}</div>` : ""}
+    ${venmoUsername ? `<div class="payment-method">Venmo: @${escapeHtml(venmoUsername)}</div>` : ""}
+    ${zelleRecipient ? `<div class="payment-method">Zelle: ${escapeHtml(zelleRecipient)}</div>` : ""}
     ${!venmoUsername && !zelleRecipient ? `<div class="payment-method">Contact your assistant for payment details.</div>` : ""}
     <div style="margin-top: 10px; font-size: 12px; color: #666;">Reference: ${invoiceNumber}</div>
   </div>
@@ -1778,6 +1795,9 @@ export async function registerRoutes(
   <div class="footer">White-glove household operations, handled.</div>
 </body>
 </html>`;
+
+      // Write the invoice file to storage
+      await getStorageProvider().upload(storagePath, Buffer.from(invoiceHtml, "utf8"), "text/html");
 
       // Save invoice document to files table
       const [invoiceFile] = await db
@@ -1790,7 +1810,7 @@ export async function registerRoutes(
           mimeType: "text/html",
           fileSize: Buffer.byteLength(invoiceHtml, "utf8"),
           storageProvider: "LOCAL",
-          storagePath: `invoices/${invoiceNumber}.html`,
+          storagePath,
           category: "DOCUMENT",
           tags: ["invoice", invoiceNumber],
           description: `Invoice ${invoiceNumber} • ${title}`,

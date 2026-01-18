@@ -1,0 +1,171 @@
+Must-fix issues (these will cause breakage or create production risk)
+1) Invoice HTML file is never actually written to storage
+
+In server/routes.ts inside POST /api/invoices/send, you generate invoiceHtml and insert a row into files with storagePath: invoices/..., but you never call the storage provider upload/write.
+
+Result: any attempt to open/download that “file” will 404 because it doesn’t exist in /uploads.
+
+Fix: after generating invoiceHtml, do something like:
+
+getStorageProvider().upload(storagePath, Buffer.from(invoiceHtml), "text/html")
+
+or reuse your uploadFile() helper (but that currently forces files/<uuid> paths, so you may want a specialized helper for generated docs).
+
+Also: wrap “create spending item + create file + link + create update” in a DB transaction so you don’t end up with orphaned rows if any step fails.
+
+2) Stripe webhook logic is relying on metadata that won’t exist
+
+In server/services/billing.ts:
+
+customer.subscription.updated and customer.subscription.deleted look for subscriptionData.metadata.organizationId.
+
+But in createCheckoutSession() you only set Checkout Session metadata, not Subscription metadata. Stripe won’t automatically copy that to the subscription unless you set subscription_data.metadata.
+
+Fix options (best → good):
+
+Best: update subscription rows by stripeSubscriptionId === subscriptionData.id (you store it on checkout completion anyway).
+
+Also fine: set subscription_data: { metadata: { organizationId, planId } } on the Checkout Session creation so your current webhook logic works.
+
+3) Duplicate Stripe events can create duplicate invoice rows
+
+Your invoice.payment_succeeded handler inserts into your invoices table each time it receives an event. Stripe retries webhooks and can deliver duplicates.
+
+Fix: add a unique constraint on stripeInvoiceId and use an upsert / “insert ignore” pattern.
+
+UX/UI + navigation issues worth fixing soon (these directly impact “feels polished”)
+4) Broken route: /today doesn’t exist, but you link to it
+
+In client/src/pages/payment-profile.tsx, the back link goes to "/today", but your routes show assistant “Today” is "/".
+
+That’s a paper-cut that makes the app feel unreliable.
+
+Fix: change it to href="/" (or add an alias route /today).
+
+5) Bottom nav is structurally invalid HTML (and can cause weird tap/click behavior)
+
+BottomNav uses a <Link> (which renders an <a>) and nests a <button> inside it:
+
+<Link ...>
+  <button>...</button>
+</Link>
+
+
+That’s an interactive element inside an interactive element (bad semantics + can break accessibility and event handling).
+
+Fix: make the clickable element the anchor itself (style it like a button), or use a pattern where the Link renders “asChild” (if supported), or replace with onClick={() => setLocation(tab.path)}.
+
+6) Bottom nav scalability
+
+Right now it’s locked to 5 tabs with justify-around and flex-1. As soon as you add “Files” (which your routes support), it’ll start collapsing on smaller screens.
+
+Fix: switch to a horizontally scrollable nav (overflow-x-auto, min-width per item) and keep tap targets ≥ 44px. This is exactly the kind of thing that makes an app feel “expensive.”
+
+Security + production hardening (high leverage)
+7) API response logging can leak sensitive data
+
+In server/index.ts, you intercept res.json and log the full JSON body for /api responses. That’s risky once you include:
+
+PII (names, addresses)
+
+auth/session details
+
+invoice/payment context
+
+Fix: log only:
+
+route, status, duration, request id
+
+optional “safe fields”
+…and redact sensitive keys by default.
+
+8) Session cookie secure: true can break local dev
+
+Your session cookie is always secure: true. That’s correct in production HTTPS, but it prevents cookies from being set over plain HTTP locally.
+
+Fix: secure: process.env.NODE_ENV === "production".
+
+9) HTML injection risk in invoice generation
+
+You interpolate title and note directly into the invoice HTML. If a malicious string gets in there, it can become an XSS vector when opened.
+
+Fix: HTML-escape dynamic fields or use a tiny templating helper that escapes by default.
+
+Codebase maintainability (biggest “architect” upgrade)
+10) server/routes.ts is doing too much
+
+It’s a single very large file with many domains mixed together (billing, invoices, spending, orgs, calendar, etc.). This will slow you down quickly as features grow.
+
+Fix: split by domain into routers:
+
+routes/billing.router.ts
+
+routes/invoices.router.ts
+
+routes/spending.router.ts
+
+etc.
+
+You already started that pattern with some route modules—finish the job.
+
+Should you integrate Stripe?
+
+You already integrated Stripe for SaaS subscriptions (plans, checkout, billing portal, webhook handling). So the real question is:
+
+Do you want Stripe for “clients paying invoices/reimbursements inside hndld”?
+
+Right now, invoices are paid via Venmo/Zelle + “Mark as paid.” That’s a solid MVP.
+
+Benefits of adding Stripe for invoice payments
+
+Friction drops: pay in-app with card/Apple Pay/Google Pay
+
+Automation: auto-mark invoices paid, receipts, reconciliation
+
+Professional trust: feels more “legit” than reimbursement instructions
+
+Better business metrics: payment completion rates, aging invoices, etc.
+
+Drawbacks / costs
+
+Complexity explodes if money is going to assistants (marketplace):
+
+you’ll likely need Stripe Connect (onboarding, KYC, payouts)
+
+disputes/chargebacks become your operational burden
+
+more edge cases (refunds, partial payments, failed payments)
+
+Fees: card processing fees + Connect fees (depending on setup)
+
+Compliance/tax: identity verification and potentially 1099-type considerations (depending on flow and jurisdiction)
+
+My recommendation (practical, staged)
+
+Keep Venmo/Zelle for MVP (you’ve built a nice PayNowSheet flow already).
+
+Add Stripe invoice pay only when:
+
+you see meaningful invoice volume, or
+
+you need the “premium white-glove” experience for higher-tier customers.
+
+If/when you do it, implement it as:
+
+Stripe Checkout (one-time payment) per invoice
+
+If assistants are the payees → Stripe Connect Standard (simplest operationally)
+
+Use webhooks (checkout.session.completed / payment_intent.succeeded) to automatically update spendingItems.status to something like "PAID".
+
+If you want, I can go one level deeper
+
+I can propose a clean “Payments v2” architecture (tables, webhook contracts, statuses, UX flow) that supports:
+
+Venmo/Zelle (manual)
+
+Stripe pay-in-app (automated)
+
+future: partial payments, tips, subscriptions per household, etc.
+
+But even without that: the top wins are fixing invoice file persistence, Stripe webhook identity mapping, the /today route mismatch, and the bottom-nav semantics. Those four will noticeably increase reliability + polish.
