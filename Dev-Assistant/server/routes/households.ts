@@ -1,7 +1,5 @@
 import { Router } from "express";
-import { eq, and } from "drizzle-orm";
-import { db } from "../db";
-import { households, userProfiles } from "../../shared/schema";
+import { storage } from "../storage";
 
 const router = Router();
 
@@ -9,18 +7,14 @@ router.get("/mine", async (req: any, res) => {
   try {
     const userId = req.user.claims.sub;
     
-    const userHouseholds = await db
-      .select({
-        household: households,
-        role: userProfiles.role,
-      })
-      .from(userProfiles)
-      .leftJoin(households, eq(userProfiles.householdId, households.id))
-      .where(eq(userProfiles.userId, userId));
+    const userHouseholds = await storage.getUserHouseholds(userId);
     
-    res.json(userHouseholds.map(uh => ({
-      ...uh.household,
-      userRole: uh.role,
+    res.json(userHouseholds.map(h => ({
+      id: h.id,
+      name: h.name,
+      organizationId: h.organizationId,
+      userRole: h.role,
+      isDefault: h.isDefault,
     })));
   } catch (error) {
     console.error("Error fetching user households:", error);
@@ -33,29 +27,14 @@ router.post("/set-default", async (req: any, res) => {
     const { householdId } = req.body;
     const userId = req.user.claims.sub;
     
-    const profile = await db.query.userProfiles.findFirst({
-      where: and(
-        eq(userProfiles.userId, userId),
-        eq(userProfiles.householdId, householdId)
-      ),
-    });
+    const userHouseholds = await storage.getUserHouseholds(userId);
+    const hasAccess = userHouseholds.some(h => h.id === householdId);
     
-    if (!profile) {
+    if (!hasAccess) {
       return res.status(403).json({ error: "Access denied to this household" });
     }
     
-    // Clear isDefault on all user profiles for this user
-    await db.update(userProfiles)
-      .set({ isDefault: false })
-      .where(eq(userProfiles.userId, userId));
-    
-    // Set isDefault on the selected profile
-    await db.update(userProfiles)
-      .set({ isDefault: true })
-      .where(and(
-        eq(userProfiles.userId, userId),
-        eq(userProfiles.householdId, householdId)
-      ));
+    await storage.setDefaultHousehold(userId, householdId);
     
     res.json({ success: true, defaultHouseholdId: householdId });
   } catch (error) {
