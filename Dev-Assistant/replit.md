@@ -114,9 +114,17 @@ Preferred communication style: Simple, everyday language.
 - react-day-picker for calendar components
 
 ### PWA Configuration
-- Service worker support for offline capability
+- Service worker support for offline capability via vite-plugin-pwa with Workbox
 - Web app manifest at `/manifest.json`
 - Apple mobile web app meta tags configured
+- Offline caching: CacheFirst for fonts, NetworkFirst for API calls with 5-min expiration
+- Service worker registered in production builds with update handlers
+- OfflineIndicator component shows connection status
+
+### Phase 3: Competitive Edge Features
+- **AI Smart Suggestions** (server/services/ai-suggestions.ts): Pattern analysis detecting overdue tasks, waiting approvals, upcoming events; SmartSuggestions component on Today page with /api/suggestions endpoint
+- **Web Push Notifications** (server/services/push-notifications.ts): VAPID-based browser notifications for approvals, tasks, updates; PushNotificationToggle in household profile Overview tab; pushSubscriptions table for subscription management
+- **Required Environment Variables**: VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY for push notifications
 
 ### Development Tools
 - Replit-specific Vite plugins for development (cartographer, dev-banner, runtime-error-modal)
