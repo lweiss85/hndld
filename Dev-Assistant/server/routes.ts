@@ -1381,6 +1381,17 @@ export async function registerRoutes(
       const updateData: any = { status };
       if (status === "PAYMENT_SENT") {
         updateData.paidAt = new Date();
+        // Include tip amount and payment method when marking as paid
+        const { paymentMethodUsed, paymentNote, tipAmount } = req.body;
+        if (paymentMethodUsed) {
+          updateData.paymentMethodUsed = paymentMethodUsed;
+        }
+        if (paymentNote) {
+          updateData.paymentNote = paymentNote;
+        }
+        if (typeof tipAmount === "number" && tipAmount >= 0 && tipAmount <= 50000) {
+          updateData.tipAmount = tipAmount;
+        }
       }
       if (status === "RECONCILED") {
         updateData.reconciledAt = new Date();
@@ -1444,7 +1455,7 @@ export async function registerRoutes(
         return res.status(404).json({ message: "Household is not linked to an organization. Create an organization first." });
       }
       
-      const { venmoUsername, zelleRecipient, defaultPaymentMethod, payNoteTemplate } = req.body;
+      const { venmoUsername, zelleRecipient, cashAppCashtag, paypalMeHandle, defaultPaymentMethod, payNoteTemplate } = req.body;
       
       // Validate Venmo username (strip @ and validate chars)
       let cleanVenmo = venmoUsername;
@@ -1460,6 +1471,24 @@ export async function registerRoutes(
         return res.status(400).json({ message: "Zelle recipient too long" });
       }
       
+      // Validate Cash App cashtag (strip $ and validate)
+      let cleanCashApp = cashAppCashtag;
+      if (cashAppCashtag) {
+        cleanCashApp = cashAppCashtag.replace(/^\$/, '').trim();
+        if (!/^[a-zA-Z][a-zA-Z0-9_]{0,19}$/.test(cleanCashApp)) {
+          return res.status(400).json({ message: "Invalid Cash App cashtag. Must start with a letter, 1-20 chars." });
+        }
+      }
+      
+      // Validate PayPal.me handle
+      let cleanPayPal = paypalMeHandle;
+      if (paypalMeHandle) {
+        cleanPayPal = paypalMeHandle.trim();
+        if (!/^[a-zA-Z0-9]{1,50}$/.test(cleanPayPal)) {
+          return res.status(400).json({ message: "Invalid PayPal.me handle. Use letters and numbers only." });
+        }
+      }
+      
       // Template length limit
       if (payNoteTemplate && payNoteTemplate.length > 500) {
         return res.status(400).json({ message: "Pay note template too long (max 500 chars)" });
@@ -1468,6 +1497,8 @@ export async function registerRoutes(
       const profile = await storage.upsertOrganizationPaymentProfile(household.organizationId, {
         venmoUsername: cleanVenmo || null,
         zelleRecipient: zelleRecipient || null,
+        cashAppCashtag: cleanCashApp || null,
+        paypalMeHandle: cleanPayPal || null,
         defaultPaymentMethod: defaultPaymentMethod || "VENMO",
         payNoteTemplate: payNoteTemplate || "hndld • Reimbursement {ref} • {category} • {date}",
       });
@@ -1518,7 +1549,7 @@ export async function registerRoutes(
   app.put("/api/household/payment-settings", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_SETTINGS"), async (req: any, res) => {
     try {
       const householdId = req.householdId!;
-      const { useOrgDefaults, venmoUsername, zelleRecipient, defaultPaymentMethod, payNoteTemplate } = req.body;
+      const { useOrgDefaults, venmoUsername, zelleRecipient, cashAppCashtag, paypalMeHandle, defaultPaymentMethod, payNoteTemplate } = req.body;
       
       // Validate Venmo username
       let cleanVenmo = venmoUsername;
@@ -1529,10 +1560,30 @@ export async function registerRoutes(
         }
       }
       
+      // Validate Cash App cashtag
+      let cleanCashApp = cashAppCashtag;
+      if (cashAppCashtag) {
+        cleanCashApp = cashAppCashtag.replace(/^\$/, '').trim();
+        if (!/^[a-zA-Z][a-zA-Z0-9_]{0,19}$/.test(cleanCashApp)) {
+          return res.status(400).json({ message: "Invalid Cash App cashtag" });
+        }
+      }
+      
+      // Validate PayPal.me handle
+      let cleanPayPal = paypalMeHandle;
+      if (paypalMeHandle) {
+        cleanPayPal = paypalMeHandle.trim();
+        if (!/^[a-zA-Z0-9]{1,50}$/.test(cleanPayPal)) {
+          return res.status(400).json({ message: "Invalid PayPal.me handle" });
+        }
+      }
+      
       const override = await storage.upsertHouseholdPaymentOverride(householdId, {
         useOrgDefaults: useOrgDefaults !== false,
         venmoUsername: cleanVenmo || null,
         zelleRecipient: zelleRecipient || null,
+        cashAppCashtag: cleanCashApp || null,
+        paypalMeHandle: cleanPayPal || null,
         defaultPaymentMethod: defaultPaymentMethod || null,
         payNoteTemplate: payNoteTemplate || null,
       });
@@ -1586,6 +1637,14 @@ export async function registerRoutes(
         ? orgProfile?.zelleRecipient
         : (householdOverride?.zelleRecipient || orgProfile?.zelleRecipient);
       
+      const cashAppCashtag = useOrgDefaults
+        ? orgProfile?.cashAppCashtag
+        : (householdOverride?.cashAppCashtag || orgProfile?.cashAppCashtag);
+      
+      const paypalMeHandle = useOrgDefaults
+        ? orgProfile?.paypalMeHandle
+        : (householdOverride?.paypalMeHandle || orgProfile?.paypalMeHandle);
+      
       const preferredMethod = useOrgDefaults
         ? (orgProfile?.defaultPaymentMethod || "VENMO")
         : (householdOverride?.defaultPaymentMethod || orgProfile?.defaultPaymentMethod || "VENMO");
@@ -1606,15 +1665,25 @@ export async function registerRoutes(
         .replace(/{vendor}/g, spending.vendor || "")
         .replace(/{amount}/g, `$${amount}`);
       
-      // Build Venmo URL
+      // Build payment URLs
       const venmoUrl = venmoUsername 
         ? `https://venmo.com/${venmoUsername}?txn=pay&amount=${amount}&note=${encodeURIComponent(paymentNote)}`
+        : null;
+      
+      const cashAppUrl = cashAppCashtag
+        ? `https://cash.app/$${cashAppCashtag}/${amount}`
+        : null;
+      
+      const paypalUrl = paypalMeHandle
+        ? `https://paypal.me/${paypalMeHandle}/${amount}`
         : null;
       
       // Build display line
       const payToLine = [
         venmoUsername ? `@${venmoUsername} (Venmo)` : null,
         zelleRecipient ? `${zelleRecipient} (Zelle)` : null,
+        cashAppCashtag ? `$${cashAppCashtag} (Cash App)` : null,
+        paypalMeHandle ? `${paypalMeHandle} (PayPal)` : null,
       ].filter(Boolean).join(" or ");
       
       res.json({
@@ -1630,6 +1699,16 @@ export async function registerRoutes(
           enabled: !!zelleRecipient,
           recipient: zelleRecipient,
           note: paymentNote,
+        },
+        cashApp: {
+          enabled: !!cashAppCashtag,
+          cashtag: cashAppCashtag,
+          url: cashAppUrl,
+        },
+        paypal: {
+          enabled: !!paypalMeHandle,
+          handle: paypalMeHandle,
+          url: paypalUrl,
         },
         preferredMethod,
         display: {
@@ -1667,6 +1746,14 @@ export async function registerRoutes(
         ? orgProfile?.zelleRecipient
         : (householdOverride?.zelleRecipient || orgProfile?.zelleRecipient);
       
+      const cashAppCashtag = useOrgDefaults
+        ? orgProfile?.cashAppCashtag
+        : (householdOverride?.cashAppCashtag || orgProfile?.cashAppCashtag);
+      
+      const paypalMeHandle = useOrgDefaults
+        ? orgProfile?.paypalMeHandle
+        : (householdOverride?.paypalMeHandle || orgProfile?.paypalMeHandle);
+      
       const defaultPaymentMethod = useOrgDefaults
         ? (orgProfile?.defaultPaymentMethod || "VENMO")
         : (householdOverride?.defaultPaymentMethod || orgProfile?.defaultPaymentMethod || "VENMO");
@@ -1678,6 +1765,8 @@ export async function registerRoutes(
       res.json({
         venmoUsername: venmoUsername || null,
         zelleRecipient: zelleRecipient || null,
+        cashAppCashtag: cashAppCashtag || null,
+        paypalMeHandle: paypalMeHandle || null,
         defaultPaymentMethod,
         payNoteTemplate,
       });
@@ -1740,6 +1829,12 @@ export async function registerRoutes(
       const zelleRecipient = useOrgDefaults
         ? orgProfile?.zelleRecipient
         : (householdOverride?.zelleRecipient || orgProfile?.zelleRecipient);
+      const cashAppCashtag = useOrgDefaults
+        ? orgProfile?.cashAppCashtag
+        : (householdOverride?.cashAppCashtag || orgProfile?.cashAppCashtag);
+      const paypalMeHandle = useOrgDefaults
+        ? orgProfile?.paypalMeHandle
+        : (householdOverride?.paypalMeHandle || orgProfile?.paypalMeHandle);
 
       // Generate HTML invoice document with escaped user input
       const safeTitle = escapeHtml(title);
@@ -1786,9 +1881,11 @@ export async function registerRoutes(
   
   <div class="payment-section">
     <div class="payment-title">Payment Instructions</div>
-    ${venmoUsername ? `<div class="payment-method">Venmo: @${escapeHtml(venmoUsername)}</div>` : ""}
+    ${venmoUsername ? `<div class="payment-method">Venmo: <a href="https://venmo.com/${escapeHtml(venmoUsername)}">@${escapeHtml(venmoUsername)}</a></div>` : ""}
     ${zelleRecipient ? `<div class="payment-method">Zelle: ${escapeHtml(zelleRecipient)}</div>` : ""}
-    ${!venmoUsername && !zelleRecipient ? `<div class="payment-method">Contact your assistant for payment details.</div>` : ""}
+    ${cashAppCashtag ? `<div class="payment-method">Cash App: <a href="https://cash.app/$${escapeHtml(cashAppCashtag)}">$${escapeHtml(cashAppCashtag)}</a></div>` : ""}
+    ${paypalMeHandle ? `<div class="payment-method">PayPal: <a href="https://paypal.me/${escapeHtml(paypalMeHandle)}">paypal.me/${escapeHtml(paypalMeHandle)}</a></div>` : ""}
+    ${!venmoUsername && !zelleRecipient && !cashAppCashtag && !paypalMeHandle ? `<div class="payment-method">Contact your assistant for payment details.</div>` : ""}
     <div style="margin-top: 10px; font-size: 12px; color: #666;">Reference: ${invoiceNumber}</div>
   </div>
   
