@@ -33,7 +33,7 @@ export const organizationStatusEnum = pgEnum("organization_status", ["ACTIVE", "
 
 // Payment enums
 export const spendingStatusEnum = pgEnum("spending_status", ["DRAFT", "NEEDS_APPROVAL", "APPROVED", "PAYMENT_SENT", "RECONCILED"]);
-export const paymentMethodEnum = pgEnum("payment_method", ["VENMO", "ZELLE"]);
+export const paymentMethodEnum = pgEnum("payment_method", ["VENMO", "ZELLE", "CASH_APP", "PAYPAL"]);
 export const spendingKindEnum = pgEnum("spending_kind", ["REIMBURSEMENT", "INVOICE"]);
 
 // Organizations (multi-tenancy parent)
@@ -235,6 +235,8 @@ export const spendingItems = pgTable("spending_items", {
   dueDate: timestamp("due_date"),
   invoiceNumber: varchar("invoice_number", { length: 30 }),
   sentAt: timestamp("sent_at"),
+  // Tipping
+  tipAmount: integer("tip_amount").default(0),
 }, (table) => [
   index("spending_items_household_id_idx").on(table.householdId),
   index("spending_items_date_idx").on(table.date),
@@ -679,6 +681,8 @@ export const organizationPaymentProfiles = pgTable("organization_payment_profile
   organizationId: varchar("organization_id").references(() => organizations.id).notNull().unique(),
   venmoUsername: varchar("venmo_username", { length: 50 }),
   zelleRecipient: varchar("zelle_recipient", { length: 100 }),
+  cashAppCashtag: varchar("cash_app_cashtag", { length: 30 }),
+  paypalMeHandle: varchar("paypal_me_handle", { length: 50 }),
   defaultPaymentMethod: paymentMethodEnum("default_payment_method").default("VENMO"),
   payNoteTemplate: text("pay_note_template").default("hndld • Reimbursement {ref} • {category} • {date}"),
   createdAt: timestamp("created_at").defaultNow(),
@@ -692,6 +696,8 @@ export const householdPaymentOverrides = pgTable("household_payment_overrides", 
   useOrgDefaults: boolean("use_org_defaults").default(true).notNull(),
   venmoUsername: varchar("venmo_username", { length: 50 }),
   zelleRecipient: varchar("zelle_recipient", { length: 100 }),
+  cashAppCashtag: varchar("cash_app_cashtag", { length: 30 }),
+  paypalMeHandle: varchar("paypal_me_handle", { length: 50 }),
   defaultPaymentMethod: paymentMethodEnum("default_payment_method"),
   payNoteTemplate: text("pay_note_template"),
   createdAt: timestamp("created_at").defaultNow(),

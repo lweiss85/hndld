@@ -1,0 +1,198 @@
+You are a senior full-stack engineer. Work inside this repo (Vite + React + Express + Drizzle/Postgres) located in:
+hndld/Dev-Assistant
+
+GOAL
+Separate the “client pay” experience from the “assistant get paid / billing” experience, and add tipping + additional payout options (Cash App + PayPal) for clients to pay assistants. Keep Venmo + Zelle fully working.
+
+HIGH-LEVEL CHANGES
+1) Split portals:
+   - Assistant portal = “Get Paid” settings (payout handles + preferred method).
+   - Client portal = “Pay Assistant” flow (Pay Now sheet + optional tip).
+   - Keep /payment-profile as a compatibility route, but redirect based on role:
+       ASSISTANT -> /get-paid
+       CLIENT    -> /pay
+
+2) Add new payment options:
+   - Cash App ($Cashtag)
+   - PayPal.me handle/link
+
+3) Add tipping:
+   - Client can add a tip (quick % buttons + custom).
+   - Tip affects total shown + payment deep link amount (where supported).
+   - Persist tip amount + payment method used when the client marks payment sent.
+
+IMPLEMENTATION DETAILS
+
+A) DATABASE / SHARED SCHEMA (Drizzle)
+Edit: shared/schema.ts
+1) Expand enum paymentMethodEnum:
+   from ["VENMO","ZELLE"]
+   to   ["VENMO","ZELLE","CASH_APP","PAYPAL"]
+
+2) Add fields to payment_profiles:
+   - cashAppCashtag: text("cash_app_cashtag")
+   - paypalMeHandle: text("paypal_me_handle")  // store just the handle, not full URL (e.g., "LaurenWeiss")
+
+3) Add fields to household_payment_overrides:
+   - cashAppCashtag: text("cash_app_cashtag")
+   - paypalMeHandle: text("paypal_me_handle")
+
+4) Add tipping fields to spending_items:
+   - tipAmount: integer("tip_amount").default(0)  // cents
+   (Optional but nice: totalPaidAmount integer("total_paid_amount") if you want to store amount+tip explicitly; otherwise compute.)
+
+5) Ensure the insert/update zod schemas still work (tipAmount should be optional due to default).
+
+6) Apply DB changes:
+   - Run: npm run db:push
+   If db:push cannot alter enum safely, add a small SQL migration step and run it before push:
+     ALTER TYPE payment_method ADD VALUE IF NOT EXISTS 'CASH_APP';
+     ALTER TYPE payment_method ADD VALUE IF NOT EXISTS 'PAYPAL';
+
+B) SERVER API UPDATES
+Edit: server/routes.ts
+
+1) Update PUT /api/org/payment-profile to accept and validate:
+   - cashAppCashtag (strip leading "$", max 20, must contain at least 1 letter; allow letters/numbers/_)
+   - paypalMeHandle (strip spaces, reasonable length; allow letters/numbers)
+   - defaultPaymentMethod may now be VENMO/ZELLE/CASH_APP/PAYPAL
+   Also update GET response so these fields are included.
+
+2) Update PUT /api/household/payment-settings similarly (override fields):
+   accept:
+   - useOrgDefaults
+   - venmoUsername
+   - zelleRecipient
+   - cashAppCashtag
+   - paypalMeHandle
+   - defaultPaymentMethod
+   - payNoteTemplate
+
+3) Update /api/pay-options and /api/spending/:id/pay-options to resolve effective profile including:
+   - venmoUsername, zelleRecipient, cashAppCashtag, paypalMeHandle
+   - defaultPaymentMethod, payNoteTemplate
+   Build method URLs (when possible):
+   - venmoUrl already exists
+   - cashAppUrl: https://cash.app/$<cashtag>/<amount>  (amount like 12.50)
+   - paypalUrl:  https://paypal.me/<handle>/<amount>   (amount like 12.50)
+   Note: Zelle has no universal deep link; keep “copy details / SMS” logic.
+
+4) Update invoice email HTML in POST /api/invoices/send to include:
+   - Venmo section (if present)
+   - Zelle section (if present)
+   - Cash App section (if present) with link to https://cash.app/$<cashtag>
+   - PayPal section (if present) with link to https://paypal.me/<handle>
+   Keep formatting consistent with existing HTML.
+
+5) Update PATCH /api/spending/:id/status
+Currently client marks PAYMENT_SENT. Extend request body to optionally include:
+   - paymentMethodUsed (enum)
+   - paymentNote (string)
+   - tipAmount (int cents)
+When status is PAYMENT_SENT, persist these fields:
+   updateData.paymentMethodUsed = body.paymentMethodUsed
+   updateData.paymentNote = body.paymentNote
+   updateData.tipAmount = body.tipAmount ?? 0
+(Validate tipAmount >= 0 and not absurdly large; e.g., <= 50000 cents unless you want higher.)
+
+C) FRONTEND ROUTING / PAGES
+Edit: client/src/App.tsx
+
+1) Add lazy imports:
+   const GetPaid = lazy(() => import("@/pages/get-paid"));
+   const PayPortal = lazy(() => import("@/pages/pay"));
+
+2) Add routes:
+   - /get-paid (assistant only)
+   - /pay (client only)
+   - /payment-profile should redirect based on role:
+       if userProfile.role === "ASSISTANT" => <Redirect to="/get-paid" />
+       else => <Redirect to="/pay" />
+
+Keep existing /billing for assistants.
+
+Create: client/src/pages/get-paid.tsx
+- Copy the assistant functionality from current pages/payment-profile.tsx.
+- Expand form fields to include:
+  - Venmo username
+  - Zelle recipient
+  - Cash App cashtag
+  - PayPal.me handle
+  - Preferred method select (VENMO/ZELLE/CASH_APP/PAYPAL)
+  - Note template
+- Save to /api/household/payment-settings (and honor org defaults toggle like current page does).
+
+Create: client/src/pages/pay.tsx
+- This is a client-focused pay portal (can be lightweight):
+  - Fetch /api/spending
+  - Show outstanding invoices (kind==="INVOICE" && status in ["APPROVED","PENDING_PAYMENT"] etc.)
+  - Clicking an invoice opens PayNowSheet (same as spending page does now).
+  - Add a “Payment options” preview card that shows which methods are available.
+
+D) PAY NOW SHEET: TIPPING + MORE METHODS + ROLE SAFETY
+Edit: client/src/components/pay-now-sheet.tsx
+
+1) Role gating:
+   - Use useUser() inside PayNowSheet.
+   - If role !== "CLIENT": hide “I’ve Paid / Mark as Paid” actions completely (assistant should not see this button).
+   - For assistants, the sheet can still show the payment instructions for reference, but no status mutation.
+
+2) Add tipping UI (client only):
+   - Add state: tipCents, tipMode ("none" | "10" | "15" | "20" | "custom")
+   - Quick buttons: No tip, 10%, 15%, 20%, Custom
+   - If custom: show an input for $ amount
+   - Display:
+       Base: $X.XX
+       Tip:  $Y.YY
+       Total:$Z.ZZ
+
+3) Add method selection UI:
+   - If multiple methods exist, show selectable “cards” for each configured method.
+   - Default selection should be payOptions.defaultPaymentMethod, but if that method isn’t configured, auto-select the first configured one.
+
+4) Update generated payment details:
+   - Recompute totalAmount = amount + tipCents
+   - Payment note should append tip info when tip>0:
+       `${baseNote} • Tip $Y.YY`
+   - Update Venmo deep link amount to totalAmount and encode note.
+   - For Cash App and PayPal, open their URLs with totalAmount.
+   - Zelle: keep “copy recipient + amount + note”, optionally “Text via SMS” fallback like current.
+
+5) When client presses “I paid / Mark as Paid”:
+   - PATCH /api/spending/:id/status with:
+       {
+         status: "PAYMENT_SENT",
+         paymentMethodUsed: selectedMethod,
+         paymentNote: finalNote,
+         tipAmount: tipCents
+       }
+   - Show success toast; trigger onPaymentSent; close sheet.
+
+E) UPDATE TYPES USED BY CLIENT SPENDING PAGE
+Edit: client/src/pages/spending.tsx
+- Expand PayOptionsResponse to include:
+  cashAppCashtag: string | null
+  paypalMeHandle: string | null
+  defaultPaymentMethod: "VENMO" | "ZELLE" | "CASH_APP" | "PAYPAL"
+- Update “hasPaymentMethod” checks to include Cash App / PayPal too (where relevant).
+
+F) NICE-TO-HAVE: KEEP EXISTING LINKS WORKING
+- If any UI links currently point to /payment-profile (PayNowSheet “Set up payment methods”), change that to /get-paid.
+- Keep /payment-profile route as redirect so old bookmarks don’t break.
+
+ACCEPTANCE CRITERIA
+- Assistants have a dedicated “Get Paid” page where they can configure Venmo, Zelle, Cash App, PayPal + preferred method.
+- Clients have a dedicated “Pay” page that surfaces invoices and opens PayNowSheet.
+- PayNowSheet:
+  - Allows method selection
+  - Supports tip (percent + custom)
+  - Opens correct payment link where possible
+  - Persists tipAmount + paymentMethodUsed + paymentNote when marking PAYMENT_SENT
+  - Does NOT show “Mark as Paid” for assistants
+- Invoice email HTML includes Cash App + PayPal options if configured.
+- No TypeScript build errors; app runs.
+
+COMMANDS TO RUN AFTER CHANGES
+- npm install
+- npm run db:push
+- npm run dev
