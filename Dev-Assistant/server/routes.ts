@@ -69,6 +69,8 @@ import {
 } from "./services/notifications";
 import { getImpactMetrics } from "./services/analytics";
 import { estimateTaskMinutes } from "./services/ai-provider";
+import { getSmartSuggestions } from "./services/ai-suggestions";
+import { getVapidPublicKey, isPushEnabled, savePushSubscription, removePushSubscription, getUserSubscriptions } from "./services/push-notifications";
 import { wsManager } from "./services/websocket";
 
 async function getOrCreateHousehold(userId: string): Promise<string> {
@@ -3212,6 +3214,91 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error updating notification settings:", error);
       res.status(500).json({ message: "Failed to update notification settings" });
+    }
+  });
+
+  // ============================================
+  // AI SUGGESTIONS ROUTES
+  // ============================================
+
+  app.get("/api/suggestions", isAuthenticated, householdContext, async (req: any, res) => {
+    try {
+      const householdId = req.householdId!;
+      const suggestions = await getSmartSuggestions(householdId);
+      res.json(suggestions);
+    } catch (error) {
+      console.error("Error fetching suggestions:", error);
+      res.status(500).json({ message: "Failed to fetch suggestions" });
+    }
+  });
+
+  // ============================================
+  // PUSH NOTIFICATIONS ROUTES
+  // ============================================
+
+  app.get("/api/push/vapid-key", async (_req, res) => {
+    const publicKey = getVapidPublicKey();
+    res.json({ 
+      publicKey,
+      enabled: isPushEnabled(),
+    });
+  });
+
+  app.post("/api/push/subscribe", isAuthenticated, householdContext, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const householdId = req.householdId!;
+      const { endpoint, keys, userAgent } = req.body;
+
+      if (!endpoint || !keys?.p256dh || !keys?.auth) {
+        return res.status(400).json({ message: "Invalid subscription data" });
+      }
+
+      await savePushSubscription({
+        userId,
+        householdId,
+        endpoint,
+        p256dh: keys.p256dh,
+        auth: keys.auth,
+        userAgent: userAgent || req.headers["user-agent"],
+      });
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error saving push subscription:", error);
+      res.status(500).json({ message: "Failed to save subscription" });
+    }
+  });
+
+  app.post("/api/push/unsubscribe", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { endpoint } = req.body;
+
+      if (!endpoint) {
+        return res.status(400).json({ message: "Endpoint required" });
+      }
+
+      await removePushSubscription(userId, endpoint);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error removing push subscription:", error);
+      res.status(500).json({ message: "Failed to remove subscription" });
+    }
+  });
+
+  app.get("/api/push/subscriptions", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const subscriptions = await getUserSubscriptions(userId);
+      res.json(subscriptions.map(s => ({ 
+        id: s.id, 
+        endpoint: s.endpoint,
+        createdAt: s.createdAt 
+      })));
+    } catch (error) {
+      console.error("Error fetching subscriptions:", error);
+      res.status(500).json({ message: "Failed to fetch subscriptions" });
     }
   });
 

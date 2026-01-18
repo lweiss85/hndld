@@ -1,5 +1,6 @@
 import { createRoot } from "react-dom/client";
 import * as Sentry from "@sentry/react";
+import { registerSW } from "virtual:pwa-register";
 import App from "./App";
 import "./index.css";
 
@@ -20,6 +21,17 @@ if (import.meta.env.PROD && import.meta.env.VITE_SENTRY_DSN) {
         return null;
       }
       return event;
+    },
+  });
+}
+
+if (import.meta.env.PROD && "serviceWorker" in navigator) {
+  registerSW({
+    onRegistered(registration) {
+      console.log("[SW] Service worker registered", registration);
+    },
+    onRegisterError(error) {
+      console.error("[SW] Registration failed:", error);
     },
   });
 }

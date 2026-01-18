@@ -31,6 +31,7 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
 import { PullToRefreshIndicator } from "@/components/pull-to-refresh";
+import { SmartSuggestions } from "@/components/smart-suggestions";
 
 interface TodayData {
   tasks: Task[];
@@ -233,6 +234,8 @@ export default function Today() {
           </Button>
         </Link>
       </div>
+
+      <SmartSuggestions />
 
       <div className="space-y-6">
         {pendingRequests.length > 0 && (

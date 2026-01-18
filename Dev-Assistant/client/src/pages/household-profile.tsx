@@ -40,8 +40,10 @@ import {
   UtensilsCrossed,
   Package,
   Eye,
-  EyeOff
+  EyeOff,
+  Bell
 } from "lucide-react";
+import { PushNotificationToggle } from "@/components/push-notification-toggle";
 import { format } from "date-fns";
 import type { 
   HouseholdSettings, 
@@ -271,6 +273,21 @@ function OverviewTab({ settings, isAssistant }: { settings?: HouseholdSettings; 
           </CardContent>
         </Card>
       )}
+
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Bell className="h-5 w-5" />
+            Notifications
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <PushNotificationToggle />
+          <p className="text-xs text-muted-foreground mt-3">
+            Enable to receive instant alerts about approvals, tasks, and updates
+          </p>
+        </CardContent>
+      </Card>
     </div>
   );
 }

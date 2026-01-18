@@ -10,6 +10,9 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "@tanstack/react-virtual": "^3.13.18"
+    "@tanstack/react-virtual": "^3.13.18",
+    "@types/web-push": "^3.6.4",
+    "vite-plugin-pwa": "^1.2.0",
+    "web-push": "^3.6.7"
   }
 }

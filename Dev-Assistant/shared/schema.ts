@@ -395,10 +395,33 @@ export const notificationSettings = pgTable("notification_settings", {
   weeklyBriefTime: text("weekly_brief_time").default("08:00"),
   emailEnabled: boolean("email_enabled").default(true),
   smsEnabled: boolean("sms_enabled").default(false),
+  pushEnabled: boolean("push_enabled").default(false),
   phoneNumber: text("phone_number"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
+
+// Push Notification Subscriptions
+export const pushSubscriptions = pgTable("push_subscriptions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  householdId: varchar("household_id").references(() => households.id).notNull(),
+  endpoint: text("endpoint").notNull(),
+  p256dh: text("p256dh").notNull(),
+  auth: text("auth").notNull(),
+  userAgent: text("user_agent"),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("push_subscriptions_user_id_idx").on(table.userId),
+]);
+
+export const insertPushSubscriptionSchema = createInsertSchema(pushSubscriptions).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type PushSubscription = typeof pushSubscriptions.$inferSelect;
+export type InsertPushSubscription = typeof pushSubscriptions.$inferInsert;
 
 // Playbooks (SOP Templates for recurring procedures)
 export const playbooks = pgTable("playbooks", {

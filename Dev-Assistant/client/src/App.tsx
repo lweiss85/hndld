@@ -10,6 +10,7 @@ import { UserProvider, useUser } from "@/lib/user-context";
 import { VaultProvider } from "@/lib/vault-context";
 import { WebSocketProvider } from "@/lib/websocket-context";
 import { ConnectionStatus } from "@/components/connection-status";
+import { OfflineIndicator } from "@/components/offline-indicator";
 import { useAuth } from "@/hooks/use-auth";
 import { AppLayout } from "@/components/layout/app-layout";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -194,6 +195,7 @@ function AppContent() {
     <UserProvider>
       <VaultProvider>
         <WebSocketProvider>
+          <OfflineIndicator />
           <AuthenticatedApp />
           <ConnectionStatus />
         </WebSocketProvider>
