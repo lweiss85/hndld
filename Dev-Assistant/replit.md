@@ -133,6 +133,13 @@ Preferred communication style: Simple, everyday language.
 - **Badge Variants**: Extended shadcn Badge with success, warning, info variants using semantic tokens
 - **StatusBadge Component**: Reusable component (client/src/components/ui/status-badge.tsx) for consistent status styling
 
+### Security & Robustness
+- **Invoice XSS Prevention**: All user inputs in generated invoice HTML are escaped via escapeHtml() helper
+- **Invoice File Storage**: Invoice documents are written to storage provider before database record creation
+- **Stripe Webhook Idempotency**: Invoice webhooks use upsert pattern to handle duplicate deliveries gracefully
+- **Stripe Subscription Lookup**: Webhook handlers use stripeSubscriptionId for reliable subscription matching
+- **Session Cookie Security**: Cookie secure flag is environment-conditional (production only)
+
 ### Development Tools
 - Replit-specific Vite plugins for development (cartographer, dev-banner, runtime-error-modal)
 - TypeScript with strict mode enabled
