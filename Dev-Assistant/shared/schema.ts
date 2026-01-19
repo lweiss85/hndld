@@ -1,5 +1,5 @@
 import { sql, relations } from "drizzle-orm";
-import { pgTable, text, varchar, timestamp, integer, boolean, jsonb, pgEnum, index } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, timestamp, integer, boolean, jsonb, pgEnum, index, unique } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -86,6 +86,7 @@ export const householdServiceMemberships = pgTable("household_service_membership
 }, (table) => [
   index("household_service_memberships_household_idx").on(table.householdId),
   index("household_service_memberships_user_idx").on(table.userId),
+  unique("household_service_memberships_unique").on(table.householdId, table.userId, table.serviceType),
 ]);
 
 // Tasks
