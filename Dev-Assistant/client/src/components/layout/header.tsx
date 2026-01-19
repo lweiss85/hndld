@@ -32,9 +32,11 @@ export function Header() {
     <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur-sm">
       <div className="flex h-14 items-center justify-between gap-4 px-4 max-w-4xl mx-auto">
         <div className="flex items-center gap-3">
-          <h1 className="text-xl font-semibold tracking-tight" data-testid="text-app-title">
-            hndld
-          </h1>
+          <Link href="/">
+            <h1 className="text-xl font-semibold tracking-tight cursor-pointer hover:opacity-80 transition-opacity" data-testid="text-app-title">
+              hndld
+            </h1>
+          </Link>
           <HouseholdSwitcher />
           <ServiceSwitcher />
           {canSwitchRoles && (
