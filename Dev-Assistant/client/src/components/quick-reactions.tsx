@@ -53,8 +53,10 @@ export function QuickReactions({ entityType, entityId, compact = false }: QuickR
   }>({
     queryKey: ["/api/reactions", entityType, entityId],
     queryFn: async () => {
+      const activeHouseholdId = localStorage.getItem("activeHouseholdId");
       const res = await fetch(`/api/reactions?entityType=${entityType}&entityIds=${entityId}`, {
         credentials: "include",
+        headers: activeHouseholdId ? { "X-Household-Id": activeHouseholdId } : {},
       });
       if (!res.ok) throw new Error("Failed to fetch reactions");
       return res.json();
