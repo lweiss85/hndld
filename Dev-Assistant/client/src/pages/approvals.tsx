@@ -34,6 +34,8 @@ import { QuickReactions } from "@/components/quick-reactions";
 import { PageTransition, StaggeredList, triggerHaptic } from "@/components/juice";
 import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
 import { PullToRefreshIndicator } from "@/components/pull-to-refresh";
+import { useActiveServiceType } from "@/hooks/use-active-service-type";
+import { withServiceType } from "@/lib/serviceUrl";
 
 interface ApprovalWithComments extends Approval {
   comments?: Comment[];
@@ -53,6 +55,7 @@ function ApprovalsSkeleton() {
 export default function Approvals() {
   const { toast } = useToast();
   const { activeRole } = useUser();
+  const { activeServiceType } = useActiveServiceType();
   const [selectedApproval, setSelectedApproval] = useState<ApprovalWithComments | null>(null);
   const [newComment, setNewComment] = useState("");
   const [showCreateDialog, setShowCreateDialog] = useState(false);
@@ -62,19 +65,22 @@ export default function Approvals() {
     amount: undefined,
   });
 
+  const approvalsUrl = withServiceType("/api/approvals", activeServiceType);
+  const spendingUrl = withServiceType("/api/spending", activeServiceType);
+
   const { data: approvals, isLoading } = useQuery<ApprovalWithComments[]>({
-    queryKey: ["/api/approvals"],
+    queryKey: [approvalsUrl],
   });
 
   const { data: spending } = useQuery<SpendingItem[]>({
-    queryKey: ["/api/spending"],
+    queryKey: [spendingUrl],
     enabled: activeRole === "CLIENT",
   });
 
   const { isRefreshing, pullDistance, threshold, progress } = usePullToRefresh({
     onRefresh: async () => {
       triggerHaptic("medium");
-      await queryClient.invalidateQueries({ queryKey: ["/api/approvals"] });
+      await queryClient.invalidateQueries({ queryKey: [approvalsUrl] });
     },
   });
 
@@ -87,7 +93,7 @@ export default function Approvals() {
       return apiRequest("PATCH", `/api/approvals/${id}`, { status });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/approvals"] });
+      queryClient.invalidateQueries({ queryKey: [approvalsUrl] });
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
       setSelectedApproval(null);
       toast({
@@ -99,10 +105,10 @@ export default function Approvals() {
 
   const createApprovalMutation = useMutation({
     mutationFn: async (data: Partial<InsertApproval>) => {
-      return apiRequest("POST", "/api/approvals", data);
+      return apiRequest("POST", "/api/approvals", { ...data, serviceType: activeServiceType });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/approvals"] });
+      queryClient.invalidateQueries({ queryKey: [approvalsUrl] });
       setShowCreateDialog(false);
       setNewApproval({ title: "", details: "", amount: undefined });
       toast({
@@ -121,7 +127,7 @@ export default function Approvals() {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/approvals"] });
+      queryClient.invalidateQueries({ queryKey: [approvalsUrl] });
       setNewComment("");
     },
   });

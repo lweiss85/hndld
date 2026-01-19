@@ -30,6 +30,8 @@ import { PageTransition, StaggeredList, triggerHaptic } from "@/components/juice
 import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
 import { PullToRefreshIndicator } from "@/components/pull-to-refresh";
 import { PhotoCapture } from "@/components/photo-capture";
+import { useActiveServiceType } from "@/hooks/use-active-service-type";
+import { withServiceType } from "@/lib/serviceUrl";
 
 interface UpdateWithComments extends Update {
   comments?: Comment[];
@@ -49,6 +51,7 @@ function UpdatesSkeleton() {
 export default function Updates() {
   const { toast } = useToast();
   const { activeRole } = useUser();
+  const { activeServiceType } = useActiveServiceType();
   const [selectedUpdate, setSelectedUpdate] = useState<UpdateWithComments | null>(null);
   const [newComment, setNewComment] = useState("");
   const [showCreateDialog, setShowCreateDialog] = useState(false);
@@ -58,8 +61,10 @@ export default function Updates() {
   const [uploadedImages, setUploadedImages] = useState<{ url: string; id: string }[]>([]);
   const [isUploading, setIsUploading] = useState(false);
 
+  const updatesUrl = withServiceType("/api/updates", activeServiceType);
+
   const { data: updates, isLoading } = useQuery<UpdateWithComments[]>({
-    queryKey: ["/api/updates"],
+    queryKey: [updatesUrl],
   });
 
   const handlePhotoUpload = async (file: File) => {
@@ -100,10 +105,10 @@ export default function Updates() {
 
   const createUpdateMutation = useMutation({
     mutationFn: async (data: Partial<InsertUpdate>) => {
-      return apiRequest("POST", "/api/updates", { ...data, images: uploadedImages.map(img => img.url) });
+      return apiRequest("POST", "/api/updates", { ...data, images: uploadedImages.map(img => img.url), serviceType: activeServiceType });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/updates"] });
+      queryClient.invalidateQueries({ queryKey: [updatesUrl] });
       setShowCreateDialog(false);
       setNewUpdate({ text: "" });
       setUploadedImages([]);
@@ -123,7 +128,7 @@ export default function Updates() {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/updates"] });
+      queryClient.invalidateQueries({ queryKey: [updatesUrl] });
       setNewComment("");
     },
   });
@@ -131,7 +136,7 @@ export default function Updates() {
   const { isRefreshing, pullDistance, threshold, progress } = usePullToRefresh({
     onRefresh: async () => {
       triggerHaptic("medium");
-      await queryClient.invalidateQueries({ queryKey: ["/api/updates"] });
+      await queryClient.invalidateQueries({ queryKey: [updatesUrl] });
     },
   });
 
@@ -148,7 +153,7 @@ export default function Updates() {
     <div className="px-4 py-6 space-y-6 max-w-4xl mx-auto">
       <div className="flex items-center justify-between gap-4 animate-fade-in-up">
         <h1 className="text-2xl font-semibold" data-testid="text-page-title">Updates</h1>
-        {activeRole === "ASSISTANT" && (
+        {(activeRole === "ASSISTANT" || (activeRole === "STAFF" && activeServiceType === "CLEANING")) && (
           <Button size="sm" onClick={() => setShowCreateDialog(true)} data-testid="button-create-update">
             <Plus className="h-4 w-4 mr-1" />
             Post

@@ -72,6 +72,8 @@ import { PageTransition, StaggeredList, triggerHaptic } from "@/components/juice
 import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
 import { PullToRefreshIndicator } from "@/components/pull-to-refresh";
 import { PhotoCapture } from "@/components/photo-capture";
+import { useActiveServiceType } from "@/hooks/use-active-service-type";
+import { withServiceType } from "@/lib/serviceUrl";
 
 const STATUSES = [
   { value: "PLANNED", label: "Planned" },
@@ -133,6 +135,7 @@ const TEMPLATE_ICONS: Record<string, typeof ShoppingCart> = {
 
 export default function Tasks() {
   const { toast } = useToast();
+  const { activeServiceType } = useActiveServiceType();
   const [selectedStatus, setSelectedStatus] = useState("all");
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showTemplateDialog, setShowTemplateDialog] = useState(false);
@@ -170,8 +173,9 @@ export default function Tasks() {
     icon: "file-text",
   });
 
+  const tasksUrl = withServiceType("/api/tasks", activeServiceType);
   const { data: tasks, isLoading } = useQuery<TaskWithChecklist[]>({
-    queryKey: ["/api/tasks"],
+    queryKey: [tasksUrl],
   });
 
   const { data: templates = [] } = useQuery<TaskTemplate[]>({

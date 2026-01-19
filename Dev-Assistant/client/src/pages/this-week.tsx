@@ -346,7 +346,7 @@ function CleaningOverview() {
                   <ItemRow
                     key={addon.id}
                     title={addon.title}
-                    meta={addon.amountCents ? `$${(addon.amountCents / 100).toFixed(2)}` : undefined}
+                    meta={addon.amount ? `$${(addon.amount / 100).toFixed(2)}` : undefined}
                     urgency="MEDIUM"
                   />
                 ))}
@@ -393,7 +393,7 @@ function CleaningOverview() {
                       <p className="font-medium text-sm">{item.title}</p>
                       <p className="text-xs text-muted-foreground">{item.status}</p>
                     </div>
-                    <p className="font-semibold">${((item.amountCents || 0) / 100).toFixed(2)}</p>
+                    <p className="font-semibold">${((item.amount || 0) / 100).toFixed(2)}</p>
                   </div>
                 ))}
               </div>
