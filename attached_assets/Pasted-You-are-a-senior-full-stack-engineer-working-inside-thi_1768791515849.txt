@@ -1,0 +1,102 @@
+You are a senior full-stack engineer working inside this repo:
+
+/hndld/Dev-Assistant
+
+Goal: Make the app truly support “Cleaning Mode” inside the existing app (Option A), with strict permissions and a service-aware UI. Implement a cleaning-mode UI pass for CLIENT and STAFF, fix STAFF permissions, and ensure all key queries are scoped by active service type.
+
+HARD REQUIREMENTS
+1) Service-aware UI:
+   - Use existing ServiceSwitcher + hook:
+     - client/src/components/service-switcher.tsx
+     - client/src/hooks/use-active-service-type.ts
+   - Any queries for Tasks, Approvals, Updates, Spending, Dashboard must be scoped by active service type:
+     - append ?serviceType=CLEANING|PA to the request URL
+     - ensure the queryKey includes the full URL string INCLUDING the query param (so caching does not cross-contaminate services)
+
+2) Cleaning Mode UI Pass (CLIENT):
+   - Update bottom nav to be service-aware:
+     - file: client/src/components/layout/bottom-nav.tsx
+     - If activeRole === "CLIENT" AND activeServiceType === "CLEANING":
+       Tabs should be: Overview, Visits, Photos, Add-ons, Pay
+       Routes should map to existing pages where possible:
+         - Overview: "/" (but render cleaning home UI)
+         - Visits: "/tasks" (render as visits when in cleaning mode)
+         - Photos: "/updates" (rename header copy to “Photos & Notes” in cleaning mode)
+         - Add-ons: "/approvals" (rename to “Add-ons” in cleaning mode)
+         - Pay: "/pay" (filter to CLEANING spending only; show tip affordance)
+   - Keep PA mode behavior unchanged.
+
+   - Make Home page service-aware:
+     - file: client/src/pages/this-week.tsx
+     - If activeServiceType === "PA": keep current UI.
+     - If activeServiceType === "CLEANING": replace with a Cleaning Overview:
+       Sections:
+         A) “Next Visit” card: show next CLEANING task (status not DONE/CANCELLED, soonest dueAt)
+         B) “Pending Add-ons” preview: show CLEANING approvals needing action
+         C) “Photos & Notes” preview: show latest CLEANING updates (photo-first if images exist)
+         D) “Pay & Tip” preview: show any CLEANING spending needing payment, and a one-tap “Tip your cleaner” action (see #5)
+
+3) Fix STAFF permissions so staff portal works:
+   - file: server/lib/permissions.ts
+   - Add role "STAFF" with minimal permissions needed to operate:
+     - CAN_VIEW_TASKS
+     - CAN_EDIT_TASKS (but route-level enforcement must restrict to assigned tasks only)
+     - CAN_VIEW_UPDATES
+     - CAN_CREATE_UPDATE (but staff should only create updates for CLEANING service)
+     - CAN_VIEW_CALENDAR (optional)
+   - Keep ASSISTANT/CLIENT permissions intact.
+
+   - Enforce STAFF restrictions in task mutation routes:
+     - file: server/routes.ts
+     - For PATCH /api/tasks/:id and POST /api/tasks/:id/complete and /cancel:
+       If userRole === "STAFF":
+         - deny unless task.assignedTo === userId
+         - deny unless task.serviceType === "CLEANING"
+       Staff must not be able to create or delete tasks.
+
+   - Also fix /api/today for STAFF:
+     - filter tasks to assignedTo === userId AND serviceType === "CLEANING"
+
+4) STAFF updates posting (cleaning only):
+   - file: client/src/pages/updates.tsx
+   - Allow STAFF to create updates when activeServiceType === "CLEANING".
+   - Ensure the created update includes serviceType === "CLEANING".
+   - Keep PA updates assistant-only.
+
+5) Tip-only payment option (future-proof):
+   - Add a “Tip your cleaner” action in Cleaning Overview and/or Pay page:
+     - Create a new spending item with amount=0, category="TIP", serviceType="CLEANING", vendor like "Tip"
+     - Immediately open PayNowSheet for that spending item so the client can enter a tip and pay.
+   - This uses existing PayNowSheet tip flow:
+     - client/src/components/pay-now-sheet.tsx
+   - Ensure tip-only spending shows up in spending history as RECONCILED/PAYMENT_SENT like others.
+
+6) Query helper for service scoping:
+   - Create a small helper utility:
+     - client/src/lib/serviceUrl.ts (new)
+     - export function withServiceType(url: string, serviceType?: "PA"|"CLEANING"): string
+       - appends ?serviceType=... (or &serviceType=...) when serviceType is provided
+   - Update affected pages to use it:
+     - client/src/pages/this-week.tsx
+     - client/src/pages/tasks.tsx
+     - client/src/pages/approvals.tsx
+     - client/src/pages/updates.tsx
+     - client/src/pages/pay.tsx
+     - client/src/pages/spending.tsx (ensure role-based views still work; if client ever hits it, it should scope too)
+
+7) Access items reveal UX for STAFF (cleaning reality):
+   - In staff UI (today/jobs), add an “Entry Instructions” card:
+     - Fetch /api/access-items and show category ENTRY/ALARM items (masked).
+     - Add a “Reveal” button that calls POST /api/access-items/:id/reveal to fetch the real value.
+     - Show revealed value for 30 seconds then re-mask locally.
+   - Do NOT allow CLIENT to reveal (server already denies). Hide reveal button when value is "********" and role is CLIENT.
+
+ACCEPTANCE CHECKLIST
+- Switching service types changes what clients see (no cross-contamination of tasks/updates/approvals/spending).
+- Cleaning clients have a Cleaning-flavored nav + home + visits + photos + add-ons + pay.
+- STAFF can start/complete assigned cleaning jobs without 403s.
+- STAFF can post cleaning updates with photos.
+- Tip-only payment flow works end-to-end.
+- Vault reveal works for STAFF only with grants and is time-limited.
+
+Keep changes incremental. Do not rewrite architecture. Prefer reusing existing components and patterns in this repo.

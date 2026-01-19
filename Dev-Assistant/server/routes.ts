@@ -892,6 +892,9 @@ export async function registerRoutes(
         if (!existingTask || existingTask.assignedTo !== userId) {
           return res.status(403).json({ message: "You can only update tasks assigned to you" });
         }
+        if (existingTask.serviceType !== "CLEANING") {
+          return res.status(403).json({ message: "Staff can only modify cleaning tasks" });
+        }
       }
       
       const updateData = {
@@ -953,8 +956,13 @@ export async function registerRoutes(
         return res.status(404).json({ message: "Task not found" });
       }
       
-      if (userRole === "STAFF" && task.assignedTo !== userId) {
-        return res.status(403).json({ message: "You can only complete tasks assigned to you" });
+      if (userRole === "STAFF") {
+        if (task.assignedTo !== userId) {
+          return res.status(403).json({ message: "You can only complete tasks assigned to you" });
+        }
+        if (task.serviceType !== "CLEANING") {
+          return res.status(403).json({ message: "Staff can only complete cleaning tasks" });
+        }
       }
       
       // Mark current task as done
@@ -1031,8 +1039,13 @@ export async function registerRoutes(
         return res.status(404).json({ message: "Task not found" });
       }
       
-      if (userRole === "STAFF" && task.assignedTo !== userId) {
-        return res.status(403).json({ message: "You can only cancel tasks assigned to you" });
+      if (userRole === "STAFF") {
+        if (task.assignedTo !== userId) {
+          return res.status(403).json({ message: "You can only cancel tasks assigned to you" });
+        }
+        if (task.serviceType !== "CLEANING") {
+          return res.status(403).json({ message: "Staff can only cancel cleaning tasks" });
+        }
       }
       
       if (task.status === "DONE" || task.status === "CANCELLED") {

@@ -75,6 +75,14 @@ const ROLE_PERMISSIONS: RolePermissions = {
     "CAN_CREATE_REQUESTS",
     "CAN_VIEW_PLAYBOOKS",
   ],
+  STAFF: [
+    "CAN_VIEW_TASKS",
+    "CAN_EDIT_TASKS",
+    "CAN_VIEW_UPDATES",
+    "CAN_CREATE_UPDATE",
+    "CAN_VIEW_CALENDAR",
+    "CAN_VIEW_VAULT",
+  ],
 };
 
 export function hasPermission(role: string, permission: Permission): boolean {
