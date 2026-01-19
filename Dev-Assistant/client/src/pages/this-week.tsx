@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { useEffect, useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -9,10 +9,14 @@ import {
   Bell,
   ChevronRight,
   Clock,
-  Sparkles
+  Sparkles,
+  Camera,
+  CreditCard,
+  CalendarDays,
+  Heart
 } from "lucide-react";
 import { format, isToday, isTomorrow, isThisWeek, formatDistanceToNow } from "date-fns";
-import type { Task, Approval, CalendarEvent, Update } from "@shared/schema";
+import type { Task, Approval, CalendarEvent, Update, SpendingItem } from "@shared/schema";
 import { Link } from "wouter";
 import { 
   LuxuryCard, 
@@ -29,7 +33,10 @@ import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
 import { PullToRefreshIndicator } from "@/components/pull-to-refresh";
-import { queryClient } from "@/lib/queryClient";
+import { queryClient, apiRequest } from "@/lib/queryClient";
+import { useActiveServiceType } from "@/hooks/use-active-service-type";
+import { withServiceType } from "@/lib/serviceUrl";
+import { PayNowSheet } from "@/components/pay-now-sheet";
 
 interface ImpactMetrics {
   minutesReturnedWeek: number;
@@ -207,8 +214,224 @@ function WeeklyBriefSkeleton() {
   );
 }
 
+function CleaningOverview() {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const { activeServiceType } = useActiveServiceType();
+  const [showTipSheet, setShowTipSheet] = useState(false);
+  const [tipSpendingId, setTipSpendingId] = useState<string | null>(null);
+
+  const tasksUrl = withServiceType("/api/tasks", "CLEANING");
+  const approvalsUrl = withServiceType("/api/approvals", "CLEANING");
+  const updatesUrl = withServiceType("/api/updates", "CLEANING");
+  const spendingUrl = withServiceType("/api/spending", "CLEANING");
+
+  const { data: tasks, isLoading: tasksLoading } = useQuery<Task[]>({
+    queryKey: [tasksUrl],
+  });
+
+  const { data: approvals } = useQuery<Approval[]>({
+    queryKey: [approvalsUrl],
+  });
+
+  const { data: updates } = useQuery<Update[]>({
+    queryKey: [updatesUrl],
+  });
+
+  const { data: spending } = useQuery<SpendingItem[]>({
+    queryKey: [spendingUrl],
+  });
+
+  const createTipMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/spending", {
+        title: "Tip for Cleaner",
+        description: "Thank you tip",
+        amountCents: 0,
+        category: "TIP",
+        serviceType: "CLEANING",
+        status: "DRAFT",
+      });
+      return res.json();
+    },
+    onSuccess: (data) => {
+      setTipSpendingId(data.id);
+      setShowTipSheet(true);
+      queryClient.invalidateQueries({ queryKey: [spendingUrl] });
+    },
+    onError: () => {
+      toast({ title: "Could not start tip", variant: "destructive" });
+    },
+  });
+
+  const { isRefreshing, pullDistance, threshold, progress } = usePullToRefresh({
+    onRefresh: async () => {
+      triggerHaptic("medium");
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: [tasksUrl] }),
+        queryClient.invalidateQueries({ queryKey: [approvalsUrl] }),
+        queryClient.invalidateQueries({ queryKey: [updatesUrl] }),
+        queryClient.invalidateQueries({ queryKey: [spendingUrl] }),
+      ]);
+    },
+  });
+
+  if (tasksLoading) return <WeeklyBriefSkeleton />;
+
+  const nextVisit = tasks
+    ?.filter(t => t.status !== "DONE" && t.status !== "CANCELLED")
+    .sort((a, b) => {
+      if (!a.dueAt && !b.dueAt) return 0;
+      if (!a.dueAt) return 1;
+      if (!b.dueAt) return -1;
+      return new Date(a.dueAt).getTime() - new Date(b.dueAt).getTime();
+    })[0];
+
+  const pendingAddons = approvals?.filter(a => a.status === "PENDING") || [];
+  const recentPhotos = updates?.filter(u => u.images && u.images.length > 0).slice(0, 3) || [];
+  const pendingPayments = spending?.filter(s => 
+    s.status === "NEEDS_APPROVAL" || s.status === "APPROVED"
+  ) || [];
+
+  const firstName = user?.firstName || "there";
+
+  return (
+    <PageTransition className="relative">
+      <PullToRefreshIndicator
+        pullDistance={pullDistance}
+        threshold={threshold}
+        isRefreshing={isRefreshing}
+        progress={progress}
+      />
+      <div className="px-5 py-6 space-y-6 max-w-4xl mx-auto pb-24">
+        <header className="space-y-1 animate-fade-in-up">
+          <h1 className="text-2xl font-semibold text-foreground" data-testid="text-greeting">
+            {getGreeting()}, {firstName}.
+          </h1>
+          <p className="text-xs text-muted-foreground">Your cleaning service overview</p>
+        </header>
+
+        <section>
+          <SectionHeader title="Next Visit" action={nextVisit ? { label: "All visits", href: "/tasks" } : undefined} />
+          <LuxuryCard>
+            {nextVisit ? (
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+                  <CalendarDays className="w-6 h-6 text-primary" />
+                </div>
+                <div className="flex-1">
+                  <p className="font-medium text-foreground">{nextVisit.title}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {nextVisit.dueAt ? format(new Date(nextVisit.dueAt), "EEEE, MMM d 'at' h:mm a") : "Not scheduled"}
+                  </p>
+                </div>
+                <ChevronRight className="w-5 h-5 text-muted-foreground" />
+              </div>
+            ) : (
+              <EmptyState
+                illustration={<CalendarIllustration className="w-full h-full" />}
+                title="No upcoming visits"
+                description="You're all set for now"
+              />
+            )}
+          </LuxuryCard>
+        </section>
+
+        {pendingAddons.length > 0 && (
+          <section>
+            <SectionHeader title="Pending Add-ons" action={{ label: "View all", href: "/approvals" }} />
+            <LuxuryCard>
+              <StaggeredList>
+                {pendingAddons.slice(0, 3).map((addon) => (
+                  <ItemRow
+                    key={addon.id}
+                    title={addon.title}
+                    meta={addon.amountCents ? `$${(addon.amountCents / 100).toFixed(2)}` : undefined}
+                    urgency="MEDIUM"
+                  />
+                ))}
+              </StaggeredList>
+            </LuxuryCard>
+          </section>
+        )}
+
+        {recentPhotos.length > 0 && (
+          <section>
+            <SectionHeader title="Photos & Notes" action={{ label: "View all", href: "/updates" }} />
+            <LuxuryCard>
+              <div className="grid grid-cols-3 gap-2 mb-3">
+                {recentPhotos.slice(0, 3).map((update) => (
+                  <div key={update.id} className="aspect-square rounded-lg overflow-hidden bg-muted">
+                    {update.images?.[0] && (
+                      <img 
+                        src={update.images[0]} 
+                        alt="Cleaning update" 
+                        className="w-full h-full object-cover"
+                      />
+                    )}
+                  </div>
+                ))}
+              </div>
+              <Link href="/updates">
+                <Button variant="ghost" size="sm" className="w-full">
+                  <Camera className="w-4 h-4 mr-2" />
+                  See all photos
+                </Button>
+              </Link>
+            </LuxuryCard>
+          </section>
+        )}
+
+        <section>
+          <SectionHeader title="Pay & Tip" action={pendingPayments.length > 0 ? { label: "View all", href: "/pay" } : undefined} />
+          <LuxuryCard>
+            {pendingPayments.length > 0 ? (
+              <div className="space-y-3">
+                {pendingPayments.slice(0, 2).map((item) => (
+                  <div key={item.id} className="flex items-center justify-between py-2 border-b border-border/50 last:border-0">
+                    <div>
+                      <p className="font-medium text-sm">{item.title}</p>
+                      <p className="text-xs text-muted-foreground">{item.status}</p>
+                    </div>
+                    <p className="font-semibold">${((item.amountCents || 0) / 100).toFixed(2)}</p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground text-center py-2">No pending payments</p>
+            )}
+            <Button 
+              variant="outline" 
+              className="w-full mt-4 gap-2"
+              onClick={() => createTipMutation.mutate()}
+              disabled={createTipMutation.isPending}
+            >
+              <Heart className="w-4 h-4" />
+              Tip your cleaner
+            </Button>
+          </LuxuryCard>
+        </section>
+      </div>
+
+      {tipSpendingId && (
+        <PayNowSheet
+          open={showTipSheet}
+          onOpenChange={setShowTipSheet}
+          spendingId={tipSpendingId}
+          vendorName="Tip for Cleaner"
+        />
+      )}
+    </PageTransition>
+  );
+}
+
 export default function ThisWeek() {
   const { user } = useAuth();
+  const { activeServiceType } = useActiveServiceType();
+
+  if (activeServiceType === "CLEANING") {
+    return <CleaningOverview />;
+  }
 
   const { data, isLoading } = useQuery<DashboardData>({
     queryKey: ["/api/dashboard"],

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { useUser } from "@/lib/user-context";
 import { usePendingInvoices } from "@/hooks/usePendingInvoices";
+import { useActiveServiceType } from "@/hooks/use-active-service-type";
 import { 
   Calendar, 
   CheckSquare, 
@@ -14,7 +15,10 @@ import {
   Receipt,
   CreditCard,
   Briefcase,
-  MoreHorizontal
+  MoreHorizontal,
+  CalendarDays,
+  Camera,
+  Sparkles
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -35,6 +39,14 @@ const clientTabs: NavItem[] = [
   { path: "/messages", icon: <Mail className="h-5 w-5" />, label: "Messages" },
 ];
 
+const cleaningClientTabs: NavItem[] = [
+  { path: "/", icon: <Home className="h-5 w-5" />, label: "Overview" },
+  { path: "/tasks", icon: <CalendarDays className="h-5 w-5" />, label: "Visits" },
+  { path: "/updates", icon: <Camera className="h-5 w-5" />, label: "Photos" },
+  { path: "/approvals", icon: <Sparkles className="h-5 w-5" />, label: "Add-ons" },
+  { path: "/pay", icon: <CreditCard className="h-5 w-5" />, label: "Pay" },
+];
+
 const assistantTabs: NavItem[] = [
   { path: "/", icon: <Clock className="h-5 w-5" />, label: "Today" },
   { path: "/tasks", icon: <ClipboardList className="h-5 w-5" />, label: "Tasks" },
@@ -53,6 +65,7 @@ const staffTabs: NavItem[] = [
 export function BottomNav() {
   const [location] = useLocation();
   const { activeRole } = useUser();
+  const { activeServiceType } = useActiveServiceType();
   const { data: pendingInvoices } = usePendingInvoices();
   const [showPaySheet, setShowPaySheet] = useState(false);
 
@@ -60,7 +73,9 @@ export function BottomNav() {
     ? assistantTabs 
     : activeRole === "STAFF" 
       ? staffTabs 
-      : clientTabs;
+      : activeServiceType === "CLEANING"
+        ? cleaningClientTabs
+        : clientTabs;
   const hasUnpaidInvoices = activeRole === "CLIENT" && pendingInvoices && pendingInvoices.count > 0;
 
   useEffect(() => {
