@@ -10,6 +10,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { triggerHaptic } from "@/components/juice";
+import { useUser } from "@/lib/user-context";
 
 type ReactionType = "LOOKS_GOOD" | "NEED_DETAILS" | "PLEASE_ADJUST" | "LOVE_IT" | "SAVE_THIS";
 
@@ -40,6 +41,7 @@ interface QuickReactionsProps {
 export function QuickReactions({ entityType, entityId, compact = false }: QuickReactionsProps) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { userProfile } = useUser();
   const [noteModalOpen, setNoteModalOpen] = useState(false);
   const [pendingReaction, setPendingReaction] = useState<ReactionType | null>(null);
   const [noteText, setNoteText] = useState("");
@@ -47,20 +49,23 @@ export function QuickReactions({ entityType, entityId, compact = false }: QuickR
   const [floatingHearts, setFloatingHearts] = useState<number[]>([]);
   const [countAnimating, setCountAnimating] = useState<ReactionType | null>(null);
 
+  const householdId = userProfile?.householdId || localStorage.getItem("activeHouseholdId");
+
   const { data: reactionsData } = useQuery<{
     reactions: Record<string, Record<string, number>>;
     userReactions: Record<string, string>;
   }>({
-    queryKey: ["/api/reactions", entityType, entityId],
-    queryFn: async () => {
-      const activeHouseholdId = localStorage.getItem("activeHouseholdId");
+    queryKey: ["/api/reactions", entityType, entityId, householdId],
+    queryFn: async ({ queryKey }) => {
+      const hId = queryKey[3] as string;
       const res = await fetch(`/api/reactions?entityType=${entityType}&entityIds=${entityId}`, {
         credentials: "include",
-        headers: activeHouseholdId ? { "X-Household-Id": activeHouseholdId } : {},
+        headers: hId ? { "X-Household-Id": hId } : {},
       });
       if (!res.ok) throw new Error("Failed to fetch reactions");
       return res.json();
     },
+    enabled: !!householdId,
   });
 
   const reactionMutation = useMutation({
@@ -89,7 +94,7 @@ export function QuickReactions({ entityType, entityId, compact = false }: QuickR
       setTimeout(() => setCountAnimating(null), 300);
     },
     onSuccess: (result: any) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/reactions", entityType, entityId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/reactions", entityType, entityId, householdId] });
       if (result.action === "removed") {
         toast({ description: "Reaction removed" });
       } else if (result.reaction?.reactionType === "SAVE_THIS") {
