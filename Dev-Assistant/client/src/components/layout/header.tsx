@@ -16,6 +16,7 @@ import { Moon, Sun, LogOut, UserCircle, CreditCard, BarChart3, AlertTriangle, Me
 import { NotificationCenter } from "@/components/notification-center";
 import { GlobalSearchTrigger } from "@/components/global-search";
 import { HouseholdSwitcher } from "@/components/household-switcher";
+import { ServiceSwitcher } from "@/components/service-switcher";
 import { Link } from "wouter";
 
 export function Header() {
@@ -35,6 +36,7 @@ export function Header() {
             hndld
           </h1>
           <HouseholdSwitcher />
+          <ServiceSwitcher />
           {canSwitchRoles && (
             <div className="flex items-center gap-2 px-2 py-1 rounded-md bg-muted/50">
               <span className={`text-xs font-medium ${activeRole === "CLIENT" ? "text-foreground" : "text-muted-foreground"}`}>
