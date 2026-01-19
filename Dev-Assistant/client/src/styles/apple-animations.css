@@ -1,0 +1,436 @@
+/**
+ * Apple-Grade CSS Animations
+ * 
+ * FILE: client/src/styles/apple-animations.css
+ * ACTION: Create this file and import it in index.css
+ * 
+ * Or simply ADD these styles to the end of client/src/index.css
+ */
+
+/* ============================================================================
+   SPRING PHYSICS TIMING FUNCTIONS
+   These match Apple's UIKit spring animations
+   ============================================================================ */
+
+:root {
+  /* Apple's standard spring curve */
+  --apple-spring: cubic-bezier(0.32, 0.72, 0, 1);
+  
+  /* Bouncy spring for playful interactions */
+  --apple-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  
+  /* Smooth ease for subtle transitions */
+  --apple-ease: cubic-bezier(0.25, 0.1, 0.25, 1);
+  
+  /* Quick snap for immediate feedback */
+  --apple-snap: cubic-bezier(0.2, 0, 0, 1);
+}
+
+/* ============================================================================
+   DEPTH - ELEVATION SHADOWS
+   Apple-style soft shadows with proper blur and spread
+   ============================================================================ */
+
+.shadow-apple-sm {
+  box-shadow: 
+    0 1px 2px rgba(0, 0, 0, 0.04),
+    0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.shadow-apple-md {
+  box-shadow: 
+    0 2px 4px rgba(0, 0, 0, 0.04),
+    0 4px 8px rgba(0, 0, 0, 0.08);
+}
+
+.shadow-apple-lg {
+  box-shadow: 
+    0 4px 8px rgba(0, 0, 0, 0.04),
+    0 8px 16px rgba(0, 0, 0, 0.08),
+    0 16px 32px rgba(0, 0, 0, 0.04);
+}
+
+.shadow-apple-xl {
+  box-shadow: 
+    0 8px 16px rgba(0, 0, 0, 0.04),
+    0 16px 32px rgba(0, 0, 0, 0.08),
+    0 32px 64px rgba(0, 0, 0, 0.08);
+}
+
+/* Floating shadow for modals and sheets */
+.shadow-apple-float {
+  box-shadow: 
+    0 20px 40px rgba(0, 0, 0, 0.15),
+    0 10px 20px rgba(0, 0, 0, 0.1),
+    0 0 1px rgba(0, 0, 0, 0.1);
+}
+
+/* ============================================================================
+   DEPTH - GLASS MORPHISM / MATERIALS
+   ============================================================================ */
+
+.material-regular {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+}
+
+.material-thick {
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(40px) saturate(180%);
+  -webkit-backdrop-filter: blur(40px) saturate(180%);
+}
+
+.material-thin {
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+}
+
+.material-ultrathin {
+  background: rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(12px) saturate(200%);
+  -webkit-backdrop-filter: blur(12px) saturate(200%);
+}
+
+/* Dark mode materials */
+.dark .material-regular {
+  background: rgba(30, 30, 30, 0.8);
+}
+
+.dark .material-thick {
+  background: rgba(30, 30, 30, 0.9);
+}
+
+.dark .material-thin {
+  background: rgba(30, 30, 30, 0.6);
+}
+
+.dark .material-ultrathin {
+  background: rgba(30, 30, 30, 0.4);
+}
+
+/* ============================================================================
+   FEEDBACK - KEYFRAME ANIMATIONS
+   ============================================================================ */
+
+/* Shimmer loading effect */
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* Indeterminate progress bar */
+@keyframes indeterminate {
+  0% {
+    transform: translateX(-100%);
+  }
+  50% {
+    transform: translateX(100%);
+  }
+  100% {
+    transform: translateX(300%);
+  }
+}
+
+/* Success checkmark draw */
+@keyframes checkmark-draw {
+  0% {
+    stroke-dashoffset: 60;
+  }
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* Circle draw for success animation */
+@keyframes circle-draw {
+  0% {
+    stroke-dashoffset: 283;
+  }
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* Pulse ring effect */
+@keyframes pulse-ring {
+  0% {
+    transform: scale(0.95);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.4;
+  }
+  100% {
+    transform: scale(0.95);
+    opacity: 0.8;
+  }
+}
+
+/* Bounce in */
+@keyframes bounce-in {
+  0% {
+    transform: scale(0.3);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  70% {
+    transform: scale(0.9);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Fade up */
+@keyframes fade-up {
+  0% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Scale in with spring */
+@keyframes scale-in-spring {
+  0% {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.02);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Shake for error feedback */
+@keyframes shake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  10%, 30%, 50%, 70%, 90% {
+    transform: translateX(-4px);
+  }
+  20%, 40%, 60%, 80% {
+    transform: translateX(4px);
+  }
+}
+
+/* Subtle pulse for attention */
+@keyframes subtle-pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+/* ============================================================================
+   FEEDBACK - ANIMATION UTILITIES
+   ============================================================================ */
+
+.animate-shimmer {
+  animation: shimmer 2s infinite;
+}
+
+.animate-bounce-in {
+  animation: bounce-in 0.5s var(--apple-bounce) forwards;
+}
+
+.animate-fade-up {
+  animation: fade-up 0.3s var(--apple-ease) forwards;
+}
+
+.animate-scale-in-spring {
+  animation: scale-in-spring 0.4s var(--apple-spring) forwards;
+}
+
+.animate-shake {
+  animation: shake 0.5s var(--apple-ease);
+}
+
+.animate-subtle-pulse {
+  animation: subtle-pulse 2s ease-in-out infinite;
+}
+
+.animate-checkmark {
+  animation: checkmark-draw 0.3s var(--apple-ease) 0.4s forwards;
+}
+
+.animate-circle {
+  animation: circle-draw 0.5s var(--apple-ease) forwards;
+}
+
+/* ============================================================================
+   FEEDBACK - PRESS STATES
+   ============================================================================ */
+
+.press-feedback {
+  transition: transform 0.1s var(--apple-snap), opacity 0.1s ease;
+}
+
+.press-feedback:active {
+  transform: scale(0.97);
+  opacity: 0.9;
+}
+
+/* Card press feedback with depth change */
+.card-press-feedback {
+  transition: 
+    transform 0.2s var(--apple-spring),
+    box-shadow 0.2s ease;
+}
+
+.card-press-feedback:active {
+  transform: scale(0.98);
+}
+
+.card-press-feedback:hover {
+  transform: translateY(-2px);
+}
+
+/* ============================================================================
+   FEEDBACK - FOCUS STATES
+   ============================================================================ */
+
+.focus-ring {
+  outline: none;
+}
+
+.focus-ring:focus-visible {
+  outline: 2px solid hsl(var(--primary));
+  outline-offset: 2px;
+  border-radius: inherit;
+}
+
+/* ============================================================================
+   DEPTH - SHEET & MODAL ANIMATIONS
+   ============================================================================ */
+
+/* Sheet slide up */
+@keyframes sheet-slide-up {
+  0% {
+    transform: translateY(100%);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+
+/* Modal scale */
+@keyframes modal-scale {
+  0% {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Background dim and scale */
+@keyframes bg-dim-scale {
+  0% {
+    transform: scale(1);
+    filter: blur(0);
+    border-radius: 0;
+  }
+  100% {
+    transform: scale(0.94);
+    filter: blur(4px);
+    border-radius: 20px;
+  }
+}
+
+.animate-sheet-up {
+  animation: sheet-slide-up 0.5s var(--apple-spring) forwards;
+}
+
+.animate-modal-scale {
+  animation: modal-scale 0.3s var(--apple-spring) forwards;
+}
+
+/* ============================================================================
+   DEPTH - LAYERED CARDS
+   ============================================================================ */
+
+.depth-card {
+  position: relative;
+  transition: 
+    transform 0.3s var(--apple-spring),
+    box-shadow 0.3s ease;
+}
+
+.depth-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.depth-card:hover {
+  transform: translateY(-4px);
+}
+
+.depth-card:hover::before {
+  opacity: 0;
+}
+
+.depth-card:hover {
+  box-shadow: 
+    0 10px 20px rgba(0, 0, 0, 0.1),
+    0 6px 6px rgba(0, 0, 0, 0.05);
+}
+
+/* ============================================================================
+   STAGGERED ANIMATIONS
+   ============================================================================ */
+
+.stagger-1 { animation-delay: 0.05s; }
+.stagger-2 { animation-delay: 0.1s; }
+.stagger-3 { animation-delay: 0.15s; }
+.stagger-4 { animation-delay: 0.2s; }
+.stagger-5 { animation-delay: 0.25s; }
+.stagger-6 { animation-delay: 0.3s; }
+.stagger-7 { animation-delay: 0.35s; }
+.stagger-8 { animation-delay: 0.4s; }
+
+/* ============================================================================
+   REDUCED MOTION SUPPORT
+   ============================================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  
+  .animate-shimmer,
+  .animate-subtle-pulse {
+    animation: none !important;
+  }
+}
