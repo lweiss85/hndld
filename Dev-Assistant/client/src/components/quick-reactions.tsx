@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -136,40 +137,48 @@ export function QuickReactions({ entityType, entityId, compact = false }: QuickR
 
           return (
             <div key={reaction.type} className="relative">
-              <Button
-                variant={isSelected ? "default" : "ghost"}
-                size="sm"
-                onClick={() => handleReactionClick(reaction)}
-                disabled={reactionMutation.isPending}
-                className={cn(
-                  "gap-1 text-xs relative overflow-visible",
-                  compact && "h-7 px-2",
-                  isSelected && "bg-primary text-primary-foreground",
-                  isAnimating && reaction.type === "LOVE_IT" && "animate-heartbeat"
-                )}
-                data-testid={`reaction-${reaction.type.toLowerCase()}-${entityId}`}
-              >
-                {isAnimating && (
-                  <span className="absolute inset-0 rounded-md animate-ripple-out bg-primary/20 pointer-events-none" />
-                )}
-                <Icon className={cn(
-                  "h-3.5 w-3.5 transition-transform",
-                  reaction.type === "LOVE_IT" && isSelected && "fill-current text-red-500",
-                  isAnimating && "scale-110"
-                )} />
-                {!compact && <span>{reaction.shortLabel}</span>}
-                {count > 0 && (
-                  <Badge 
-                    variant="secondary" 
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant={isSelected ? "default" : "ghost"}
+                    size="sm"
+                    onClick={() => handleReactionClick(reaction)}
+                    disabled={reactionMutation.isPending}
                     className={cn(
-                      "ml-0.5 h-4 px-1 text-[10px]",
-                      isCountAnimating && "animate-count-pop"
+                      "gap-1 text-xs relative overflow-visible transition-all duration-200",
+                      compact && "h-7 px-2",
+                      isSelected && reaction.type === "LOOKS_GOOD" && "bg-emerald-500 hover:bg-emerald-600 text-white",
+                      isSelected && reaction.type !== "LOOKS_GOOD" && "bg-primary text-primary-foreground",
+                      isAnimating && "animate-reaction-pop",
+                      isAnimating && reaction.type === "LOVE_IT" && "animate-heartbeat"
                     )}
+                    data-testid={`reaction-${reaction.type.toLowerCase()}-${entityId}`}
                   >
-                    {count}
-                  </Badge>
-                )}
-              </Button>
+                    {isAnimating && (
+                      <span className="absolute inset-0 rounded-md animate-ripple-out bg-primary/20 pointer-events-none" />
+                    )}
+                    <Icon className={cn(
+                      "h-3.5 w-3.5 transition-all duration-200",
+                      reaction.type === "LOOKS_GOOD" && isSelected && "text-white",
+                      reaction.type === "LOVE_IT" && isSelected && "fill-current text-red-500",
+                      isAnimating && "scale-125"
+                    )} />
+                    {!compact && <span>{reaction.shortLabel}</span>}
+                    {count > 0 && (
+                      <Badge 
+                        variant="secondary" 
+                        className={cn(
+                          "ml-0.5 h-4 px-1 text-[10px]",
+                          isCountAnimating && "animate-count-pop"
+                        )}
+                      >
+                        {count}
+                      </Badge>
+                    )}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="top">{reaction.label}</TooltipContent>
+              </Tooltip>
               
               {reaction.type === "LOVE_IT" && floatingHearts.map((heartId) => (
                 <Heart 
