@@ -140,7 +140,7 @@ export function QuickReactions({ entityType, entityId, compact = false }: QuickR
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
-                    variant={isSelected ? "default" : "ghost"}
+                    variant="ghost"
                     size="sm"
                     onClick={() => handleReactionClick(reaction)}
                     disabled={reactionMutation.isPending}
@@ -148,9 +148,9 @@ export function QuickReactions({ entityType, entityId, compact = false }: QuickR
                       "gap-1 text-xs relative overflow-visible transition-all duration-200",
                       compact && "h-7 px-2",
                       isSelected && reaction.type === "LOOKS_GOOD" && "bg-emerald-500 hover:bg-emerald-600 text-white",
-                      isSelected && reaction.type !== "LOOKS_GOOD" && "bg-primary text-primary-foreground",
-                      isAnimating && "animate-reaction-pop",
-                      isAnimating && reaction.type === "LOVE_IT" && "animate-heartbeat"
+                      isSelected && reaction.type === "LOVE_IT" && "bg-red-500 hover:bg-red-600 text-white",
+                      isSelected && reaction.type !== "LOOKS_GOOD" && reaction.type !== "LOVE_IT" && "bg-primary text-primary-foreground hover:bg-primary/90",
+                      isAnimating && "animate-reaction-pop"
                     )}
                     data-testid={`reaction-${reaction.type.toLowerCase()}-${entityId}`}
                   >
@@ -159,8 +159,8 @@ export function QuickReactions({ entityType, entityId, compact = false }: QuickR
                     )}
                     <Icon className={cn(
                       "h-3.5 w-3.5 transition-all duration-200",
-                      reaction.type === "LOOKS_GOOD" && isSelected && "text-white",
-                      reaction.type === "LOVE_IT" && isSelected && "fill-current text-red-500",
+                      isSelected && (reaction.type === "LOOKS_GOOD" || reaction.type === "LOVE_IT") && "text-white",
+                      reaction.type === "LOVE_IT" && isSelected && "fill-current",
                       isAnimating && "scale-125"
                     )} />
                     {!compact && <span>{reaction.shortLabel}</span>}
