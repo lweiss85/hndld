@@ -1,8 +1,8 @@
+@import './styles/apple-animations.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-@import './styles/apple-animations.css';
 
 /* WHITE GLOVE THEME (Light - Default) */
 :root {

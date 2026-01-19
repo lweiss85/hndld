@@ -4,6 +4,7 @@ import { Search, X, FileText, CheckSquare, Users, Settings, ArrowRight } from "l
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   Dialog,
   DialogContent,
@@ -46,14 +47,19 @@ export function GlobalSearchTrigger() {
 
   return (
     <>
-      <Button 
-        variant="ghost" 
-        size="icon"
-        onClick={() => setOpen(true)}
-        data-testid="button-global-search"
-      >
-        <Search className="h-5 w-5" />
-      </Button>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button 
+            variant="ghost" 
+            size="icon"
+            onClick={() => setOpen(true)}
+            data-testid="button-global-search"
+          >
+            <Search className="h-5 w-5" />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>Search (⌘K)</TooltipContent>
+      </Tooltip>
       <GlobalSearchDialog open={open} onOpenChange={setOpen} />
     </>
   );
@@ -131,14 +137,19 @@ function GlobalSearchDialog({ open, onOpenChange }: GlobalSearchDialogProps) {
             data-testid="input-global-search"
           />
           {query && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8"
-              onClick={() => setQuery("")}
-            >
-              <X className="h-4 w-4" />
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => setQuery("")}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Clear search</TooltipContent>
+            </Tooltip>
           )}
         </div>
 

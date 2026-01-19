@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   Plus,
   Upload,
@@ -222,15 +223,20 @@ export function FilePicker({ entityType, entityId, onFilesChanged }: FilePickerP
                   <Icon className="h-5 w-5 text-muted-foreground" />
                 )}
                 <span className="text-sm truncate max-w-[120px]">{file.filename}</span>
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                  onClick={() => unlinkMutation.mutate(file.id)}
-                  data-testid={`button-remove-file-${file.id}`}
-                >
-                  <X className="h-3 w-3" />
-                </Button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={() => unlinkMutation.mutate(file.id)}
+                      data-testid={`button-remove-file-${file.id}`}
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Remove file</TooltipContent>
+                </Tooltip>
               </div>
             );
           })}

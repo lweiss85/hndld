@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { MessageCircle, Send, X, Sparkles } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { cn } from "@/lib/utils";
@@ -57,14 +58,19 @@ export function AIChat() {
           zIndex: 9999 
         }}
       >
-        <Button
-          size="icon"
-          className="h-12 w-12 rounded-full shadow-lg bg-[#1D2A44] hover:bg-[#2a3a5a]"
-          onClick={() => setIsOpen(true)}
-          data-testid="button-ai-chat-open"
-        >
-          <Sparkles className="h-5 w-5 text-[#F6F2EA]" />
-        </Button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              size="icon"
+              className="h-12 w-12 rounded-full shadow-lg bg-[#1D2A44] hover:bg-[#2a3a5a]"
+              onClick={() => setIsOpen(true)}
+              data-testid="button-ai-chat-open"
+            >
+              <Sparkles className="h-5 w-5 text-[#F6F2EA]" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="left">AI Assistant</TooltipContent>
+        </Tooltip>
       </div>
     );
   }
@@ -89,15 +95,20 @@ export function AIChat() {
             <Sparkles className="h-4 w-4" />
             <CardTitle className="text-sm font-medium">AI Assistant</CardTitle>
           </div>
-          <Button
-            size="icon"
-            variant="ghost"
-            className="h-6 w-6 text-white/80 hover:text-white hover:bg-white/20"
-            onClick={() => setIsOpen(false)}
-            data-testid="button-ai-chat-close"
-          >
-            <X className="h-4 w-4" />
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-6 w-6 text-white/80 hover:text-white hover:bg-white/20"
+                onClick={() => setIsOpen(false)}
+                data-testid="button-ai-chat-close"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Close</TooltipContent>
+          </Tooltip>
         </div>
       </CardHeader>
       
@@ -152,14 +163,19 @@ export function AIChat() {
             disabled={chatMutation.isPending}
             data-testid="input-ai-chat"
           />
-          <Button
-            type="submit"
-            size="icon"
-            disabled={!input.trim() || chatMutation.isPending}
-            data-testid="button-ai-chat-send"
-          >
-            <Send className="h-4 w-4" />
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                type="submit"
+                size="icon"
+                disabled={!input.trim() || chatMutation.isPending}
+                data-testid="button-ai-chat-send"
+              >
+                <Send className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Send message</TooltipContent>
+          </Tooltip>
         </form>
       </div>
     </Card>

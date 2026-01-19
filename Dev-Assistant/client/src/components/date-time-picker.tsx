@@ -10,6 +10,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface DateTimePickerProps {
   value?: Date | null;
@@ -129,10 +130,17 @@ export function DateTimePicker({
           <CalendarIcon className="mr-2 h-4 w-4" />
           {displayValue || placeholder}
           {value && (
-            <X
-              className="ml-auto h-4 w-4 opacity-50 hover:opacity-100"
-              onClick={handleClear}
-            />
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span 
+                  className="ml-auto p-0.5 rounded-sm hover:bg-muted cursor-pointer"
+                  onClick={handleClear}
+                >
+                  <X className="h-4 w-4 opacity-50 hover:opacity-100" />
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>Clear date</TooltipContent>
+            </Tooltip>
           )}
         </Button>
       </PopoverTrigger>
