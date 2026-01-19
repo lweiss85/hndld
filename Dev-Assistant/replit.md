@@ -4,9 +4,15 @@
 
 hndld (formerly HouseOps) is a mobile-first Progressive Web Application (PWA) designed to streamline household operations management. White-glove household operations, handled. It serves as a coordination platform between household assistants and family clients, enabling task management, approvals, requests, updates, calendar integration, vendor tracking, and spending management.
 
-The application supports two user roles:
-- **Assistant**: Manages daily tasks, calendar events, vendors, spending, and posts updates
-- **Client**: Views weekly briefings, submits requests, approves items, and reads updates
+The application supports three user roles:
+- **Assistant**: Manages daily tasks, calendar events, vendors, spending, and posts updates for all service types
+- **Client**: Views weekly briefings, submits requests, approves items, and reads updates (UI adapts per service type)
+- **Staff**: Limited to CLEANING service tasks only; can view assigned tasks, post updates, and access entry instructions via vault unlock
+
+### Service Types
+The platform supports two service modes that affect UI and permissions:
+- **PA (Personal Assistant)**: Full-featured household management with all views and capabilities
+- **CLEANING**: Simplified cleaning service mode with specialized UI (Overview/Visits/Photos/Add-ons/Pay tabs), tip flow, and entry instructions reveal for staff
 
 ## User Preferences
 
