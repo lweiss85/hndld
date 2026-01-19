@@ -7,7 +7,7 @@ import { z } from "zod";
 export * from "./models/auth";
 
 // Enums
-export const userRoleEnum = pgEnum("user_role", ["ASSISTANT", "CLIENT"]);
+export const userRoleEnum = pgEnum("user_role", ["ASSISTANT", "CLIENT", "STAFF"]);
 export const taskStatusEnum = pgEnum("task_status", ["INBOX", "PLANNED", "IN_PROGRESS", "WAITING_ON_CLIENT", "DONE", "CANCELLED"]);
 export const taskCategoryEnum = pgEnum("task_category", ["HOUSEHOLD", "ERRANDS", "MAINTENANCE", "GROCERIES", "KIDS", "PETS", "EVENTS", "OTHER"]);
 export const urgencyEnum = pgEnum("urgency", ["LOW", "MEDIUM", "HIGH"]);
@@ -132,6 +132,7 @@ export const approvals = pgTable("approvals", {
   status: approvalStatusEnum("status").default("PENDING").notNull(),
   links: jsonb("links").$type<string[]>().default([]),
   images: jsonb("images").$type<string[]>().default([]),
+  relatedTaskId: varchar("related_task_id").references(() => tasks.id),
   createdBy: varchar("created_by").notNull(),
   householdId: varchar("household_id").references(() => households.id).notNull(),
   createdAt: timestamp("created_at").defaultNow(),
@@ -139,6 +140,7 @@ export const approvals = pgTable("approvals", {
 }, (table) => [
   index("approvals_household_id_idx").on(table.householdId),
   index("approvals_status_idx").on(table.status),
+  index("approvals_related_task_id_idx").on(table.relatedTaskId),
 ]);
 
 // Updates (assistant posts)
@@ -351,9 +353,24 @@ export const accessItems = pgTable("access_items", {
   value: text("value").notNull(),
   notes: text("notes"),
   isSensitive: boolean("is_sensitive").default(true),
+  isEncrypted: boolean("is_encrypted").default(false),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
+
+// Access Item Grants (for STAFF access to secrets)
+export const accessItemGrants = pgTable("access_item_grants", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  accessItemId: varchar("access_item_id").references(() => accessItems.id, { onDelete: "cascade" }).notNull(),
+  userId: varchar("user_id").notNull(),
+  householdId: varchar("household_id").references(() => households.id).notNull(),
+  expiresAt: timestamp("expires_at"),
+  createdBy: varchar("created_by").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("access_item_grants_user_idx").on(table.userId),
+  index("access_item_grants_item_idx").on(table.accessItemId),
+]);
 
 // Notifications (in-app notification center)
 export const notifications = pgTable("notifications", {
@@ -645,7 +662,7 @@ export const calendarSelections = pgTable("calendar_selections", {
 
 // Household Invites
 export const inviteStatusEnum = pgEnum("invite_status", ["PENDING", "ACCEPTED", "EXPIRED", "REVOKED"]);
-export const inviteRoleEnum = pgEnum("invite_role", ["ASSISTANT", "CLIENT"]);
+export const inviteRoleEnum = pgEnum("invite_role", ["ASSISTANT", "CLIENT", "STAFF"]);
 
 export const householdInvites = pgTable("household_invites", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -838,6 +855,7 @@ export const insertPersonSchema = createInsertSchema(people).omit({ id: true, cr
 export const insertPreferenceSchema = createInsertSchema(preferences).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertImportantDateSchema = createInsertSchema(importantDates).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertAccessItemSchema = createInsertSchema(accessItems).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertAccessItemGrantSchema = createInsertSchema(accessItemGrants).omit({ id: true, createdAt: true });
 export const insertNotificationSchema = createInsertSchema(notifications).omit({ id: true, createdAt: true });
 export const insertNotificationSettingsSchema = createInsertSchema(notificationSettings).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertQuickRequestTemplateSchema = createInsertSchema(quickRequestTemplates).omit({ id: true, createdAt: true, updatedAt: true });
@@ -905,6 +923,8 @@ export type ImportantDate = typeof importantDates.$inferSelect;
 export type InsertImportantDate = z.infer<typeof insertImportantDateSchema>;
 export type AccessItem = typeof accessItems.$inferSelect;
 export type InsertAccessItem = z.infer<typeof insertAccessItemSchema>;
+export type AccessItemGrant = typeof accessItemGrants.$inferSelect;
+export type InsertAccessItemGrant = z.infer<typeof insertAccessItemGrantSchema>;
 export type Notification = typeof notifications.$inferSelect;
 export type InsertNotification = z.infer<typeof insertNotificationSchema>;
 export type NotificationSettings = typeof notificationSettings.$inferSelect;

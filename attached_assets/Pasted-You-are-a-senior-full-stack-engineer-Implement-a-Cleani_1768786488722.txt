@@ -1,0 +1,83 @@
+You are a senior full-stack engineer. Implement a Cleaning module INSIDE this existing hndld codebase. Do NOT create a separate app. Add a STAFF role with strict permissions and strict data scoping. Add a dedicated Cleaning Portal UI for STAFF, add-ons approvals linked to jobs, and lock down vault/door-code security.
+
+Repo notes:
+- Backend: Express + Drizzle + Postgres
+- Frontend: React + TanStack Query + wouter
+- Household scoping via X-Household-Id header and server/middleware/householdContext.ts
+- Existing primitives: tasks, task_checklist_items, approvals, updates, spending, access_items (vault)
+
+GOALS / REQUIREMENTS:
+
+1) Add STAFF role everywhere it belongs
+   - Update shared/schema.ts:
+     - userRoleEnum add "STAFF"
+     - inviteRoleEnum add "STAFF"
+   - Update any shared auth types/models that assume only CLIENT/ASSISTANT.
+   - Ensure invitations can create STAFF members for a household.
+
+2) Enforce role-based permissions AND role-based data scoping (critical)
+   - Currently GET /api/tasks returns ALL household tasks. Fix this.
+   - Define STAFF scoping rules:
+     - STAFF can only see tasks where tasks.assignedTo === req.user.claims.sub
+     - STAFF can only see updates where updates.createdBy === staff user OR updates.relatedTaskId is a task assigned to that staff user
+     - STAFF can only see approvals where approvals.createdBy === staff user OR approvals.relatedTaskId is a task assigned to that staff user
+     - STAFF cannot access spending dashboards, exports, household-wide vault listings, etc.
+   - Add requirePermission() guards where missing, but ALSO implement the data filters above (permissions alone are insufficient).
+   - Implement these filters at the query level (SQL where clauses), not by filtering large arrays in memory.
+
+3) Add Cleaning Portal UI for STAFF
+   - Add a StaffRouter in client/src that is used when activeRole === "STAFF"
+   - Staff nav should be minimal: Today, Jobs, Updates, More
+   - Staff Today/Jobs pages should list ONLY assigned tasks (from /api/tasks)
+   - Job detail page:
+     - show checklist items
+     - allow posting an Update with before/after images (must set relatedTaskId)
+     - allow “Request Add-on” which creates an Approval linked to the task
+
+4) Add-ons approval linked to jobs (schema + API)
+   - Add approvals.relatedTaskId (nullable FK to tasks.id) in shared/schema.ts
+   - Update storage + routes:
+     - when STAFF creates an approval, relatedTaskId is required and must be a task assigned to that staff user
+     - clients can approve/decline as usual
+   - Update client UI:
+     - staff can create approval from job
+     - client sees approvals normally, but show related job context if present
+
+5) Vault / Access Items security hardening (door codes, alarm codes, passwords)
+   - access_items.value currently stores plaintext. Change to encrypted-at-rest.
+   - Implement server/lib/encryption.ts by extracting/reusing the AES-256-GCM logic from server/services/google-calendar.ts (do NOT duplicate code inline).
+   - Add access_items.isEncrypted boolean default false for safe migration.
+   - On create/update access items: encrypt and set isEncrypted=true.
+   - On reveal: decrypt if isEncrypted, otherwise treat as plaintext (backward compatible).
+   - Enforce vault unlock on sensitive reveals:
+     - /api/vault/verify-pin already sets session fields (vaultUnlocked, vaultExpiresAt, vaultHouseholdId)
+     - Update /api/access-items/:id/reveal to:
+       - if item.isSensitive and vaultSettings.requirePinForSensitive:
+         - require session vaultUnlocked=true, not expired, household matches
+   - NEVER return actual secret values in GET /api/access-items (even for assistants). Always return masked values; allow reveal endpoint for value.
+   - Add STAFF access control to secrets:
+     - Create new table access_item_grants:
+       - id, accessItemId, userId (staff), householdId, expiresAt nullable, createdBy, createdAt
+     - STAFF can only reveal an access item if a non-expired grant exists for them.
+   - Add audit logs on every secret reveal attempt (success/fail) using existing audit service pattern.
+
+6) Cleaning invoices + tipping (use existing spending)
+   - Keep using spending items for invoices (kind="INVOICE")
+   - Client Pay page already supports tipAmount; ensure tip is saved and displayed.
+   - OPTIONAL low-effort enhancement: add a “Card” payment option by allowing assistants to store a Stripe Payment Link URL in the payment profile and show it as a button in Pay options.
+
+7) Migrations / tests
+   - Generate and apply Drizzle migrations (db:generate + db:push).
+   - Add at least 2 integration tests:
+     1) STAFF cannot fetch tasks not assigned to them
+     2) STAFF cannot reveal a sensitive access item without an active grant and vault unlock
+   - Ensure TypeScript passes (npm run check) and tests pass (npm test or npm run test:integration).
+
+DELIVERABLES:
+- Updated schema and routes
+- Staff Router + Cleaning Portal pages
+- Strict role-based scoping
+- Encrypted secrets + vault unlock enforcement + staff grants
+- Minimal, clean UI consistent with existing shadcn components
+
+Do not remove existing features; add these changes incrementally and keep backward compatibility for existing access items.
