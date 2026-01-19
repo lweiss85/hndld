@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,16 +10,20 @@ import {
   CheckCircle2,
   Circle,
   Play,
+  Key,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { format, isToday } from "date-fns";
 import { triggerHaptic } from "@/components/juice";
-import type { Task, CalendarEvent } from "@shared/schema";
+import type { Task, CalendarEvent, HouseholdSettings } from "@shared/schema";
 import { cn } from "@/lib/utils";
 import { Link } from "wouter";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
 import { PullToRefreshIndicator } from "@/components/pull-to-refresh";
+import { useVault } from "@/lib/vault-context";
 
 interface TodayData {
   tasks: Task[];
@@ -42,6 +47,86 @@ function TodaySkeleton() {
         ))}
       </div>
     </div>
+  );
+}
+
+function EntryInstructionsCard({ hasCleaningTask }: { hasCleaningTask: boolean }) {
+  const [revealed, setRevealed] = useState(false);
+  const { requestVaultAccess, isVaultUnlocked } = useVault();
+  
+  const { data: settings, isLoading } = useQuery<HouseholdSettings>({
+    queryKey: ["/api/household/settings"],
+    enabled: hasCleaningTask,
+  });
+
+  if (!hasCleaningTask) {
+    return null;
+  }
+
+  if (isLoading) {
+    return (
+      <Card className="bg-muted/50 border-dashed">
+        <CardContent className="p-4">
+          <Skeleton className="h-5 w-32" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!settings?.entryInstructions) {
+    return null;
+  }
+
+  const handleReveal = async () => {
+    triggerHaptic("light");
+    
+    if (revealed) {
+      setRevealed(false);
+      return;
+    }
+    
+    const unlocked = await requestVaultAccess();
+    if (unlocked) {
+      setRevealed(true);
+    }
+  };
+
+  return (
+    <Card className="bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800">
+      <CardContent className="p-4">
+        <button
+          onClick={handleReveal}
+          className="w-full text-left"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-900 flex items-center justify-center">
+              <Key className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center justify-between">
+                <h3 className="font-medium text-foreground">Entry Instructions</h3>
+                <Button variant="ghost" size="sm" className="h-8 px-2">
+                  {revealed && isVaultUnlocked ? (
+                    <EyeOff className="h-4 w-4 text-muted-foreground" />
+                  ) : (
+                    <Eye className="h-4 w-4 text-muted-foreground" />
+                  )}
+                </Button>
+              </div>
+              {revealed && isVaultUnlocked ? (
+                <p className="text-sm text-foreground mt-1 whitespace-pre-wrap">
+                  {settings.entryInstructions}
+                </p>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  Tap to unlock and reveal
+                </p>
+              )}
+            </div>
+          </div>
+        </button>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -114,6 +199,8 @@ export default function StaffToday() {
     return 0;
   });
 
+  const hasCleaningTask = todayTasks.some(task => task.serviceType === "CLEANING");
+
   return (
     <div>
       <PullToRefreshIndicator 
@@ -131,6 +218,8 @@ export default function StaffToday() {
             </p>
           </div>
         </div>
+
+        <EntryInstructionsCard hasCleaningTask={hasCleaningTask} />
 
         {sortedTasks.length === 0 ? (
           <Card className="border-dashed">
