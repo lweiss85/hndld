@@ -700,6 +700,81 @@ export async function registerRoutes(
     }
   });
   
+  // Service memberships endpoints
+  app.get("/api/services/mine", isAuthenticated, householdContext, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const householdId = req.householdId!;
+      const userRole = req.householdRole;
+      
+      const memberships = await storage.getServiceMemberships(householdId, userId);
+      
+      // If user has no service memberships, create default based on their role
+      if (memberships.length === 0) {
+        // For backward compatibility, grant PA service based on current role
+        const serviceRole = userRole === "CLIENT" ? "CLIENT" : "PROVIDER";
+        const defaultMembership = await storage.createServiceMembership({
+          householdId,
+          userId,
+          serviceType: "PA",
+          serviceRole,
+          isActive: true,
+        });
+        memberships.push(defaultMembership);
+      }
+      
+      // Determine default service type
+      let defaultServiceType: string | null = null;
+      if (memberships.length === 1) {
+        defaultServiceType = memberships[0].serviceType;
+      }
+      
+      res.json({
+        householdId,
+        memberships: memberships.map(m => ({
+          serviceType: m.serviceType,
+          serviceRole: m.serviceRole,
+          isActive: m.isActive,
+        })),
+        defaultServiceType,
+      });
+    } catch (error) {
+      console.error("Error fetching service memberships:", error);
+      res.status(500).json({ message: "Failed to fetch service memberships" });
+    }
+  });
+  
+  app.post("/api/services/set-default", isAuthenticated, householdContext, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const householdId = req.householdId!;
+      const { serviceType } = req.body;
+      
+      if (!serviceType || !["CLEANING", "PA"].includes(serviceType)) {
+        return res.status(400).json({ message: "Invalid service type" });
+      }
+      
+      // Verify user has this service membership
+      const memberships = await storage.getServiceMemberships(householdId, userId);
+      const hasMembership = memberships.some(m => m.serviceType === serviceType);
+      
+      if (!hasMembership) {
+        return res.status(403).json({ message: "You do not have access to this service" });
+      }
+      
+      // Update user profile with default service type
+      const profile = await storage.getUserProfileForHousehold(userId, householdId);
+      if (profile) {
+        await storage.updateUserProfile(profile.id, { defaultServiceType: serviceType });
+      }
+      
+      res.json({ success: true, defaultServiceType: serviceType });
+    } catch (error) {
+      console.error("Error setting default service:", error);
+      res.status(500).json({ message: "Failed to set default service" });
+    }
+  });
+  
   app.get("/api/today", isAuthenticated, householdContext, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;

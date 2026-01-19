@@ -3,7 +3,7 @@ import {
   comments, vendors, spendingItems, calendarEvents, userProfiles, reactions,
   householdSettings, householdLocations, people, preferences, importantDates, accessItems, accessItemGrants,
   quickRequestTemplates, playbooks, playbookSteps, vaultSettings, users,
-  organizationPaymentProfiles, householdPaymentOverrides,
+  organizationPaymentProfiles, householdPaymentOverrides, householdServiceMemberships,
   type Organization, type InsertOrganization,
   type Household, type InsertHousehold,
   type Task, type InsertTask,
@@ -32,6 +32,7 @@ import {
   type User,
   type OrganizationPaymentProfile, type InsertOrganizationPaymentProfile,
   type HouseholdPaymentOverride, type InsertHouseholdPaymentOverride,
+  type HouseholdServiceMembership, type InsertHouseholdServiceMembership,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, gte, lte, inArray, notInArray, sql } from "drizzle-orm";
@@ -217,6 +218,13 @@ export interface IStorage {
   // Multi-Household Support
   getUserHouseholds(userId: string): Promise<{ id: string; name: string; organizationId: string | null; isDefault: boolean; role: string }[]>;
   setDefaultHousehold(userId: string, householdId: string): Promise<void>;
+  
+  // Service Memberships
+  getServiceMemberships(householdId: string, userId: string): Promise<HouseholdServiceMembership[]>;
+  createServiceMembership(data: InsertHouseholdServiceMembership): Promise<HouseholdServiceMembership>;
+  updateServiceMembership(id: string, data: Partial<InsertHouseholdServiceMembership>): Promise<HouseholdServiceMembership | undefined>;
+  deleteServiceMembership(id: string): Promise<boolean>;
+  getUserServiceTypes(householdId: string, userId: string): Promise<{ serviceType: string; serviceRole: string }[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1138,6 +1146,49 @@ export class DatabaseStorage implements IStorage {
         eq(userProfiles.userId, userId),
         eq(userProfiles.householdId, householdId)
       ));
+  }
+
+  // Service Memberships
+  async getServiceMemberships(householdId: string, userId: string): Promise<HouseholdServiceMembership[]> {
+    return db.select().from(householdServiceMemberships)
+      .where(and(
+        eq(householdServiceMemberships.householdId, householdId),
+        eq(householdServiceMemberships.userId, userId),
+        eq(householdServiceMemberships.isActive, true)
+      ));
+  }
+
+  async createServiceMembership(data: InsertHouseholdServiceMembership): Promise<HouseholdServiceMembership> {
+    const [membership] = await db.insert(householdServiceMemberships).values(data).returning();
+    return membership;
+  }
+
+  async updateServiceMembership(id: string, data: Partial<InsertHouseholdServiceMembership>): Promise<HouseholdServiceMembership | undefined> {
+    const [updated] = await db.update(householdServiceMemberships)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(householdServiceMemberships.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteServiceMembership(id: string): Promise<boolean> {
+    const result = await db.delete(householdServiceMemberships)
+      .where(eq(householdServiceMemberships.id, id))
+      .returning();
+    return result.length > 0;
+  }
+
+  async getUserServiceTypes(householdId: string, userId: string): Promise<{ serviceType: string; serviceRole: string }[]> {
+    const memberships = await db.select({
+      serviceType: householdServiceMemberships.serviceType,
+      serviceRole: householdServiceMemberships.serviceRole,
+    }).from(householdServiceMemberships)
+      .where(and(
+        eq(householdServiceMemberships.householdId, householdId),
+        eq(householdServiceMemberships.userId, userId),
+        eq(householdServiceMemberships.isActive, true)
+      ));
+    return memberships;
   }
 }
 
