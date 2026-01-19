@@ -7,6 +7,7 @@ import { storage } from "./storage";
 import { getStorageProvider } from "./services/storage-provider";
 import { escapeHtml } from "./lib/escape-html";
 import { encryptVaultValue, decryptVaultValue } from "./services/vault-encryption";
+import { serviceScopeMiddleware, getServiceTypeFilter } from "./middleware/serviceScope";
 import { setupAuth, registerAuthRoutes, isAuthenticated } from "./replit_integrations/auth";
 import { apiLimiter, authLimiter, expensiveLimiter, criticalLimiter } from "./lib/rate-limit";
 import { triggerImmediateSync } from "./services/scheduler";
@@ -3920,6 +3921,45 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error deleting backup:", error);
       res.status(500).json({ message: "Failed to delete backup" });
+    }
+  });
+
+  // Migrate existing vault items to encrypted storage
+  app.post("/api/admin/migrate-vault-encryption", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_SETTINGS"), async (req: any, res) => {
+    try {
+      const householdId = req.householdId!;
+      const accessItems = await storage.getAccessItems(householdId);
+      
+      let migratedCount = 0;
+      let skippedCount = 0;
+      
+      for (const item of accessItems) {
+        if (item.isEncrypted || !item.isSensitive) {
+          skippedCount++;
+          continue;
+        }
+        
+        try {
+          const encryptedValue = encryptVaultValue(item.value);
+          await storage.updateAccessItem(householdId, item.id, {
+            value: encryptedValue,
+            isEncrypted: true,
+          });
+          migratedCount++;
+        } catch (error) {
+          console.error(`Failed to migrate vault item ${item.id}:`, error);
+        }
+      }
+      
+      res.json({
+        success: true,
+        message: `Migration complete. ${migratedCount} items encrypted, ${skippedCount} skipped.`,
+        migratedCount,
+        skippedCount,
+      });
+    } catch (error) {
+      console.error("Error migrating vault encryption:", error);
+      res.status(500).json({ message: "Failed to migrate vault encryption" });
     }
   });
 
