@@ -36,6 +36,10 @@ export const spendingStatusEnum = pgEnum("spending_status", ["DRAFT", "NEEDS_APP
 export const paymentMethodEnum = pgEnum("payment_method", ["VENMO", "ZELLE", "CASH_APP", "PAYPAL"]);
 export const spendingKindEnum = pgEnum("spending_kind", ["REIMBURSEMENT", "INVOICE"]);
 
+// Service enums (for CLEANING vs PA multi-service support)
+export const serviceTypeEnum = pgEnum("service_type", ["CLEANING", "PA"]);
+export const serviceRoleEnum = pgEnum("service_role", ["CLIENT", "PROVIDER"]);
+
 // Organizations (multi-tenancy parent)
 export const organizations = pgTable("organizations", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -65,8 +69,24 @@ export const userProfiles = pgTable("user_profiles", {
   organizationId: varchar("organization_id").references(() => organizations.id),
   role: userRoleEnum("role").default("CLIENT").notNull(),
   isDefault: boolean("is_default").default(false),
+  defaultServiceType: serviceTypeEnum("default_service_type"),
   createdAt: timestamp("created_at").defaultNow(),
 });
+
+// Household Service Memberships (multi-service support)
+export const householdServiceMemberships = pgTable("household_service_memberships", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  householdId: varchar("household_id").references(() => households.id).notNull(),
+  userId: varchar("user_id").notNull(),
+  serviceType: serviceTypeEnum("service_type").notNull(),
+  serviceRole: serviceRoleEnum("service_role").notNull(),
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("household_service_memberships_household_idx").on(table.householdId),
+  index("household_service_memberships_user_idx").on(table.userId),
+]);
 
 // Tasks
 export const tasks = pgTable("tasks", {
@@ -82,6 +102,7 @@ export const tasks = pgTable("tasks", {
   assignedTo: varchar("assigned_to"),
   createdBy: varchar("created_by").notNull(),
   householdId: varchar("household_id").references(() => households.id).notNull(),
+  serviceType: serviceTypeEnum("service_type").default("PA").notNull(),
   images: jsonb("images").$type<string[]>().default([]),
   recurrence: recurrenceEnum("recurrence").default("none"),
   recurrenceCustomDays: integer("recurrence_custom_days"),
@@ -98,6 +119,7 @@ export const tasks = pgTable("tasks", {
   index("tasks_status_idx").on(table.status),
   index("tasks_due_at_idx").on(table.dueAt),
   index("tasks_recurrence_group_idx").on(table.recurrenceGroupId),
+  index("tasks_service_type_idx").on(table.serviceType),
 ]);
 
 // Task Checklist Items
@@ -133,6 +155,7 @@ export const approvals = pgTable("approvals", {
   links: jsonb("links").$type<string[]>().default([]),
   images: jsonb("images").$type<string[]>().default([]),
   relatedTaskId: varchar("related_task_id").references(() => tasks.id),
+  serviceType: serviceTypeEnum("service_type").default("PA").notNull(),
   createdBy: varchar("created_by").notNull(),
   householdId: varchar("household_id").references(() => households.id).notNull(),
   createdAt: timestamp("created_at").defaultNow(),
@@ -141,6 +164,7 @@ export const approvals = pgTable("approvals", {
   index("approvals_household_id_idx").on(table.householdId),
   index("approvals_status_idx").on(table.status),
   index("approvals_related_task_id_idx").on(table.relatedTaskId),
+  index("approvals_service_type_idx").on(table.serviceType),
 ]);
 
 // Updates (assistant posts)
@@ -150,6 +174,7 @@ export const updates = pgTable("updates", {
   images: jsonb("images").$type<string[]>().default([]),
   receipts: jsonb("receipts").$type<string[]>().default([]),
   relatedTaskId: varchar("related_task_id").references(() => tasks.id),
+  serviceType: serviceTypeEnum("service_type").default("PA").notNull(),
   createdBy: varchar("created_by").notNull(),
   householdId: varchar("household_id").references(() => households.id).notNull(),
   reactions: jsonb("reactions").$type<Record<string, string[]>>().default({}),
@@ -157,6 +182,7 @@ export const updates = pgTable("updates", {
 }, (table) => [
   index("updates_household_id_idx").on(table.householdId),
   index("updates_created_at_idx").on(table.createdAt),
+  index("updates_service_type_idx").on(table.serviceType),
 ]);
 
 // Requests (client asks)
@@ -224,6 +250,8 @@ export const spendingItems = pgTable("spending_items", {
   receipts: jsonb("receipts").$type<string[]>().default([]),
   createdBy: varchar("created_by").notNull(),
   householdId: varchar("household_id").references(() => households.id).notNull(),
+  serviceType: serviceTypeEnum("service_type").default("PA").notNull(),
+  relatedTaskId: varchar("related_task_id").references(() => tasks.id),
   status: spendingStatusEnum("status").default("DRAFT").notNull(),
   paymentMethodUsed: paymentMethodEnum("payment_method_used"),
   paymentNote: text("payment_note"),
@@ -244,6 +272,7 @@ export const spendingItems = pgTable("spending_items", {
   index("spending_items_date_idx").on(table.date),
   index("spending_items_status_idx").on(table.status),
   index("spending_items_kind_status_idx").on(table.householdId, table.kind, table.status),
+  index("spending_items_service_type_idx").on(table.serviceType),
 ]);
 
 // Calendar Events (for demo mode)
@@ -838,6 +867,7 @@ export const fileLinksRelations = relations(fileLinks, ({ one }) => ({
 export const insertOrganizationSchema = createInsertSchema(organizations).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertHouseholdSchema = createInsertSchema(households).omit({ id: true, createdAt: true });
 export const insertUserProfileSchema = createInsertSchema(userProfiles).omit({ id: true, createdAt: true });
+export const insertHouseholdServiceMembershipSchema = createInsertSchema(householdServiceMemberships).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertTaskSchema = createInsertSchema(tasks).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertTaskChecklistItemSchema = createInsertSchema(taskChecklistItems).omit({ id: true });
 export const insertTaskTemplateSchema = createInsertSchema(taskTemplates).omit({ id: true, createdAt: true });
@@ -889,6 +919,10 @@ export type InsertOrganization = z.infer<typeof insertOrganizationSchema>;
 export type InsertHousehold = z.infer<typeof insertHouseholdSchema>;
 export type UserProfile = typeof userProfiles.$inferSelect;
 export type InsertUserProfile = z.infer<typeof insertUserProfileSchema>;
+export type HouseholdServiceMembership = typeof householdServiceMemberships.$inferSelect;
+export type InsertHouseholdServiceMembership = z.infer<typeof insertHouseholdServiceMembershipSchema>;
+export type ServiceType = "CLEANING" | "PA";
+export type ServiceRole = "CLIENT" | "PROVIDER";
 export type Task = typeof tasks.$inferSelect;
 export type InsertTask = z.infer<typeof insertTaskSchema>;
 export type TaskChecklistItem = typeof taskChecklistItems.$inferSelect;

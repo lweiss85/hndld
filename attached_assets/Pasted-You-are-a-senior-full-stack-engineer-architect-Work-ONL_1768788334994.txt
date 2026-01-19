@@ -1,0 +1,249 @@
+You are a senior full-stack engineer + architect. Work ONLY inside this repo:
+
+/hndld/Dev-Assistant
+
+Stack:
+- Frontend: Vite + React + wouter + TanStack Query + shadcn/ui
+- Backend: Express
+- DB: Postgres via Drizzle ORM
+- Multi-tenancy: household context via X-Household-Id header and server/middleware/householdContext.ts
+- Auth: session-based
+
+OBJECTIVE
+Integrate CLEANING as a first-class “service” inside the existing app (NOT a separate app), while future-proofing so this can later be skinned into a separate branded product (e.g., GLNT) without rewriting the backend.
+
+You MUST implement:
+1) Service Membership model (Option A)
+2) serviceType tagging and filtering on key objects
+3) A Service Switcher UI + service-scoped portals (Cleaning vs PA)
+4) Strict data scoping + role permission foundations that will support STAFF lockdown
+5) Future-proofing hooks to split “skins” later (same backend, different UI shell)
+
+--------------------------------------------
+PHASE 1: DATA MODEL (Drizzle)
+--------------------------------------------
+
+A) Add enums in shared/schema.ts:
+- serviceTypeEnum: ["CLEANING","PA"]
+- serviceRoleEnum: ["CLIENT","PROVIDER"]  // provider = assistant or staff
+
+B) Add new table household_service_memberships in shared/schema.ts:
+- id (serial)
+- householdId (FK households.id, not null)
+- userId (text, not null)
+- serviceType (serviceTypeEnum, not null)
+- serviceRole (serviceRoleEnum, not null)
+- isActive (boolean, default true)
+- createdAt timestamp default now
+- updatedAt timestamp default now
+Constraints:
+- unique(householdId, userId, serviceType, serviceRole)
+
+C) Add serviceType columns (default "PA" for backward compatibility):
+- tasks.serviceType (serviceTypeEnum, not null, default "PA")
+- approvals.serviceType (serviceTypeEnum, not null, default "PA")
+- spending_items.serviceType (serviceTypeEnum, not null, default "PA")
+Optional but recommended:
+- updates.serviceType (serviceTypeEnum, not null, default "PA")
+
+D) Add relatedTaskId columns for cross-linking cleaning jobs:
+- approvals.relatedTaskId (FK tasks.id, nullable)
+Optional but recommended:
+- spending_items.relatedTaskId (FK tasks.id, nullable)
+
+E) Generate/apply migrations:
+- npm run db:generate
+- npm run db:push
+Ensure existing data remains valid.
+
+--------------------------------------------
+PHASE 2: SERVER API (Express)
+--------------------------------------------
+
+Files likely involved:
+- server/routes.ts and/or server/routes/* (depending on repo structure)
+- server/middleware/householdContext.ts
+- server/lib/permissions.ts
+- server/storage.ts (if you use storage abstraction)
+
+A) Create endpoints to read/set active service context:
+
+1) GET /api/services/mine
+Return the current user’s service memberships for the ACTIVE household:
+{
+  householdId,
+  memberships: Array<{ serviceType: "CLEANING"|"PA", serviceRole: "CLIENT"|"PROVIDER", isActive: boolean }>,
+  defaultServiceType: "CLEANING"|"PA"|null  // choose first active membership if only one, else null
+}
+
+Rules:
+- Use X-Household-Id resolved household context
+- Query household_service_memberships by householdId + userId + isActive=true
+
+2) POST /api/services/set-default (optional but nice)
+Body: { serviceType }
+Store default serviceType per user per household.
+Implementation approach:
+- Add columns to user_profiles: defaultServiceType (serviceTypeEnum nullable)
+OR create table user_household_preferences (userId, householdId, defaultServiceType, lastServiceType, updatedAt)
+If you don’t want new prefs table yet, implement client-side only (localStorage) for MVP.
+
+B) Enforce service scoping across list endpoints (critical):
+
+For each of these routes:
+- GET /api/tasks
+- GET /api/approvals
+- GET /api/spending
+- GET /api/updates (if you add updates.serviceType)
+Add optional query param: ?serviceType=CLEANING|PA
+
+Behavior:
+- Determine allowed serviceTypes for user in household:
+  - from household_service_memberships where isActive=true
+- If user provides serviceType:
+  - verify it is in allowed serviceTypes (for CLIENT)
+  - verify STAFF/PROVIDER restrictions (see below)
+- Apply SQL WHERE filter on the object’s serviceType.
+
+C) Role + service rules (foundation for STAFF lockdown, even if STAFF is added later):
+- For CLIENT users:
+  - allowed serviceTypes = their memberships where serviceRole="CLIENT"
+  - they can only list records matching those serviceTypes
+- For ASSISTANT users:
+  - allowed serviceTypes = any membership (or simply allow all within household for now)
+  - but still honor serviceType filter if provided
+- For STAFF users (prepare now even if STAFF comes later):
+  - only allow serviceType="CLEANING"
+  - and further restrict tasks/approvals/updates to assigned tasks (you will add this in STAFF phase)
+
+Implementation details:
+- Create helper:
+  server/lib/serviceScope.ts
+  export function getUserServiceScope(req): { allowedServiceTypes, allowedServiceRoles }
+- Use that helper inside each list route to enforce filtering at query level.
+
+D) Add creation behavior for new records:
+- When creating tasks/approvals/spending/updates, set serviceType explicitly.
+- Default to "PA" unless a serviceType is supplied and validated.
+
+E) Approvals add-ons must be linked to a job when created from cleaning portal:
+- When creating approval with serviceType="CLEANING":
+  - require relatedTaskId
+  - validate the task exists and has serviceType="CLEANING"
+Later (STAFF phase) validate assignedTo; for now validate household match + service match.
+
+--------------------------------------------
+PHASE 3: FRONTEND (Service Switcher + Service Portals)
+--------------------------------------------
+
+A) Add a Service Switcher UI component
+Create:
+- client/src/components/service-switcher.tsx
+
+Behavior:
+- Fetch GET /api/services/mine
+- If user has only one active serviceType, do not show switcher
+- If multiple, show a dropdown:
+  - Cleaning
+  - Personal Assistant
+- Persist selection per household in localStorage keys:
+  - activeServiceType:<householdId>
+- Provide helper hook:
+  client/src/hooks/useActiveServiceType.ts
+  which returns activeServiceType and setter
+
+B) Wire switcher into header
+Edit:
+- client/src/components/layout/header.tsx
+Render ServiceSwitcher near HouseholdSwitcher (only when multiple services).
+
+C) Service-scoped portals for CLIENT role
+Current behavior routes CLIENT into /spending etc.
+Change client experience to show distinct portal per service:
+
+1) If activeServiceType="CLEANING":
+   Client nav/pages should prioritize:
+   - /cleaning (dashboard)
+   - /cleaning/visits (tasks list filtered serviceType=CLEANING)
+   - /approvals (filtered serviceType=CLEANING)
+   - /pay (filtered serviceType=CLEANING; show invoice + tip)
+   - /updates (filtered serviceType=CLEANING)
+2) If activeServiceType="PA":
+   Client nav/pages:
+   - /dashboard (existing)
+   - /tasks (filtered serviceType=PA)
+   - /approvals (filtered serviceType=PA)
+   - /spending or /pay (depending on your UX) filtered serviceType=PA
+   - /files etc.
+
+Implementation requirements:
+- Do NOT duplicate pages if unnecessary.
+- Reuse existing pages by passing serviceType filter to API calls.
+- Update existing query keys to include activeServiceType to avoid cache confusion:
+  Use queryKey: [activeHouseholdId, activeServiceType, "/api/tasks"]
+
+D) Update API calls to include serviceType
+Wherever you fetch:
+- /api/tasks
+- /api/approvals
+- /api/spending
+- /api/updates
+Add ?serviceType=${activeServiceType} for client and staff views.
+Assistants may omit to see all, but if the portal is service-scoped then include it.
+
+E) Labels
+In list UIs (Approvals, Spending, Tasks), show a small badge “Cleaning” or “PA” when assistant views “all” services.
+For client service-scoped view, you can omit badge or keep it subtle.
+
+--------------------------------------------
+PHASE 4: FUTURE-PROOFING (Skin split / GLNT readiness)
+--------------------------------------------
+
+Implement these hooks now so later you can ship a separate branded frontend without changing backend:
+
+1) Introduce a simple “App Mode” constant on client side:
+- client/src/config/appMode.ts
+  export const APP_MODE = "HNDLD"; // later "GLNT"
+- Use APP_MODE to control:
+  - copy (“Personal Assistant” vs “Concierge”)
+  - default landing routes
+  - which nav items appear
+  - theme variables
+
+2) Create a “Service-first router wrapper”
+- client/src/routes/ServiceShell.tsx
+This component decides which portal shell to show based on:
+- role (CLIENT/ASSISTANT/STAFF)
+- activeServiceType
+- APP_MODE
+
+Later, to create GLNT skin:
+- set APP_MODE="GLNT"
+- default serviceType=CLEANING
+- hide PA navigation entirely
+- keep same backend endpoints
+
+3) Add a server-side optional header for future multi-frontend deployments:
+- Accept X-App-Mode header ("HNDLD"|"GLNT") but do nothing with it for now.
+- Log it (without PII) to help future analytics.
+Do NOT branch behavior yet; just prepare.
+
+--------------------------------------------
+ACCEPTANCE CRITERIA
+--------------------------------------------
+
+1) Users can belong to CLEANING and/or PA service within the same household without new accounts.
+2) CLIENT users see a Service Switcher only if they have both services.
+3) All client list pages fetch and display only records matching the active serviceType.
+4) Server enforces service scoping:
+   - a client cannot request serviceType they don’t have membership for
+5) Assistant view can access both services, and can filter by serviceType.
+6) Data migration is backward compatible: existing records default to serviceType="PA".
+7) Code is type-safe, no any, and passes TypeScript checks.
+
+COMMANDS TO RUN
+- npm install
+- npm run db:generate
+- npm run db:push
+- npm run dev
+- npm run check (or equivalent TS check)
