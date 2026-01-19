@@ -3,7 +3,7 @@ import { useAuth } from "@/hooks/use-auth";
 import type { UserProfile } from "@shared/schema";
 import { useQuery } from "@tanstack/react-query";
 
-type UserRole = "ASSISTANT" | "CLIENT";
+type UserRole = "ASSISTANT" | "CLIENT" | "STAFF";
 
 interface UserProfileResponse extends UserProfile {
   needsRoleSelection?: boolean;

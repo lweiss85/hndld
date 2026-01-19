@@ -12,7 +12,9 @@ import {
   FileText,
   Mail,
   Receipt,
-  CreditCard
+  CreditCard,
+  Briefcase,
+  MoreHorizontal
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -41,13 +43,24 @@ const assistantTabs: NavItem[] = [
   { path: "/house", icon: <Building2 className="h-5 w-5" />, label: "House" },
 ];
 
+const staffTabs: NavItem[] = [
+  { path: "/", icon: <Clock className="h-5 w-5" />, label: "Today" },
+  { path: "/jobs", icon: <Briefcase className="h-5 w-5" />, label: "Jobs" },
+  { path: "/updates", icon: <FileText className="h-5 w-5" />, label: "Updates" },
+  { path: "/more", icon: <MoreHorizontal className="h-5 w-5" />, label: "More" },
+];
+
 export function BottomNav() {
   const [location] = useLocation();
   const { activeRole } = useUser();
   const { data: pendingInvoices } = usePendingInvoices();
   const [showPaySheet, setShowPaySheet] = useState(false);
 
-  const tabs = activeRole === "ASSISTANT" ? assistantTabs : clientTabs;
+  const tabs = activeRole === "ASSISTANT" 
+    ? assistantTabs 
+    : activeRole === "STAFF" 
+      ? staffTabs 
+      : clientTabs;
   const hasUnpaidInvoices = activeRole === "CLIENT" && pendingInvoices && pendingInvoices.count > 0;
 
   useEffect(() => {

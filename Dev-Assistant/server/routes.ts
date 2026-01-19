@@ -668,13 +668,23 @@ export async function registerRoutes(
     try {
       const userId = req.user.claims.sub;
       const householdId = req.householdId!;
+      const userRole = req.householdRole;
       
-      const [tasks, approvals, events, spending] = await Promise.all([
+      let [tasks, approvals, events, spending] = await Promise.all([
         storage.getTasks(householdId),
         storage.getApprovals(householdId),
         storage.getCalendarEvents(householdId),
         storage.getSpending(householdId),
       ]);
+      
+      if (userRole === "STAFF") {
+        tasks = tasks.filter(t => t.assignedTo === userId);
+        const myTaskIds = new Set(tasks.map(t => t.id));
+        approvals = approvals.filter(a => 
+          a.createdBy === userId || 
+          (a.relatedTaskId && myTaskIds.has(a.relatedTaskId))
+        );
+      }
       
       let impact = null;
       try {
@@ -694,11 +704,16 @@ export async function registerRoutes(
     try {
       const userId = req.user.claims.sub;
       const householdId = req.householdId!;
+      const userRole = req.householdRole;
       
-      const [tasks, events] = await Promise.all([
+      let [tasks, events] = await Promise.all([
         storage.getTasks(householdId),
         storage.getCalendarEvents(householdId),
       ]);
+      
+      if (userRole === "STAFF") {
+        tasks = tasks.filter(t => t.assignedTo === userId);
+      }
       
       res.json({ tasks, events });
     } catch (error) {
@@ -711,7 +726,12 @@ export async function registerRoutes(
     try {
       const userId = req.user.claims.sub;
       const householdId = req.householdId!;
-      const tasks = await storage.getTasks(householdId);
+      const userRole = req.householdRole;
+      let tasks = await storage.getTasks(householdId);
+      
+      if (userRole === "STAFF") {
+        tasks = tasks.filter(t => t.assignedTo === userId);
+      }
       
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 0;
@@ -782,6 +802,16 @@ export async function registerRoutes(
     try {
       const userId = req.user.claims.sub;
       const householdId = req.householdId!;
+      const userRole = req.householdRole;
+      
+      if (userRole === "STAFF") {
+        const allTasks = await storage.getTasks(householdId);
+        const existingTask = allTasks.find(t => t.id === req.params.id);
+        if (!existingTask || existingTask.assignedTo !== userId) {
+          return res.status(403).json({ message: "You can only update tasks assigned to you" });
+        }
+      }
+      
       const updateData = {
         ...req.body,
         ...(req.body.dueAt !== undefined && { dueAt: req.body.dueAt ? new Date(req.body.dueAt) : null }),
@@ -805,6 +835,12 @@ export async function registerRoutes(
     try {
       const userId = req.user.claims.sub;
       const householdId = req.householdId!;
+      const userRole = req.householdRole;
+      
+      if (userRole === "STAFF") {
+        return res.status(403).json({ message: "Staff cannot delete tasks" });
+      }
+      
       const deleted = await storage.deleteTask(householdId, req.params.id);
       if (!deleted) {
         return res.status(404).json({ message: "Task not found" });
@@ -824,6 +860,7 @@ export async function registerRoutes(
     try {
       const userId = req.user.claims.sub;
       const householdId = req.householdId!;
+      const userRole = req.householdRole;
       const taskId = req.params.id;
       
       // Get the current task
@@ -832,6 +869,10 @@ export async function registerRoutes(
       
       if (!task) {
         return res.status(404).json({ message: "Task not found" });
+      }
+      
+      if (userRole === "STAFF" && task.assignedTo !== userId) {
+        return res.status(403).json({ message: "You can only complete tasks assigned to you" });
       }
       
       // Mark current task as done
@@ -889,6 +930,7 @@ export async function registerRoutes(
     try {
       const userId = req.user.claims.sub;
       const householdId = req.householdId!;
+      const userRole = req.householdRole;
       const taskId = req.params.id;
       
       const cancelSchema = z.object({
@@ -905,6 +947,10 @@ export async function registerRoutes(
       const task = await storage.getTask(householdId, taskId);
       if (!task) {
         return res.status(404).json({ message: "Task not found" });
+      }
+      
+      if (userRole === "STAFF" && task.assignedTo !== userId) {
+        return res.status(403).json({ message: "You can only cancel tasks assigned to you" });
       }
       
       if (task.status === "DONE" || task.status === "CANCELLED") {
@@ -1050,7 +1096,17 @@ export async function registerRoutes(
     try {
       const userId = req.user.claims.sub;
       const householdId = req.householdId!;
-      const approvals = await storage.getApprovals(householdId);
+      const userRole = req.householdRole;
+      let approvals = await storage.getApprovals(householdId);
+      
+      if (userRole === "STAFF") {
+        const myTasks = await storage.getTasks(householdId);
+        const myTaskIds = new Set(myTasks.filter(t => t.assignedTo === userId).map(t => t.id));
+        approvals = approvals.filter(a => 
+          a.createdBy === userId || 
+          (a.relatedTaskId && myTaskIds.has(a.relatedTaskId))
+        );
+      }
       
       const approvalsWithComments = await Promise.all(
         approvals.map(async (approval) => {
@@ -1090,6 +1146,26 @@ export async function registerRoutes(
     try {
       const userId = req.user.claims.sub;
       const householdId = req.householdId!;
+      const userRole = req.householdRole;
+      
+      if (userRole === "STAFF") {
+        const existingApproval = await storage.getApproval(householdId, req.params.id);
+        if (!existingApproval) {
+          return res.status(404).json({ message: "Approval not found" });
+        }
+        
+        let hasAccess = existingApproval.createdBy === userId;
+        if (!hasAccess && existingApproval.relatedTaskId) {
+          const myTasks = await storage.getTasks(householdId);
+          const myTaskIds = new Set(myTasks.filter(t => t.assignedTo === userId).map(t => t.id));
+          hasAccess = myTaskIds.has(existingApproval.relatedTaskId);
+        }
+        
+        if (!hasAccess) {
+          return res.status(403).json({ message: "You can only update approvals you created or related to your assigned tasks" });
+        }
+      }
+      
       const approval = await storage.updateApproval(householdId, req.params.id, req.body);
       if (!approval) {
         return res.status(404).json({ message: "Approval not found" });
@@ -1108,7 +1184,12 @@ export async function registerRoutes(
     try {
       const userId = req.user.claims.sub;
       const householdId = req.householdId!;
-      const updates = await storage.getUpdates(householdId);
+      const userRole = req.householdRole;
+      let updates = await storage.getUpdates(householdId);
+      
+      if (userRole === "STAFF") {
+        updates = updates.filter(u => u.createdBy === userId);
+      }
       
       const updatesWithComments = await Promise.all(
         updates.map(async (update) => {
@@ -2706,11 +2787,20 @@ export async function registerRoutes(
     try {
       const userId = req.user.claims.sub;
       const householdId = req.householdId!;
-      const profile = await getUserProfile(userId);
+      const userRole = req.householdRole;
       
-      const accessItems = await storage.getAccessItems(householdId);
+      let accessItems = await storage.getAccessItems(householdId);
       
-      if (profile?.role === "ASSISTANT") {
+      if (userRole === "STAFF") {
+        const grants = await storage.getActiveGrantsForUser(userId, householdId);
+        const grantedItemIds = new Set(grants.map(g => g.accessItemId));
+        accessItems = accessItems.filter(item => grantedItemIds.has(item.id));
+        const maskedItems = accessItems.map(item => ({
+          ...item,
+          value: item.isSensitive ? "********" : item.value,
+        }));
+        res.json(maskedItems);
+      } else if (userRole === "ASSISTANT") {
         res.json(accessItems);
       } else {
         const maskedItems = accessItems.map(item => ({
@@ -2777,7 +2867,36 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/access-items/:id/reveal", isAuthenticated, householdContext, requirePermission("CAN_VIEW_VAULT"), async (req: any, res) => {
+  app.post("/api/access-items/:id/reveal", isAuthenticated, householdContext, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const userId = req.user.claims.sub;
+      const householdId = req.householdId!;
+      const userRole = req.householdRole;
+      
+      const item = await storage.getAccessItem(householdId, id);
+      if (!item) {
+        return res.status(404).json({ error: "Item not found" });
+      }
+      
+      if (userRole === "STAFF") {
+        const grant = await storage.getAccessItemGrantForUser(id, userId, householdId);
+        if (!grant || (grant.expiresAt && new Date(grant.expiresAt) < new Date())) {
+          return res.status(403).json({ error: "No active grant for this item" });
+        }
+      } else if (userRole !== "ASSISTANT") {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      res.json({ value: item.value });
+    } catch (error) {
+      console.error("Error revealing access item:", error);
+      res.status(500).json({ error: "Failed to reveal item" });
+    }
+  });
+
+  // Access Item Grants (for STAFF access management)
+  app.get("/api/access-items/:id/grants", isAuthenticated, householdContext, requirePermission("CAN_EDIT_VAULT"), async (req: any, res) => {
     try {
       const { id } = req.params;
       const householdId = req.householdId!;
@@ -2787,10 +2906,53 @@ export async function registerRoutes(
         return res.status(404).json({ error: "Item not found" });
       }
       
-      res.json({ value: item.value });
+      const grants = await storage.getAccessItemGrants(id);
+      res.json(grants);
     } catch (error) {
-      console.error("Error revealing access item:", error);
-      res.status(500).json({ error: "Failed to reveal item" });
+      console.error("Error fetching access item grants:", error);
+      res.status(500).json({ error: "Failed to fetch grants" });
+    }
+  });
+
+  app.post("/api/access-items/:id/grants", isAuthenticated, householdContext, requirePermission("CAN_EDIT_VAULT"), async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const { userId: grantUserId, expiresAt } = req.body;
+      const grantedBy = req.user.claims.sub;
+      const householdId = req.householdId!;
+      
+      const item = await storage.getAccessItem(householdId, id);
+      if (!item) {
+        return res.status(404).json({ error: "Item not found" });
+      }
+      
+      const grant = await storage.createAccessItemGrant({
+        accessItemId: id,
+        userId: grantUserId,
+        householdId,
+        createdBy: grantedBy,
+        expiresAt: expiresAt ? new Date(expiresAt) : null,
+      });
+      
+      res.status(201).json(grant);
+    } catch (error) {
+      console.error("Error creating access item grant:", error);
+      res.status(500).json({ error: "Failed to create grant" });
+    }
+  });
+
+  app.delete("/api/access-items/:id/grants/:grantId", isAuthenticated, householdContext, requirePermission("CAN_EDIT_VAULT"), async (req: any, res) => {
+    try {
+      const { grantId } = req.params;
+      
+      const deleted = await storage.deleteAccessItemGrant(grantId);
+      if (!deleted) {
+        return res.status(404).json({ error: "Grant not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting access item grant:", error);
+      res.status(500).json({ error: "Failed to delete grant" });
     }
   });
 

@@ -177,7 +177,7 @@ export interface IStorage {
   
   // Access Item Grants (for STAFF access to secrets)
   getAccessItemGrants(accessItemId: string): Promise<AccessItemGrant[]>;
-  getAccessItemGrantForUser(accessItemId: string, userId: string): Promise<AccessItemGrant | undefined>;
+  getAccessItemGrantForUser(accessItemId: string, userId: string, householdId?: string): Promise<AccessItemGrant | undefined>;
   createAccessItemGrant(data: InsertAccessItemGrant): Promise<AccessItemGrant>;
   deleteAccessItemGrant(id: string): Promise<boolean>;
   getActiveGrantsForUser(userId: string, householdId: string): Promise<AccessItemGrant[]>;
@@ -900,12 +900,16 @@ export class DatabaseStorage implements IStorage {
     return db.select().from(accessItemGrants).where(eq(accessItemGrants.accessItemId, accessItemId));
   }
 
-  async getAccessItemGrantForUser(accessItemId: string, userId: string): Promise<AccessItemGrant | undefined> {
+  async getAccessItemGrantForUser(accessItemId: string, userId: string, householdId?: string): Promise<AccessItemGrant | undefined> {
+    const conditions = [
+      eq(accessItemGrants.accessItemId, accessItemId),
+      eq(accessItemGrants.userId, userId)
+    ];
+    if (householdId) {
+      conditions.push(eq(accessItemGrants.householdId, householdId));
+    }
     const [grant] = await db.select().from(accessItemGrants)
-      .where(and(
-        eq(accessItemGrants.accessItemId, accessItemId),
-        eq(accessItemGrants.userId, userId)
-      ));
+      .where(and(...conditions));
     return grant;
   }
 

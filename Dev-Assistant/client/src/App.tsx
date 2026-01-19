@@ -127,6 +127,26 @@ function AssistantRouter() {
   );
 }
 
+const StaffToday = lazy(() => import("@/pages/staff/today"));
+const StaffJobs = lazy(() => import("@/pages/staff/jobs"));
+const StaffUpdates = lazy(() => import("@/pages/staff/updates"));
+const StaffMore = lazy(() => import("@/pages/staff/more"));
+
+function StaffRouter() {
+  return (
+    <Suspense fallback={<PageSkeleton />}>
+      <Switch>
+        <Route path="/" component={StaffToday} />
+        <Route path="/jobs" component={StaffJobs} />
+        <Route path="/updates" component={StaffUpdates} />
+        <Route path="/more" component={StaffMore} />
+        <Route path="/profile" component={HouseholdProfile} />
+        <Route component={NotFound} />
+      </Switch>
+    </Suspense>
+  );
+}
+
 interface OnboardingStatus {
   phase1Complete: boolean;
   phase2Complete: boolean;
@@ -173,6 +193,14 @@ function AuthenticatedApp() {
     return (
       <AppLayout>
         <AssistantRouter />
+      </AppLayout>
+    );
+  }
+
+  if (activeRole === "STAFF") {
+    return (
+      <AppLayout>
+        <StaffRouter />
       </AppLayout>
     );
   }
