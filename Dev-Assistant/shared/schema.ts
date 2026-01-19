@@ -576,7 +576,7 @@ export const paymentMethods = pgTable("payment_methods", {
 export const invoices = pgTable("invoices", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   organizationId: varchar("organization_id").references(() => organizations.id).notNull(),
-  stripeInvoiceId: varchar("stripe_invoice_id"),
+  stripeInvoiceId: varchar("stripe_invoice_id").unique(),
   amount: integer("amount").notNull(),
   status: invoiceStatusEnum("status").default("PENDING").notNull(),
   invoiceUrl: text("invoice_url"),

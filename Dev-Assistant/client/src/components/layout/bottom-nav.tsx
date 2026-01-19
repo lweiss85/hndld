@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useLocation } from "wouter";
+import { useLocation } from "wouter";
 import { useUser } from "@/lib/user-context";
 import { usePendingInvoices } from "@/hooks/usePendingInvoices";
 import { useActiveServiceType } from "@/hooks/use-active-service-type";
@@ -63,7 +63,7 @@ const staffTabs: NavItem[] = [
 ];
 
 export function BottomNav() {
-  const [location] = useLocation();
+  const [location, navigate] = useLocation();
   const { activeRole } = useUser();
   const { activeServiceType } = useActiveServiceType();
   const { data: pendingInvoices } = usePendingInvoices();
@@ -86,10 +86,13 @@ export function BottomNav() {
     }
   }, [hasUnpaidInvoices]);
 
-  const handleTabClick = () => {
+  const [, setLocation] = useLocation();
+
+  const handleTabClick = (path: string) => {
     if (navigator.vibrate) {
       navigator.vibrate(8);
     }
+    setLocation(path);
   };
 
   const formatAmount = (cents: number) => {
@@ -105,6 +108,8 @@ export function BottomNav() {
         className="fixed bottom-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-t border-border/50 shadow-[0_-4px_24px_rgba(0,0,0,0.06)]"
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
         data-testid="bottom-nav"
+        role="navigation"
+        aria-label="Main navigation"
       >
         {hasUnpaidInvoices && pendingInvoices && (
           <div className="px-4 py-2 animate-in slide-in-from-bottom-2 fade-in duration-300">
@@ -124,18 +129,23 @@ export function BottomNav() {
           </div>
         )}
         
-        <div className="flex items-center justify-around h-14 px-1">
+        <div 
+          className="flex items-center justify-around h-14 px-1 overflow-x-auto scrollbar-hide"
+          role="tablist"
+        >
           {tabs.map((tab) => {
             const isActive = location === tab.path || 
               (tab.path !== "/" && location.startsWith(tab.path));
             
             return (
-              <Link
+              <button
                 key={tab.path}
-                href={tab.path}
-                onClick={handleTabClick}
+                onClick={() => handleTabClick(tab.path)}
+                role="tab"
+                aria-selected={isActive}
+                aria-label={tab.label}
                 className={cn(
-                  "flex-1 relative flex flex-col items-center justify-center gap-0.5 py-1.5 min-h-[44px] transition-all duration-200",
+                  "relative flex flex-col items-center justify-center gap-0.5 py-1.5 flex-1 min-w-[64px] min-h-[44px] transition-all duration-200",
                   isActive ? "text-foreground" : "text-muted-foreground"
                 )}
                 data-testid={`button-nav-${tab.label.toLowerCase().replace(/\s+/g, '-')}`}
@@ -155,7 +165,7 @@ export function BottomNav() {
                 )}>
                   {tab.label}
                 </span>
-              </Link>
+              </button>
             );
           })}
         </div>

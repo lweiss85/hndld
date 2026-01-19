@@ -5,17 +5,8 @@ import { createReadStream, existsSync } from "fs";
 import { join, basename } from "path";
 import { storage } from "./storage";
 import { getStorageProvider } from "./services/storage-provider";
-
-function escapeHtml(text: string): string {
-  const htmlEscapes: Record<string, string> = {
-    '&': '&amp;',
-    '<': '&lt;',
-    '>': '&gt;',
-    '"': '&quot;',
-    "'": '&#39;',
-  };
-  return text.replace(/[&<>"']/g, (char) => htmlEscapes[char] || char);
-}
+import { escapeHtml } from "./lib/escape-html";
+import { encryptVaultValue, decryptVaultValue } from "./services/vault-encryption";
 import { setupAuth, registerAuthRoutes, isAuthenticated } from "./replit_integrations/auth";
 import { apiLimiter, authLimiter, expensiveLimiter, criticalLimiter } from "./lib/rate-limit";
 import { triggerImmediateSync } from "./services/scheduler";
@@ -2942,12 +2933,22 @@ export async function registerRoutes(
         return res.status(403).json({ message: "Only assistants can create access items" });
       }
       
+      const data = req.body;
+      const encryptedValue = data.isSensitive 
+        ? encryptVaultValue(data.value)
+        : data.value;
+      
       const accessItem = await storage.createAccessItem({
-        ...req.body,
+        ...data,
+        value: encryptedValue,
+        isEncrypted: data.isSensitive ?? false,
         householdId,
       });
       
-      res.status(201).json(accessItem);
+      res.status(201).json({
+        ...accessItem,
+        value: data.isSensitive ? "********" : data.value,
+      });
     } catch (error) {
       console.error("Error creating access item:", error);
       res.status(500).json({ message: "Failed to create access item" });
@@ -2957,12 +2958,24 @@ export async function registerRoutes(
   app.put("/api/access-items/:id", isAuthenticated, householdContext, requirePermission("CAN_EDIT_VAULT"), async (req: any, res) => {
     try {
       const householdId = req.householdId!;
+      const data = req.body;
       
-      const accessItem = await storage.updateAccessItem(householdId, req.params.id, req.body);
+      if (data.value !== undefined) {
+        const isSensitive = data.isSensitive ?? true;
+        data.value = isSensitive 
+          ? encryptVaultValue(data.value)
+          : data.value;
+        data.isEncrypted = isSensitive;
+      }
+      
+      const accessItem = await storage.updateAccessItem(householdId, req.params.id, data);
       if (!accessItem) {
         return res.status(404).json({ message: "Access item not found" });
       }
-      res.json(accessItem);
+      res.json({
+        ...accessItem,
+        value: accessItem.isSensitive ? "********" : accessItem.value,
+      });
     } catch (error) {
       console.error("Error updating access item:", error);
       res.status(500).json({ message: "Failed to update access item" });
@@ -3005,7 +3018,11 @@ export async function registerRoutes(
         return res.status(403).json({ error: "Access denied" });
       }
       
-      res.json({ value: item.value });
+      const decryptedValue = item.isEncrypted 
+        ? decryptVaultValue(item.value)
+        : item.value;
+      
+      res.json({ value: decryptedValue });
     } catch (error) {
       console.error("Error revealing access item:", error);
       res.status(500).json({ error: "Failed to reveal item" });
