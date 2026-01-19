@@ -1,48 +1,8 @@
 import { google, calendar_v3 } from "googleapis";
-import crypto from "crypto";
 import { db } from "../db";
 import { calendarConnections, calendarSelections, calendarEvents } from "@shared/schema";
 import { eq, and } from "drizzle-orm";
-
-const ENCRYPTION_KEY = process.env.SESSION_SECRET;
-const ENCRYPTION_ALGORITHM = "aes-256-gcm";
-
-function getKey(salt: Buffer): Buffer {
-  if (!ENCRYPTION_KEY) {
-    throw new Error("SESSION_SECRET environment variable is required for encryption");
-  }
-  return crypto.scryptSync(ENCRYPTION_KEY, salt, 32);
-}
-
-function encrypt(text: string): string {
-  if (!ENCRYPTION_KEY) {
-    throw new Error("SESSION_SECRET environment variable is required for encryption");
-  }
-  const salt = crypto.randomBytes(16);
-  const key = getKey(salt);
-  const iv = crypto.randomBytes(16);
-  const cipher = crypto.createCipheriv(ENCRYPTION_ALGORITHM, key, iv);
-  let encrypted = cipher.update(text, "utf8", "hex");
-  encrypted += cipher.final("hex");
-  const authTag = cipher.getAuthTag();
-  return salt.toString("hex") + ":" + iv.toString("hex") + ":" + authTag.toString("hex") + ":" + encrypted;
-}
-
-function decrypt(encryptedData: string): string {
-  if (!ENCRYPTION_KEY) {
-    throw new Error("SESSION_SECRET environment variable is required for decryption");
-  }
-  const [saltHex, ivHex, authTagHex, encryptedHex] = encryptedData.split(":");
-  const salt = Buffer.from(saltHex, "hex");
-  const key = getKey(salt);
-  const iv = Buffer.from(ivHex, "hex");
-  const authTag = Buffer.from(authTagHex, "hex");
-  const decipher = crypto.createDecipheriv(ENCRYPTION_ALGORITHM, key, iv);
-  decipher.setAuthTag(authTag);
-  let decrypted = decipher.update(encryptedHex, "hex", "utf8");
-  decrypted += decipher.final("utf8");
-  return decrypted;
-}
+import { encrypt, decrypt } from "../lib/crypto";
 
 export function getOAuthClient() {
   const clientId = process.env.GOOGLE_CLIENT_ID;

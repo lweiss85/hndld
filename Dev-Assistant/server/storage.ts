@@ -1,7 +1,7 @@
 import { 
   organizations, households, tasks, taskChecklistItems, taskTemplates, approvals, updates, requests,
   comments, vendors, spendingItems, calendarEvents, userProfiles, reactions,
-  householdSettings, householdLocations, people, preferences, importantDates, accessItems,
+  householdSettings, householdLocations, people, preferences, importantDates, accessItems, accessItemGrants,
   quickRequestTemplates, playbooks, playbookSteps, vaultSettings, users,
   organizationPaymentProfiles, householdPaymentOverrides,
   type Organization, type InsertOrganization,
@@ -24,6 +24,7 @@ import {
   type Preference, type InsertPreference,
   type ImportantDate, type InsertImportantDate,
   type AccessItem, type InsertAccessItem,
+  type AccessItemGrant, type InsertAccessItemGrant,
   type QuickRequestTemplate, type InsertQuickRequestTemplate,
   type Playbook, type InsertPlaybook,
   type PlaybookStep, type InsertPlaybookStep,
@@ -173,6 +174,13 @@ export interface IStorage {
   createAccessItem(data: InsertAccessItem): Promise<AccessItem>;
   updateAccessItem(householdId: string, id: string, data: Partial<InsertAccessItem>): Promise<AccessItem | undefined>;
   deleteAccessItem(householdId: string, id: string): Promise<boolean>;
+  
+  // Access Item Grants (for STAFF access to secrets)
+  getAccessItemGrants(accessItemId: string): Promise<AccessItemGrant[]>;
+  getAccessItemGrantForUser(accessItemId: string, userId: string): Promise<AccessItemGrant | undefined>;
+  createAccessItemGrant(data: InsertAccessItemGrant): Promise<AccessItemGrant>;
+  deleteAccessItemGrant(id: string): Promise<boolean>;
+  getActiveGrantsForUser(userId: string, householdId: string): Promise<AccessItemGrant[]>;
   
   // Quick Request Templates (household-scoped)
   getQuickRequestTemplates(householdId: string): Promise<QuickRequestTemplate[]>;
@@ -885,6 +893,40 @@ export class DatabaseStorage implements IStorage {
       .where(and(eq(accessItems.id, id), eq(accessItems.householdId, householdId)))
       .returning();
     return result.length > 0;
+  }
+
+  // Access Item Grants (for STAFF access to secrets)
+  async getAccessItemGrants(accessItemId: string): Promise<AccessItemGrant[]> {
+    return db.select().from(accessItemGrants).where(eq(accessItemGrants.accessItemId, accessItemId));
+  }
+
+  async getAccessItemGrantForUser(accessItemId: string, userId: string): Promise<AccessItemGrant | undefined> {
+    const [grant] = await db.select().from(accessItemGrants)
+      .where(and(
+        eq(accessItemGrants.accessItemId, accessItemId),
+        eq(accessItemGrants.userId, userId)
+      ));
+    return grant;
+  }
+
+  async createAccessItemGrant(data: InsertAccessItemGrant): Promise<AccessItemGrant> {
+    const [grant] = await db.insert(accessItemGrants).values(data).returning();
+    return grant;
+  }
+
+  async deleteAccessItemGrant(id: string): Promise<boolean> {
+    const result = await db.delete(accessItemGrants).where(eq(accessItemGrants.id, id)).returning();
+    return result.length > 0;
+  }
+
+  async getActiveGrantsForUser(userId: string, householdId: string): Promise<AccessItemGrant[]> {
+    const now = new Date();
+    const grants = await db.select().from(accessItemGrants)
+      .where(and(
+        eq(accessItemGrants.userId, userId),
+        eq(accessItemGrants.householdId, householdId)
+      ));
+    return grants.filter(g => !g.expiresAt || new Date(g.expiresAt) > now);
   }
 
   // Quick Request Templates (household-scoped)
