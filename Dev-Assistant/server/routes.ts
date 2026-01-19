@@ -802,10 +802,17 @@ export async function registerRoutes(
       const userId = req.user.claims.sub;
       const householdId = req.householdId!;
       const userRole = req.householdRole;
+      const serviceType = req.query.serviceType as string | undefined;
+      
       let tasks = await storage.getTasks(householdId);
       
       if (userRole === "STAFF") {
         tasks = tasks.filter(t => t.assignedTo === userId);
+        // STAFF can only access CLEANING service
+        tasks = tasks.filter(t => t.serviceType === "CLEANING");
+      } else if (serviceType && ["CLEANING", "PA"].includes(serviceType)) {
+        // Filter by requested service type
+        tasks = tasks.filter(t => t.serviceType === serviceType);
       }
       
       const page = parseInt(req.query.page as string) || 1;
@@ -1172,6 +1179,8 @@ export async function registerRoutes(
       const userId = req.user.claims.sub;
       const householdId = req.householdId!;
       const userRole = req.householdRole;
+      const serviceType = req.query.serviceType as string | undefined;
+      
       let approvals = await storage.getApprovals(householdId);
       
       if (userRole === "STAFF") {
@@ -1181,6 +1190,10 @@ export async function registerRoutes(
           a.createdBy === userId || 
           (a.relatedTaskId && myTaskIds.has(a.relatedTaskId))
         );
+        // STAFF can only access CLEANING service
+        approvals = approvals.filter(a => a.serviceType === "CLEANING");
+      } else if (serviceType && ["CLEANING", "PA"].includes(serviceType)) {
+        approvals = approvals.filter(a => a.serviceType === serviceType);
       }
       
       const approvalsWithComments = await Promise.all(
@@ -1260,10 +1273,16 @@ export async function registerRoutes(
       const userId = req.user.claims.sub;
       const householdId = req.householdId!;
       const userRole = req.householdRole;
+      const serviceType = req.query.serviceType as string | undefined;
+      
       let updates = await storage.getUpdates(householdId);
       
       if (userRole === "STAFF") {
         updates = updates.filter(u => u.createdBy === userId);
+        // STAFF can only access CLEANING service
+        updates = updates.filter(u => u.serviceType === "CLEANING");
+      } else if (serviceType && ["CLEANING", "PA"].includes(serviceType)) {
+        updates = updates.filter(u => u.serviceType === serviceType);
       }
       
       const updatesWithComments = await Promise.all(
@@ -1450,7 +1469,17 @@ export async function registerRoutes(
     try {
       const userId = req.user.claims.sub;
       const householdId = req.householdId!;
-      const spending = await storage.getSpending(householdId);
+      const userRole = req.householdRole;
+      const serviceType = req.query.serviceType as string | undefined;
+      
+      let spending = await storage.getSpending(householdId);
+      
+      if (userRole === "STAFF") {
+        // STAFF can only access CLEANING service spending
+        spending = spending.filter(s => s.serviceType === "CLEANING");
+      } else if (serviceType && ["CLEANING", "PA"].includes(serviceType)) {
+        spending = spending.filter(s => s.serviceType === serviceType);
+      }
       
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 0;
