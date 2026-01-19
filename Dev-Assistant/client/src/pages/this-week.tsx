@@ -247,7 +247,7 @@ function CleaningOverview() {
       const res = await apiRequest("POST", "/api/spending", {
         title: "Tip for Cleaner",
         description: "Thank you tip",
-        amountCents: 0,
+        amount: 0,
         category: "TIP",
         serviceType: "CLEANING",
         status: "DRAFT",
