@@ -101,7 +101,7 @@ function formatCurrency(cents: number): string {
 const TIP_PRESETS = [0, 500, 1000, 1500, 2000];
 
 export default function PayPage() {
-  const { userProfile } = useUser();
+  const { userProfile, activeRole } = useUser();
   const { toast } = useToast();
   const { activeServiceType } = useActiveServiceType();
   const [selectedItem, setSelectedItem] = useState<SpendingItem | null>(null);
@@ -113,7 +113,7 @@ export default function PayPage() {
 
   const { data: spending, isLoading: spendingLoading } = useQuery<SpendingItem[]>({
     queryKey: [spendingUrl],
-    enabled: userProfile?.role === "CLIENT",
+    enabled: activeRole === "CLIENT",
   });
 
   const { data: payOptions, isLoading: payOptionsLoading } = useQuery<PayOptions>({
@@ -232,7 +232,7 @@ export default function PayPage() {
     );
   }
 
-  if (userProfile.role !== "CLIENT") {
+  if (activeRole !== "CLIENT") {
     return (
       <div className="container max-w-2xl mx-auto">
         <div className="flex items-center gap-3 p-4 border-b sticky top-0 bg-background z-10">
