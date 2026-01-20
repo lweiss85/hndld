@@ -12,6 +12,7 @@
   "dependencies": {
     "@tanstack/react-virtual": "^3.13.18",
     "@types/web-push": "^3.6.4",
+    "helmet": "^8.1.0",
     "vite-plugin-pwa": "^1.2.0",
     "web-push": "^3.6.7"
   }

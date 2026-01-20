@@ -1,4 +1,5 @@
 import express, { type Request, Response, NextFunction } from "express";
+import helmet from "helmet";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
@@ -13,21 +14,71 @@ initSentry(app);
 const sentryHandlers = getSentryHandlers();
 app.use(sentryHandlers.requestHandler);
 
+// =============================================================================
+// SECURITY HEADERS (Helmet)
+// =============================================================================
+app.use(helmet({
+  // In production, use strict CSP; in development, disable to avoid breaking hot reload
+  contentSecurityPolicy: process.env.NODE_ENV === "production" ? {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com", "data:"],
+      imgSrc: ["'self'", "data:", "https:", "blob:"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "https://js.stripe.com", "https://*.replit.com"],
+      connectSrc: ["'self'", "https://api.stripe.com", "https://api.anthropic.com", "https://api.openai.com", "https://*.sentry.io", "https://*.replit.com", "wss:", "https:"],
+      frameSrc: ["'self'", "https://js.stripe.com", "https://hooks.stripe.com", "https://*.replit.com"],
+      workerSrc: ["'self'", "blob:"],
+    },
+  } : false,
+  crossOriginEmbedderPolicy: false,
+  crossOriginResourcePolicy: { policy: "cross-origin" },
+}));
+
 declare module "http" {
   interface IncomingMessage {
     rawBody: unknown;
   }
 }
 
+// =============================================================================
+// BODY PARSING WITH SIZE LIMITS
+// =============================================================================
 app.use(
   express.json({
+    limit: "10mb",
     verify: (req, _res, buf) => {
       req.rawBody = buf;
     },
   }),
 );
 
-app.use(express.urlencoded({ extended: false }));
+app.use(express.urlencoded({ extended: false, limit: "10mb" }));
+
+// =============================================================================
+// HEALTH CHECK ENDPOINTS
+// =============================================================================
+app.get("/health", (_req, res) => {
+  res.status(200).json({ 
+    status: "healthy", 
+    timestamp: new Date().toISOString(),
+    version: process.env.npm_package_version || "1.0.0"
+  });
+});
+
+app.get("/api/health", (_req, res) => {
+  // Only expose details in development
+  if (process.env.NODE_ENV === "production") {
+    res.status(200).json({ status: "healthy" });
+  } else {
+    res.status(200).json({ 
+      status: "healthy", 
+      timestamp: new Date().toISOString(),
+      environment: process.env.NODE_ENV || "development",
+      version: process.env.npm_package_version || "1.0.0"
+    });
+  }
+});
 
 export function log(message: string, source = "express") {
   const formattedTime = new Date().toLocaleTimeString("en-US", {
@@ -75,7 +126,12 @@ app.use((req, res, next) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
 
-    res.status(status).json({ message });
+    // Don't leak error details in production
+    if (process.env.NODE_ENV === "production" && status === 500) {
+      res.status(status).json({ message: "Internal Server Error" });
+    } else {
+      res.status(status).json({ message });
+    }
   });
 
   // importantly only setup vite in development and after
