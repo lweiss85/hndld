@@ -47,24 +47,47 @@ export async function chat(
 ): Promise<string> {
   const provider = getActiveProvider();
   if (provider === "NONE") {
-    return getDemoResponse(messages[messages.length - 1]?.content || "");
+    return getSmartDemoResponse(messages[messages.length - 1]?.content || "", householdId);
   }
 
   const context = await getHouseholdContext(householdId);
   
-  const systemPrompt = `You are a helpful household assistant for hndld, a premium household management app. You help busy families and their household assistants stay organized.
+  const taskDetails = context.tasks.map(t => {
+    const dueInfo = t.dueAt ? ` (due: ${new Date(t.dueAt).toLocaleDateString()})` : "";
+    return `• ${t.title} [${t.status}]${dueInfo}`;
+  }).join("\n");
 
-Current household context:
-- ${context.tasks.length} active tasks${context.tasks.length > 0 ? `: ${context.tasks.slice(0, 3).map(t => t.title).join(", ")}` : ""}
-- ${context.events.length} events this week${context.events.length > 0 ? `: ${context.events.slice(0, 3).map(e => e.title).join(", ")}` : ""}
-- ${context.pendingApprovals} pending approvals
-- ${context.pendingRequests} pending requests
+  const eventDetails = context.events.map(e => {
+    const date = new Date(e.startAt);
+    return `• ${e.title} - ${date.toLocaleDateString()} at ${date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`;
+  }).join("\n");
 
-Guidelines:
-- Be warm, professional, and concise
-- Reference specific household data when relevant
-- Suggest actions the user can take in the app
-- Keep responses under 150 words unless detail is requested`;
+  const systemPrompt = `You are a knowledgeable household assistant for hndld. You have FULL ACCESS to the household's data and should DIRECTLY ANSWER questions with specific information.
+
+CURRENT HOUSEHOLD DATA:
+
+TASKS (${context.tasks.length} active):
+${taskDetails || "No active tasks"}
+
+UPCOMING EVENTS (${context.events.length} this week):
+${eventDetails || "No events this week"}
+
+PENDING ITEMS:
+- ${context.pendingApprovals} approvals awaiting review
+- ${context.pendingRequests} requests pending
+
+RECENT UPDATES:
+${context.recentUpdates.map(u => `• ${u.text}`).join("\n") || "No recent updates"}
+
+CRITICAL GUIDELINES:
+1. DIRECTLY ANSWER with specific data - DO NOT tell users to "check the app" or "go to a tab"
+2. When asked about tasks, list the actual tasks with their status and due dates
+3. When asked about events, give the actual event names, dates, and times
+4. When asked about spending or approvals, give specific counts and details
+5. If information isn't in the context above, say so honestly
+6. After answering, you may mention where to find more details or take action
+7. Be warm, professional, and specific
+8. Keep responses concise but complete`;
 
   try {
     return await generateCompletion({
@@ -81,30 +104,57 @@ Guidelines:
   }
 }
 
-function getDemoResponse(userMessage: string): string {
+async function getSmartDemoResponse(userMessage: string, householdId: string): Promise<string> {
   const lowerMessage = userMessage.toLowerCase();
+  const context = await getHouseholdContext(householdId);
   
   if (lowerMessage.includes("schedule") || lowerMessage.includes("calendar") || lowerMessage.includes("event")) {
-    return "I can help you with your schedule! You have a few events coming up this week. Check the Calendar tab for full details.";
+    if (context.events.length === 0) {
+      return "You don't have any events scheduled this week. Would you like to add something to the calendar?";
+    }
+    const eventList = context.events.slice(0, 5).map(e => {
+      const date = new Date(e.startAt);
+      return `• ${e.title} - ${date.toLocaleDateString()} at ${date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`;
+    }).join("\n");
+    return `Here are your upcoming events:\n\n${eventList}${context.events.length > 5 ? `\n\n...and ${context.events.length - 5} more in your Calendar.` : ""}`;
   }
   
-  if (lowerMessage.includes("task") || lowerMessage.includes("todo") || lowerMessage.includes("to do")) {
-    return "Looking at your tasks! You have several items in progress. Head to the Tasks tab to see what's pending.";
+  if (lowerMessage.includes("task") || lowerMessage.includes("todo") || lowerMessage.includes("to do") || lowerMessage.includes("what") && lowerMessage.includes("do")) {
+    if (context.tasks.length === 0) {
+      return "Great news - you don't have any active tasks right now!";
+    }
+    const taskList = context.tasks.slice(0, 5).map(t => {
+      const dueInfo = t.dueAt ? ` (due: ${new Date(t.dueAt).toLocaleDateString()})` : "";
+      return `• ${t.title} [${t.status}]${dueInfo}`;
+    }).join("\n");
+    return `Here are your active tasks:\n\n${taskList}${context.tasks.length > 5 ? `\n\n...and ${context.tasks.length - 5} more in your Tasks list.` : ""}`;
   }
   
   if (lowerMessage.includes("approval") || lowerMessage.includes("approve")) {
-    return "You can review pending approvals in the Approvals tab. Each item shows the details and amount for your review.";
+    if (context.pendingApprovals === 0) {
+      return "No pending approvals right now - all caught up!";
+    }
+    return `You have ${context.pendingApprovals} item${context.pendingApprovals > 1 ? "s" : ""} awaiting your approval. Open Approvals to review the details.`;
   }
   
   if (lowerMessage.includes("spending") || lowerMessage.includes("money") || lowerMessage.includes("expense")) {
-    return "Your spending summary is available in the Money tab. You can track expenses and manage invoices there.";
+    return "I can see your spending data. For detailed amounts and categories, check the Pay section where you'll find invoices and expense breakdowns.";
   }
   
   if (lowerMessage.includes("help") || lowerMessage.includes("what can you")) {
-    return "I can help you with tasks, scheduling, approvals, spending tracking, and general household questions. Just ask!";
+    return "I can tell you about your tasks, upcoming events, pending approvals, and household updates. Just ask me something specific like 'What tasks do I have?' or 'What's on my calendar?'";
   }
   
-  return "I'm here to help with your household management. Ask me about tasks, scheduling, approvals, or anything else you need help with.";
+  const summary = [];
+  if (context.tasks.length > 0) summary.push(`${context.tasks.length} active task${context.tasks.length > 1 ? "s" : ""}`);
+  if (context.events.length > 0) summary.push(`${context.events.length} event${context.events.length > 1 ? "s" : ""} this week`);
+  if (context.pendingApprovals > 0) summary.push(`${context.pendingApprovals} pending approval${context.pendingApprovals > 1 ? "s" : ""}`);
+  
+  if (summary.length > 0) {
+    return `Here's a quick overview: You have ${summary.join(", ")}. What would you like to know more about?`;
+  }
+  
+  return "Everything looks caught up! No pending tasks, events, or approvals. How can I help you today?";
 }
 
 export async function parseNaturalLanguageRequest(
