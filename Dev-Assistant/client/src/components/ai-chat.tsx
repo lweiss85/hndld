@@ -1,18 +1,29 @@
 import { useState, useRef, useEffect } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { MessageCircle, Send, X, Sparkles } from "lucide-react";
+import { MessageCircle, Send, X, Sparkles, Check, XCircle } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { cn } from "@/lib/utils";
 
 interface ChatMessage {
   role: "user" | "assistant";
   content: string;
+  action?: {
+    type: "create_request";
+    data: {
+      title: string;
+      description?: string;
+      category: string;
+      urgency: string;
+    };
+    confirmMessage: string;
+  };
+  confirmed?: boolean;
 }
 
 export function AIChat() {
@@ -20,17 +31,61 @@ export function AIChat() {
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const queryClient = useQueryClient();
 
   const chatMutation = useMutation({
     mutationFn: async (userMessage: string) => {
-      const newMessages: ChatMessage[] = [...messages, { role: "user", content: userMessage }];
+      const newMessages = messages.map(m => ({ role: m.role, content: m.content }));
+      newMessages.push({ role: "user" as const, content: userMessage });
       const response = await apiRequest("POST", "/api/ai/chat", { messages: newMessages });
       return response.json();
     },
     onSuccess: (data) => {
-      setMessages(prev => [...prev, { role: "assistant", content: data.response }]);
+      setMessages(prev => [...prev, { 
+        role: "assistant", 
+        content: data.response,
+        action: data.action
+      }]);
     },
   });
+
+  const createRequestMutation = useMutation({
+    mutationFn: async (data: { title: string; description?: string; category: string; urgency: string }) => {
+      const response = await apiRequest("POST", "/api/ai/chat/create-request", data);
+      return response.json();
+    },
+    onSuccess: (data, variables) => {
+      setMessages(prev => prev.map((msg, idx) => {
+        if (idx === prev.length - 1 && msg.action) {
+          return { ...msg, confirmed: true, content: data.message };
+        }
+        return msg;
+      }));
+      queryClient.invalidateQueries({ queryKey: ["/api/requests"] });
+    },
+  });
+
+  const handleConfirmRequest = (action: ChatMessage["action"]) => {
+    if (!action || action.type !== "create_request") return;
+    createRequestMutation.mutate(action.data);
+  };
+
+  const handleDeclineRequest = () => {
+    setMessages(prev => {
+      const updated = [...prev];
+      if (updated.length > 0) {
+        const last = updated[updated.length - 1];
+        if (last.action) {
+          updated[updated.length - 1] = { 
+            ...last, 
+            action: undefined, 
+            content: "No problem! Let me know if you need anything else." 
+          };
+        }
+      }
+      return updated;
+    });
+  };
 
   const handleSend = () => {
     if (!input.trim() || chatMutation.isPending) return;
@@ -134,6 +189,36 @@ export function AIChat() {
               data-testid={`chat-message-${msg.role}-${idx}`}
             >
               {msg.content}
+              {msg.action && !msg.confirmed && (
+                <div className="flex gap-2 mt-2 pt-2 border-t border-border/50">
+                  <Button
+                    size="sm"
+                    variant="default"
+                    className="flex-1 h-7 text-xs"
+                    onClick={() => handleConfirmRequest(msg.action)}
+                    disabled={createRequestMutation.isPending}
+                  >
+                    <Check className="h-3 w-3 mr-1" />
+                    Yes, submit it
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="flex-1 h-7 text-xs"
+                    onClick={handleDeclineRequest}
+                    disabled={createRequestMutation.isPending}
+                  >
+                    <XCircle className="h-3 w-3 mr-1" />
+                    No thanks
+                  </Button>
+                </div>
+              )}
+              {msg.confirmed && (
+                <div className="flex items-center gap-1 mt-2 text-xs text-green-600">
+                  <Check className="h-3 w-3" />
+                  Request submitted
+                </div>
+              )}
             </div>
           ))}
           

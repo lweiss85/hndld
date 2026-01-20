@@ -4859,11 +4859,45 @@ export async function registerRoutes(
       }
 
       const { chat } = await import("./services/ai-chat");
-      const response = await chat(messages, householdId);
-      res.json({ response });
+      const result = await chat(messages, householdId);
+      res.json(result);
     } catch (error) {
       console.error("Error in AI chat:", error);
       res.status(500).json({ message: "Failed to process chat" });
+    }
+  });
+
+  app.post("/api/ai/chat/create-request", expensiveLimiter, isAuthenticated, householdContext, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const householdId = req.householdId!;
+      const { title, description, category, urgency } = req.body;
+
+      if (!title) {
+        return res.status(400).json({ message: "Title is required" });
+      }
+
+      const requestData = {
+        title,
+        description: description || null,
+        category: category || "OTHER",
+        urgency: urgency || "MEDIUM",
+        createdBy: userId,
+        householdId,
+      };
+
+      const request = await storage.createRequest(requestData);
+      
+      wsManager.broadcast("request:created", { id: request.id, title: request.title }, householdId, userId);
+      
+      res.status(201).json({ 
+        success: true, 
+        request,
+        message: `I've submitted your request for "${title}". Your assistant will see it right away!`
+      });
+    } catch (error) {
+      console.error("Error creating request from chat:", error);
+      res.status(500).json({ message: "Failed to create request" });
     }
   });
 

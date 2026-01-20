@@ -6,6 +6,20 @@ interface ChatMessage {
   content: string;
 }
 
+interface ChatResponse {
+  response: string;
+  action?: {
+    type: "create_request";
+    data: {
+      title: string;
+      description?: string;
+      category: string;
+      urgency: string;
+    };
+    confirmMessage: string;
+  };
+}
+
 interface HouseholdContext {
   tasks: Array<{ title: string; status: string; category?: string; dueAt?: Date | null }>;
   events: Array<{ title: string; startAt: Date }>;
@@ -58,13 +72,121 @@ export async function getHouseholdContext(householdId: string): Promise<Househol
   };
 }
 
+function detectRequestIntent(message: string): boolean {
+  const lower = message.toLowerCase();
+  const createPatterns = [
+    /i need|i want|can you|please|help me|could you|would you/,
+    /add|create|make|submit|schedule|book|order|arrange|set up|get/,
+    /request|task|reminder/
+  ];
+  const actionWords = ["need", "want", "get", "book", "schedule", "order", "arrange", "hire", "find", "call", "pick up", "buy", "fix", "clean", "organize"];
+  
+  const hasActionWord = actionWords.some(w => lower.includes(w));
+  const hasCreatePattern = createPatterns.some(p => p.test(lower));
+  const isQuestion = lower.includes("?") || lower.startsWith("do ") || lower.startsWith("did ") || lower.startsWith("have ") || lower.startsWith("what ") || lower.startsWith("how ");
+  
+  return hasActionWord && !isQuestion;
+}
+
+async function parseRequestFromMessage(message: string): Promise<{ title: string; description?: string; category: string; urgency: string } | null> {
+  const provider = getActiveProvider();
+  
+  if (provider === "NONE") {
+    return quickParseRequestFromChat(message);
+  }
+  
+  try {
+    const result = await generateCompletion({
+      messages: [
+        { role: "system", content: `You extract request details from natural language. Return ONLY valid JSON with these fields:
+- title: A clear, concise title for the request (max 60 chars)
+- description: Optional additional details
+- category: One of HOUSEHOLD, ERRANDS, MAINTENANCE, GROCERIES, KIDS, PETS, EVENTS, OTHER
+- urgency: One of LOW, MEDIUM, HIGH
+
+If this doesn't seem like a request for help/action, return {"isRequest": false}` },
+        { role: "user", content: message }
+      ],
+      maxTokens: 200,
+      temperature: 0.3,
+    });
+    
+    const parsed = JSON.parse(result);
+    if (parsed.isRequest === false) return null;
+    
+    return {
+      title: parsed.title || message.slice(0, 60),
+      description: parsed.description,
+      category: parsed.category || "OTHER",
+      urgency: parsed.urgency || "MEDIUM"
+    };
+  } catch {
+    return quickParseRequestFromChat(message);
+  }
+}
+
+function quickParseRequestFromChat(message: string): { title: string; description?: string; category: string; urgency: string } | null {
+  const lower = message.toLowerCase();
+  
+  let category = "OTHER";
+  if (lower.includes("grocer") || lower.includes("food") || lower.includes("shopping")) {
+    category = "GROCERIES";
+  } else if (lower.includes("kid") || lower.includes("child") || lower.includes("school")) {
+    category = "KIDS";
+  } else if (lower.includes("pet") || lower.includes("dog") || lower.includes("cat") || lower.includes("vet")) {
+    category = "PETS";
+  } else if (lower.includes("repair") || lower.includes("fix") || lower.includes("plumb") || lower.includes("hvac")) {
+    category = "MAINTENANCE";
+  } else if (lower.includes("pick up") || lower.includes("drop off") || lower.includes("dry clean")) {
+    category = "ERRANDS";
+  } else if (lower.includes("party") || lower.includes("event") || lower.includes("birthday") || lower.includes("dinner")) {
+    category = "EVENTS";
+  } else if (lower.includes("clean") || lower.includes("laundry") || lower.includes("house")) {
+    category = "HOUSEHOLD";
+  }
+  
+  let urgency = "MEDIUM";
+  if (lower.includes("urgent") || lower.includes("asap") || lower.includes("emergency") || lower.includes("today")) {
+    urgency = "HIGH";
+  } else if (lower.includes("whenever") || lower.includes("no rush") || lower.includes("when you can")) {
+    urgency = "LOW";
+  }
+  
+  const title = message.replace(/^(i need|i want|can you|please|help me|could you|would you)\s*/i, "").slice(0, 60);
+  
+  return { title, category, urgency };
+}
+
 export async function chat(
   messages: ChatMessage[],
   householdId: string
-): Promise<string> {
+): Promise<ChatResponse> {
+  const lastMessage = messages[messages.length - 1]?.content || "";
   const provider = getActiveProvider();
+  
+  // Check if user wants to create a request
+  if (detectRequestIntent(lastMessage)) {
+    const requestData = await parseRequestFromMessage(lastMessage);
+    
+    if (requestData) {
+      const categoryNatural = requestData.category.toLowerCase().replace("_", " ");
+      const urgencyNatural = requestData.urgency === "HIGH" ? "urgent" : requestData.urgency === "LOW" ? "low priority" : "normal priority";
+      
+      return {
+        response: `Got it! I'll create a ${categoryNatural} request for "${requestData.title}" (${urgencyNatural}). Should I submit this for you?`,
+        action: {
+          type: "create_request",
+          data: requestData,
+          confirmMessage: `Great, I've submitted your request for "${requestData.title}". Your assistant will see it right away!`
+        }
+      };
+    }
+  }
+  
+  // Regular chat flow
   if (provider === "NONE") {
-    return getSmartDemoResponse(messages[messages.length - 1]?.content || "", householdId);
+    const response = await getSmartDemoResponse(lastMessage, householdId);
+    return { response };
   }
 
   const context = await getHouseholdContext(householdId);
@@ -121,7 +243,7 @@ CRITICAL GUIDELINES:
 9. Keep responses concise but complete`;
 
   try {
-    return await generateCompletion({
+    const response = await generateCompletion({
       messages: [
         { role: "system", content: systemPrompt },
         ...messages,
@@ -129,9 +251,10 @@ CRITICAL GUIDELINES:
       maxTokens: 500,
       temperature: 0.7,
     });
+    return { response };
   } catch (error) {
     console.error("AI chat error:", error);
-    return "I'm having trouble connecting right now. Please try again in a moment.";
+    return { response: "I'm having trouble connecting right now. Please try again in a moment." };
   }
 }
 
