@@ -55,7 +55,7 @@ export function HouseholdSwitcher() {
     queryClient.invalidateQueries({ queryKey: ["/api/access-items"] });
     queryClient.invalidateQueries({ queryKey: ["/api/messages"] });
     queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
-    queryClient.invalidateQueries({ queryKey: ["/api/analytics"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/insights"] });
     triggerHaptic("medium");
     
     toast({

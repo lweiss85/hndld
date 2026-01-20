@@ -175,21 +175,19 @@ export function Header() {
                   Emergency
                 </DropdownMenuItem>
               </Link>
+              <Link href="/insights">
+                <DropdownMenuItem className="gap-2 cursor-pointer" data-testid="menu-item-insights">
+                  <BarChart3 className="h-4 w-4" />
+                  Insights
+                </DropdownMenuItem>
+              </Link>
               {activeRole === "ASSISTANT" && (
-                <>
-                  <Link href="/analytics">
-                    <DropdownMenuItem className="gap-2 cursor-pointer" data-testid="menu-item-analytics">
-                      <BarChart3 className="h-4 w-4" />
-                      Analytics
-                    </DropdownMenuItem>
-                  </Link>
-                  <Link href="/billing">
-                    <DropdownMenuItem className="gap-2 cursor-pointer" data-testid="menu-item-billing">
-                      <CreditCard className="h-4 w-4" />
-                      Billing
-                    </DropdownMenuItem>
-                  </Link>
-                </>
+                <Link href="/billing">
+                  <DropdownMenuItem className="gap-2 cursor-pointer" data-testid="menu-item-billing">
+                    <CreditCard className="h-4 w-4" />
+                    Billing
+                  </DropdownMenuItem>
+                </Link>
               )}
               <DropdownMenuSeparator />
               <DropdownMenuItem 

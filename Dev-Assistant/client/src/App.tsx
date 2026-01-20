@@ -37,7 +37,7 @@ const Terms = lazy(() => import("@/pages/terms"));
 const Privacy = lazy(() => import("@/pages/privacy"));
 const Billing = lazy(() => import("@/pages/billing"));
 const Join = lazy(() => import("@/pages/join"));
-const Analytics = lazy(() => import("@/pages/analytics"));
+const Insights = lazy(() => import("@/pages/insights"));
 const Emergency = lazy(() => import("@/pages/emergency"));
 const Messages = lazy(() => import("@/pages/messages"));
 const Files = lazy(() => import("@/pages/files"));
@@ -95,6 +95,7 @@ function ClientRouter() {
         <Route path="/get-paid"><Redirect to="/pay" /></Route>
         <Route path="/addons" component={Addons} />
         <Route path="/schedule" component={Schedule} />
+        <Route path="/insights" component={Insights} />
         <Route component={NotFound} />
       </Switch>
     </Suspense>
@@ -119,7 +120,7 @@ function AssistantRouter() {
         <Route path="/playbooks" component={Playbooks} />
         <Route path="/organizations" component={Organizations} />
         <Route path="/billing" component={Billing} />
-        <Route path="/analytics" component={Analytics} />
+        <Route path="/insights" component={Insights} />
         <Route path="/emergency" component={Emergency} />
         <Route path="/messages" component={Messages} />
         <Route path="/files" component={Files} />
