@@ -1,0 +1,377 @@
+Fix ALL production-critical security and feature gaps in hndld. Execute these 8 tasks in order.
+
+TASK 1: Install Security Dependencies
+bashnpm install helmet
+
+TASK 2: Update server/index.ts with Security Headers, Health Checks, and Body Limits
+Replace the ENTIRE server/index.ts file with this:
+typescriptimport express, { type Request, Response, NextFunction } from "express";
+import helmet from "helmet";
+import { registerRoutes } from "./routes";
+import { serveStatic } from "./static";
+import { createServer } from "http";
+import { initSentry, getSentryHandlers } from "./lib/sentry";
+import { startCalendarSync, stopCalendarSync } from "./services/scheduler";
+import { wsManager } from "./services/websocket";
+
+const app = express();
+const httpServer = createServer(app);
+
+initSentry(app);
+const sentryHandlers = getSentryHandlers();
+app.use(sentryHandlers.requestHandler);
+
+declare module "http" {
+  interface IncomingMessage {
+    rawBody: unknown;
+  }
+}
+
+// =============================================================================
+// SECURITY HEADERS (Helmet) - CRITICAL FOR PRODUCTION
+// =============================================================================
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com"],
+      imgSrc: ["'self'", "data:", "https:", "blob:"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+      connectSrc: ["'self'", "https://api.stripe.com", "https://api.anthropic.com", "wss:", "https:"],
+      frameSrc: ["'self'", "https://js.stripe.com", "https://hooks.stripe.com"],
+      workerSrc: ["'self'", "blob:"],
+    },
+  },
+  crossOriginEmbedderPolicy: false,
+  crossOriginResourcePolicy: { policy: "cross-origin" },
+}));
+
+// =============================================================================
+// BODY PARSING WITH SIZE LIMITS - PREVENTS DoS
+// =============================================================================
+app.use(
+  express.json({
+    limit: "10mb",
+    verify: (req, _res, buf) => {
+      req.rawBody = buf;
+    },
+  }),
+);
+
+app.use(express.urlencoded({ extended: false, limit: "10mb" }));
+
+// =============================================================================
+// REQUEST LOGGING
+// =============================================================================
+export function log(message: string, source = "express") {
+  const formattedTime = new Date().toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: true,
+  });
+
+  console.log(`${formattedTime} [${source}] ${message}`);
+}
+
+app.use((req, res, next) => {
+  const start = Date.now();
+  const path = req.path;
+  let capturedJsonResponse: Record<string, any> | undefined = undefined;
+
+  const originalResJson = res.json;
+  res.json = function (bodyJson, ...args) {
+    capturedJsonResponse = bodyJson;
+    return originalResJson.apply(res, [bodyJson, ...args]);
+  };
+
+  res.on("finish", () => {
+    const duration = Date.now() - start;
+    if (path.startsWith("/api")) {
+      let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
+      if (capturedJsonResponse) {
+        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
+      }
+
+      log(logLine);
+    }
+  });
+
+  next();
+});
+
+// =============================================================================
+// HEALTH CHECK ENDPOINTS - REQUIRED FOR LOAD BALANCERS
+// =============================================================================
+app.get("/health", (_req, res) => {
+  res.status(200).json({ 
+    status: "healthy", 
+    timestamp: new Date().toISOString(),
+    version: process.env.npm_package_version || "1.0.0"
+  });
+});
+
+app.get("/api/health", (_req, res) => {
+  res.status(200).json({ 
+    status: "healthy", 
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || "development",
+    version: process.env.npm_package_version || "1.0.0"
+  });
+});
+
+// =============================================================================
+// MAIN APP INITIALIZATION
+// =============================================================================
+(async () => {
+  await registerRoutes(httpServer, app);
+
+  app.use(sentryHandlers.errorHandler);
+
+  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+    const status = err.status || err.statusCode || 500;
+    const message = err.message || "Internal Server Error";
+
+    if (process.env.NODE_ENV === "production" && status === 500) {
+      res.status(status).json({ message: "Internal Server Error" });
+    } else {
+      res.status(status).json({ message });
+    }
+  });
+
+  if (process.env.NODE_ENV === "production") {
+    serveStatic(app);
+  } else {
+    const { setupVite } = await import("./vite");
+    await setupVite(httpServer, app);
+  }
+
+  wsManager.initialize(httpServer);
+
+  if (process.env.NODE_ENV === "production" || process.env.ENABLE_CALENDAR_SYNC === "true") {
+    try {
+      startCalendarSync();
+      console.log("[SERVER] Background jobs started");
+    } catch (error) {
+      console.error("[SERVER] Failed to start background jobs:", error);
+    }
+  }
+
+  process.on("SIGTERM", () => {
+    console.log("[SERVER] SIGTERM received, shutting down gracefully...");
+    stopCalendarSync();
+    httpServer.close(() => {
+      console.log("[SERVER] Server closed");
+      process.exit(0);
+    });
+  });
+
+  const port = parseInt(process.env.PORT || "5000", 10);
+  httpServer.listen(
+    {
+      port,
+      host: "0.0.0.0",
+      reusePort: true,
+    },
+    () => {
+      log(`serving on port ${port}`);
+    },
+  );
+})();
+
+TASK 3: Add SameSite Cookie
+In server/replit_integrations/auth/replitAuth.ts, find the cookie configuration (around line 35) and add sameSite: "lax":
+typescriptcookie: {
+  httpOnly: true,
+  secure: true,
+  sameSite: "lax",  // ADD THIS LINE
+  maxAge: sessionTtl,
+},
+
+TASK 4: Create Vault Encryption Module
+Create new file server/lib/vault-encryption.ts:
+typescriptimport crypto from "crypto";
+
+const ALGORITHM = "aes-256-gcm";
+
+function getVaultKey(): Buffer {
+  const secret = process.env.VAULT_ENCRYPTION_KEY || process.env.SESSION_SECRET;
+  if (!secret) {
+    throw new Error("VAULT_ENCRYPTION_KEY or SESSION_SECRET required for vault encryption");
+  }
+  return crypto.scryptSync(secret, "vault-salt-hndld", 32);
+}
+
+export function encryptVaultValue(plaintext: string): string {
+  const key = getVaultKey();
+  const iv = crypto.randomBytes(16);
+  const cipher = crypto.createCipheriv(ALGORITHM, key, iv);
+  
+  let encrypted = cipher.update(plaintext, "utf8", "hex");
+  encrypted += cipher.final("hex");
+  const authTag = cipher.getAuthTag();
+  
+  return `${iv.toString("hex")}:${authTag.toString("hex")}:${encrypted}`;
+}
+
+export function decryptVaultValue(encryptedData: string): string {
+  if (!encryptedData) return "";
+
+  const key = getVaultKey();
+  const parts = encryptedData.split(":");
+  
+  if (parts.length !== 3 || parts[0].length !== 32 || parts[1].length !== 32) {
+    return encryptedData; // Not encrypted, return as-is for migration
+  }
+
+  const [ivHex, authTagHex, encrypted] = parts;
+  
+  try {
+    const iv = Buffer.from(ivHex, "hex");
+    const authTag = Buffer.from(authTagHex, "hex");
+    const decipher = crypto.createDecipheriv(ALGORITHM, key, iv);
+    decipher.setAuthTag(authTag);
+    
+    let decrypted = decipher.update(encrypted, "hex", "utf8");
+    decrypted += decipher.final("utf8");
+    return decrypted;
+  } catch (error) {
+    console.error("[Vault] Decryption failed:", error);
+    throw new Error("Failed to decrypt vault value");
+  }
+}
+
+export function isEncrypted(value: string): boolean {
+  if (!value) return false;
+  const parts = value.split(":");
+  return parts.length === 3 && parts[0].length === 32 && parts[1].length === 32;
+}
+
+TASK 5: Update Access Items Routes to Use Encryption
+In server/routes.ts, add this import near the top with other imports:
+typescriptimport { encryptVaultValue, decryptVaultValue } from "./lib/vault-encryption";
+Then find the access items routes and update them:
+For POST /api/access-items - encrypt before saving:
+typescript// Before creating the access item, encrypt the value:
+const encryptedValue = encryptVaultValue(req.body.value);
+const accessItem = await storage.createAccessItem({
+  ...req.body,
+  value: encryptedValue,
+  householdId,
+});
+// Return with original value for response
+res.json({ ...accessItem, value: req.body.value });
+For GET /api/access-items - decrypt when returning:
+typescript// After fetching, decrypt all values:
+const decryptedItems = accessItems.map(item => ({
+  ...item,
+  value: decryptVaultValue(item.value),
+}));
+res.json(decryptedItems);
+For PATCH /api/access-items/:id - encrypt if value is updated:
+typescript// If value is being updated, encrypt it:
+if (req.body.value) {
+  req.body.value = encryptVaultValue(req.body.value);
+}
+
+TASK 6: Add Service Type to Schema
+In shared/schema.ts, add this enum after the existing enums (around line 15):
+typescriptexport const serviceTypeEnum = pgEnum("service_type", ["PA", "CLEANING"]);
+Then add the serviceType field to the households table:
+typescriptexport const households = pgTable("households", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  organizationId: varchar("organization_id").references(() => organizations.id),
+  serviceType: serviceTypeEnum("service_type").default("PA").notNull(), // ADD THIS
+  createdAt: timestamp("created_at").defaultNow(),
+});
+After adding, run: npm run db:push
+
+TASK 7: Create useServiceType Hook
+Create new file client/src/hooks/use-service-type.ts:
+typescriptimport { useQuery } from "@tanstack/react-query";
+
+interface HouseholdData {
+  id: string;
+  name: string;
+  serviceType: "PA" | "CLEANING";
+}
+
+export function useServiceType() {
+  const { data: household } = useQuery<HouseholdData>({
+    queryKey: ["/api/household"],
+  });
+
+  return {
+    serviceType: household?.serviceType || "PA",
+    isCleaning: household?.serviceType === "CLEANING",
+    isPA: household?.serviceType !== "CLEANING",
+    isLoading: !household,
+  };
+}
+
+TASK 8: Update Bottom Nav for Service Type
+In client/src/components/layout/bottom-nav.tsx:
+
+Add import at top:
+
+typescriptimport { useServiceType } from "@/hooks/use-service-type";
+import { CalendarDays, Sparkles } from "lucide-react";
+
+Add cleaning client tabs array after the existing paClientTabs:
+
+typescriptconst cleaningClientTabs: NavItem[] = [
+  { path: "/", icon: <Home className="h-5 w-5" />, label: "Home" },
+  { path: "/schedule", icon: <CalendarDays className="h-5 w-5" />, label: "Schedule" },
+  { path: "/addons", icon: <Sparkles className="h-5 w-5" />, label: "Add-ons" },
+  { path: "/spending", icon: <Receipt className="h-5 w-5" />, label: "Money" },
+  { path: "/messages", icon: <Mail className="h-5 w-5" />, label: "Messages" },
+];
+
+In the BottomNav component, add the hook:
+
+typescriptconst { isCleaning } = useServiceType();
+
+Update the tabs selection logic:
+
+typescriptconst tabs = activeRole === "ASSISTANT" 
+  ? assistantTabs 
+  : isCleaning 
+    ? cleaningClientTabs 
+    : paClientTabs;
+
+TASK 9: Add /api/household Endpoint
+In server/routes.ts, add this route (near other household routes):
+typescriptapp.get("/api/household", isAuthenticated, householdContext, async (req: any, res) => {
+  try {
+    const householdId = req.householdId;
+    const household = await storage.getHousehold(householdId);
+    res.json(household);
+  } catch (error) {
+    console.error("Error fetching household:", error);
+    res.status(500).json({ message: "Failed to fetch household" });
+  }
+});
+
+TASK 10: Update .env.example
+Add to .env.example:
+bash# -----------------------------------------------------------------------------
+# Vault Encryption (Recommended for production)
+# -----------------------------------------------------------------------------
+VAULT_ENCRYPTION_KEY=your-vault-encryption-key-minimum-32-characters
+# Generate with: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+
+Verification Steps
+After completing all tasks:
+
+Test health endpoint:
+
+bash   curl http://localhost:5000/health
+
+Check security headers:
+
+bash   curl -I http://localhost:5000 | grep -i "x-frame\|x-content\|strict"
+
+Run the app and verify no errors
+Test creating an access item - the value should be encrypted in the database
