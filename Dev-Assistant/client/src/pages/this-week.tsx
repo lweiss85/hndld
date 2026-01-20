@@ -486,7 +486,7 @@ export default function ThisWeek() {
 
       <LuxuryCard>
         <h2 className="text-xl font-semibold text-foreground mb-1">
-          This week is handled.
+          This week is hndld.
         </h2>
           <p className="text-sm text-muted-foreground mb-4">
             {priorityTasks.length} priorities 
