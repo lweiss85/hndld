@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { 
   Check, 
+  CheckCircle,
   X, 
   MessageSquare, 
   DollarSign, 
@@ -183,13 +184,13 @@ export default function Approvals() {
       )}
 
       {pendingApprovals.length === 0 && pastApprovals.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-12 text-center">
-          <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
-            <Check className="h-8 w-8 text-muted-foreground" />
-          </div>
-          <h3 className="font-medium text-lg mb-1">All caught up.</h3>
-          <p className="text-sm text-muted-foreground">Everything's hndld.</p>
-        </div>
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+            <CheckCircle className="w-12 h-12 text-green-500 mb-3" />
+            <p className="font-medium">All caught up.</p>
+            <p className="text-sm text-muted-foreground">Everything's hndld.</p>
+          </CardContent>
+        </Card>
       ) : (
         <div className="space-y-6">
           {pendingApprovals.length > 0 && (
