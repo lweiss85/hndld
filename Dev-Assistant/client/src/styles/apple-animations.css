@@ -423,6 +423,15 @@
   animation: reaction-pop 0.3s var(--apple-bounce);
 }
 
+@keyframes checkmark-pop {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.3); }
+}
+
+.animate-checkmark-pop {
+  animation: checkmark-pop 0.5s ease-in-out infinite;
+}
+
 @keyframes shake {
   0%, 100% { transform: rotate(0deg); }
   25% { transform: rotate(-8deg); }

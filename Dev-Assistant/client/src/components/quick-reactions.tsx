@@ -159,7 +159,7 @@ export function QuickReactions({ entityType, entityId, compact = false }: QuickR
                   >
                     <Icon className={cn(
                       "h-3.5 w-3.5 transition-all duration-200",
-                      isSelected && reaction.type === "LOOKS_GOOD" && "text-emerald-500",
+                      isSelected && reaction.type === "LOOKS_GOOD" && "text-emerald-500 animate-checkmark-pop",
                       isSelected && reaction.type === "LOVE_IT" && "fill-red-500 text-red-500",
                       isSelected && reaction.type === "SAVE_THIS" && "text-yellow-500 fill-yellow-500 animate-shake",
                       isSelected && reaction.type === "PLEASE_ADJUST" && "text-orange-500 animate-spin-slow",
