@@ -153,35 +153,19 @@ export function QuickReactions({ entityType, entityId, compact = false }: QuickR
                     disabled={reactionMutation.isPending}
                     className={cn(
                       "gap-1 text-xs relative overflow-visible transition-all duration-200",
-                      compact && "h-7 px-2",
-                      isSelected && reaction.type === "LOOKS_GOOD" && "bg-emerald-500 hover:bg-emerald-600 text-white",
-                      isSelected && reaction.type === "LOVE_IT" && "bg-red-500 hover:bg-red-600 text-white",
-                      isSelected && reaction.type !== "LOOKS_GOOD" && reaction.type !== "LOVE_IT" && "bg-primary text-primary-foreground hover:bg-primary/90",
-                      isAnimating && "animate-reaction-pop"
+                      compact && "h-7 px-2"
                     )}
                     data-testid={`reaction-${reaction.type.toLowerCase()}-${entityId}`}
                   >
-                    {isAnimating && (
-                      <span className="absolute inset-0 rounded-md animate-ripple-out bg-primary/20 pointer-events-none" />
-                    )}
                     <Icon className={cn(
                       "h-3.5 w-3.5 transition-all duration-200",
-                      isSelected && (reaction.type === "LOOKS_GOOD" || reaction.type === "LOVE_IT") && "text-white",
-                      reaction.type === "LOVE_IT" && isSelected && "fill-current",
-                      isAnimating && "scale-125"
+                      isSelected && reaction.type === "LOOKS_GOOD" && "text-emerald-500",
+                      isSelected && reaction.type === "LOVE_IT" && "fill-red-500 text-red-500",
+                      isSelected && reaction.type === "SAVE_THIS" && "text-yellow-500 fill-yellow-500 animate-shake",
+                      isSelected && reaction.type === "PLEASE_ADJUST" && "text-orange-500 animate-spin-slow",
+                      isSelected && reaction.type === "NEED_DETAILS" && "text-[#800000] animate-bounce-subtle"
                     )} />
                     {!compact && <span>{reaction.shortLabel}</span>}
-                    {count > 0 && (
-                      <Badge 
-                        variant="secondary" 
-                        className={cn(
-                          "ml-0.5 h-4 px-1 text-[10px]",
-                          isCountAnimating && "animate-count-pop"
-                        )}
-                      >
-                        {count}
-                      </Badge>
-                    )}
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent side="top">{reaction.label}</TooltipContent>
