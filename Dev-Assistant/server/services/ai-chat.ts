@@ -74,18 +74,32 @@ export async function getHouseholdContext(householdId: string): Promise<Househol
 
 function detectRequestIntent(message: string): boolean {
   const lower = message.toLowerCase();
-  const createPatterns = [
-    /i need|i want|can you|please|help me|could you|would you/,
-    /add|create|make|submit|schedule|book|order|arrange|set up|get/,
-    /request|task|reminder/
+  
+  // Explicit creation requests - these always count, even with question marks
+  const explicitCreatePatterns = [
+    /create a (request|task|reminder)/,
+    /add a (request|task|reminder)/,
+    /make a (request|task|reminder)/,
+    /submit a (request|task)/,
+    /can you (create|add|make|submit|schedule|book|arrange|set up)/,
+    /could you (create|add|make|submit|schedule|book|arrange|set up)/,
+    /would you (create|add|make|submit|schedule|book|arrange|set up)/,
+    /please (create|add|make|submit|schedule|book|arrange|set up)/,
+    /i('d| would) like (to |you to )?(create|add|make|schedule|book|arrange)/,
   ];
+  
+  if (explicitCreatePatterns.some(p => p.test(lower))) {
+    return true;
+  }
+  
+  // Implicit action requests (need, want, etc.) - exclude actual questions
   const actionWords = ["need", "want", "get", "book", "schedule", "order", "arrange", "hire", "find", "call", "pick up", "buy", "fix", "clean", "organize"];
-  
   const hasActionWord = actionWords.some(w => lower.includes(w));
-  const hasCreatePattern = createPatterns.some(p => p.test(lower));
-  const isQuestion = lower.includes("?") || lower.startsWith("do ") || lower.startsWith("did ") || lower.startsWith("have ") || lower.startsWith("what ") || lower.startsWith("how ");
   
-  return hasActionWord && !isQuestion;
+  // These are inquiry questions, not action requests
+  const isInquiry = lower.startsWith("do i ") || lower.startsWith("did i ") || lower.startsWith("have i ") || lower.startsWith("what ") || lower.startsWith("how ") || lower.startsWith("when ");
+  
+  return hasActionWord && !isInquiry;
 }
 
 async function parseRequestFromMessage(message: string): Promise<{ title: string; description?: string; category: string; urgency: string } | null> {
