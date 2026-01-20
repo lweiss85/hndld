@@ -7,8 +7,10 @@ interface ChatMessage {
 }
 
 interface HouseholdContext {
-  tasks: Array<{ title: string; status: string; dueAt?: Date | null }>;
+  tasks: Array<{ title: string; status: string; category?: string; dueAt?: Date | null }>;
   events: Array<{ title: string; startAt: Date }>;
+  requests: Array<{ title: string; description?: string; category: string; createdAt: Date }>;
+  approvals: Array<{ title: string; amount?: number; status: string }>;
   pendingApprovals: number;
   pendingRequests: number;
   recentUpdates: Array<{ text: string }>;
@@ -30,13 +32,28 @@ export async function getHouseholdContext(householdId: string): Promise<Househol
     tasks: tasks
       .filter(t => t.status !== "DONE")
       .slice(0, 10)
-      .map(t => ({ title: t.title, status: t.status!, dueAt: t.dueAt })),
+      .map(t => ({ title: t.title, status: t.status!, category: t.category || undefined, dueAt: t.dueAt })),
     events: events
       .filter(e => e.startAt && new Date(e.startAt) >= now && new Date(e.startAt) <= weekFromNow)
       .slice(0, 10)
       .map(e => ({ title: e.title, startAt: new Date(e.startAt!) })),
+    requests: requests
+      .slice(0, 10)
+      .map(r => ({ 
+        title: r.title, 
+        description: r.description || undefined, 
+        category: r.category || "OTHER",
+        createdAt: new Date(r.createdAt!)
+      })),
+    approvals: approvals
+      .slice(0, 10)
+      .map(a => ({ 
+        title: a.title, 
+        amount: a.amount ? Number(a.amount) : undefined, 
+        status: a.status || "PENDING" 
+      })),
     pendingApprovals: approvals.filter(a => a.status === "PENDING").length,
-    pendingRequests: requests.filter(r => (r as any).status === "PENDING").length,
+    pendingRequests: requests.length,
     recentUpdates: updates.slice(0, 3).map(u => ({ text: u.text.slice(0, 100) })),
   };
 }
@@ -54,12 +71,23 @@ export async function chat(
   
   const taskDetails = context.tasks.map(t => {
     const dueInfo = t.dueAt ? ` (due: ${new Date(t.dueAt).toLocaleDateString()})` : "";
-    return `• ${t.title} [${t.status}]${dueInfo}`;
+    const catInfo = t.category ? ` [${t.category}]` : "";
+    return `• ${t.title}${catInfo} - ${t.status}${dueInfo}`;
   }).join("\n");
 
   const eventDetails = context.events.map(e => {
     const date = new Date(e.startAt);
     return `• ${e.title} - ${date.toLocaleDateString()} at ${date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`;
+  }).join("\n");
+
+  const requestDetails = context.requests.map(r => {
+    const date = new Date(r.createdAt);
+    return `• ${r.title} [${r.category}] - requested ${date.toLocaleDateString()}${r.description ? `: ${r.description}` : ""}`;
+  }).join("\n");
+
+  const approvalDetails = context.approvals.map(a => {
+    const amountInfo = a.amount ? ` - $${a.amount}` : "";
+    return `• ${a.title}${amountInfo} [${a.status}]`;
   }).join("\n");
 
   const systemPrompt = `You are a knowledgeable household assistant for hndld. You have FULL ACCESS to the household's data and should DIRECTLY ANSWER questions with specific information.
@@ -69,25 +97,28 @@ CURRENT HOUSEHOLD DATA:
 TASKS (${context.tasks.length} active):
 ${taskDetails || "No active tasks"}
 
+REQUESTS SUBMITTED (${context.requests.length}):
+${requestDetails || "No requests"}
+
+APPROVALS (${context.approvals.length}):
+${approvalDetails || "No approvals"}
+
 UPCOMING EVENTS (${context.events.length} this week):
 ${eventDetails || "No events this week"}
-
-PENDING ITEMS:
-- ${context.pendingApprovals} approvals awaiting review
-- ${context.pendingRequests} requests pending
 
 RECENT UPDATES:
 ${context.recentUpdates.map(u => `• ${u.text}`).join("\n") || "No recent updates"}
 
 CRITICAL GUIDELINES:
 1. DIRECTLY ANSWER with specific data - DO NOT tell users to "check the app" or "go to a tab"
-2. When asked about tasks, list the actual tasks with their status and due dates
-3. When asked about events, give the actual event names, dates, and times
-4. When asked about spending or approvals, give specific counts and details
-5. If information isn't in the context above, say so honestly
-6. After answering, you may mention where to find more details or take action
-7. Be warm, professional, and specific
-8. Keep responses concise but complete`;
+2. When asked about requests, search the REQUESTS list above and tell them exactly what they've requested
+3. When asked about tasks, list the actual tasks with their status and due dates
+4. When asked about groceries, check both REQUESTS and TASKS for grocery-related items
+5. When asked about approvals, give the actual approval titles and amounts
+6. If information isn't in the data above, say so honestly
+7. After answering, you may briefly mention where to take action
+8. Be warm, professional, and specific
+9. Keep responses concise but complete`;
 
   try {
     return await generateCompletion({
@@ -108,6 +139,44 @@ async function getSmartDemoResponse(userMessage: string, householdId: string): P
   const lowerMessage = userMessage.toLowerCase();
   const context = await getHouseholdContext(householdId);
   
+  // Check for grocery-related queries first (common question)
+  if (lowerMessage.includes("grocer")) {
+    const groceryRequests = context.requests.filter(r => 
+      r.category === "GROCERIES" || r.title.toLowerCase().includes("grocer")
+    );
+    const groceryTasks = context.tasks.filter(t => 
+      t.category === "GROCERIES" || t.title.toLowerCase().includes("grocer")
+    );
+    
+    const results = [];
+    if (groceryRequests.length > 0) {
+      results.push(`Requests:\n${groceryRequests.map(r => `• ${r.title} - requested ${new Date(r.createdAt).toLocaleDateString()}`).join("\n")}`);
+    }
+    if (groceryTasks.length > 0) {
+      results.push(`Tasks:\n${groceryTasks.map(t => {
+        const dueInfo = t.dueAt ? ` (due: ${new Date(t.dueAt).toLocaleDateString()})` : "";
+        return `• ${t.title} [${t.status}]${dueInfo}`;
+      }).join("\n")}`);
+    }
+    
+    if (results.length > 0) {
+      return `Here's what I found for groceries:\n\n${results.join("\n\n")}`;
+    }
+    return "I don't see any grocery-related requests or tasks right now.";
+  }
+  
+  // Check for request-related queries
+  if (lowerMessage.includes("request")) {
+    if (context.requests.length === 0) {
+      return "You don't have any requests submitted right now.";
+    }
+    const requestList = context.requests.slice(0, 5).map(r => {
+      const date = new Date(r.createdAt);
+      return `• ${r.title} [${r.category}] - ${date.toLocaleDateString()}`;
+    }).join("\n");
+    return `Here are your requests:\n\n${requestList}${context.requests.length > 5 ? `\n\n...and ${context.requests.length - 5} more.` : ""}`;
+  }
+  
   if (lowerMessage.includes("schedule") || lowerMessage.includes("calendar") || lowerMessage.includes("event")) {
     if (context.events.length === 0) {
       return "You don't have any events scheduled this week. Would you like to add something to the calendar?";
@@ -119,7 +188,7 @@ async function getSmartDemoResponse(userMessage: string, householdId: string): P
     return `Here are your upcoming events:\n\n${eventList}${context.events.length > 5 ? `\n\n...and ${context.events.length - 5} more in your Calendar.` : ""}`;
   }
   
-  if (lowerMessage.includes("task") || lowerMessage.includes("todo") || lowerMessage.includes("to do") || lowerMessage.includes("what") && lowerMessage.includes("do")) {
+  if (lowerMessage.includes("task") || lowerMessage.includes("todo") || lowerMessage.includes("to do") || (lowerMessage.includes("what") && lowerMessage.includes("do"))) {
     if (context.tasks.length === 0) {
       return "Great news - you don't have any active tasks right now!";
     }
@@ -131,10 +200,17 @@ async function getSmartDemoResponse(userMessage: string, householdId: string): P
   }
   
   if (lowerMessage.includes("approval") || lowerMessage.includes("approve")) {
-    if (context.pendingApprovals === 0) {
+    if (context.approvals.length === 0) {
       return "No pending approvals right now - all caught up!";
     }
-    return `You have ${context.pendingApprovals} item${context.pendingApprovals > 1 ? "s" : ""} awaiting your approval. Open Approvals to review the details.`;
+    const approvalList = context.approvals.filter(a => a.status === "PENDING").slice(0, 5).map(a => {
+      const amountInfo = a.amount ? ` - $${a.amount}` : "";
+      return `• ${a.title}${amountInfo}`;
+    }).join("\n");
+    if (!approvalList) {
+      return "No pending approvals right now - all caught up!";
+    }
+    return `Here are your pending approvals:\n\n${approvalList}`;
   }
   
   if (lowerMessage.includes("spending") || lowerMessage.includes("money") || lowerMessage.includes("expense")) {
@@ -142,11 +218,12 @@ async function getSmartDemoResponse(userMessage: string, householdId: string): P
   }
   
   if (lowerMessage.includes("help") || lowerMessage.includes("what can you")) {
-    return "I can tell you about your tasks, upcoming events, pending approvals, and household updates. Just ask me something specific like 'What tasks do I have?' or 'What's on my calendar?'";
+    return "I can tell you about your tasks, requests, upcoming events, pending approvals, and household updates. Just ask me something specific like 'What tasks do I have?', 'Did I request groceries?', or 'What's on my calendar?'";
   }
   
   const summary = [];
   if (context.tasks.length > 0) summary.push(`${context.tasks.length} active task${context.tasks.length > 1 ? "s" : ""}`);
+  if (context.requests.length > 0) summary.push(`${context.requests.length} request${context.requests.length > 1 ? "s" : ""}`);
   if (context.events.length > 0) summary.push(`${context.events.length} event${context.events.length > 1 ? "s" : ""} this week`);
   if (context.pendingApprovals > 0) summary.push(`${context.pendingApprovals} pending approval${context.pendingApprovals > 1 ? "s" : ""}`);
   
