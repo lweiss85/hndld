@@ -46,6 +46,7 @@ const GetPaid = lazy(() => import("@/pages/get-paid"));
 const Pay = lazy(() => import("@/pages/pay"));
 const Addons = lazy(() => import("@/pages/addons"));
 const Schedule = lazy(() => import("@/pages/schedule"));
+const ManageAddons = lazy(() => import("@/pages/manage-addons"));
 
 function LoadingScreen() {
   return (
@@ -125,6 +126,7 @@ function AssistantRouter() {
         <Route path="/payment-profile" component={PaymentProfile} />
         <Route path="/get-paid" component={GetPaid} />
         <Route path="/pay"><Redirect to="/get-paid" /></Route>
+        <Route path="/manage-addons" component={ManageAddons} />
         <Route component={NotFound} />
       </Switch>
     </Suspense>

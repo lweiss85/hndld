@@ -228,6 +228,19 @@ export interface IStorage {
   updateServiceMembership(id: string, data: Partial<InsertHouseholdServiceMembership>): Promise<HouseholdServiceMembership | undefined>;
   deleteServiceMembership(id: string): Promise<boolean>;
   getUserServiceTypes(householdId: string, userId: string): Promise<{ serviceType: string; serviceRole: string }[]>;
+  
+  // Add-on Services
+  getAddonServices(householdId: string): Promise<AddonService[]>;
+  getAddonServiceById(id: string): Promise<AddonService | undefined>;
+  createAddonService(data: InsertAddonService): Promise<AddonService>;
+  updateAddonService(id: string, data: Partial<InsertAddonService>): Promise<AddonService | undefined>;
+  deleteAddonService(id: string): Promise<boolean>;
+  
+  // Cleaning Visits
+  getCleaningVisits(householdId: string): Promise<CleaningVisit[]>;
+  getNextCleaningVisit(householdId: string): Promise<CleaningVisit | undefined>;
+  createCleaningVisit(data: InsertCleaningVisit): Promise<CleaningVisit>;
+  updateCleaningVisit(id: string, data: Partial<InsertCleaningVisit>): Promise<CleaningVisit | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1215,6 +1228,20 @@ export class DatabaseStorage implements IStorage {
       .where(eq(addonServices.id, id))
       .returning();
     return updated;
+  }
+
+  async deleteAddonService(id: string): Promise<boolean> {
+    const [deleted] = await db.update(addonServices)
+      .set({ isActive: false })
+      .where(eq(addonServices.id, id))
+      .returning();
+    return !!deleted;
+  }
+
+  async getAddonServiceById(id: string): Promise<AddonService | undefined> {
+    const [service] = await db.select().from(addonServices)
+      .where(eq(addonServices.id, id));
+    return service;
   }
 
   // Cleaning Visits

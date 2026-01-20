@@ -782,6 +782,108 @@ export async function registerRoutes(
     }
   });
 
+  app.post("/api/addon-services", isAuthenticated, householdContext, async (req: any, res) => {
+    try {
+      const householdId = req.householdId!;
+      const userProfile = req.userProfile;
+      
+      if (userProfile?.role !== "ASSISTANT") {
+        return res.status(403).json({ message: "Only assistants can manage add-on services" });
+      }
+      
+      const { name, description, priceInCents, estimatedMinutes, category, sortOrder } = req.body;
+      
+      if (!name || priceInCents === undefined) {
+        return res.status(400).json({ message: "Name and price are required" });
+      }
+      
+      const parsedPrice = parseInt(priceInCents, 10);
+      if (isNaN(parsedPrice) || parsedPrice < 0) {
+        return res.status(400).json({ message: "Price must be a valid positive number" });
+      }
+      
+      const addon = await storage.createAddonService({
+        householdId,
+        name,
+        description,
+        priceInCents: parsedPrice,
+        estimatedMinutes: estimatedMinutes ? parseInt(estimatedMinutes, 10) : undefined,
+        category,
+        sortOrder: sortOrder ? parseInt(sortOrder, 10) : 0,
+        isActive: true,
+      });
+      
+      res.status(201).json(addon);
+    } catch (error) {
+      console.error("Error creating addon service:", error);
+      res.status(500).json({ message: "Failed to create addon service" });
+    }
+  });
+
+  app.patch("/api/addon-services/:id", isAuthenticated, householdContext, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const userProfile = req.userProfile;
+      const householdId = req.householdId!;
+      
+      if (userProfile?.role !== "ASSISTANT") {
+        return res.status(403).json({ message: "Only assistants can manage add-on services" });
+      }
+      
+      const existing = await storage.getAddonServiceById(id);
+      if (!existing || existing.householdId !== householdId) {
+        return res.status(404).json({ message: "Add-on service not found" });
+      }
+      
+      const { name, description, priceInCents, estimatedMinutes, category, sortOrder, isActive } = req.body;
+      
+      if (priceInCents !== undefined) {
+        const parsedPrice = parseInt(priceInCents, 10);
+        if (isNaN(parsedPrice) || parsedPrice < 0) {
+          return res.status(400).json({ message: "Price must be a valid positive number" });
+        }
+      }
+      
+      const updateData: Record<string, any> = {};
+      if (name !== undefined) updateData.name = name;
+      if (description !== undefined) updateData.description = description;
+      if (priceInCents !== undefined) updateData.priceInCents = parseInt(priceInCents, 10);
+      if (estimatedMinutes !== undefined) updateData.estimatedMinutes = parseInt(estimatedMinutes, 10);
+      if (category !== undefined) updateData.category = category;
+      if (sortOrder !== undefined) updateData.sortOrder = parseInt(sortOrder, 10);
+      if (isActive !== undefined) updateData.isActive = isActive;
+      
+      const addon = await storage.updateAddonService(id, updateData);
+      res.json(addon);
+    } catch (error) {
+      console.error("Error updating addon service:", error);
+      res.status(500).json({ message: "Failed to update addon service" });
+    }
+  });
+
+  app.delete("/api/addon-services/:id", isAuthenticated, householdContext, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const userProfile = req.userProfile;
+      const householdId = req.householdId!;
+      
+      if (userProfile?.role !== "ASSISTANT") {
+        return res.status(403).json({ message: "Only assistants can manage add-on services" });
+      }
+      
+      const existing = await storage.getAddonServiceById(id);
+      if (!existing || existing.householdId !== householdId) {
+        return res.status(404).json({ message: "Add-on service not found" });
+      }
+      
+      await storage.deleteAddonService(id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting addon service:", error);
+      res.status(500).json({ message: "Failed to delete addon service" });
+    }
+  });
+
   app.get("/api/cleaning/next", isAuthenticated, householdContext, async (req: any, res) => {
     try {
       const householdId = req.householdId!;
