@@ -135,6 +135,33 @@ CRITICAL GUIDELINES:
   }
 }
 
+function formatStatusNaturally(status: string): string {
+  const statusMap: Record<string, string> = {
+    "INBOX": "waiting to be started",
+    "PLANNED": "planned",
+    "IN_PROGRESS": "in progress",
+    "WAITING": "waiting on someone",
+    "DONE": "completed",
+    "PENDING": "pending"
+  };
+  return statusMap[status] || status.toLowerCase();
+}
+
+function formatDateNaturally(date: Date): string {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const targetDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const diffDays = Math.floor((targetDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+  
+  if (diffDays === 0) return "today";
+  if (diffDays === 1) return "tomorrow";
+  if (diffDays === -1) return "yesterday";
+  if (diffDays > 1 && diffDays <= 7) return `in ${diffDays} days`;
+  if (diffDays < -1 && diffDays >= -7) return `${Math.abs(diffDays)} days ago`;
+  
+  return date.toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" });
+}
+
 async function getSmartDemoResponse(userMessage: string, householdId: string): Promise<string> {
   const lowerMessage = userMessage.toLowerCase();
   const context = await getHouseholdContext(householdId);
@@ -148,90 +175,121 @@ async function getSmartDemoResponse(userMessage: string, householdId: string): P
       t.category === "GROCERIES" || t.title.toLowerCase().includes("grocer")
     );
     
-    const results = [];
-    if (groceryRequests.length > 0) {
-      results.push(`Requests:\n${groceryRequests.map(r => `• ${r.title} - requested ${new Date(r.createdAt).toLocaleDateString()}`).join("\n")}`);
-    }
-    if (groceryTasks.length > 0) {
-      results.push(`Tasks:\n${groceryTasks.map(t => {
-        const dueInfo = t.dueAt ? ` (due: ${new Date(t.dueAt).toLocaleDateString()})` : "";
-        return `• ${t.title} [${t.status}]${dueInfo}`;
-      }).join("\n")}`);
+    if (groceryRequests.length === 0 && groceryTasks.length === 0) {
+      return "I checked your requests and tasks, and I don't see anything related to groceries right now. Would you like to add a grocery request?";
     }
     
-    if (results.length > 0) {
-      return `Here's what I found for groceries:\n\n${results.join("\n\n")}`;
+    const parts = [];
+    if (groceryRequests.length > 0) {
+      const reqList = groceryRequests.map(r => 
+        `"${r.title}" which you requested ${formatDateNaturally(new Date(r.createdAt))}`
+      ).join(", and ");
+      parts.push(`You have ${groceryRequests.length === 1 ? "a request for" : "requests for"} ${reqList}`);
     }
-    return "I don't see any grocery-related requests or tasks right now.";
+    if (groceryTasks.length > 0) {
+      const taskList = groceryTasks.map(t => {
+        const dueInfo = t.dueAt ? `, due ${formatDateNaturally(new Date(t.dueAt))}` : "";
+        return `"${t.title}" which is ${formatStatusNaturally(t.status)}${dueInfo}`;
+      }).join(", and ");
+      parts.push(`${groceryRequests.length > 0 ? "There's also" : "You have"} ${groceryTasks.length === 1 ? "a task for" : "tasks for"} ${taskList}`);
+    }
+    
+    return parts.join(". ") + ".";
   }
   
   // Check for request-related queries
   if (lowerMessage.includes("request")) {
     if (context.requests.length === 0) {
-      return "You don't have any requests submitted right now.";
+      return "You haven't submitted any requests yet. If you need something done, just let me know!";
     }
-    const requestList = context.requests.slice(0, 5).map(r => {
-      const date = new Date(r.createdAt);
-      return `• ${r.title} [${r.category}] - ${date.toLocaleDateString()}`;
-    }).join("\n");
-    return `Here are your requests:\n\n${requestList}${context.requests.length > 5 ? `\n\n...and ${context.requests.length - 5} more.` : ""}`;
+    if (context.requests.length === 1) {
+      const r = context.requests[0];
+      return `You have one request: "${r.title}" which you submitted ${formatDateNaturally(new Date(r.createdAt))}.`;
+    }
+    const first3 = context.requests.slice(0, 3).map(r => 
+      `"${r.title}" from ${formatDateNaturally(new Date(r.createdAt))}`
+    ).join(", ");
+    const remaining = context.requests.length > 3 ? `, and ${context.requests.length - 3} more` : "";
+    return `You have ${context.requests.length} requests: ${first3}${remaining}.`;
   }
   
   if (lowerMessage.includes("schedule") || lowerMessage.includes("calendar") || lowerMessage.includes("event")) {
     if (context.events.length === 0) {
-      return "You don't have any events scheduled this week. Would you like to add something to the calendar?";
+      return "Your calendar is clear this week! Would you like to schedule something?";
     }
-    const eventList = context.events.slice(0, 5).map(e => {
-      const date = new Date(e.startAt);
-      return `• ${e.title} - ${date.toLocaleDateString()} at ${date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`;
-    }).join("\n");
-    return `Here are your upcoming events:\n\n${eventList}${context.events.length > 5 ? `\n\n...and ${context.events.length - 5} more in your Calendar.` : ""}`;
+    if (context.events.length === 1) {
+      const e = context.events[0];
+      const time = new Date(e.startAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+      return `You have one event coming up: "${e.title}" ${formatDateNaturally(new Date(e.startAt))} at ${time}.`;
+    }
+    const eventList = context.events.slice(0, 3).map(e => {
+      const time = new Date(e.startAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+      return `"${e.title}" ${formatDateNaturally(new Date(e.startAt))} at ${time}`;
+    }).join(", ");
+    const remaining = context.events.length > 3 ? `, plus ${context.events.length - 3} more this week` : "";
+    return `You have ${context.events.length} events coming up: ${eventList}${remaining}.`;
   }
   
   if (lowerMessage.includes("task") || lowerMessage.includes("todo") || lowerMessage.includes("to do") || (lowerMessage.includes("what") && lowerMessage.includes("do"))) {
     if (context.tasks.length === 0) {
-      return "Great news - you don't have any active tasks right now!";
+      return "You're all caught up! No active tasks right now.";
     }
-    const taskList = context.tasks.slice(0, 5).map(t => {
-      const dueInfo = t.dueAt ? ` (due: ${new Date(t.dueAt).toLocaleDateString()})` : "";
-      return `• ${t.title} [${t.status}]${dueInfo}`;
-    }).join("\n");
-    return `Here are your active tasks:\n\n${taskList}${context.tasks.length > 5 ? `\n\n...and ${context.tasks.length - 5} more in your Tasks list.` : ""}`;
+    if (context.tasks.length === 1) {
+      const t = context.tasks[0];
+      const dueInfo = t.dueAt ? `, due ${formatDateNaturally(new Date(t.dueAt))}` : "";
+      return `You have one task: "${t.title}" which is ${formatStatusNaturally(t.status)}${dueInfo}.`;
+    }
+    const taskList = context.tasks.slice(0, 3).map(t => {
+      const dueInfo = t.dueAt ? ` (due ${formatDateNaturally(new Date(t.dueAt))})` : "";
+      return `"${t.title}" is ${formatStatusNaturally(t.status)}${dueInfo}`;
+    }).join(", ");
+    const remaining = context.tasks.length > 3 ? `, and ${context.tasks.length - 3} more` : "";
+    return `You have ${context.tasks.length} active tasks: ${taskList}${remaining}.`;
   }
   
   if (lowerMessage.includes("approval") || lowerMessage.includes("approve")) {
-    if (context.approvals.length === 0) {
-      return "No pending approvals right now - all caught up!";
+    const pending = context.approvals.filter(a => a.status === "PENDING");
+    if (pending.length === 0) {
+      return "All caught up! No approvals waiting for you.";
     }
-    const approvalList = context.approvals.filter(a => a.status === "PENDING").slice(0, 5).map(a => {
-      const amountInfo = a.amount ? ` - $${a.amount}` : "";
-      return `• ${a.title}${amountInfo}`;
-    }).join("\n");
-    if (!approvalList) {
-      return "No pending approvals right now - all caught up!";
+    if (pending.length === 1) {
+      const a = pending[0];
+      const amountInfo = a.amount ? ` for $${a.amount}` : "";
+      return `There's one item waiting for your approval: "${a.title}"${amountInfo}.`;
     }
-    return `Here are your pending approvals:\n\n${approvalList}`;
+    const total = pending.reduce((sum, a) => sum + (a.amount || 0), 0);
+    const totalInfo = total > 0 ? ` totaling $${total.toFixed(2)}` : "";
+    return `You have ${pending.length} items waiting for your approval${totalInfo}.`;
   }
   
   if (lowerMessage.includes("spending") || lowerMessage.includes("money") || lowerMessage.includes("expense")) {
-    return "I can see your spending data. For detailed amounts and categories, check the Pay section where you'll find invoices and expense breakdowns.";
+    return "I can help you track spending! You can find detailed expense breakdowns in the Pay section.";
   }
   
   if (lowerMessage.includes("help") || lowerMessage.includes("what can you")) {
-    return "I can tell you about your tasks, requests, upcoming events, pending approvals, and household updates. Just ask me something specific like 'What tasks do I have?', 'Did I request groceries?', or 'What's on my calendar?'";
+    return "I'm here to help! You can ask me things like \"What's on my calendar?\", \"Do I have any grocery requests?\", or \"What tasks need to be done?\" and I'll give you the details.";
   }
   
-  const summary = [];
-  if (context.tasks.length > 0) summary.push(`${context.tasks.length} active task${context.tasks.length > 1 ? "s" : ""}`);
-  if (context.requests.length > 0) summary.push(`${context.requests.length} request${context.requests.length > 1 ? "s" : ""}`);
-  if (context.events.length > 0) summary.push(`${context.events.length} event${context.events.length > 1 ? "s" : ""} this week`);
-  if (context.pendingApprovals > 0) summary.push(`${context.pendingApprovals} pending approval${context.pendingApprovals > 1 ? "s" : ""}`);
-  
-  if (summary.length > 0) {
-    return `Here's a quick overview: You have ${summary.join(", ")}. What would you like to know more about?`;
+  // Natural overview
+  const parts = [];
+  if (context.tasks.length > 0) {
+    parts.push(`${context.tasks.length} task${context.tasks.length > 1 ? "s" : ""} to keep track of`);
+  }
+  if (context.requests.length > 0) {
+    parts.push(`${context.requests.length} request${context.requests.length > 1 ? "s" : ""} submitted`);
+  }
+  if (context.events.length > 0) {
+    parts.push(`${context.events.length} event${context.events.length > 1 ? "s" : ""} this week`);
+  }
+  if (context.pendingApprovals > 0) {
+    parts.push(`${context.pendingApprovals} approval${context.pendingApprovals > 1 ? "s" : ""} waiting`);
   }
   
-  return "Everything looks caught up! No pending tasks, events, or approvals. How can I help you today?";
+  if (parts.length > 0) {
+    return `Here's what I see: ${parts.join(", ")}. What would you like to know more about?`;
+  }
+  
+  return "Everything's quiet right now - no pending tasks, events, or approvals. How can I help?";
 }
 
 export async function parseNaturalLanguageRequest(
