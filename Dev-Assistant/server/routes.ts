@@ -2145,18 +2145,25 @@ export async function registerRoutes(
   app.get("/api/invoices/pending", isAuthenticated, householdContext, async (req: any, res) => {
     try {
       const householdId = req.householdId!;
+      const serviceType = req.query.serviceType as string | undefined;
+
+      // Build conditions
+      const conditions = [
+        eq(spendingItems.householdId, householdId),
+        eq(spendingItems.kind, "INVOICE"),
+        eq(spendingItems.status, "APPROVED")
+      ];
+      
+      // Filter by service type if provided
+      if (serviceType === "CLEANING" || serviceType === "PA") {
+        conditions.push(eq(spendingItems.serviceType, serviceType));
+      }
 
       // Get unpaid invoices (APPROVED = ready to pay)
       const pendingInvoices = await db
         .select()
         .from(spendingItems)
-        .where(
-          and(
-            eq(spendingItems.householdId, householdId),
-            eq(spendingItems.kind, "INVOICE"),
-            eq(spendingItems.status, "APPROVED")
-          )
-        )
+        .where(and(...conditions))
         .orderBy(sql`${spendingItems.sentAt} DESC`);
 
       if (pendingInvoices.length === 0) {

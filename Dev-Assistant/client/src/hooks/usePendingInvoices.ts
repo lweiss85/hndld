@@ -1,5 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useUser } from "@/lib/user-context";
+import { useActiveServiceType } from "./use-active-service-type";
+import { withServiceType } from "@/lib/serviceUrl";
 
 interface PendingInvoicesData {
   count: number;
@@ -12,9 +14,12 @@ interface PendingInvoicesData {
 
 export function usePendingInvoices() {
   const { activeRole } = useUser();
+  const { activeServiceType } = useActiveServiceType();
+  
+  const url = withServiceType("/api/invoices/pending", activeServiceType);
 
   return useQuery<PendingInvoicesData>({
-    queryKey: ["/api/invoices/pending"],
+    queryKey: [url],
     enabled: activeRole === "CLIENT",
     refetchOnWindowFocus: true,
     refetchInterval: 30000,
