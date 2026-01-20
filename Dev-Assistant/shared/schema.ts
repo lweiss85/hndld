@@ -935,7 +935,53 @@ export const fileLinksRelations = relations(fileLinks, ({ one }) => ({
   }),
 }));
 
+// ============================================
+// CLEANING SERVICE TABLES
+// ============================================
+
+// Add-on Services Catalog (for cleaning service type)
+export const addonServices = pgTable("addon_services", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  organizationId: varchar("organization_id").references(() => organizations.id),
+  householdId: varchar("household_id").references(() => households.id),
+  name: text("name").notNull(),
+  description: text("description"),
+  priceInCents: integer("price_in_cents").notNull(),
+  estimatedMinutes: integer("estimated_minutes"),
+  category: text("category").default("general"),
+  isActive: boolean("is_active").default(true),
+  sortOrder: integer("sort_order").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("addon_services_household_idx").on(table.householdId),
+  index("addon_services_org_idx").on(table.organizationId),
+]);
+
+// Cleaning visits tracking
+export const cleaningVisits = pgTable("cleaning_visits", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  householdId: varchar("household_id").references(() => households.id).notNull(),
+  scheduledAt: timestamp("scheduled_at").notNull(),
+  completedAt: timestamp("completed_at"),
+  status: text("status").default("SCHEDULED").notNull(),
+  notes: text("notes"),
+  rating: integer("rating"),
+  feedback: text("feedback"),
+  cleanerName: text("cleaner_name"),
+  beforePhotos: jsonb("before_photos").$type<string[]>().default([]),
+  afterPhotos: jsonb("after_photos").$type<string[]>().default([]),
+  addonsRequested: jsonb("addons_requested").$type<string[]>().default([]),
+  totalPriceInCents: integer("total_price_in_cents"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("cleaning_visits_household_idx").on(table.householdId),
+  index("cleaning_visits_scheduled_idx").on(table.scheduledAt),
+]);
+
 // Insert schemas
+export const insertAddonServiceSchema = createInsertSchema(addonServices).omit({ id: true, createdAt: true });
+export const insertCleaningVisitSchema = createInsertSchema(cleaningVisits).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertOrganizationSchema = createInsertSchema(organizations).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertHouseholdSchema = createInsertSchema(households).omit({ id: true, createdAt: true });
 export const insertUserProfileSchema = createInsertSchema(userProfiles).omit({ id: true, createdAt: true });
@@ -1089,3 +1135,9 @@ export type ConversationMemory = typeof conversationMemories.$inferSelect;
 export type InsertConversationMemory = typeof conversationMemories.$inferInsert;
 export type LearnedPreference = typeof learnedPreferences.$inferSelect;
 export type InsertLearnedPreference = typeof learnedPreferences.$inferInsert;
+
+// Cleaning Service Types
+export type AddonService = typeof addonServices.$inferSelect;
+export type InsertAddonService = z.infer<typeof insertAddonServiceSchema>;
+export type CleaningVisit = typeof cleaningVisits.$inferSelect;
+export type InsertCleaningVisit = z.infer<typeof insertCleaningVisitSchema>;

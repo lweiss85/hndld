@@ -4,6 +4,7 @@ import {
   householdSettings, householdLocations, people, preferences, importantDates, accessItems, accessItemGrants,
   quickRequestTemplates, playbooks, playbookSteps, vaultSettings, users,
   organizationPaymentProfiles, householdPaymentOverrides, householdServiceMemberships,
+  addonServices, cleaningVisits,
   type Organization, type InsertOrganization,
   type Household, type InsertHousehold,
   type Task, type InsertTask,
@@ -33,6 +34,8 @@ import {
   type OrganizationPaymentProfile, type InsertOrganizationPaymentProfile,
   type HouseholdPaymentOverride, type InsertHouseholdPaymentOverride,
   type HouseholdServiceMembership, type InsertHouseholdServiceMembership,
+  type AddonService, type InsertAddonService,
+  type CleaningVisit, type InsertCleaningVisit,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, gte, lte, inArray, notInArray, sql } from "drizzle-orm";
@@ -1189,6 +1192,97 @@ export class DatabaseStorage implements IStorage {
         eq(householdServiceMemberships.isActive, true)
       ));
     return memberships;
+  }
+
+  // Add-on Services
+  async getAddonServices(householdId: string): Promise<AddonService[]> {
+    return db.select().from(addonServices)
+      .where(and(
+        eq(addonServices.householdId, householdId),
+        eq(addonServices.isActive, true)
+      ))
+      .orderBy(addonServices.sortOrder);
+  }
+
+  async createAddonService(data: InsertAddonService): Promise<AddonService> {
+    const [service] = await db.insert(addonServices).values(data).returning();
+    return service;
+  }
+
+  async updateAddonService(id: string, data: Partial<InsertAddonService>): Promise<AddonService | undefined> {
+    const [updated] = await db.update(addonServices)
+      .set(data)
+      .where(eq(addonServices.id, id))
+      .returning();
+    return updated;
+  }
+
+  // Cleaning Visits
+  async getCleaningVisits(householdId: string): Promise<CleaningVisit[]> {
+    return db.select().from(cleaningVisits)
+      .where(eq(cleaningVisits.householdId, householdId))
+      .orderBy(cleaningVisits.scheduledAt);
+  }
+
+  async getNextCleaningVisit(householdId: string): Promise<CleaningVisit | undefined> {
+    const now = new Date();
+    const [visit] = await db.select().from(cleaningVisits)
+      .where(and(
+        eq(cleaningVisits.householdId, householdId),
+        gte(cleaningVisits.scheduledAt, now),
+        eq(cleaningVisits.status, "SCHEDULED")
+      ))
+      .orderBy(cleaningVisits.scheduledAt)
+      .limit(1);
+    return visit;
+  }
+
+  async createCleaningVisit(data: InsertCleaningVisit): Promise<CleaningVisit> {
+    const insertData: typeof cleaningVisits.$inferInsert = {
+      householdId: data.householdId,
+      scheduledAt: data.scheduledAt,
+      completedAt: data.completedAt ?? undefined,
+      status: data.status ?? undefined,
+      notes: data.notes ?? undefined,
+      rating: data.rating ?? undefined,
+      feedback: data.feedback ?? undefined,
+      cleanerName: data.cleanerName ?? undefined,
+      beforePhotos: data.beforePhotos ? [...data.beforePhotos] as string[] : undefined,
+      afterPhotos: data.afterPhotos ? [...data.afterPhotos] as string[] : undefined,
+      addonsRequested: data.addonsRequested ? [...data.addonsRequested] as string[] : undefined,
+      totalPriceInCents: data.totalPriceInCents ?? undefined,
+    };
+    const [visit] = await db.insert(cleaningVisits).values(insertData).returning();
+    return visit;
+  }
+
+  async updateCleaningVisit(id: string, data: Partial<InsertCleaningVisit>): Promise<CleaningVisit | undefined> {
+    const updateData: Partial<typeof cleaningVisits.$inferInsert> = {
+      updatedAt: new Date(),
+    };
+    if (data.scheduledAt !== undefined) updateData.scheduledAt = data.scheduledAt;
+    if (data.completedAt !== undefined) updateData.completedAt = data.completedAt;
+    if (data.status !== undefined) updateData.status = data.status;
+    if (data.notes !== undefined) updateData.notes = data.notes;
+    if (data.rating !== undefined) updateData.rating = data.rating;
+    if (data.feedback !== undefined) updateData.feedback = data.feedback;
+    if (data.cleanerName !== undefined) updateData.cleanerName = data.cleanerName;
+    if (data.totalPriceInCents !== undefined) updateData.totalPriceInCents = data.totalPriceInCents;
+    if (data.beforePhotos !== undefined && Array.isArray(data.beforePhotos)) {
+      updateData.beforePhotos = data.beforePhotos.slice() as string[];
+    }
+    if (data.afterPhotos !== undefined && Array.isArray(data.afterPhotos)) {
+      updateData.afterPhotos = data.afterPhotos.slice() as string[];
+    }
+    if (data.addonsRequested !== undefined && Array.isArray(data.addonsRequested)) {
+      updateData.addonsRequested = data.addonsRequested.slice() as string[];
+    }
+    
+    const [updated] = await db.update(cleaningVisits)
+      .set(updateData)
+      .where(eq(cleaningVisits.id, id))
+      .returning();
+    return updated;
   }
 }
 

@@ -767,6 +767,71 @@ export async function registerRoutes(
     }
   });
   
+  // ============================================
+  // CLEANING SERVICE ENDPOINTS
+  // ============================================
+  
+  app.get("/api/addon-services", isAuthenticated, householdContext, async (req: any, res) => {
+    try {
+      const householdId = req.householdId!;
+      const addons = await storage.getAddonServices(householdId);
+      res.json(addons);
+    } catch (error) {
+      console.error("Error fetching addon services:", error);
+      res.status(500).json({ message: "Failed to fetch addon services" });
+    }
+  });
+
+  app.get("/api/cleaning/next", isAuthenticated, householdContext, async (req: any, res) => {
+    try {
+      const householdId = req.householdId!;
+      const visit = await storage.getNextCleaningVisit(householdId);
+      res.json(visit || null);
+    } catch (error) {
+      console.error("Error fetching next cleaning:", error);
+      res.status(500).json({ message: "Failed to fetch next cleaning" });
+    }
+  });
+
+  app.get("/api/cleaning/visits", isAuthenticated, householdContext, async (req: any, res) => {
+    try {
+      const householdId = req.householdId!;
+      const visits = await storage.getCleaningVisits(householdId);
+      res.json(visits);
+    } catch (error) {
+      console.error("Error fetching cleaning visits:", error);
+      res.status(500).json({ message: "Failed to fetch cleaning visits" });
+    }
+  });
+
+  app.post("/api/cleaning/visits", isAuthenticated, householdContext, async (req: any, res) => {
+    try {
+      const householdId = req.householdId!;
+      const visit = await storage.createCleaningVisit({
+        ...req.body,
+        householdId,
+      });
+      res.status(201).json(visit);
+    } catch (error) {
+      console.error("Error creating cleaning visit:", error);
+      res.status(500).json({ message: "Failed to create cleaning visit" });
+    }
+  });
+
+  app.patch("/api/cleaning/visits/:id", isAuthenticated, householdContext, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const visit = await storage.updateCleaningVisit(id, req.body);
+      if (!visit) {
+        return res.status(404).json({ message: "Cleaning visit not found" });
+      }
+      res.json(visit);
+    } catch (error) {
+      console.error("Error updating cleaning visit:", error);
+      res.status(500).json({ message: "Failed to update cleaning visit" });
+    }
+  });
+
   app.get("/api/today", isAuthenticated, householdContext, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;

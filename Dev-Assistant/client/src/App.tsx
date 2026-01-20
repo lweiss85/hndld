@@ -44,6 +44,8 @@ const Files = lazy(() => import("@/pages/files"));
 const PaymentProfile = lazy(() => import("@/pages/payment-profile"));
 const GetPaid = lazy(() => import("@/pages/get-paid"));
 const Pay = lazy(() => import("@/pages/pay"));
+const Addons = lazy(() => import("@/pages/addons"));
+const Schedule = lazy(() => import("@/pages/schedule"));
 
 function LoadingScreen() {
   return (
@@ -90,6 +92,8 @@ function ClientRouter() {
         <Route path="/payment-profile" component={PaymentProfile} />
         <Route path="/pay" component={Pay} />
         <Route path="/get-paid"><Redirect to="/pay" /></Route>
+        <Route path="/addons" component={Addons} />
+        <Route path="/schedule" component={Schedule} />
         <Route component={NotFound} />
       </Switch>
     </Suspense>
