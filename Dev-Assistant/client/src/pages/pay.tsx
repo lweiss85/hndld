@@ -284,8 +284,8 @@ export default function PayPage() {
                 {pendingItems.length === 0 ? (
                   <div className="text-center py-8">
                     <CheckCircle className="w-12 h-12 mx-auto text-green-500 mb-3" />
-                    <p className="font-medium">All caught up!</p>
-                    <p className="text-sm text-muted-foreground">No pending reimbursements</p>
+                    <p className="font-medium">All caught up.</p>
+                    <p className="text-sm text-muted-foreground">Everything's hndld.</p>
                   </div>
                 ) : (
                   <div className="space-y-3">
