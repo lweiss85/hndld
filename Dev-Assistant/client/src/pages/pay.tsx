@@ -18,6 +18,8 @@ import { formatDistanceToNow } from "date-fns";
 import { useState } from "react";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useActiveServiceType } from "@/hooks/use-active-service-type";
+import { withServiceType } from "@/lib/serviceUrl";
 import {
   Dialog,
   DialogContent,
@@ -101,13 +103,16 @@ const TIP_PRESETS = [0, 500, 1000, 1500, 2000];
 export default function PayPage() {
   const { userProfile } = useUser();
   const { toast } = useToast();
+  const { activeServiceType } = useActiveServiceType();
   const [selectedItem, setSelectedItem] = useState<SpendingItem | null>(null);
   const [tipAmount, setTipAmount] = useState(0);
   const [customTip, setCustomTip] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<string>("VENMO");
 
+  const spendingUrl = withServiceType("/api/spending", activeServiceType);
+
   const { data: spending, isLoading: spendingLoading } = useQuery<SpendingItem[]>({
-    queryKey: ["/api/spending"],
+    queryKey: [spendingUrl],
     enabled: userProfile?.role === "CLIENT",
   });
 
@@ -129,7 +134,7 @@ export default function PayPage() {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/spending"] });
+      queryClient.invalidateQueries({ queryKey: [spendingUrl] });
       toast({ description: "Payment marked as sent!" });
       setSelectedItem(null);
       setTipAmount(0);
