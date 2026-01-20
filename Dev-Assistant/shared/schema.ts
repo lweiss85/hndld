@@ -604,6 +604,77 @@ export const analyticsEvents = pgTable("analytics_events", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Proactive AI Tables
+export const proactiveInsightTypeEnum = pgEnum("proactive_insight_type", ["REMINDER", "SUGGESTION", "ALERT", "OPPORTUNITY"]);
+export const proactiveInsightPriorityEnum = pgEnum("proactive_insight_priority", ["LOW", "MEDIUM", "HIGH"]);
+
+export const proactiveInsights = pgTable("proactive_insights", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  householdId: varchar("household_id").references(() => households.id).notNull(),
+  userId: varchar("user_id"),
+  type: proactiveInsightTypeEnum("type").notNull(),
+  priority: proactiveInsightPriorityEnum("priority").default("LOW").notNull(),
+  title: text("title").notNull(),
+  body: text("body").notNull(),
+  actionLabel: text("action_label"),
+  actionUrl: text("action_url"),
+  isDismissed: boolean("is_dismissed").default(false),
+  isActedOn: boolean("is_acted_on").default(false),
+  metadata: jsonb("metadata").$type<Record<string, unknown>>().default({}),
+  expiresAt: timestamp("expires_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("proactive_insights_household_idx").on(table.householdId),
+  index("proactive_insights_dismissed_idx").on(table.isDismissed),
+]);
+
+export const taskPatterns = pgTable("task_patterns", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  householdId: varchar("household_id").references(() => households.id).notNull(),
+  taskId: varchar("task_id").notNull(),
+  category: text("category").notNull(),
+  estimatedMinutes: integer("estimated_minutes").default(0),
+  actualMinutes: integer("actual_minutes").notNull(),
+  dayOfWeek: integer("day_of_week").notNull(),
+  hourOfDay: integer("hour_of_day").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("task_patterns_household_idx").on(table.householdId),
+  index("task_patterns_category_idx").on(table.category),
+]);
+
+export const conversationMemories = pgTable("conversation_memories", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  householdId: varchar("household_id").references(() => households.id).notNull(),
+  summary: text("summary").notNull(),
+  extractedPreferences: jsonb("extracted_preferences").$type<Record<string, unknown>>().default({}),
+  extractedFacts: jsonb("extracted_facts").$type<Record<string, unknown>>().default({}),
+  messageCount: integer("message_count").default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("conversation_memories_household_idx").on(table.householdId),
+]);
+
+export const learnedPreferenceConfidenceEnum = pgEnum("learned_preference_confidence", ["low", "medium", "high"]);
+export const learnedPreferenceSourceEnum = pgEnum("learned_preference_source", ["explicit", "inferred", "pattern"]);
+
+export const learnedPreferences = pgTable("learned_preferences", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  householdId: varchar("household_id").references(() => households.id).notNull(),
+  category: text("category").notNull(),
+  key: text("key").notNull(),
+  value: text("value").notNull(),
+  confidence: learnedPreferenceConfidenceEnum("confidence").default("low"),
+  source: learnedPreferenceSourceEnum("source").default("inferred"),
+  lastUsedAt: timestamp("last_used_at"),
+  useCount: integer("use_count").default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  index("learned_preferences_household_idx").on(table.householdId),
+  index("learned_preferences_category_idx").on(table.category),
+]);
+
 // Emergency Protocols & Contacts
 export const emergencyTypeEnum = pgEnum("emergency_type", [
   "MEDICAL", "FIRE", "SECURITY", "UTILITY", "OTHER"
@@ -1008,3 +1079,13 @@ export type OrganizationPaymentProfile = typeof organizationPaymentProfiles.$inf
 export type InsertOrganizationPaymentProfile = z.infer<typeof insertOrganizationPaymentProfileSchema>;
 export type HouseholdPaymentOverride = typeof householdPaymentOverrides.$inferSelect;
 export type InsertHouseholdPaymentOverride = z.infer<typeof insertHouseholdPaymentOverrideSchema>;
+
+// Proactive AI Types
+export type ProactiveInsight = typeof proactiveInsights.$inferSelect;
+export type InsertProactiveInsight = typeof proactiveInsights.$inferInsert;
+export type TaskPattern = typeof taskPatterns.$inferSelect;
+export type InsertTaskPattern = typeof taskPatterns.$inferInsert;
+export type ConversationMemory = typeof conversationMemories.$inferSelect;
+export type InsertConversationMemory = typeof conversationMemories.$inferInsert;
+export type LearnedPreference = typeof learnedPreferences.$inferSelect;
+export type InsertLearnedPreference = typeof learnedPreferences.$inferInsert;

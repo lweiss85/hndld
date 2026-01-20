@@ -4900,5 +4900,102 @@ export async function registerRoutes(
     }
   });
 
+  // Proactive AI Insights endpoints
+  app.get("/api/ai/insights", isAuthenticated, householdContext, async (req: any, res) => {
+    try {
+      const householdId = req.householdId!;
+      const { getProactiveInsights } = await import("./services/ai-agent");
+      
+      const insights = await getProactiveInsights(householdId);
+      res.json({ insights });
+    } catch (error) {
+      console.error("Error fetching proactive insights:", error);
+      res.status(500).json({ message: "Failed to fetch insights" });
+    }
+  });
+
+  app.post("/api/ai/insights/refresh", expensiveLimiter, isAuthenticated, householdContext, async (req: any, res) => {
+    try {
+      const householdId = req.householdId!;
+      const { gatherHouseholdContext, generateProactiveInsights } = await import("./services/ai-agent");
+      
+      const context = await gatherHouseholdContext(householdId);
+      const insights = await generateProactiveInsights(context);
+      
+      res.json({ insights, generated: insights.length });
+    } catch (error) {
+      console.error("Error generating insights:", error);
+      res.status(500).json({ message: "Failed to generate insights" });
+    }
+  });
+
+  app.post("/api/ai/insights/:id/dismiss", isAuthenticated, householdContext, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const { dismissInsight } = await import("./services/ai-agent");
+      
+      await dismissInsight(id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error dismissing insight:", error);
+      res.status(500).json({ message: "Failed to dismiss insight" });
+    }
+  });
+
+  app.get("/api/ai/estimate-duration", isAuthenticated, householdContext, async (req: any, res) => {
+    try {
+      const householdId = req.householdId!;
+      const { category } = req.query;
+      
+      if (!category) {
+        return res.status(400).json({ message: "Category required" });
+      }
+      
+      const { getSmartEstimate } = await import("./services/ai-agent");
+      const estimate = await getSmartEstimate(householdId, category as string);
+      
+      res.json(estimate);
+    } catch (error) {
+      console.error("Error getting estimate:", error);
+      res.status(500).json({ message: "Failed to get estimate" });
+    }
+  });
+
+  app.post("/api/ai/learn/task-complete", isAuthenticated, householdContext, async (req: any, res) => {
+    try {
+      const householdId = req.householdId!;
+      const { taskId, category, estimatedMinutes, createdAt, completedAt } = req.body;
+      
+      if (!taskId || !category || !createdAt || !completedAt) {
+        return res.status(400).json({ 
+          message: "Missing required fields: taskId, category, createdAt, and completedAt are required" 
+        });
+      }
+      
+      const parsedCreatedAt = new Date(createdAt);
+      const parsedCompletedAt = new Date(completedAt);
+      
+      if (isNaN(parsedCreatedAt.getTime()) || isNaN(parsedCompletedAt.getTime())) {
+        return res.status(400).json({ message: "Invalid date format for createdAt or completedAt" });
+      }
+      
+      const { recordTaskCompletion } = await import("./services/ai-agent");
+      
+      await recordTaskCompletion({
+        id: taskId,
+        householdId,
+        category,
+        estimatedMinutes: estimatedMinutes || null,
+        createdAt: parsedCreatedAt,
+        completedAt: parsedCompletedAt,
+      });
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error recording task completion:", error);
+      res.status(500).json({ message: "Failed to record completion" });
+    }
+  });
+
   return httpServer;
 }

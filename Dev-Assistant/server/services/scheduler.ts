@@ -1,11 +1,14 @@
 import cron from "node-cron";
 import { createBackupZip, cleanupOldBackups, getBackupSettings } from "./backup";
 import { syncCalendarEvents } from "./google-calendar";
+import { runProactiveAgent } from "./ai-agent";
 import { db } from "../db";
 import { calendarConnections } from "@shared/schema";
 
 let scheduledBackupTask: ReturnType<typeof cron.schedule> | null = null;
 let calendarSyncJob: ReturnType<typeof cron.schedule> | null = null;
+let proactiveAgentJob: ReturnType<typeof cron.schedule> | null = null;
+let eveningAgentJob: ReturnType<typeof cron.schedule> | null = null;
 
 export function startScheduledBackups(): void {
   const settings = getBackupSettings();
@@ -134,4 +137,59 @@ export async function triggerImmediateSync(): Promise<{ total: number; succeeded
     succeeded: results.filter(r => r.status === "fulfilled").length,
     failed: results.filter(r => r.status === "rejected").length,
   };
+}
+
+export function startProactiveAgent(): void {
+  if (proactiveAgentJob) {
+    console.log("[Scheduler] Proactive agent already running");
+    return;
+  }
+
+  const isEnabled = process.env.ENABLE_PROACTIVE_AI !== "false";
+  if (!isEnabled) {
+    console.log("[Scheduler] Proactive AI agent disabled via env var");
+    return;
+  }
+
+  proactiveAgentJob = cron.schedule("0 8 * * *", async () => {
+    const startTime = Date.now();
+    console.log("[Scheduler] Running proactive AI agent...");
+    
+    try {
+      await runProactiveAgent();
+      const duration = Date.now() - startTime;
+      console.log(`[Scheduler] Proactive agent completed (${duration}ms)`);
+    } catch (error: any) {
+      console.error("[Scheduler] Proactive agent failed:", error.message);
+    }
+  });
+
+  eveningAgentJob = cron.schedule("0 18 * * *", async () => {
+    console.log("[Scheduler] Running evening proactive check...");
+    try {
+      await runProactiveAgent();
+    } catch (error: any) {
+      console.error("[Scheduler] Evening proactive check failed:", error.message);
+    }
+  });
+
+  console.log("[Scheduler] Proactive AI agent scheduled (8am and 6pm daily)");
+}
+
+export function stopProactiveAgent(): void {
+  if (proactiveAgentJob) {
+    proactiveAgentJob.stop();
+    proactiveAgentJob = null;
+  }
+  if (eveningAgentJob) {
+    eveningAgentJob.stop();
+    eveningAgentJob = null;
+  }
+  console.log("[Scheduler] Proactive agent stopped");
+}
+
+export function startAllSchedulers(): void {
+  startScheduledBackups();
+  startCalendarSync();
+  startProactiveAgent();
 }

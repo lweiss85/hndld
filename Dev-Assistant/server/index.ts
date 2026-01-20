@@ -3,7 +3,7 @@ import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
 import { initSentry, getSentryHandlers } from "./lib/sentry";
-import { startCalendarSync, stopCalendarSync } from "./services/scheduler";
+import { startCalendarSync, stopCalendarSync, startProactiveAgent, stopProactiveAgent } from "./services/scheduler";
 import { wsManager } from "./services/websocket";
 
 const app = express();
@@ -93,15 +93,23 @@ app.use((req, res, next) => {
   if (process.env.NODE_ENV === "production" || process.env.ENABLE_CALENDAR_SYNC === "true") {
     try {
       startCalendarSync();
-      console.log("[SERVER] Background jobs started");
+      console.log("[SERVER] Calendar sync started");
     } catch (error) {
-      console.error("[SERVER] Failed to start background jobs:", error);
+      console.error("[SERVER] Failed to start calendar sync:", error);
     }
+  }
+  
+  try {
+    startProactiveAgent();
+    console.log("[SERVER] Proactive AI agent started");
+  } catch (error) {
+    console.error("[SERVER] Failed to start proactive agent:", error);
   }
 
   process.on("SIGTERM", () => {
     console.log("[SERVER] SIGTERM received, shutting down gracefully...");
     stopCalendarSync();
+    stopProactiveAgent();
     httpServer.close(() => {
       console.log("[SERVER] Server closed");
       process.exit(0);
