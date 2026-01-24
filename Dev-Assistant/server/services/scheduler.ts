@@ -2,6 +2,7 @@ import cron from "node-cron";
 import { createBackupZip, cleanupOldBackups, getBackupSettings } from "./backup";
 import { syncCalendarEvents } from "./google-calendar";
 import { runProactiveAgent } from "./ai-agent";
+import { runWeeklyBriefScheduler } from "./weekly-brief";
 import { db } from "../db";
 import { calendarConnections } from "@shared/schema";
 
@@ -9,6 +10,7 @@ let scheduledBackupTask: ReturnType<typeof cron.schedule> | null = null;
 let calendarSyncJob: ReturnType<typeof cron.schedule> | null = null;
 let proactiveAgentJob: ReturnType<typeof cron.schedule> | null = null;
 let eveningAgentJob: ReturnType<typeof cron.schedule> | null = null;
+let weeklyBriefJob: ReturnType<typeof cron.schedule> | null = null;
 
 export function startScheduledBackups(): void {
   const settings = getBackupSettings();
@@ -188,8 +190,52 @@ export function stopProactiveAgent(): void {
   console.log("[Scheduler] Proactive agent stopped");
 }
 
+export function startWeeklyBriefScheduler(): void {
+  if (weeklyBriefJob) {
+    console.log("[Scheduler] Weekly brief scheduler already running");
+    return;
+  }
+
+  const isEnabled = process.env.ENABLE_WEEKLY_BRIEF !== "false";
+  if (!isEnabled) {
+    console.log("[Scheduler] Weekly brief scheduler disabled via env var");
+    return;
+  }
+
+  weeklyBriefJob = cron.schedule("0 8 * * 0", async () => {
+    console.log("[Scheduler] Running Sunday morning weekly brief delivery...");
+    try {
+      const result = await runWeeklyBriefScheduler();
+      console.log(`[Scheduler] Weekly briefs: ${result.sent} sent, ${result.failed} failed`);
+    } catch (error: any) {
+      console.error("[Scheduler] Weekly brief scheduler failed:", error.message);
+    }
+  });
+
+  cron.schedule("0 18 * * 0", async () => {
+    console.log("[Scheduler] Running Sunday evening weekly brief delivery...");
+    try {
+      const result = await runWeeklyBriefScheduler();
+      console.log(`[Scheduler] Weekly briefs (evening): ${result.sent} sent, ${result.failed} failed`);
+    } catch (error: any) {
+      console.error("[Scheduler] Weekly brief scheduler (evening) failed:", error.message);
+    }
+  });
+
+  console.log("[Scheduler] Weekly brief scheduler started (Sunday 8am and 6pm)");
+}
+
+export function stopWeeklyBriefScheduler(): void {
+  if (weeklyBriefJob) {
+    weeklyBriefJob.stop();
+    weeklyBriefJob = null;
+    console.log("[Scheduler] Weekly brief scheduler stopped");
+  }
+}
+
 export function startAllSchedulers(): void {
   startScheduledBackups();
   startCalendarSync();
   startProactiveAgent();
+  startWeeklyBriefScheduler();
 }

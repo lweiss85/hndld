@@ -979,6 +979,51 @@ export const cleaningVisits = pgTable("cleaning_visits", {
   index("cleaning_visits_scheduled_idx").on(table.scheduledAt),
 ]);
 
+// Weekly Brief History (for personalization and delivery tracking)
+export const weeklyBriefStatusEnum = pgEnum("weekly_brief_status", ["PENDING", "SENT", "READ", "DISMISSED"]);
+
+export const weeklyBriefs = pgTable("weekly_briefs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  householdId: varchar("household_id").references(() => households.id).notNull(),
+  userId: varchar("user_id").notNull(),
+  content: text("content").notNull(),
+  status: weeklyBriefStatusEnum("status").default("PENDING").notNull(),
+  weekStartDate: timestamp("week_start_date").notNull(),
+  sentAt: timestamp("sent_at"),
+  readAt: timestamp("read_at"),
+  feedbackRating: integer("feedback_rating"),
+  feedbackText: text("feedback_text"),
+  topicsIncluded: jsonb("topics_included").$type<string[]>().default([]),
+  personalizationData: jsonb("personalization_data").$type<{
+    topCategories: string[];
+    mentionedPeople: string[];
+    upcomingEvents: number;
+    pendingTasks: number;
+    urgentItems: number;
+  }>(),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("weekly_briefs_household_idx").on(table.householdId),
+  index("weekly_briefs_user_idx").on(table.userId),
+  index("weekly_briefs_week_idx").on(table.weekStartDate),
+]);
+
+// User Engagement Tracking (for AI personalization learning)
+export const userEngagement = pgTable("user_engagement", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  householdId: varchar("household_id").references(() => households.id).notNull(),
+  entityType: text("entity_type").notNull(),
+  entityId: varchar("entity_id"),
+  action: text("action").notNull(),
+  metadata: jsonb("metadata").$type<Record<string, any>>(),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("user_engagement_user_idx").on(table.userId),
+  index("user_engagement_household_idx").on(table.householdId),
+  index("user_engagement_entity_idx").on(table.entityType, table.entityId),
+]);
+
 // Insert schemas
 export const insertAddonServiceSchema = createInsertSchema(addonServices).omit({ id: true, createdAt: true });
 export const insertCleaningVisitSchema = createInsertSchema(cleaningVisits).omit({ id: true, createdAt: true, updatedAt: true });
@@ -1029,6 +1074,8 @@ export const insertFileSchema = createInsertSchema(files).omit({ id: true, uploa
 export const insertFileLinkSchema = createInsertSchema(fileLinks).omit({ id: true, linkedAt: true, deletedAt: true });
 export const insertOrganizationPaymentProfileSchema = createInsertSchema(organizationPaymentProfiles).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertHouseholdPaymentOverrideSchema = createInsertSchema(householdPaymentOverrides).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertWeeklyBriefSchema = createInsertSchema(weeklyBriefs).omit({ id: true, createdAt: true });
+export const insertUserEngagementSchema = createInsertSchema(userEngagement).omit({ id: true, createdAt: true });
 
 // Types
 export type Household = typeof households.$inferSelect;
@@ -1141,3 +1188,9 @@ export type AddonService = typeof addonServices.$inferSelect;
 export type InsertAddonService = z.infer<typeof insertAddonServiceSchema>;
 export type CleaningVisit = typeof cleaningVisits.$inferSelect;
 export type InsertCleaningVisit = z.infer<typeof insertCleaningVisitSchema>;
+
+// Weekly Brief Types
+export type WeeklyBrief = typeof weeklyBriefs.$inferSelect;
+export type InsertWeeklyBrief = z.infer<typeof insertWeeklyBriefSchema>;
+export type UserEngagement = typeof userEngagement.$inferSelect;
+export type InsertUserEngagement = z.infer<typeof insertUserEngagementSchema>;
