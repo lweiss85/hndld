@@ -10,7 +10,8 @@ let scheduledBackupTask: ReturnType<typeof cron.schedule> | null = null;
 let calendarSyncJob: ReturnType<typeof cron.schedule> | null = null;
 let proactiveAgentJob: ReturnType<typeof cron.schedule> | null = null;
 let eveningAgentJob: ReturnType<typeof cron.schedule> | null = null;
-let weeklyBriefJob: ReturnType<typeof cron.schedule> | null = null;
+let weeklyBriefMorningJob: ReturnType<typeof cron.schedule> | null = null;
+let weeklyBriefEveningJob: ReturnType<typeof cron.schedule> | null = null;
 
 export function startScheduledBackups(): void {
   const settings = getBackupSettings();
@@ -191,7 +192,7 @@ export function stopProactiveAgent(): void {
 }
 
 export function startWeeklyBriefScheduler(): void {
-  if (weeklyBriefJob) {
+  if (weeklyBriefMorningJob || weeklyBriefEveningJob) {
     console.log("[Scheduler] Weekly brief scheduler already running");
     return;
   }
@@ -202,7 +203,7 @@ export function startWeeklyBriefScheduler(): void {
     return;
   }
 
-  weeklyBriefJob = cron.schedule("0 8 * * 0", async () => {
+  weeklyBriefMorningJob = cron.schedule("0 8 * * 0", async () => {
     console.log("[Scheduler] Running Sunday morning weekly brief delivery...");
     try {
       const result = await runWeeklyBriefScheduler();
@@ -212,7 +213,7 @@ export function startWeeklyBriefScheduler(): void {
     }
   });
 
-  cron.schedule("0 18 * * 0", async () => {
+  weeklyBriefEveningJob = cron.schedule("0 18 * * 0", async () => {
     console.log("[Scheduler] Running Sunday evening weekly brief delivery...");
     try {
       const result = await runWeeklyBriefScheduler();
@@ -226,11 +227,15 @@ export function startWeeklyBriefScheduler(): void {
 }
 
 export function stopWeeklyBriefScheduler(): void {
-  if (weeklyBriefJob) {
-    weeklyBriefJob.stop();
-    weeklyBriefJob = null;
-    console.log("[Scheduler] Weekly brief scheduler stopped");
+  if (weeklyBriefMorningJob) {
+    weeklyBriefMorningJob.stop();
+    weeklyBriefMorningJob = null;
   }
+  if (weeklyBriefEveningJob) {
+    weeklyBriefEveningJob.stop();
+    weeklyBriefEveningJob = null;
+  }
+  console.log("[Scheduler] Weekly brief scheduler stopped");
 }
 
 export function startAllSchedulers(): void {

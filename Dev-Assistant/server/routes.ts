@@ -30,6 +30,7 @@ import { userProfiles, files, fileLinks, spendingItems, households } from "@shar
 import householdRoutes from "./routes/households";
 import inviteRoutes from "./routes/invites";
 import fileRoutes from "./routes/files";
+import weeklyBriefRoutes from "./routes/weekly-brief";
 import * as googleCalendar from "./services/google-calendar";
 import * as googleCalendarReplit from "./services/google-calendar-replit";
 import { google } from "googleapis";
@@ -455,6 +456,7 @@ export async function registerRoutes(
   app.use("/api/households", isAuthenticated, householdRoutes);
   app.use(inviteRoutes);
   app.use("/api/files", isAuthenticated, householdContext, fileRoutes);
+  app.use("/api/h", isAuthenticated, weeklyBriefRoutes);
 
   // Serve local uploads
   app.use("/uploads", express.static(join(process.cwd(), "uploads")));
