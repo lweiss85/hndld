@@ -4976,22 +4976,33 @@ export async function registerRoutes(
         e.startAt && e.startAt >= now && e.startAt <= weekEnd
       );
       
+      const upcomingTasks = tasksList.filter((t) => t.status !== "DONE");
+      
       const upcomingBirthdays = importantDates
         .filter((d) => d.type === "BIRTHDAY")
         .map((d) => ({ name: d.title, date: d.date }));
 
-      const { generateWeeklyBrief } = await import("./services/ai-provider");
-      const brief = await generateWeeklyBrief({
-        events: upcomingEvents.map((e) => ({ title: e.title, startAt: e.startAt! })),
-        tasks: tasksList.filter((t) => t.status !== "DONE").map((t) => ({
-          title: t.title,
-          category: t.category,
-          dueAt: t.dueAt,
-        })),
-        birthdays: upcomingBirthdays,
-      });
-
-      res.json({ brief });
+      try {
+        const { generateWeeklyBrief } = await import("./services/ai-provider");
+        const brief = await generateWeeklyBrief({
+          events: upcomingEvents.map((e) => ({ title: e.title, startAt: e.startAt! })),
+          tasks: upcomingTasks.map((t) => ({
+            title: t.title,
+            category: t.category,
+            dueAt: t.dueAt,
+          })),
+          birthdays: upcomingBirthdays,
+        });
+        res.json({ brief });
+      } catch (aiError) {
+        console.error("AI brief generation failed, using fallback:", aiError);
+        const parts: string[] = [];
+        if (upcomingEvents.length > 0) parts.push(`${upcomingEvents.length} event${upcomingEvents.length > 1 ? "s" : ""}`);
+        if (upcomingTasks.length > 0) parts.push(`${upcomingTasks.length} task${upcomingTasks.length > 1 ? "s" : ""}`);
+        if (upcomingBirthdays.length > 0) parts.push(`${upcomingBirthdays.length} birthday${upcomingBirthdays.length > 1 ? "s" : ""}`);
+        const fallbackBrief = `This week: ${parts.length > 0 ? parts.join(", ") : "looking calm and clear"}.`;
+        res.json({ brief: fallbackBrief, fallback: true });
+      }
     } catch (error) {
       console.error("Error generating brief:", error);
       res.status(500).json({ message: "Failed to generate brief" });
