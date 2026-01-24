@@ -62,9 +62,10 @@ Preferred communication style: Simple, everyday language.
 - **Billing & Subscriptions** (server/services/billing.ts): Stripe integration with demo fallback, tiered plans (FREE through ENTERPRISE), checkout sessions, billing portal, webhook handling, invoice tracking
 - **Analytics Dashboard** (server/services/analytics.ts): KPI tracking, tasks over time charts, category breakdowns, spending analysis, client impact summaries
 - **AI Assistant** (server/services/ai-provider.ts): Anthropic Claude and OpenAI abstraction with demo fallback, request parsing, weekly brief generation, voice transcription (OpenAI Whisper), smart action suggestions
+- **Personalized Weekly Briefs** (server/services/weekly-brief.ts): AI-powered personalized briefings that learn user preferences through engagement tracking. Scheduled delivery Sunday 8am and 6pm via cron jobs. Tracks user engagement with tasks, events, and approvals to personalize content. API routes at `/api/h/:householdId/weekly-brief/*` with feedback collection for continuous improvement
 - **Emergency Protocols**: Emergency contacts and protocols management with household-scoped authorization
 - **Google Calendar Integration** (server/services/google-calendar-replit.ts): Replit connector-based Google Calendar sync with Skylight Calendar support via Google Calendar bridge
-- **Database Tables**: subscriptions, payment_methods, invoices, analytics_events, emergency_contacts, emergency_protocols, conversations, messages, ai_settings
+- **Database Tables**: subscriptions, payment_methods, invoices, analytics_events, emergency_contacts, emergency_protocols, conversations, messages, ai_settings, weekly_briefs, user_engagement
 
 ### Calendar Integration (Skylight + Google Calendar)
 - **Architecture**: Uses Replit's Google Calendar connector for OAuth management
