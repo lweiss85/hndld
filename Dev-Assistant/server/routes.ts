@@ -26,7 +26,7 @@ import {
 import { db } from "./db";
 import { eq, and, sql } from "drizzle-orm";
 import { z } from "zod";
-import { userProfiles, files, fileLinks, spendingItems } from "@shared/schema";
+import { userProfiles, files, fileLinks, spendingItems, households } from "@shared/schema";
 import householdRoutes from "./routes/households";
 import inviteRoutes from "./routes/invites";
 import fileRoutes from "./routes/files";
@@ -2741,6 +2741,27 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error saving onboarding step:", error);
       res.status(500).json({ error: "Failed to save step data" });
+    }
+  });
+
+  // Get current household (for service type detection)
+  app.get("/api/household", isAuthenticated, householdContext, async (req: any, res) => {
+    try {
+      const householdId = req.householdId!;
+      const [household] = await db
+        .select()
+        .from(households)
+        .where(eq(households.id, householdId))
+        .limit(1);
+      
+      if (!household) {
+        return res.status(404).json({ message: "Household not found" });
+      }
+      
+      res.json(household);
+    } catch (error) {
+      console.error("Error fetching household:", error);
+      res.status(500).json({ message: "Failed to fetch household" });
     }
   });
 

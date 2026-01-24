@@ -1,0 +1,701 @@
+Overview
+Fix the critical issues blocking production launch. Execute these tasks in order.
+
+PART 1: CLEANING CLIENT UX (CRITICAL)
+Task 1.1: Create useServiceType Hook
+Create client/src/hooks/use-service-type.ts:
+typescriptimport { useQuery } from "@tanstack/react-query";
+
+interface HouseholdData {
+  id: string;
+  name: string;
+  serviceType: "PA" | "CLEANING";
+}
+
+export function useServiceType() {
+  const { data: household, isLoading } = useQuery<HouseholdData>({
+    queryKey: ["/api/household"],
+  });
+
+  return {
+    serviceType: household?.serviceType || "PA",
+    isCleaning: household?.serviceType === "CLEANING",
+    isPA: household?.serviceType !== "CLEANING",
+    isLoading,
+  };
+}
+
+Task 1.2: Create Schedule Page
+Create client/src/pages/schedule.tsx:
+typescriptimport { useQuery } from "@tanstack/react-query";
+import { Calendar, Clock, Plus, MessageSquare, Star } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { format, formatDistanceToNow } from "date-fns";
+
+interface CleaningVisit {
+  id: string;
+  scheduledAt: string;
+  completedAt?: string;
+  status: "SCHEDULED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
+  notes?: string;
+  rating?: number;
+  cleanerName?: string;
+}
+
+export default function Schedule() {
+  const { data: nextCleaning, isLoading: loadingNext } = useQuery<CleaningVisit>({
+    queryKey: ["/api/cleaning/next"],
+  });
+
+  const { data: visits, isLoading: loadingHistory } = useQuery<CleaningVisit[]>({
+    queryKey: ["/api/cleaning/visits"],
+  });
+
+  const pastVisits = visits?.filter(v => v.status === "COMPLETED") || [];
+
+  return (
+    <div className="flex flex-col gap-6 p-4 pb-24">
+      {/* Next Cleaning Hero */}
+      <Card className="bg-gradient-to-br from-emerald-500 to-emerald-600 text-white border-0 shadow-lg shadow-emerald-500/20">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-lg font-medium flex items-center gap-2">
+            <Calendar className="h-5 w-5" />
+            Next Cleaning
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {loadingNext ? (
+            <Skeleton className="h-12 w-48 bg-white/20" />
+          ) : nextCleaning ? (
+            <div>
+              <p className="text-3xl font-bold">
+                {format(new Date(nextCleaning.scheduledAt), "EEEE, MMM d")}
+              </p>
+              <p className="text-emerald-100 flex items-center gap-1 mt-1">
+                <Clock className="h-4 w-4" />
+                {format(new Date(nextCleaning.scheduledAt), "h:mm a")}
+              </p>
+              {nextCleaning.cleanerName && (
+                <p className="text-sm text-emerald-100 mt-2">
+                  Cleaner: {nextCleaning.cleanerName}
+                </p>
+              )}
+            </div>
+          ) : (
+            <div className="text-center py-4">
+              <p className="text-emerald-100 mb-3">No upcoming cleaning scheduled</p>
+              <Button variant="secondary" className="bg-white text-emerald-600 hover:bg-emerald-50">
+                <Plus className="h-4 w-4 mr-2" />
+                Request Cleaning
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Quick Actions */}
+      <div className="grid grid-cols-2 gap-3">
+        <Button variant="outline" className="h-auto py-4 flex flex-col gap-1">
+          <Plus className="h-5 w-5" />
+          <span className="text-xs">Book Extra</span>
+        </Button>
+        <Button variant="outline" className="h-auto py-4 flex flex-col gap-1">
+          <MessageSquare className="h-5 w-5" />
+          <span className="text-xs">Message Team</span>
+        </Button>
+      </div>
+
+      {/* Past Visits */}
+      <div>
+        <h2 className="text-lg font-semibold mb-3">Cleaning History</h2>
+        {loadingHistory ? (
+          <div className="space-y-3">
+            {[1, 2, 3].map(i => (
+              <Skeleton key={i} className="h-20 w-full" />
+            ))}
+          </div>
+        ) : pastVisits.length === 0 ? (
+          <Card className="border-dashed">
+            <CardContent className="flex flex-col items-center justify-center py-8 text-center">
+              <Calendar className="h-10 w-10 text-muted-foreground mb-2" />
+              <p className="text-muted-foreground">No past cleanings yet</p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="space-y-3">
+            {pastVisits.map((visit) => (
+              <Card key={visit.id}>
+                <CardContent className="py-3">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="font-medium">
+                        {format(new Date(visit.scheduledAt), "EEEE, MMM d")}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        {formatDistanceToNow(new Date(visit.scheduledAt), { addSuffix: true })}
+                      </p>
+                      {visit.cleanerName && (
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {visit.cleanerName}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1">
+                      {visit.rating && (
+                        <Badge variant="secondary" className="gap-1">
+                          <Star className="h-3 w-3 fill-yellow-500 text-yellow-500" />
+                          {visit.rating}
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                  {visit.notes && (
+                    <p className="text-sm text-muted-foreground mt-2 italic">
+                      "{visit.notes}"
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+Task 1.3: Create Add-ons Page
+Create client/src/pages/addons.tsx:
+typescriptimport { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Sparkles, Check, Clock, DollarSign } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useToast } from "@/hooks/use-toast";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+
+interface AddonService {
+  id: string;
+  name: string;
+  description?: string;
+  priceInCents: number;
+  estimatedMinutes?: number;
+  category: string;
+}
+
+interface PendingRequest {
+  id: string;
+  title: string;
+  status: "PENDING" | "APPROVED" | "DECLINED";
+  createdAt: string;
+}
+
+// Default add-ons if none configured
+const DEFAULT_ADDONS: AddonService[] = [
+  { id: "1", name: "Deep Clean Refrigerator", priceInCents: 2500, estimatedMinutes: 30, category: "KITCHEN", description: "Interior shelves, drawers, and door compartments" },
+  { id: "2", name: "Interior Windows", priceInCents: 4000, estimatedMinutes: 45, category: "GENERAL", description: "All interior-facing windows" },
+  { id: "3", name: "Oven Cleaning", priceInCents: 3000, estimatedMinutes: 30, category: "KITCHEN", description: "Deep clean inside oven and racks" },
+  { id: "4", name: "Inside Cabinets", priceInCents: 3500, estimatedMinutes: 40, category: "KITCHEN", description: "Wipe down cabinet interiors" },
+  { id: "5", name: "Laundry Service", priceInCents: 2000, estimatedMinutes: 60, category: "LAUNDRY", description: "Wash, dry, and fold one load" },
+  { id: "6", name: "Change Bed Linens", priceInCents: 1500, estimatedMinutes: 15, category: "BEDROOM", description: "Strip and remake all beds" },
+  { id: "7", name: "Baseboards", priceInCents: 2500, estimatedMinutes: 30, category: "GENERAL", description: "Detailed baseboard cleaning" },
+  { id: "8", name: "Organize Pantry", priceInCents: 4000, estimatedMinutes: 45, category: "KITCHEN", description: "Organize and wipe pantry shelves" },
+];
+
+export default function Addons() {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [selectedAddon, setSelectedAddon] = useState<AddonService | null>(null);
+
+  const { data: addons, isLoading: loadingAddons } = useQuery<AddonService[]>({
+    queryKey: ["/api/addon-services"],
+  });
+
+  const { data: pending, isLoading: loadingPending } = useQuery<PendingRequest[]>({
+    queryKey: ["/api/approvals", { status: "PENDING" }],
+  });
+
+  const requestMutation = useMutation({
+    mutationFn: async (addon: AddonService) => {
+      const res = await fetch("/api/approvals", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: `Add-on Request: ${addon.name}`,
+          details: addon.description,
+          amount: addon.priceInCents,
+        }),
+      });
+      if (!res.ok) throw new Error("Failed to request add-on");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/approvals"] });
+      toast({
+        title: "Add-on Requested",
+        description: "Your service provider will review your request.",
+      });
+      setSelectedAddon(null);
+    },
+    onError: () => {
+      toast({
+        title: "Request Failed",
+        description: "Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const displayAddons = addons?.length ? addons : DEFAULT_ADDONS;
+
+  const formatPrice = (cents: number) => {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+    }).format(cents / 100);
+  };
+
+  return (
+    <div className="flex flex-col gap-6 p-4 pb-24">
+      {/* Header */}
+      <div>
+        <h1 className="text-2xl font-bold flex items-center gap-2">
+          <Sparkles className="h-6 w-6 text-amber-500" />
+          Add-on Services
+        </h1>
+        <p className="text-muted-foreground mt-1">
+          Enhance your next cleaning with extra services
+        </p>
+      </div>
+
+      {/* Pending Requests */}
+      {pending && pending.length > 0 && (
+        <Card className="border-amber-200 bg-amber-50">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Clock className="h-4 w-4 text-amber-600" />
+              Pending Requests ({pending.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {pending.map((req) => (
+              <div key={req.id} className="flex justify-between items-center text-sm">
+                <span>{req.title.replace("Add-on Request: ", "")}</span>
+                <Badge variant="outline" className="text-amber-600 border-amber-300">
+                  Pending
+                </Badge>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Add-ons Grid */}
+      {loadingAddons ? (
+        <div className="grid grid-cols-2 gap-3">
+          {[1, 2, 3, 4].map(i => (
+            <Skeleton key={i} className="h-32" />
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 gap-3">
+          {displayAddons.map((addon) => (
+            <Card 
+              key={addon.id} 
+              className="cursor-pointer hover:border-primary/50 transition-colors"
+              onClick={() => setSelectedAddon(addon)}
+            >
+              <CardContent className="p-4">
+                <div className="flex flex-col h-full">
+                  <h3 className="font-medium text-sm leading-tight">{addon.name}</h3>
+                  <p className="text-xs text-muted-foreground mt-1 flex-1 line-clamp-2">
+                    {addon.description}
+                  </p>
+                  <div className="flex items-center justify-between mt-3">
+                    <span className="text-lg font-bold text-emerald-600">
+                      {formatPrice(addon.priceInCents)}
+                    </span>
+                    {addon.estimatedMinutes && (
+                      <span className="text-xs text-muted-foreground">
+                        ~{addon.estimatedMinutes}min
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {/* Confirmation Dialog */}
+      <AlertDialog open={!!selectedAddon} onOpenChange={() => setSelectedAddon(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Request Add-on Service</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3">
+                <p>Would you like to request this service for your next cleaning?</p>
+                {selectedAddon && (
+                  <Card className="bg-muted">
+                    <CardContent className="p-4">
+                      <p className="font-medium">{selectedAddon.name}</p>
+                      <p className="text-sm text-muted-foreground">{selectedAddon.description}</p>
+                      <div className="flex items-center gap-4 mt-2">
+                        <span className="text-lg font-bold text-emerald-600">
+                          {formatPrice(selectedAddon.priceInCents)}
+                        </span>
+                        {selectedAddon.estimatedMinutes && (
+                          <span className="text-sm text-muted-foreground flex items-center gap-1">
+                            <Clock className="h-3 w-3" />
+                            ~{selectedAddon.estimatedMinutes} min
+                          </span>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => selectedAddon && requestMutation.mutate(selectedAddon)}
+              disabled={requestMutation.isPending}
+            >
+              {requestMutation.isPending ? "Requesting..." : "Request Service"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+}
+
+Task 1.4: Update Bottom Nav
+Replace client/src/components/layout/bottom-nav.tsx:
+typescriptimport { useEffect, useState } from "react";
+import { Link, useLocation } from "wouter";
+import { useUser } from "@/lib/user-context";
+import { useServiceType } from "@/hooks/use-service-type";
+import { usePendingInvoices } from "@/hooks/usePendingInvoices";
+import { 
+  Calendar, 
+  CalendarDays,
+  CheckSquare, 
+  ClipboardList, 
+  Home, 
+  Building2, 
+  Clock,
+  FileText,
+  Mail,
+  Receipt,
+  CreditCard,
+  Sparkles
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { PayNowSheet } from "@/components/pay-now-sheet";
+
+interface NavItem {
+  path: string;
+  icon: React.ReactNode;
+  label: string;
+}
+
+const paClientTabs: NavItem[] = [
+  { path: "/", icon: <Home className="h-5 w-5" />, label: "Home" },
+  { path: "/updates", icon: <FileText className="h-5 w-5" />, label: "Updates" },
+  { path: "/approvals", icon: <CheckSquare className="h-5 w-5" />, label: "Approvals" },
+  { path: "/spending", icon: <Receipt className="h-5 w-5" />, label: "Money" },
+  { path: "/messages", icon: <Mail className="h-5 w-5" />, label: "Messages" },
+];
+
+const cleaningClientTabs: NavItem[] = [
+  { path: "/", icon: <Home className="h-5 w-5" />, label: "Home" },
+  { path: "/schedule", icon: <CalendarDays className="h-5 w-5" />, label: "Schedule" },
+  { path: "/addons", icon: <Sparkles className="h-5 w-5" />, label: "Add-ons" },
+  { path: "/spending", icon: <Receipt className="h-5 w-5" />, label: "Money" },
+  { path: "/messages", icon: <Mail className="h-5 w-5" />, label: "Messages" },
+];
+
+const assistantTabs: NavItem[] = [
+  { path: "/", icon: <Clock className="h-5 w-5" />, label: "Today" },
+  { path: "/tasks", icon: <ClipboardList className="h-5 w-5" />, label: "Tasks" },
+  { path: "/calendar", icon: <Calendar className="h-5 w-5" />, label: "Calendar" },
+  { path: "/spending", icon: <Receipt className="h-5 w-5" />, label: "Money" },
+  { path: "/house", icon: <Building2 className="h-5 w-5" />, label: "House" },
+];
+
+export function BottomNav() {
+  const [location] = useLocation();
+  const { activeRole } = useUser();
+  const { isCleaning } = useServiceType();
+  const { data: pendingInvoices } = usePendingInvoices();
+  const [showPaySheet, setShowPaySheet] = useState(false);
+
+  // Select tabs based on role and service type
+  const tabs = activeRole === "ASSISTANT" 
+    ? assistantTabs 
+    : isCleaning 
+      ? cleaningClientTabs 
+      : paClientTabs;
+
+  const hasUnpaidInvoices = activeRole === "CLIENT" && pendingInvoices && pendingInvoices.count > 0;
+
+  useEffect(() => {
+    if (hasUnpaidInvoices) {
+      document.documentElement.style.setProperty("--hndld-bottom-pad", "8rem");
+    } else {
+      document.documentElement.style.setProperty("--hndld-bottom-pad", "5rem");
+    }
+  }, [hasUnpaidInvoices]);
+
+  const handleTabClick = () => {
+    if (navigator.vibrate) {
+      navigator.vibrate(8);
+    }
+  };
+
+  const formatAmount = (cents: number) => {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+    }).format(cents / 100);
+  };
+
+  return (
+    <>
+      <nav 
+        className="fixed bottom-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-t border-border/50 shadow-[0_-4px_24px_rgba(0,0,0,0.06)]"
+        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+        data-testid="bottom-nav"
+        aria-label="Main navigation"
+      >
+        {hasUnpaidInvoices && pendingInvoices && (
+          <div className="px-4 py-2 animate-in slide-in-from-bottom-2 fade-in duration-300">
+            <Button
+              onClick={() => setShowPaySheet(true)}
+              className="w-full h-12 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white shadow-lg shadow-emerald-500/25 font-semibold text-base"
+              data-testid="button-pay-now-cta"
+              aria-label={`Pay ${formatAmount(pendingInvoices.totalAmount)}`}
+            >
+              <CreditCard className="h-5 w-5 mr-2" aria-hidden="true" />
+              Pay {formatAmount(pendingInvoices.totalAmount)}
+              {pendingInvoices.count > 1 && (
+                <Badge variant="secondary" className="ml-2 bg-white/20 text-white border-0">
+                  {pendingInvoices.count} invoices
+                </Badge>
+              )}
+            </Button>
+          </div>
+        )}
+        
+        <div className="flex items-center justify-around h-14 px-1" role="tablist">
+          {tabs.map((tab) => {
+            const isActive = location === tab.path || 
+              (tab.path !== "/" && location.startsWith(tab.path));
+            
+            return (
+              <Link key={tab.path} href={tab.path} className="flex-1">
+                <button
+                  onClick={handleTabClick}
+                  className={cn(
+                    "relative flex flex-col items-center justify-center gap-0.5 py-1.5 w-full min-h-[44px] transition-all duration-200",
+                    isActive ? "text-foreground" : "text-muted-foreground"
+                  )}
+                  role="tab"
+                  aria-selected={isActive}
+                  aria-label={tab.label}
+                  data-testid={`button-nav-${tab.label.toLowerCase().replace(/\s+/g, '-')}`}
+                >
+                  {isActive && (
+                    <div className="absolute inset-1 bg-primary/10 rounded-xl" aria-hidden="true" />
+                  )}
+                  <span className={cn(
+                    "relative z-10 transition-transform duration-200",
+                    isActive && "scale-110"
+                  )} aria-hidden="true">
+                    {tab.icon}
+                  </span>
+                  <span className={cn(
+                    "relative z-10 text-[10px] whitespace-nowrap",
+                    isActive ? "font-semibold" : "font-normal"
+                  )}>
+                    {tab.label}
+                  </span>
+                </button>
+              </Link>
+            );
+          })}
+        </div>
+      </nav>
+
+      {hasUnpaidInvoices && pendingInvoices?.latestInvoiceId && (
+        <PayNowSheet
+          open={showPaySheet}
+          onOpenChange={setShowPaySheet}
+          spendingId={pendingInvoices.latestInvoiceId}
+          vendorName={pendingInvoices.latestInvoiceTitle || "Invoice"}
+        />
+      )}
+    </>
+  );
+}
+
+Task 1.5: Update App.tsx Routes
+In client/src/App.tsx:
+
+Add imports at top:
+
+typescriptimport Schedule from "@/pages/schedule";
+import Addons from "@/pages/addons";
+
+Add routes to ClientRouter (around line 54):
+
+typescriptfunction ClientRouter() {
+  return (
+    <Switch>
+      <Route path="/" component={ThisWeek} />
+      <Route path="/schedule" component={Schedule} />
+      <Route path="/addons" component={Addons} />
+      <Route path="/tasks" component={Tasks} />
+      {/* ... rest of routes ... */}
+    </Switch>
+  );
+}
+
+Task 1.6: Add API Endpoints
+In server/routes.ts, add these endpoints:
+typescript// Near the top, add import for household
+import { households } from "@shared/schema";
+
+// Add GET /api/household endpoint
+app.get("/api/household", isAuthenticated, householdContext, async (req: any, res) => {
+  try {
+    const householdId = req.householdId;
+    const [household] = await db
+      .select()
+      .from(households)
+      .where(eq(households.id, householdId))
+      .limit(1);
+    
+    if (!household) {
+      return res.status(404).json({ message: "Household not found" });
+    }
+    
+    res.json(household);
+  } catch (error) {
+    console.error("Error fetching household:", error);
+    res.status(500).json({ message: "Failed to fetch household" });
+  }
+});
+
+// Add cleaning visit endpoints
+app.get("/api/cleaning/next", isAuthenticated, householdContext, async (req: any, res) => {
+  try {
+    const householdId = req.householdId;
+    // Return next scheduled cleaning (you may need to create cleaningVisits table)
+    // For now, return mock data or empty
+    res.json(null);
+  } catch (error) {
+    console.error("Error fetching next cleaning:", error);
+    res.status(500).json({ message: "Failed to fetch next cleaning" });
+  }
+});
+
+app.get("/api/cleaning/visits", isAuthenticated, householdContext, async (req: any, res) => {
+  try {
+    const householdId = req.householdId;
+    // Return cleaning history
+    res.json([]);
+  } catch (error) {
+    console.error("Error fetching cleaning visits:", error);
+    res.status(500).json({ message: "Failed to fetch cleaning visits" });
+  }
+});
+
+app.get("/api/addon-services", isAuthenticated, householdContext, async (req: any, res) => {
+  try {
+    // Return available add-on services for this household
+    // The client has default add-ons if this returns empty
+    res.json([]);
+  } catch (error) {
+    console.error("Error fetching addon services:", error);
+    res.status(500).json({ message: "Failed to fetch addon services" });
+  }
+});
+
+PART 2: ENGINEERING FIXES
+Task 2.1: Standardize Error Response Format
+Create server/lib/api-response.ts:
+typescriptexport interface ApiError {
+  message: string;
+  code?: string;
+  details?: unknown;
+}
+
+export function errorResponse(res: any, status: number, message: string, code?: string, details?: unknown) {
+  const response: ApiError = { message };
+  if (code) response.code = code;
+  if (details && process.env.NODE_ENV !== "production") {
+    response.details = details;
+  }
+  return res.status(status).json(response);
+}
+
+export function notFound(res: any, resource: string = "Resource") {
+  return errorResponse(res, 404, `${resource} not found`, "NOT_FOUND");
+}
+
+export function badRequest(res: any, message: string, details?: unknown) {
+  return errorResponse(res, 400, message, "BAD_REQUEST", details);
+}
+
+export function serverError(res: any, error: unknown, context: string) {
+  console.error(`[${context}]`, error);
+  return errorResponse(res, 500, "Internal server error", "INTERNAL_ERROR");
+}
+
+Verification
+After completing all tasks, verify:
+
+Check hook exists:
+
+client/src/hooks/use-service-type.ts created
+
+
+Check pages exist:
+
+client/src/pages/schedule.tsx created
+client/src/pages/addons.tsx created
+
+
+Test in browser:
+
+Set a household's serviceType to "CLEANING" in database
+Log in as client for that household
+Should see Schedule and Add-ons in bottom nav
+
+
+Test API endpoints:
+
+bash   curl http://localhost:5000/api/household
+   curl http://localhost:5000/api/cleaning/next
+   curl http://localhost:5000/api/addon-services
