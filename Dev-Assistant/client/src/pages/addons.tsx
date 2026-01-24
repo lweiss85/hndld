@@ -264,22 +264,23 @@ export default function Addons() {
               </Card>
             ))}
             
-            <Card 
-              className="cursor-pointer hover:border-primary/50 hover:shadow-md transition-all active:scale-[0.98] border-dashed"
-              onClick={() => setShowCustomDialog(true)}
-              data-testid="addon-card-custom"
-            >
-              <CardContent className="p-4 h-full flex flex-col items-center justify-center text-center">
-                <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center mb-2">
-                  <PenLine className="h-5 w-5 text-muted-foreground" />
-                </div>
-                <h3 className="font-medium text-sm">Request Custom</h3>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Don't see what you need?
-                </p>
-              </CardContent>
-            </Card>
           </div>
+          
+          <Card 
+            className="cursor-pointer hover:border-primary/50 hover:shadow-md transition-all active:scale-[0.98] border-dashed mx-auto max-w-[200px]"
+            onClick={() => setShowCustomDialog(true)}
+            data-testid="addon-card-custom"
+          >
+            <CardContent className="p-4 flex flex-col items-center justify-center text-center">
+              <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center mb-2">
+                <PenLine className="h-5 w-5 text-muted-foreground" />
+              </div>
+              <h3 className="font-medium text-sm">Request Custom</h3>
+              <p className="text-xs text-muted-foreground mt-1">
+                Don't see what you need?
+              </p>
+            </CardContent>
+          </Card>
         </div>
 
         <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
