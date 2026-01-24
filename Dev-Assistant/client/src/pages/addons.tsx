@@ -4,6 +4,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
@@ -17,6 +20,7 @@ import {
   Plus, 
   Clock, 
   CalendarDays,
+  PenLine,
 } from "lucide-react";
 import { format } from "date-fns";
 import { queryClient, apiRequest } from "@/lib/queryClient";
@@ -64,6 +68,9 @@ export default function Addons() {
   const { toast } = useToast();
   const [selectedAddon, setSelectedAddon] = useState<AddonService | null>(null);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [showCustomDialog, setShowCustomDialog] = useState(false);
+  const [customName, setCustomName] = useState("");
+  const [customDescription, setCustomDescription] = useState("");
 
   const { data: addons, isLoading: addonsLoading } = useQuery<AddonService[]>({
     queryKey: ["/api/addon-services"],
@@ -104,6 +111,45 @@ export default function Addons() {
       });
     },
   });
+
+  const requestCustomAddonMutation = useMutation({
+    mutationFn: async ({ name, description }: { name: string; description: string }) => {
+      return apiRequest("POST", "/api/approvals", {
+        title: `Add-on: ${name}`,
+        details: description || `Custom request: ${name}`,
+        metadata: { type: "CUSTOM_ADDON" },
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/approvals"] });
+      setShowCustomDialog(false);
+      setCustomName("");
+      setCustomDescription("");
+      toast({
+        title: "Custom add-on requested",
+        description: "Your cleaning team will review and provide a quote.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to submit request. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleCustomSubmit = () => {
+    if (!customName.trim()) {
+      toast({
+        title: "Please enter a name",
+        description: "Describe what you'd like done.",
+        variant: "destructive",
+      });
+      return;
+    }
+    requestCustomAddonMutation.mutate({ name: customName, description: customDescription });
+  };
 
   const formatPrice = (cents: number) => {
     return new Intl.NumberFormat("en-US", {
@@ -217,6 +263,22 @@ export default function Addons() {
                 </CardContent>
               </Card>
             ))}
+            
+            <Card 
+              className="cursor-pointer hover:border-primary/50 hover:shadow-md transition-all active:scale-[0.98] border-dashed"
+              onClick={() => setShowCustomDialog(true)}
+              data-testid="addon-card-custom"
+            >
+              <CardContent className="p-4 h-full flex flex-col items-center justify-center text-center">
+                <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center mb-2">
+                  <PenLine className="h-5 w-5 text-muted-foreground" />
+                </div>
+                <h3 className="font-medium text-sm">Request Custom</h3>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Don't see what you need?
+                </p>
+              </CardContent>
+            </Card>
           </div>
         </div>
 
@@ -267,6 +329,66 @@ export default function Addons() {
                   <>
                     <Plus className="h-4 w-4 mr-1" />
                     Add to Cleaning
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={showCustomDialog} onOpenChange={setShowCustomDialog}>
+          <DialogContent className="max-w-sm">
+            <DialogHeader>
+              <DialogTitle>Request Custom Add-on</DialogTitle>
+              <DialogDescription>
+                Describe what you'd like done and we'll provide a quote.
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="custom-name">What do you need?</Label>
+                <Input
+                  id="custom-name"
+                  placeholder="e.g., Deep clean garage, Organize closet..."
+                  value={customName}
+                  onChange={(e) => setCustomName(e.target.value)}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="custom-description">Additional details (optional)</Label>
+                <Textarea
+                  id="custom-description"
+                  placeholder="Any specific instructions or areas to focus on..."
+                  value={customDescription}
+                  onChange={(e) => setCustomDescription(e.target.value)}
+                  rows={3}
+                />
+              </div>
+            </div>
+
+            <DialogFooter className="gap-2 sm:gap-0">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowCustomDialog(false);
+                  setCustomName("");
+                  setCustomDescription("");
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleCustomSubmit}
+                disabled={requestCustomAddonMutation.isPending || !customName.trim()}
+              >
+                {requestCustomAddonMutation.isPending ? (
+                  "Submitting..."
+                ) : (
+                  <>
+                    <Plus className="h-4 w-4 mr-1" />
+                    Submit Request
                   </>
                 )}
               </Button>
