@@ -4,6 +4,44 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ====================================
+   hndld Award-Winning Color System
+   ==================================== */
+
+:root {
+  /* Brand: Warm Sage (Premium, Calm, Trust) */
+  --hndld-sage-50: 138 35% 97%;
+  --hndld-sage-100: 138 30% 94%;
+  --hndld-sage-200: 138 25% 88%;
+  --hndld-sage-300: 138 22% 78%;
+  --hndld-sage-400: 138 20% 65%;
+  --hndld-sage-500: 138 18% 50%;
+  --hndld-sage-600: 138 20% 42%;
+  --hndld-sage-700: 138 22% 35%;
+  
+  /* Accent: Warm Terracotta */
+  --hndld-terra-400: 16 65% 60%;
+  --hndld-terra-500: 16 70% 52%;
+  --hndld-terra-600: 16 75% 45%;
+  
+  /* Warm Neutrals */
+  --hndld-warm-50: 30 20% 98%;
+  --hndld-warm-100: 30 15% 95%;
+  --hndld-warm-800: 30 8% 20%;
+  --hndld-warm-900: 30 10% 12%;
+  
+  /* Motion Timing */
+  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-spring: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  
+  /* Duration Scale */
+  --duration-instant: 100ms;
+  --duration-fast: 200ms;
+  --duration-normal: 300ms;
+  --duration-slow: 500ms;
+}
+
 /* WHITE GLOVE THEME (Light - Default) */
 :root {
   --button-outline: rgba(0,0,0, .10);
@@ -36,8 +74,8 @@
   --popover-foreground: 220 24% 10%;
   --popover-border: 30 20% 88%;
   
-  --primary: 220 37% 19%; /* #1D2A44 ink navy */
-  --primary-foreground: 36 33% 97%;
+  --primary: 138 18% 50%; /* warm sage */
+  --primary-foreground: 0 0% 100%;
   
   --secondary: 30 18% 92%;
   --secondary-foreground: 220 24% 15%;
@@ -147,11 +185,11 @@
   --elevate-1: rgba(255,255,255, .04);
   --elevate-2: rgba(255,255,255, .09);
   
-  --background: 220 20% 7%;
-  --foreground: 0 0% 98%;
+  --background: 30 10% 8%;
+  --foreground: 40 15% 95%;
   --border: 220 15% 16%;
   
-  --card: 220 18% 9%;
+  --card: 30 10% 10%;
   --card-foreground: 0 0% 98%;
   --card-border: 220 15% 12%;
   
@@ -160,18 +198,20 @@
   --sidebar: 220 18% 11%;
   --sidebar-foreground: 0 0% 98%;
   --sidebar-border: 220 15% 14%;
-  --sidebar-primary: 220 60% 65%;
-  --sidebar-primary-foreground: 220 60% 10%;
+  --sidebar-primary: 138 50% 55%;
+  --sidebar-primary-foreground: 0 0% 100%;
   --sidebar-accent: 220 12% 16%;
   --sidebar-accent-foreground: 220 12% 90%;
-  --sidebar-ring: 220 60% 65%;
+  --sidebar-ring: 138 50% 55%;
   
   --popover: 220 18% 13%;
   --popover-foreground: 0 0% 98%;
   --popover-border: 220 15% 16%;
   
-  --primary: 220 60% 65%;
-  --primary-foreground: 220 60% 10%;
+  --primary: 138 50% 55%;
+  --primary-foreground: 0 0% 100%;
+  
+  --hndld-sage-500: 138 50% 55%;
   
   --secondary: 220 12% 18%;
   --secondary-foreground: 220 8% 90%;
@@ -248,6 +288,122 @@
 
   --destructive-border: hsl(var(--destructive));
   --destructive-border: hsl(from hsl(var(--destructive)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+}
+
+/* ====================================
+   Award-Winning Animations
+   ==================================== */
+
+@keyframes hndld-breathe {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.01); opacity: 0.97; }
+}
+
+@keyframes hndld-checkmark {
+  0% { stroke-dashoffset: 20; }
+  100% { stroke-dashoffset: 0; }
+}
+
+@keyframes hndld-shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+@keyframes hndld-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+@keyframes hndld-scale-in {
+  0% { transform: scale(0.9); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes hndld-slide-up {
+  0% { transform: translateY(10px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+.hndld-breathe {
+  animation: hndld-breathe 4s ease-in-out infinite;
+}
+
+.hndld-float {
+  animation: hndld-float 3s ease-in-out infinite;
+}
+
+.hndld-scale-in {
+  animation: hndld-scale-in 0.3s var(--ease-out-soft) forwards;
+}
+
+.hndld-slide-up {
+  animation: hndld-slide-up 0.4s var(--ease-out-soft) forwards;
+}
+
+/* ====================================
+   Signature Visual Elements
+   ==================================== */
+
+.hndld-glass {
+  background: linear-gradient(
+    135deg,
+    hsl(0 0% 100% / 0.9) 0%,
+    hsl(0 0% 100% / 0.7) 100%
+  );
+  backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid hsl(0 0% 100% / 0.5);
+  box-shadow: 
+    0 1px 3px hsl(0 0% 0% / 0.04),
+    0 4px 12px hsl(0 0% 0% / 0.04),
+    inset 0 1px 0 hsl(0 0% 100% / 0.5);
+}
+
+.dark .hndld-glass {
+  background: linear-gradient(
+    135deg,
+    hsl(30 10% 15% / 0.9) 0%,
+    hsl(30 10% 12% / 0.7) 100%
+  );
+  border-color: hsl(0 0% 100% / 0.1);
+}
+
+.hndld-curve {
+  border-radius: 24px;
+}
+
+.hndld-curve-sm {
+  border-radius: 16px;
+}
+
+.hndld-glow {
+  position: relative;
+}
+
+.hndld-glow::before {
+  content: '';
+  position: absolute;
+  inset: -50%;
+  background: radial-gradient(
+    ellipse at 50% 0%,
+    hsl(var(--hndld-sage-300) / 0.15) 0%,
+    transparent 70%
+  );
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* ====================================
+   Reduced Motion Support
+   ==================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 @layer base {

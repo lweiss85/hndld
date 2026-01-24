@@ -14,6 +14,8 @@ import { OfflineIndicator } from "@/components/offline-indicator";
 import { useAuth } from "@/hooks/use-auth";
 import { AppLayout } from "@/components/layout/app-layout";
 import { Skeleton } from "@/components/ui/skeleton";
+import { AnimatePresence } from "framer-motion";
+import { LiveAnnouncerProvider } from "@/components/accessibility/live-region";
 
 import Landing from "@/pages/landing";
 import ThisWeek from "@/pages/this-week";
@@ -250,18 +252,22 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider defaultTheme="light">
         <TooltipProvider>
-          <Toaster />
-          <UndoToastContainer />
-          <Suspense fallback={<LoadingScreen />}>
-            <Switch>
-              <Route path="/terms" component={Terms} />
-              <Route path="/privacy" component={Privacy} />
-              <Route path="/join/:token" component={Join} />
-              <Route>
-                <AppContent />
-              </Route>
-            </Switch>
-          </Suspense>
+          <LiveAnnouncerProvider>
+            <Toaster />
+            <UndoToastContainer />
+            <AnimatePresence mode="wait">
+              <Suspense fallback={<LoadingScreen />}>
+                <Switch>
+                  <Route path="/terms" component={Terms} />
+                  <Route path="/privacy" component={Privacy} />
+                  <Route path="/join/:token" component={Join} />
+                  <Route>
+                    <AppContent />
+                  </Route>
+                </Switch>
+              </Suspense>
+            </AnimatePresence>
+          </LiveAnnouncerProvider>
         </TooltipProvider>
       </ThemeProvider>
     </QueryClientProvider>

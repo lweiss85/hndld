@@ -105,6 +105,21 @@ export default {
           busy: "rgb(239 68 68)",
           offline: "rgb(156 163 175)",
         },
+        'hndld-sage': {
+          50: 'hsl(138 35% 97% / <alpha-value>)',
+          100: 'hsl(138 30% 94% / <alpha-value>)',
+          200: 'hsl(138 25% 88% / <alpha-value>)',
+          300: 'hsl(138 22% 78% / <alpha-value>)',
+          400: 'hsl(138 20% 65% / <alpha-value>)',
+          500: 'hsl(138 18% 50% / <alpha-value>)',
+          600: 'hsl(138 20% 42% / <alpha-value>)',
+          700: 'hsl(138 22% 35% / <alpha-value>)',
+        },
+        'hndld-terra': {
+          400: 'hsl(16 65% 60% / <alpha-value>)',
+          500: 'hsl(16 70% 52% / <alpha-value>)',
+          600: 'hsl(16 75% 45% / <alpha-value>)',
+        },
       },
       fontFamily: {
         sans: ["var(--font-sans)"],
