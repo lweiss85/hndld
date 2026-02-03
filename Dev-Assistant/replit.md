@@ -25,7 +25,7 @@ Preferred communication style: Simple, everyday language.
 - **Routing**: Wouter for client-side routing with role-based route switching
 - **State Management**: TanStack React Query for server state and caching
 - **Styling**: TailwindCSS with shadcn/ui component library (New York style variant)
-- **Design System**: Award-winning "White Glove" theme with warm sage primary (#6B8E69), terracotta accents (#CC6B49), porcelain background (#F6F2EA), Inter font family
+- **Design System**: Luxe "White Glove" theme with ink navy primary (#1D2A44), champagne gold accents (#D4C5A0), porcelain background (#F6F2EA), Inter font family
 - **Motion System**: framer-motion for page transitions, stagger animations, ripple effects, success celebrations, haptic feedback
 - **Accessibility**: LiveAnnouncerProvider for screen reader announcements, reduced motion support
 - **Visual Effects**: Glass morphism (.hndld-glass), ambient glow (.hndld-glow), signature curves (.hndld-curve)

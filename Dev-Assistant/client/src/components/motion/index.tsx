@@ -85,9 +85,9 @@ export const HndldButton = forwardRef<HTMLButtonElement, HndldButtonProps>(
     }, [onClick]);
     
     const variants = {
-      primary: "bg-[hsl(var(--hndld-sage-500))] text-white hover:bg-[hsl(var(--hndld-sage-600))]",
-      secondary: "bg-[hsl(var(--hndld-sage-100))] text-[hsl(var(--hndld-sage-700))] hover:bg-[hsl(var(--hndld-sage-200))]",
-      ghost: "bg-transparent hover:bg-[hsl(var(--hndld-sage-100))]",
+      primary: "bg-[hsl(var(--hndld-ink-600))] text-white hover:bg-[hsl(var(--hndld-ink-700))]",
+      secondary: "bg-[hsl(var(--hndld-ink-100))] text-[hsl(var(--hndld-ink-700))] hover:bg-[hsl(var(--hndld-ink-200))]",
+      ghost: "bg-transparent hover:bg-[hsl(var(--hndld-ink-100))]",
     };
     
     const sizes = {
@@ -155,10 +155,10 @@ export const SuccessCelebration = ({ show }: { show: boolean }) => {
           className="absolute w-3 h-3 rounded-full"
           style={{
             background: i % 3 === 0 
-              ? 'hsl(var(--hndld-sage-400))' 
+              ? 'hsl(var(--hndld-ink-400))' 
               : i % 3 === 1 
-                ? 'hsl(var(--hndld-terra-400))'
-                : 'hsl(38 92% 50%)',
+                ? 'hsl(var(--hndld-gold-400))'
+                : 'hsl(42 50% 55%)',
           }}
           initial={{
             x: 0,
@@ -181,7 +181,7 @@ export const SuccessCelebration = ({ show }: { show: boolean }) => {
       ))}
       
       <motion.div
-        className="w-20 h-20 rounded-full bg-[hsl(var(--hndld-sage-500))] flex items-center justify-center"
+        className="w-20 h-20 rounded-full bg-[hsl(var(--hndld-ink-600))] flex items-center justify-center"
         initial={{ scale: 0 }}
         animate={{ scale: [0, 1.2, 1] }}
         transition={{ duration: 0.5, ease: [0.34, 1.56, 0.64, 1] }}
@@ -211,17 +211,17 @@ export const SuccessCelebration = ({ show }: { show: boolean }) => {
 
 export const FloatingIndicator = ({ 
   count, 
-  color = 'sage' 
+  color = 'ink' 
 }: { 
   count: number;
-  color?: 'sage' | 'terra' | 'warning';
+  color?: 'ink' | 'gold' | 'warning';
 }) => {
   if (count === 0) return null;
   
   const colors = {
-    sage: 'bg-[hsl(var(--hndld-sage-500))]',
-    terra: 'bg-[hsl(var(--hndld-terra-500))]',
-    warning: 'bg-[hsl(38_92%_50%)]',
+    ink: 'bg-[hsl(var(--hndld-ink-600))]',
+    gold: 'bg-[hsl(var(--hndld-gold-500))]',
+    warning: 'bg-[hsl(42_50%_55%)]',
   };
   
   return (
@@ -263,7 +263,7 @@ export const EmptyState = ({ icon, title, description, action }: EmptyStateProps
     transition={{ duration: 0.5 }}
   >
     <motion.div
-      className="w-24 h-24 rounded-full bg-[hsl(var(--hndld-sage-100))] flex items-center justify-center mb-6 text-[hsl(var(--hndld-sage-500))]"
+      className="w-24 h-24 rounded-full bg-[hsl(var(--hndld-ink-100))] flex items-center justify-center mb-6 text-[hsl(var(--hndld-ink-600))]"
       animate={{ y: [0, -5, 0] }}
       transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
     >

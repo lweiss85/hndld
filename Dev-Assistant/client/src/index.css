@@ -9,26 +9,27 @@
    ==================================== */
 
 :root {
-  /* Brand: Warm Sage (Premium, Calm, Trust) */
-  --hndld-sage-50: 138 35% 97%;
-  --hndld-sage-100: 138 30% 94%;
-  --hndld-sage-200: 138 25% 88%;
-  --hndld-sage-300: 138 22% 78%;
-  --hndld-sage-400: 138 20% 65%;
-  --hndld-sage-500: 138 18% 50%;
-  --hndld-sage-600: 138 20% 42%;
-  --hndld-sage-700: 138 22% 35%;
+  /* Brand: Ink Navy (Luxe, Modern, Trust) */
+  --hndld-ink-50: 220 30% 97%;
+  --hndld-ink-100: 220 25% 94%;
+  --hndld-ink-200: 220 22% 85%;
+  --hndld-ink-300: 220 20% 70%;
+  --hndld-ink-400: 220 25% 50%;
+  --hndld-ink-500: 220 37% 35%;
+  --hndld-ink-600: 220 37% 25%;
+  --hndld-ink-700: 220 37% 19%;
   
-  /* Accent: Warm Terracotta */
-  --hndld-terra-400: 16 65% 60%;
-  --hndld-terra-500: 16 70% 52%;
-  --hndld-terra-600: 16 75% 45%;
+  /* Accent: Champagne Gold */
+  --hndld-gold-300: 42 40% 75%;
+  --hndld-gold-400: 42 45% 65%;
+  --hndld-gold-500: 42 50% 55%;
+  --hndld-gold-600: 42 52% 45%;
   
-  /* Warm Neutrals */
-  --hndld-warm-50: 30 20% 98%;
-  --hndld-warm-100: 30 15% 95%;
-  --hndld-warm-800: 30 8% 20%;
-  --hndld-warm-900: 30 10% 12%;
+  /* Warm Neutrals - Porcelain */
+  --hndld-warm-50: 36 33% 98%;
+  --hndld-warm-100: 36 30% 95%;
+  --hndld-warm-800: 220 15% 20%;
+  --hndld-warm-900: 220 20% 12%;
   
   /* Motion Timing */
   --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
@@ -74,7 +75,7 @@
   --popover-foreground: 220 24% 10%;
   --popover-border: 30 20% 88%;
   
-  --primary: 138 18% 50%; /* warm sage */
+  --primary: 220 37% 25%; /* ink navy */
   --primary-foreground: 0 0% 100%;
   
   --secondary: 30 18% 92%;
@@ -107,7 +108,7 @@
   --info-muted: 220 30% 94%; /* Subtle blue background */
   --info-muted-foreground: 220 45% 38%;
   
-  --highlight: 42 52% 80%; /* #E7D8B1 champagne */
+  --highlight: 42 50% 72%; /* #D4C5A0 champagne gold */
   
   --input: 30 20% 75%;
   --ring: 220 37% 19%;
@@ -198,20 +199,20 @@
   --sidebar: 220 18% 11%;
   --sidebar-foreground: 0 0% 98%;
   --sidebar-border: 220 15% 14%;
-  --sidebar-primary: 138 50% 55%;
+  --sidebar-primary: 220 50% 55%;
   --sidebar-primary-foreground: 0 0% 100%;
   --sidebar-accent: 220 12% 16%;
   --sidebar-accent-foreground: 220 12% 90%;
-  --sidebar-ring: 138 50% 55%;
+  --sidebar-ring: 220 50% 55%;
   
   --popover: 220 18% 13%;
   --popover-foreground: 0 0% 98%;
   --popover-border: 220 15% 16%;
   
-  --primary: 138 50% 55%;
+  --primary: 220 50% 55%;
   --primary-foreground: 0 0% 100%;
   
-  --hndld-sage-500: 138 50% 55%;
+  --hndld-ink-500: 220 50% 55%;
   
   --secondary: 220 12% 18%;
   --secondary-foreground: 220 8% 90%;
@@ -385,7 +386,7 @@
   inset: -50%;
   background: radial-gradient(
     ellipse at 50% 0%,
-    hsl(var(--hndld-sage-300) / 0.15) 0%,
+    hsl(var(--hndld-gold-400) / 0.15) 0%,
     transparent 70%
   );
   pointer-events: none;
