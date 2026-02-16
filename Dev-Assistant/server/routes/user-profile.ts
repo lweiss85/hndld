@@ -6,6 +6,7 @@ import { isAuthenticated } from "../replit_integrations/auth";
 import { householdContextMiddleware } from "../middleware/householdContext";
 import { getImpactMetrics } from "../services/analytics";
 import { seedDemoData } from "./helpers";
+import { cache, CacheKeys, CacheTTL } from "../lib/cache";
 
 const householdContext = householdContextMiddleware;
 
@@ -38,7 +39,11 @@ export async function registerUserProfileRoutes(app: Router): Promise<void> {
   app.get("/user-profile", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
-      const profile = await storage.getUserProfile(userId);
+      const profile = await cache.getOrSet(
+        CacheKeys.userProfile(userId),
+        () => storage.getUserProfile(userId),
+        CacheTTL.MEDIUM
+      );
       
       // If no profile exists, user needs to select role first
       if (!profile) {
@@ -116,6 +121,8 @@ export async function registerUserProfileRoutes(app: Router): Promise<void> {
       } catch (error) {
         logger.error("Error seeding demo data", { error, userId });
       }
+      
+      cache.invalidate(CacheKeys.userProfile(userId));
       
       res.status(201).json(profile);
     } catch (error) {

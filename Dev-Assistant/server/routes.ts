@@ -10,6 +10,8 @@ import { apiVersionMiddleware } from "./middleware/apiVersion";
 import { householdContextMiddleware } from "./middleware/householdContext";
 import { metrics } from "./lib/metrics";
 import { setupSwagger } from "./lib/swagger";
+import { apiCacheHeaders } from "./middleware/cacheControl";
+import { cache } from "./lib/cache";
 import { startScheduledBackups } from "./services/scheduler";
 import { runMomentsAutomation } from "./routes/helpers";
 import householdRoutes from "./routes/households";
@@ -45,7 +47,7 @@ export async function registerRoutes(
   });
 
   app.get("/api/metrics/json", (_req, res) => {
-    res.json(metrics.getStats());
+    res.json({ ...metrics.getStats(), cache: cache.getStats() });
   });
 
   await setupAuth(app);
@@ -55,6 +57,7 @@ export async function registerRoutes(
 
   const v1 = express.Router();
   v1.use(apiVersionMiddleware);
+  v1.use(apiCacheHeaders);
 
   v1.use("/households", isAuthenticated, householdRoutes);
   v1.use(inviteRoutes);

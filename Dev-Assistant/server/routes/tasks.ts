@@ -11,6 +11,7 @@ import { notify } from "../services/notifications";
 import { calculateNextOccurrence } from "./helpers";
 import { z } from "zod";
 import { format } from "date-fns";
+import { cache, CacheKeys, CacheTTL } from "../lib/cache";
 
 const householdContext = householdContextMiddleware;
 
@@ -824,7 +825,11 @@ export function registerTaskRoutes(app: Router) {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
-      const templates = await storage.getTaskTemplates(householdId);
+      const templates = await cache.getOrSet(
+        CacheKeys.taskTemplates(householdId),
+        () => storage.getTaskTemplates(householdId),
+        CacheTTL.LONG
+      );
       res.json(templates);
     } catch (error) {
       logger.error("Error fetching task templates", { error, householdId, userId });
@@ -892,6 +897,7 @@ export function registerTaskRoutes(app: Router) {
         ...req.body,
         householdId,
       });
+      cache.invalidate(CacheKeys.taskTemplates(householdId));
       res.status(201).json(template);
     } catch (error) {
       logger.error("Error creating task template", { error, householdId });
@@ -962,6 +968,7 @@ export function registerTaskRoutes(app: Router) {
       if (!template) {
         return res.status(404).json({ message: "Template not found" });
       }
+      cache.invalidate(CacheKeys.taskTemplates(householdId));
       res.json(template);
     } catch (error) {
       logger.error("Error updating task template", { error, householdId });
@@ -1009,6 +1016,7 @@ export function registerTaskRoutes(app: Router) {
       if (!deleted) {
         return res.status(404).json({ message: "Template not found" });
       }
+      cache.invalidate(CacheKeys.taskTemplates(householdId));
       res.status(204).send();
     } catch (error) {
       logger.error("Error deleting task template", { error, householdId });

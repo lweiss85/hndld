@@ -4,6 +4,7 @@ import { storage } from "../storage";
 import logger from "../lib/logger";
 import { isAuthenticated } from "../replit_integrations/auth";
 import { householdContextMiddleware } from "../middleware/householdContext";
+import { cache, CacheKeys, CacheTTL } from "../lib/cache";
 
 const householdContext = householdContextMiddleware;
 
@@ -32,7 +33,11 @@ export async function registerCleaningRoutes(app: Router): Promise<void> {
   app.get("/addon-services", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
-      const addons = await storage.getAddonServices(householdId);
+      const addons = await cache.getOrSet(
+        CacheKeys.addonServices(householdId),
+        () => storage.getAddonServices(householdId),
+        CacheTTL.LONG
+      );
       res.json(addons);
     } catch (error) {
       logger.error("Error fetching addon services", { error, householdId });
@@ -112,6 +117,7 @@ export async function registerCleaningRoutes(app: Router): Promise<void> {
         isActive: true,
       });
       
+      cache.invalidate(CacheKeys.addonServices(householdId));
       res.status(201).json(addon);
     } catch (error) {
       logger.error("Error creating addon service", { error, householdId });
@@ -202,6 +208,7 @@ export async function registerCleaningRoutes(app: Router): Promise<void> {
       if (isActive !== undefined) updateData.isActive = isActive;
       
       const addon = await storage.updateAddonService(id, updateData);
+      cache.invalidate(CacheKeys.addonServices(householdId));
       res.json(addon);
     } catch (error) {
       logger.error("Error updating addon service", { error, householdId, id });
@@ -251,6 +258,7 @@ export async function registerCleaningRoutes(app: Router): Promise<void> {
       }
       
       await storage.deleteAddonService(id);
+      cache.invalidate(CacheKeys.addonServices(householdId));
       res.json({ success: true });
     } catch (error) {
       logger.error("Error deleting addon service", { error, householdId, id });

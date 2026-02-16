@@ -11,6 +11,7 @@ import { eq, and, sql } from "drizzle-orm";
 import { spendingItems, userProfiles, files, fileLinks, households } from "@shared/schema";
 import { escapeHtml } from "../lib/escape-html";
 import { getStorageProvider } from "../services/storage-provider";
+import { cache, CacheKeys, CacheTTL } from "../lib/cache";
 
 const householdContext = householdContextMiddleware;
 
@@ -394,13 +395,21 @@ export function registerSpendingRoutes(app: Router) {
       const householdId = req.householdId!;
       
       // Get the household's organization
-      const household = await storage.getHousehold(householdId);
+      const household = await cache.getOrSet(
+        CacheKeys.household(householdId),
+        () => storage.getHousehold(householdId),
+        CacheTTL.MEDIUM
+      );
       if (!household?.organizationId) {
         return res.status(404).json({ message: "Household is not linked to an organization. Create an organization first." });
       }
       
       // Get or create payment profile with defaults
-      let profile = await storage.getOrganizationPaymentProfile(household.organizationId);
+      let profile = await cache.getOrSet(
+        CacheKeys.orgPaymentProfile(household.organizationId),
+        () => storage.getOrganizationPaymentProfile(household.organizationId),
+        CacheTTL.MEDIUM
+      );
       if (!profile) {
         profile = await storage.upsertOrganizationPaymentProfile(household.organizationId, {});
       }
@@ -477,7 +486,11 @@ export function registerSpendingRoutes(app: Router) {
       const householdId = req.householdId!;
       
       // Get the household's organization
-      const household = await storage.getHousehold(householdId);
+      const household = await cache.getOrSet(
+        CacheKeys.household(householdId),
+        () => storage.getHousehold(householdId),
+        CacheTTL.MEDIUM
+      );
       if (!household?.organizationId) {
         return res.status(404).json({ message: "Household is not linked to an organization. Create an organization first." });
       }
@@ -529,6 +542,8 @@ export function registerSpendingRoutes(app: Router) {
         defaultPaymentMethod: defaultPaymentMethod || "VENMO",
         payNoteTemplate: payNoteTemplate || "hndld • Reimbursement {ref} • {category} • {date}",
       });
+      
+      cache.invalidate(CacheKeys.orgPaymentProfile(household.organizationId));
       
       // Audit log
       const { logAudit } = await import("../services/audit");
@@ -591,13 +606,25 @@ export function registerSpendingRoutes(app: Router) {
       const householdId = req.householdId!;
       
       // Get household's override settings
-      let override = await storage.getHouseholdPaymentOverride(householdId);
+      let override = await cache.getOrSet(
+        CacheKeys.householdPaymentOverride(householdId),
+        () => storage.getHouseholdPaymentOverride(householdId),
+        CacheTTL.MEDIUM
+      );
       
       // Also get the org profile if available (for display purposes)
-      const household = await storage.getHousehold(householdId);
+      const household = await cache.getOrSet(
+        CacheKeys.household(householdId),
+        () => storage.getHousehold(householdId),
+        CacheTTL.MEDIUM
+      );
       let orgProfile = null;
       if (household?.organizationId) {
-        orgProfile = await storage.getOrganizationPaymentProfile(household.organizationId);
+        orgProfile = await cache.getOrSet(
+          CacheKeys.orgPaymentProfile(household.organizationId),
+          () => storage.getOrganizationPaymentProfile(household.organizationId),
+          CacheTTL.MEDIUM
+        );
       }
       
       res.json({
@@ -704,6 +731,8 @@ export function registerSpendingRoutes(app: Router) {
         defaultPaymentMethod: defaultPaymentMethod || null,
         payNoteTemplate: payNoteTemplate || null,
       });
+      
+      cache.invalidate(CacheKeys.householdPaymentOverride(householdId));
       
       // Audit log
       const { logAudit } = await import("../services/audit");
@@ -831,13 +860,25 @@ export function registerSpendingRoutes(app: Router) {
       }
       
       // Resolve effective payment profile
-      const household = await storage.getHousehold(householdId);
+      const household = await cache.getOrSet(
+        CacheKeys.household(householdId),
+        () => storage.getHousehold(householdId),
+        CacheTTL.MEDIUM
+      );
       let orgProfile = null;
       if (household?.organizationId) {
-        orgProfile = await storage.getOrganizationPaymentProfile(household.organizationId);
+        orgProfile = await cache.getOrSet(
+          CacheKeys.orgPaymentProfile(household.organizationId),
+          () => storage.getOrganizationPaymentProfile(household.organizationId),
+          CacheTTL.MEDIUM
+        );
       }
       
-      const householdOverride = await storage.getHouseholdPaymentOverride(householdId);
+      const householdOverride = await cache.getOrSet(
+        CacheKeys.householdPaymentOverride(householdId),
+        () => storage.getHouseholdPaymentOverride(householdId),
+        CacheTTL.MEDIUM
+      );
       
       // Determine effective values
       const useOrgDefaults = !householdOverride || householdOverride.useOrgDefaults;
@@ -985,13 +1026,25 @@ export function registerSpendingRoutes(app: Router) {
       const householdId = req.householdId!;
       
       // Resolve effective payment profile
-      const household = await storage.getHousehold(householdId);
+      const household = await cache.getOrSet(
+        CacheKeys.household(householdId),
+        () => storage.getHousehold(householdId),
+        CacheTTL.MEDIUM
+      );
       let orgProfile = null;
       if (household?.organizationId) {
-        orgProfile = await storage.getOrganizationPaymentProfile(household.organizationId);
+        orgProfile = await cache.getOrSet(
+          CacheKeys.orgPaymentProfile(household.organizationId),
+          () => storage.getOrganizationPaymentProfile(household.organizationId),
+          CacheTTL.MEDIUM
+        );
       }
       
-      const householdOverride = await storage.getHouseholdPaymentOverride(householdId);
+      const householdOverride = await cache.getOrSet(
+        CacheKeys.householdPaymentOverride(householdId),
+        () => storage.getHouseholdPaymentOverride(householdId),
+        CacheTTL.MEDIUM
+      );
       
       // Determine effective values
       const useOrgDefaults = !householdOverride || householdOverride.useOrgDefaults;
@@ -1112,7 +1165,11 @@ export function registerSpendingRoutes(app: Router) {
       }
 
       // Get household for display name
-      const household = await storage.getHousehold(householdId);
+      const household = await cache.getOrSet(
+        CacheKeys.household(householdId),
+        () => storage.getHousehold(householdId),
+        CacheTTL.MEDIUM
+      );
       
       // Generate invoice number: INV-YYYYMMDD-XXXXX
       const now = new Date();
@@ -1140,9 +1197,17 @@ export function registerSpendingRoutes(app: Router) {
       // Get payment options for the invoice document
       let orgProfile = null;
       if (household?.organizationId) {
-        orgProfile = await storage.getOrganizationPaymentProfile(household.organizationId);
+        orgProfile = await cache.getOrSet(
+          CacheKeys.orgPaymentProfile(household.organizationId),
+          () => storage.getOrganizationPaymentProfile(household.organizationId),
+          CacheTTL.MEDIUM
+        );
       }
-      const householdOverride = await storage.getHouseholdPaymentOverride(householdId);
+      const householdOverride = await cache.getOrSet(
+        CacheKeys.householdPaymentOverride(householdId),
+        () => storage.getHouseholdPaymentOverride(householdId),
+        CacheTTL.MEDIUM
+      );
       const useOrgDefaults = !householdOverride || householdOverride.useOrgDefaults;
       
       const venmoUsername = useOrgDefaults 

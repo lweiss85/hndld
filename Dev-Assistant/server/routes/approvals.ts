@@ -8,6 +8,7 @@ import { requirePermission } from "../middleware/requirePermission";
 import { wsManager } from "../services/websocket";
 import { serviceScopeMiddleware, getServiceTypeFilter } from "../middleware/serviceScope";
 import { z } from "zod";
+import { cache, CacheKeys, CacheTTL } from "../lib/cache";
 
 const householdContext = householdContextMiddleware;
 
@@ -798,7 +799,11 @@ export function registerApprovalsRoutes(app: Router) {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
-      const vendors = await storage.getVendors(householdId);
+      const vendors = await cache.getOrSet(
+        CacheKeys.vendors(householdId),
+        () => storage.getVendors(householdId),
+        CacheTTL.MEDIUM
+      );
       res.json(vendors);
     } catch (error) {
       logger.error("Error fetching vendors", { error, householdId, userId });
@@ -850,6 +855,7 @@ export function registerApprovalsRoutes(app: Router) {
         ...req.body,
         householdId,
       });
+      cache.invalidate(CacheKeys.vendors(householdId));
       
       res.status(201).json(vendor);
     } catch (error) {

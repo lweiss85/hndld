@@ -44,6 +44,7 @@ Preferred communication style: Simple, everyday language.
 - **API Design**: RESTful endpoints under `/api/v1/*` prefix with URL-based versioning. Rate limiting via apiLimiter, authLimiter. Accept-Version header support via apiVersion middleware
 - **OpenAPI Documentation**: Swagger UI at `/api/docs`, JSON spec at `/api/docs/spec.json`. 155 documented endpoints across 43 tags using swagger-jsdoc and swagger-ui-express. JSDoc @openapi annotations on all route handlers in `server/routes/*.ts`. Component schemas defined in `server/lib/swagger.ts`
 - **Route Organization**: 13 domain-specific route modules in `server/routes/` (tasks, approvals, spending, calendar, household-concierge, admin, admin-ops, features, cleaning, user-profile, google-calendar, files, weekly-brief)
+- **Caching**: In-memory cache (`server/lib/cache.ts`) with TTL-based expiration, pattern-based invalidation, and cache stats. Cached: household settings/preferences/locations/people/dates (5min), addon services/task templates (1hr), user profiles (5min), payment profiles (5min). Write-through invalidation on all mutation routes. Cache-Control middleware at `server/middleware/cacheControl.ts` sets appropriate HTTP headers
 - **Build System**: esbuild for server bundling, Vite for client bundling
 - **Development**: Hot module replacement via Vite middleware in development mode
 

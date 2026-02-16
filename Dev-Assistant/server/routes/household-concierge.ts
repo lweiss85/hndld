@@ -7,6 +7,7 @@ import { householdContextMiddleware } from "../middleware/householdContext";
 import { requirePermission } from "../middleware/requirePermission";
 import { encryptVaultValue, decryptVaultValue } from "../services/vault-encryption";
 import { escapeHtml } from "../lib/escape-html";
+import { cache, CacheKeys, CacheTTL } from "../lib/cache";
 import {
   insertHouseholdSettingsSchema, insertHouseholdLocationSchema, insertPersonSchema,
   insertPreferenceSchema, insertImportantDateSchema, insertAccessItemSchema,
@@ -152,6 +153,7 @@ export function registerHouseholdConciergeRoutes(app: Router) {
       if (phase === 3) updateData.onboardingPhase3Complete = true;
       
       const settings = await storage.upsertHouseholdSettings(householdId, updateData);
+      cache.invalidate(CacheKeys.householdSettings(householdId));
       
       res.json({
         phase1Complete: settings.onboardingPhase1Complete,
@@ -207,6 +209,7 @@ export function registerHouseholdConciergeRoutes(app: Router) {
         ...settings,
         householdId,
       });
+      cache.invalidate(CacheKeys.householdSettings(householdId));
       
       res.json({ success: true });
     } catch (error) {
@@ -272,6 +275,7 @@ export function registerHouseholdConciergeRoutes(app: Router) {
             ...data,
             householdId,
           });
+          cache.invalidate(CacheKeys.householdSettings(householdId));
           break;
           
         case "people":
@@ -282,6 +286,7 @@ export function registerHouseholdConciergeRoutes(app: Router) {
                 ...person,
               });
             }
+            cache.invalidate(CacheKeys.householdPeople(householdId));
           }
           break;
           
@@ -293,6 +298,7 @@ export function registerHouseholdConciergeRoutes(app: Router) {
                 ...pref,
               });
             }
+            cache.invalidate(CacheKeys.householdPreferences(householdId));
           }
           break;
           
@@ -304,6 +310,7 @@ export function registerHouseholdConciergeRoutes(app: Router) {
                 ...date,
               });
             }
+            cache.invalidate(CacheKeys.householdImportantDates(householdId));
           }
           break;
           
@@ -315,6 +322,7 @@ export function registerHouseholdConciergeRoutes(app: Router) {
                 ...location,
               });
             }
+            cache.invalidate(CacheKeys.householdLocations(householdId));
           }
           break;
           
@@ -370,11 +378,18 @@ export function registerHouseholdConciergeRoutes(app: Router) {
   app.get("/household", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
-      const [household] = await db
-        .select()
-        .from(households)
-        .where(eq(households.id, householdId))
-        .limit(1);
+      const household = await cache.getOrSet(
+        CacheKeys.household(householdId),
+        async () => {
+          const [h] = await db
+            .select()
+            .from(households)
+            .where(eq(households.id, householdId))
+            .limit(1);
+          return h;
+        },
+        CacheTTL.MEDIUM
+      );
       
       if (!household) {
         return res.status(404).json({ message: "Household not found" });
@@ -417,10 +432,15 @@ export function registerHouseholdConciergeRoutes(app: Router) {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
-      let settings = await storage.getHouseholdSettings(householdId);
+      let settings = await cache.getOrSet(
+        CacheKeys.householdSettings(householdId),
+        () => storage.getHouseholdSettings(householdId),
+        CacheTTL.MEDIUM
+      );
       
       if (!settings) {
         settings = await storage.upsertHouseholdSettings(householdId, {});
+        cache.invalidate(CacheKeys.householdSettings(householdId));
       }
       
       res.json(settings);
@@ -475,6 +495,7 @@ export function registerHouseholdConciergeRoutes(app: Router) {
       }
       
       const settings = await storage.upsertHouseholdSettings(householdId, req.body);
+      cache.invalidate(CacheKeys.householdSettings(householdId));
       res.json(settings);
     } catch (error) {
       logger.error("Error updating household settings", { error, userId, householdId });
@@ -514,7 +535,11 @@ export function registerHouseholdConciergeRoutes(app: Router) {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
-      const locations = await storage.getHouseholdLocations(householdId);
+      const locations = await cache.getOrSet(
+        CacheKeys.householdLocations(householdId),
+        () => storage.getHouseholdLocations(householdId),
+        CacheTTL.MEDIUM
+      );
       res.json(locations);
     } catch (error) {
       logger.error("Error fetching household locations", { error, userId, householdId });
@@ -570,6 +595,7 @@ export function registerHouseholdConciergeRoutes(app: Router) {
         ...req.body,
         householdId,
       });
+      cache.invalidate(CacheKeys.householdLocations(householdId));
       
       res.status(201).json(location);
     } catch (error) {
@@ -634,6 +660,7 @@ export function registerHouseholdConciergeRoutes(app: Router) {
       if (!location) {
         return res.status(404).json({ message: "Location not found" });
       }
+      cache.invalidate(CacheKeys.householdLocations(householdId));
       res.json(location);
     } catch (error) {
       logger.error("Error updating household location", { error, userId, householdId });
@@ -679,6 +706,7 @@ export function registerHouseholdConciergeRoutes(app: Router) {
       if (!deleted) {
         return res.status(404).json({ message: "Location not found" });
       }
+      cache.invalidate(CacheKeys.householdLocations(householdId));
       res.status(204).send();
     } catch (error) {
       logger.error("Error deleting household location", { error, householdId });
@@ -718,7 +746,11 @@ export function registerHouseholdConciergeRoutes(app: Router) {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
-      const people = await storage.getPeople(householdId);
+      const people = await cache.getOrSet(
+        CacheKeys.householdPeople(householdId),
+        () => storage.getPeople(householdId),
+        CacheTTL.MEDIUM
+      );
       res.json(people);
     } catch (error) {
       logger.error("Error fetching people", { error, userId, householdId });
@@ -774,6 +806,7 @@ export function registerHouseholdConciergeRoutes(app: Router) {
         ...req.body,
         householdId,
       });
+      cache.invalidate(CacheKeys.householdPeople(householdId));
       
       res.status(201).json(person);
     } catch (error) {
@@ -838,6 +871,7 @@ export function registerHouseholdConciergeRoutes(app: Router) {
       if (!person) {
         return res.status(404).json({ message: "Person not found" });
       }
+      cache.invalidate(CacheKeys.householdPeople(householdId));
       res.json(person);
     } catch (error) {
       logger.error("Error updating person", { error, userId, householdId });
@@ -883,6 +917,7 @@ export function registerHouseholdConciergeRoutes(app: Router) {
       if (!deleted) {
         return res.status(404).json({ message: "Person not found" });
       }
+      cache.invalidate(CacheKeys.householdPeople(householdId));
       res.status(204).send();
     } catch (error) {
       logger.error("Error deleting person", { error, householdId });
@@ -922,7 +957,11 @@ export function registerHouseholdConciergeRoutes(app: Router) {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
-      const preferences = await storage.getPreferences(householdId);
+      const preferences = await cache.getOrSet(
+        CacheKeys.householdPreferences(householdId),
+        () => storage.getPreferences(householdId),
+        CacheTTL.MEDIUM
+      );
       res.json(preferences);
     } catch (error) {
       logger.error("Error fetching preferences", { error, userId, householdId });
@@ -979,6 +1018,7 @@ export function registerHouseholdConciergeRoutes(app: Router) {
         householdId,
         createdByUserId: userId,
       });
+      cache.invalidate(CacheKeys.householdPreferences(householdId));
       
       res.status(201).json(preference);
     } catch (error) {
@@ -1043,6 +1083,7 @@ export function registerHouseholdConciergeRoutes(app: Router) {
       if (!preference) {
         return res.status(404).json({ message: "Preference not found" });
       }
+      cache.invalidate(CacheKeys.householdPreferences(householdId));
       res.json(preference);
     } catch (error) {
       logger.error("Error updating preference", { error, userId, householdId });
@@ -1088,6 +1129,7 @@ export function registerHouseholdConciergeRoutes(app: Router) {
       if (!deleted) {
         return res.status(404).json({ message: "Preference not found" });
       }
+      cache.invalidate(CacheKeys.householdPreferences(householdId));
       res.status(204).send();
     } catch (error) {
       logger.error("Error deleting preference", { error, householdId });
@@ -1127,7 +1169,11 @@ export function registerHouseholdConciergeRoutes(app: Router) {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
-      const importantDates = await storage.getImportantDates(householdId);
+      const importantDates = await cache.getOrSet(
+        CacheKeys.householdImportantDates(householdId),
+        () => storage.getImportantDates(householdId),
+        CacheTTL.MEDIUM
+      );
       res.json(importantDates);
     } catch (error) {
       logger.error("Error fetching important dates", { error, userId, householdId });
@@ -1183,6 +1229,7 @@ export function registerHouseholdConciergeRoutes(app: Router) {
         ...req.body,
         householdId,
       });
+      cache.invalidate(CacheKeys.householdImportantDates(householdId));
       
       res.status(201).json(importantDate);
     } catch (error) {
@@ -1247,6 +1294,7 @@ export function registerHouseholdConciergeRoutes(app: Router) {
       if (!importantDate) {
         return res.status(404).json({ message: "Important date not found" });
       }
+      cache.invalidate(CacheKeys.householdImportantDates(householdId));
       res.json(importantDate);
     } catch (error) {
       logger.error("Error updating important date", { error, userId, householdId });
@@ -1292,6 +1340,7 @@ export function registerHouseholdConciergeRoutes(app: Router) {
       if (!deleted) {
         return res.status(404).json({ message: "Important date not found" });
       }
+      cache.invalidate(CacheKeys.householdImportantDates(householdId));
       res.status(204).send();
     } catch (error) {
       logger.error("Error deleting important date", { error, householdId });
