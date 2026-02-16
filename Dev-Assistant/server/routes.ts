@@ -4,6 +4,7 @@ import { type Server } from "http";
 import { join } from "path";
 import { setupAuth, registerAuthRoutes, isAuthenticated } from "./replit_integrations/auth";
 import { apiLimiter } from "./lib/rate-limit";
+import { requestIdMiddleware } from "./middleware/requestId";
 import { householdContextMiddleware } from "./middleware/householdContext";
 import { startScheduledBackups } from "./services/scheduler";
 import { runMomentsAutomation } from "./routes/helpers";
@@ -29,6 +30,8 @@ export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
+  app.use(requestIdMiddleware);
+
   await setupAuth(app);
   registerAuthRoutes(app);
 

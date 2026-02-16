@@ -5,6 +5,7 @@ declare global {
   namespace Express {
     interface User extends AuthUser {}
     interface Request {
+      requestId?: string;
       householdId?: string;
       householdRole?: string;
       organizationId?: string;

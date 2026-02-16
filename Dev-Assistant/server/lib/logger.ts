@@ -5,6 +5,7 @@
  */
 
 import winston from "winston";
+import { getRequestId } from "../middleware/requestId";
 
 const logLevel = process.env.LOG_LEVEL || "info";
 const isDevelopment = process.env.NODE_ENV !== "production";
@@ -106,6 +107,14 @@ function sanitize(obj: any, seen = new WeakSet()): any {
   return obj;
 }
 
+const injectRequestId = winston.format((info) => {
+  const requestId = getRequestId();
+  if (requestId) {
+    info.requestId = requestId;
+  }
+  return info;
+});
+
 const sanitizeFormat = winston.format((info) => {
   if (typeof info.message === "object") {
     info.message = sanitize(info.message);
@@ -128,13 +137,15 @@ const logger = winston.createLogger({
     winston.format.timestamp({ format: "YYYY-MM-DD HH:mm:ss" }),
     winston.format.errors({ stack: true }),
     winston.format.splat(),
+    injectRequestId(),
     sanitizeFormat(),
     isDevelopment
       ? winston.format.combine(
           winston.format.colorize(),
-          winston.format.printf(({ timestamp, level, message, ...meta }) => {
-            const metaStr = Object.keys(meta).length ? JSON.stringify(meta, null, 2) : "";
-            return `${timestamp} [${level}] ${message} ${metaStr}`;
+          winston.format.printf(({ timestamp, level, message, requestId, ...meta }) => {
+            const reqIdStr = requestId ? ` [${requestId}]` : "";
+            const metaStr = Object.keys(meta).length ? " " + JSON.stringify(meta, null, 2) : "";
+            return `${timestamp} [${level}]${reqIdStr} ${message}${metaStr}`;
           })
         )
       : winston.format.json()
