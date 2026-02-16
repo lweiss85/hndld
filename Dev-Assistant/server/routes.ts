@@ -95,9 +95,9 @@ async function getOrCreateHousehold(userId: string): Promise<string> {
     
     try {
       await seedDemoData(householdId, userId);
-      console.log("Demo data seeded successfully for household:", householdId);
+      logger.info("Demo data seeded successfully", { householdId });
     } catch (error) {
-      console.error("Error seeding demo data:", error);
+      logger.error("Error seeding demo data", { error, householdId });
     }
   }
   
@@ -439,10 +439,10 @@ async function runMomentsAutomation(): Promise<void> {
     }
     
     if (totalTasksCreated > 0) {
-      console.log(`[Moments Automation] Created ${totalTasksCreated} tasks across ${allHouseholds.length} households`);
+      logger.info("Moments Automation created tasks", { totalTasksCreated, householdCount: allHouseholds.length });
     }
   } catch (error) {
-    console.error("[Moments Automation] Error:", error);
+    logger.error("Moments Automation error", { error });
   }
 }
 
@@ -481,7 +481,7 @@ export async function registerRoutes(
       const authUrl = googleCalendar.getAuthUrl(state);
       res.json({ authUrl });
     } catch (error) {
-      console.error("Error generating auth URL:", error);
+      logger.error("Error generating auth URL", { error, userId });
       res.status(500).json({ error: "Failed to generate auth URL" });
     }
   });
@@ -518,7 +518,7 @@ export async function registerRoutes(
       
       res.redirect("/settings?tab=calendar&connected=true");
     } catch (error) {
-      console.error("Error in OAuth callback:", error);
+      logger.error("Error in OAuth callback", { error });
       res.redirect("/settings?tab=calendar&error=auth_failed");
     }
   });
@@ -546,7 +546,7 @@ export async function registerRoutes(
         })),
       });
     } catch (error) {
-      console.error("Error listing calendars:", error);
+      logger.error("Error listing calendars", { error, householdId });
       res.status(500).json({ error: "Failed to list calendars" });
     }
   });
@@ -577,7 +577,7 @@ export async function registerRoutes(
       
       res.json({ success: true });
     } catch (error) {
-      console.error("Error selecting calendars:", error);
+      logger.error("Error selecting calendars", { error, householdId });
       res.status(500).json({ error: "Failed to select calendars" });
     }
   });
@@ -588,7 +588,7 @@ export async function registerRoutes(
       const result = await googleCalendar.syncCalendarEvents(householdId);
       res.json(result);
     } catch (error) {
-      console.error("Error syncing calendar:", error);
+      logger.error("Error syncing calendar", { error, householdId });
       res.status(500).json({ error: "Failed to sync calendar" });
     }
   });
@@ -599,7 +599,7 @@ export async function registerRoutes(
       await googleCalendar.disconnectCalendar(householdId);
       res.status(204).send();
     } catch (error) {
-      console.error("Error disconnecting calendar:", error);
+      logger.error("Error disconnecting calendar", { error, householdId });
       res.status(500).json({ error: "Failed to disconnect" });
     }
   });
@@ -616,7 +616,7 @@ export async function registerRoutes(
       
       res.json(profile);
     } catch (error) {
-      console.error("Error fetching user profile:", error);
+      logger.error("Error fetching user profile", { error, userId });
       res.status(500).json({ message: "Failed to fetch user profile" });
     }
   });
@@ -648,14 +648,14 @@ export async function registerRoutes(
       // Seed demo data for new users
       try {
         await seedDemoData(household.id, userId);
-        console.log("Demo data seeded for new user:", userId);
+        logger.info("Demo data seeded for new user", { userId });
       } catch (error) {
-        console.error("Error seeding demo data:", error);
+        logger.error("Error seeding demo data", { error, userId });
       }
       
       res.status(201).json(profile);
     } catch (error) {
-      console.error("Error setting user role:", error);
+      logger.error("Error setting user role", { error, userId });
       res.status(500).json({ message: "Failed to set role" });
     }
   });
@@ -686,12 +686,12 @@ export async function registerRoutes(
       try {
         impact = await getImpactMetrics(householdId);
       } catch (err) {
-        console.error("Error fetching impact metrics:", err);
+        logger.error("Error fetching impact metrics", { error: err, householdId });
       }
       
       res.json({ tasks, approvals, events, spending, impact });
     } catch (error) {
-      console.error("Error fetching dashboard:", error);
+      logger.error("Error fetching dashboard", { error, householdId, userId });
       res.status(500).json({ message: "Failed to fetch dashboard" });
     }
   });
@@ -735,7 +735,7 @@ export async function registerRoutes(
         defaultServiceType,
       });
     } catch (error) {
-      console.error("Error fetching service memberships:", error);
+      logger.error("Error fetching service memberships", { error, householdId, userId });
       res.status(500).json({ message: "Failed to fetch service memberships" });
     }
   });
@@ -766,7 +766,7 @@ export async function registerRoutes(
       
       res.json({ success: true, defaultServiceType: serviceType });
     } catch (error) {
-      console.error("Error setting default service:", error);
+      logger.error("Error setting default service", { error, householdId, userId });
       res.status(500).json({ message: "Failed to set default service" });
     }
   });
@@ -781,7 +781,7 @@ export async function registerRoutes(
       const addons = await storage.getAddonServices(householdId);
       res.json(addons);
     } catch (error) {
-      console.error("Error fetching addon services:", error);
+      logger.error("Error fetching addon services", { error, householdId });
       res.status(500).json({ message: "Failed to fetch addon services" });
     }
   });
@@ -819,7 +819,7 @@ export async function registerRoutes(
       
       res.status(201).json(addon);
     } catch (error) {
-      console.error("Error creating addon service:", error);
+      logger.error("Error creating addon service", { error, householdId });
       res.status(500).json({ message: "Failed to create addon service" });
     }
   });
@@ -860,7 +860,7 @@ export async function registerRoutes(
       const addon = await storage.updateAddonService(id, updateData);
       res.json(addon);
     } catch (error) {
-      console.error("Error updating addon service:", error);
+      logger.error("Error updating addon service", { error, householdId, id });
       res.status(500).json({ message: "Failed to update addon service" });
     }
   });
@@ -883,7 +883,7 @@ export async function registerRoutes(
       await storage.deleteAddonService(id);
       res.json({ success: true });
     } catch (error) {
-      console.error("Error deleting addon service:", error);
+      logger.error("Error deleting addon service", { error, householdId, id });
       res.status(500).json({ message: "Failed to delete addon service" });
     }
   });
@@ -894,7 +894,7 @@ export async function registerRoutes(
       const visit = await storage.getNextCleaningVisit(householdId);
       res.json(visit || null);
     } catch (error) {
-      console.error("Error fetching next cleaning:", error);
+      logger.error("Error fetching next cleaning", { error, householdId });
       res.status(500).json({ message: "Failed to fetch next cleaning" });
     }
   });
@@ -905,7 +905,7 @@ export async function registerRoutes(
       const visits = await storage.getCleaningVisits(householdId);
       res.json(visits);
     } catch (error) {
-      console.error("Error fetching cleaning visits:", error);
+      logger.error("Error fetching cleaning visits", { error, householdId });
       res.status(500).json({ message: "Failed to fetch cleaning visits" });
     }
   });
@@ -919,7 +919,7 @@ export async function registerRoutes(
       });
       res.status(201).json(visit);
     } catch (error) {
-      console.error("Error creating cleaning visit:", error);
+      logger.error("Error creating cleaning visit", { error, householdId });
       res.status(500).json({ message: "Failed to create cleaning visit" });
     }
   });
@@ -933,7 +933,7 @@ export async function registerRoutes(
       }
       res.json(visit);
     } catch (error) {
-      console.error("Error updating cleaning visit:", error);
+      logger.error("Error updating cleaning visit", { error, id });
       res.status(500).json({ message: "Failed to update cleaning visit" });
     }
   });
@@ -955,7 +955,7 @@ export async function registerRoutes(
       
       res.json({ tasks, events });
     } catch (error) {
-      console.error("Error fetching today data:", error);
+      logger.error("Error fetching today data", { error, householdId, userId });
       res.status(500).json({ message: "Failed to fetch today data" });
     }
   });
@@ -997,7 +997,7 @@ export async function registerRoutes(
         res.json(tasks);
       }
     } catch (error) {
-      console.error("Error fetching tasks:", error);
+      logger.error("Error fetching tasks", { error, householdId, userId });
       res.status(500).json({ message: "Failed to fetch tasks" });
     }
   });
@@ -1020,7 +1020,7 @@ export async function registerRoutes(
             estimatedMinutes = estimate.estimatedMinutes;
           }
         } catch (err) {
-          console.log("AI estimate failed, using category default");
+          logger.info("AI estimate failed, using category default");
         }
       }
       
@@ -1038,7 +1038,7 @@ export async function registerRoutes(
       
       res.status(201).json(task);
     } catch (error) {
-      console.error("Error creating task:", error);
+      logger.error("Error creating task", { error, householdId, userId });
       res.status(500).json({ message: "Failed to create task" });
     }
   });
@@ -1074,7 +1074,7 @@ export async function registerRoutes(
       
       res.json(task);
     } catch (error) {
-      console.error("Error updating task:", error);
+      logger.error("Error updating task", { error, householdId, userId });
       res.status(500).json({ message: "Failed to update task" });
     }
   });
@@ -1098,7 +1098,7 @@ export async function registerRoutes(
       
       res.status(204).send();
     } catch (error) {
-      console.error("Error deleting task:", error);
+      logger.error("Error deleting task", { error, householdId, userId });
       res.status(500).json({ message: "Failed to delete task" });
     }
   });
@@ -1173,7 +1173,7 @@ export async function registerRoutes(
       
       res.json({ completedTask: { ...task, status: "DONE" } });
     } catch (error) {
-      console.error("Error completing task:", error);
+      logger.error("Error completing task", { error, householdId, userId, taskId });
       res.status(500).json({ message: "Failed to complete task" });
     }
   });
@@ -1260,7 +1260,7 @@ export async function registerRoutes(
         notifiedAssistants: notifiedCount 
       });
     } catch (error) {
-      console.error("Error cancelling task:", error);
+      logger.error("Error cancelling task", { error, householdId, userId, taskId });
       res.status(500).json({ message: "Failed to cancel task" });
     }
   });
@@ -1275,7 +1275,7 @@ export async function registerRoutes(
       });
       res.status(201).json(item);
     } catch (error) {
-      console.error("Error creating checklist item:", error);
+      logger.error("Error creating checklist item", { error, taskId: req.params.taskId });
       res.status(500).json({ message: "Failed to create checklist item" });
     }
   });
@@ -1290,7 +1290,7 @@ export async function registerRoutes(
       }
       res.json(item);
     } catch (error) {
-      console.error("Error updating checklist item:", error);
+      logger.error("Error updating checklist item", { error, householdId, taskId, id });
       res.status(500).json({ message: "Failed to update checklist item" });
     }
   });
@@ -1303,7 +1303,7 @@ export async function registerRoutes(
       const templates = await storage.getTaskTemplates(householdId);
       res.json(templates);
     } catch (error) {
-      console.error("Error fetching task templates:", error);
+      logger.error("Error fetching task templates", { error, householdId, userId });
       res.status(500).json({ message: "Failed to fetch task templates" });
     }
   });
@@ -1317,7 +1317,7 @@ export async function registerRoutes(
       });
       res.status(201).json(template);
     } catch (error) {
-      console.error("Error creating task template:", error);
+      logger.error("Error creating task template", { error, householdId });
       res.status(500).json({ message: "Failed to create task template" });
     }
   });
@@ -1331,7 +1331,7 @@ export async function registerRoutes(
       }
       res.json(template);
     } catch (error) {
-      console.error("Error updating task template:", error);
+      logger.error("Error updating task template", { error, householdId });
       res.status(500).json({ message: "Failed to update task template" });
     }
   });
@@ -1345,7 +1345,7 @@ export async function registerRoutes(
       }
       res.status(204).send();
     } catch (error) {
-      console.error("Error deleting task template:", error);
+      logger.error("Error deleting task template", { error, householdId });
       res.status(500).json({ message: "Failed to delete task template" });
     }
   });
@@ -1381,7 +1381,7 @@ export async function registerRoutes(
       
       res.json(approvalsWithComments);
     } catch (error) {
-      console.error("Error fetching approvals:", error);
+      logger.error("Error fetching approvals", { error, householdId, userId });
       res.status(500).json({ message: "Failed to fetch approvals" });
     }
   });
@@ -1401,7 +1401,7 @@ export async function registerRoutes(
       
       res.status(201).json(approval);
     } catch (error) {
-      console.error("Error creating approval:", error);
+      logger.error("Error creating approval", { error, householdId, userId });
       res.status(500).json({ message: "Failed to create approval" });
     }
   });
@@ -1439,7 +1439,7 @@ export async function registerRoutes(
       
       res.json(approval);
     } catch (error) {
-      console.error("Error updating approval:", error);
+      logger.error("Error updating approval", { error, householdId, userId });
       res.status(500).json({ message: "Failed to update approval" });
     }
   });
@@ -1487,7 +1487,7 @@ export async function registerRoutes(
         res.json(updatesWithComments);
       }
     } catch (error) {
-      console.error("Error fetching updates:", error);
+      logger.error("Error fetching updates", { error, householdId, userId });
       res.status(500).json({ message: "Failed to fetch updates" });
     }
   });
@@ -1507,7 +1507,7 @@ export async function registerRoutes(
       
       res.status(201).json(update);
     } catch (error) {
-      console.error("Error creating update:", error);
+      logger.error("Error creating update", { error, householdId, userId });
       res.status(500).json({ message: "Failed to create update" });
     }
   });
@@ -1539,7 +1539,7 @@ export async function registerRoutes(
       const updatedUpdate = await storage.updateUpdate(householdId, req.params.id, { reactions });
       res.json(updatedUpdate);
     } catch (error) {
-      console.error("Error updating reactions:", error);
+      logger.error("Error updating reactions", { error, householdId, userId });
       res.status(500).json({ message: "Failed to update reactions" });
     }
   });
@@ -1551,7 +1551,7 @@ export async function registerRoutes(
       const requests = await storage.getRequests(householdId);
       res.json(requests);
     } catch (error) {
-      console.error("Error fetching requests:", error);
+      logger.error("Error fetching requests", { error, householdId, userId });
       res.status(500).json({ message: "Failed to fetch requests" });
     }
   });
@@ -1575,7 +1575,7 @@ export async function registerRoutes(
       
       res.status(201).json(request);
     } catch (error) {
-      console.error("Error creating request:", error);
+      logger.error("Error creating request", { error, householdId, userId });
       res.status(500).json({ message: "Failed to create request" });
     }
   });
@@ -1591,7 +1591,7 @@ export async function registerRoutes(
       wsManager.broadcast("request:updated", { id: updated.id }, householdId, userId);
       res.json(updated);
     } catch (error) {
-      console.error("Error updating request:", error);
+      logger.error("Error updating request", { error, householdId, userId });
       res.status(500).json({ message: "Failed to update request" });
     }
   });
@@ -1607,7 +1607,7 @@ export async function registerRoutes(
       
       res.status(201).json(comment);
     } catch (error) {
-      console.error("Error creating comment:", error);
+      logger.error("Error creating comment", { error, userId });
       res.status(500).json({ message: "Failed to create comment" });
     }
   });
@@ -1619,7 +1619,7 @@ export async function registerRoutes(
       const vendors = await storage.getVendors(householdId);
       res.json(vendors);
     } catch (error) {
-      console.error("Error fetching vendors:", error);
+      logger.error("Error fetching vendors", { error, householdId, userId });
       res.status(500).json({ message: "Failed to fetch vendors" });
     }
   });
@@ -1636,7 +1636,7 @@ export async function registerRoutes(
       
       res.status(201).json(vendor);
     } catch (error) {
-      console.error("Error creating vendor:", error);
+      logger.error("Error creating vendor", { error, householdId, userId });
       res.status(500).json({ message: "Failed to create vendor" });
     }
   });
@@ -1676,7 +1676,7 @@ export async function registerRoutes(
         res.json(spending);
       }
     } catch (error) {
-      console.error("Error fetching spending:", error);
+      logger.error("Error fetching spending", { error, householdId, userId });
       res.status(500).json({ message: "Failed to fetch spending" });
     }
   });
@@ -1696,7 +1696,7 @@ export async function registerRoutes(
       
       res.status(201).json(item);
     } catch (error) {
-      console.error("Error creating spending item:", error);
+      logger.error("Error creating spending item", { error, householdId, userId });
       res.status(500).json({ message: "Failed to create spending item" });
     }
   });
@@ -1780,7 +1780,7 @@ export async function registerRoutes(
       
       res.json(updated);
     } catch (error) {
-      console.error("Error updating spending status:", error);
+      logger.error("Error updating spending status", { error, householdId, userId, id });
       res.status(500).json({ message: "Failed to update spending status" });
     }
   });
@@ -1804,7 +1804,7 @@ export async function registerRoutes(
       
       res.json(profile);
     } catch (error) {
-      console.error("Error fetching org payment profile:", error);
+      logger.error("Error fetching org payment profile", { error, householdId });
       res.status(500).json({ message: "Failed to fetch payment profile" });
     }
   });
@@ -1881,7 +1881,7 @@ export async function registerRoutes(
       
       res.json(profile);
     } catch (error) {
-      console.error("Error updating org payment profile:", error);
+      logger.error("Error updating org payment profile", { error, userId, householdId });
       res.status(500).json({ message: "Failed to update payment profile" });
     }
   });
@@ -1906,7 +1906,7 @@ export async function registerRoutes(
         orgProfile,
       });
     } catch (error) {
-      console.error("Error fetching household payment settings:", error);
+      logger.error("Error fetching household payment settings", { error, householdId });
       res.status(500).json({ message: "Failed to fetch payment settings" });
     }
   });
@@ -1966,7 +1966,7 @@ export async function registerRoutes(
       
       res.json(override);
     } catch (error) {
-      console.error("Error updating household payment settings:", error);
+      logger.error("Error updating household payment settings", { error, householdId });
       res.status(500).json({ message: "Failed to update payment settings" });
     }
   });
@@ -2081,7 +2081,7 @@ export async function registerRoutes(
         },
       });
     } catch (error) {
-      console.error("Error fetching pay options:", error);
+      logger.error("Error fetching pay options", { error, householdId });
       res.status(500).json({ message: "Failed to fetch pay options" });
     }
   });
@@ -2136,7 +2136,7 @@ export async function registerRoutes(
         payNoteTemplate,
       });
     } catch (error) {
-      console.error("Error fetching pay options:", error);
+      logger.error("Error fetching pay options", { error, householdId });
       res.status(500).json({ message: "Failed to fetch pay options" });
     }
   });
@@ -2307,7 +2307,7 @@ export async function registerRoutes(
         fileId: invoiceFile.id,
       });
     } catch (error) {
-      console.error("Error sending invoice:", error);
+      logger.error("Error sending invoice", { error, householdId, userId });
       res.status(500).json({ message: "Failed to send invoice" });
     }
   });
@@ -2360,7 +2360,7 @@ export async function registerRoutes(
         latestDueDate: latest.dueDate,
       });
     } catch (error) {
-      console.error("Error fetching pending invoices:", error);
+      logger.error("Error fetching pending invoices", { error, householdId });
       res.status(500).json({ message: "Failed to fetch pending invoices" });
     }
   });
@@ -2383,7 +2383,7 @@ export async function registerRoutes(
 
       res.json(invoicesList);
     } catch (error) {
-      console.error("Error fetching invoices:", error);
+      logger.error("Error fetching invoices", { error, householdId });
       res.status(500).json({ message: "Failed to fetch invoices" });
     }
   });
@@ -2397,7 +2397,7 @@ export async function registerRoutes(
       const events = await storage.getCalendarEvents(householdId);
       res.json(events);
     } catch (error) {
-      console.error("Error fetching calendar events:", error);
+      logger.error("Error fetching calendar events", { error, userId, householdId });
       res.status(500).json({ message: "Failed to fetch calendar events" });
     }
   });
@@ -2422,7 +2422,7 @@ export async function registerRoutes(
         res.json({ message: "Google Calendar not connected. Connect your calendar to sync events.", success: false });
       }
     } catch (error) {
-      console.error("Error syncing calendar:", error);
+      logger.error("Error syncing calendar", { error, userId, householdId });
       res.status(500).json({ message: "Failed to sync calendar" });
     }
   });
@@ -2463,7 +2463,7 @@ export async function registerRoutes(
       
       res.status(201).json(task);
     } catch (error) {
-      console.error("Error creating task from event:", error);
+      logger.error("Error creating task from event", { error, userId, householdId });
       res.status(500).json({ message: "Failed to create task from event" });
     }
   });
@@ -2503,7 +2503,7 @@ export async function registerRoutes(
       
       res.json({ reactions: reactionCounts, userReactions });
     } catch (error) {
-      console.error("Error fetching reactions:", error);
+      logger.error("Error fetching reactions", { error, userId, householdId });
       res.status(500).json({ message: "Failed to fetch reactions" });
     }
   });
@@ -2581,7 +2581,7 @@ export async function registerRoutes(
       
       res.json({ action: existing ? "updated" : "created", reaction });
     } catch (error) {
-      console.error("Error creating/updating reaction:", error);
+      logger.error("Error creating/updating reaction", { error, userId, householdId });
       res.status(500).json({ message: "Failed to save reaction" });
     }
   });
@@ -2608,7 +2608,7 @@ export async function registerRoutes(
         phase3Complete: settings?.onboardingPhase3Complete ?? false,
       });
     } catch (error) {
-      console.error("Error fetching onboarding status:", error);
+      logger.error("Error fetching onboarding status", { error, userId, householdId });
       res.status(500).json({ message: "Failed to fetch onboarding status" });
     }
   });
@@ -2647,7 +2647,7 @@ export async function registerRoutes(
         phase3Complete: settings.onboardingPhase3Complete,
       });
     } catch (error) {
-      console.error("Error completing onboarding phase:", error);
+      logger.error("Error completing onboarding phase", { error, userId, householdId });
       res.status(500).json({ message: "Failed to complete onboarding phase" });
     }
   });
@@ -2664,7 +2664,7 @@ export async function registerRoutes(
       
       res.json({ success: true });
     } catch (error) {
-      console.error("Error saving onboarding settings:", error);
+      logger.error("Error saving onboarding settings", { error, householdId });
       res.status(500).json({ error: "Failed to save settings" });
     }
   });
@@ -2743,7 +2743,7 @@ export async function registerRoutes(
       
       res.json({ success: true });
     } catch (error) {
-      console.error("Error saving onboarding step:", error);
+      logger.error("Error saving onboarding step", { error, householdId });
       res.status(500).json({ error: "Failed to save step data" });
     }
   });
@@ -2764,7 +2764,7 @@ export async function registerRoutes(
       
       res.json(household);
     } catch (error) {
-      console.error("Error fetching household:", error);
+      logger.error("Error fetching household", { error, householdId });
       res.status(500).json({ message: "Failed to fetch household" });
     }
   });
@@ -2782,7 +2782,7 @@ export async function registerRoutes(
       
       res.json(settings);
     } catch (error) {
-      console.error("Error fetching household settings:", error);
+      logger.error("Error fetching household settings", { error, userId, householdId });
       res.status(500).json({ message: "Failed to fetch household settings" });
     }
   });
@@ -2800,7 +2800,7 @@ export async function registerRoutes(
       const settings = await storage.upsertHouseholdSettings(householdId, req.body);
       res.json(settings);
     } catch (error) {
-      console.error("Error updating household settings:", error);
+      logger.error("Error updating household settings", { error, userId, householdId });
       res.status(500).json({ message: "Failed to update household settings" });
     }
   });
@@ -2813,7 +2813,7 @@ export async function registerRoutes(
       const locations = await storage.getHouseholdLocations(householdId);
       res.json(locations);
     } catch (error) {
-      console.error("Error fetching household locations:", error);
+      logger.error("Error fetching household locations", { error, userId, householdId });
       res.status(500).json({ message: "Failed to fetch household locations" });
     }
   });
@@ -2835,7 +2835,7 @@ export async function registerRoutes(
       
       res.status(201).json(location);
     } catch (error) {
-      console.error("Error creating household location:", error);
+      logger.error("Error creating household location", { error, userId, householdId });
       res.status(500).json({ message: "Failed to create household location" });
     }
   });
@@ -2856,7 +2856,7 @@ export async function registerRoutes(
       }
       res.json(location);
     } catch (error) {
-      console.error("Error updating household location:", error);
+      logger.error("Error updating household location", { error, userId, householdId });
       res.status(500).json({ message: "Failed to update household location" });
     }
   });
@@ -2871,7 +2871,7 @@ export async function registerRoutes(
       }
       res.status(204).send();
     } catch (error) {
-      console.error("Error deleting household location:", error);
+      logger.error("Error deleting household location", { error, householdId });
       res.status(500).json({ message: "Failed to delete household location" });
     }
   });
@@ -2884,7 +2884,7 @@ export async function registerRoutes(
       const people = await storage.getPeople(householdId);
       res.json(people);
     } catch (error) {
-      console.error("Error fetching people:", error);
+      logger.error("Error fetching people", { error, userId, householdId });
       res.status(500).json({ message: "Failed to fetch people" });
     }
   });
@@ -2906,7 +2906,7 @@ export async function registerRoutes(
       
       res.status(201).json(person);
     } catch (error) {
-      console.error("Error creating person:", error);
+      logger.error("Error creating person", { error, userId, householdId });
       res.status(500).json({ message: "Failed to create person" });
     }
   });
@@ -2927,7 +2927,7 @@ export async function registerRoutes(
       }
       res.json(person);
     } catch (error) {
-      console.error("Error updating person:", error);
+      logger.error("Error updating person", { error, userId, householdId });
       res.status(500).json({ message: "Failed to update person" });
     }
   });
@@ -2942,7 +2942,7 @@ export async function registerRoutes(
       }
       res.status(204).send();
     } catch (error) {
-      console.error("Error deleting person:", error);
+      logger.error("Error deleting person", { error, householdId });
       res.status(500).json({ message: "Failed to delete person" });
     }
   });
@@ -2955,7 +2955,7 @@ export async function registerRoutes(
       const preferences = await storage.getPreferences(householdId);
       res.json(preferences);
     } catch (error) {
-      console.error("Error fetching preferences:", error);
+      logger.error("Error fetching preferences", { error, userId, householdId });
       res.status(500).json({ message: "Failed to fetch preferences" });
     }
   });
@@ -2978,7 +2978,7 @@ export async function registerRoutes(
       
       res.status(201).json(preference);
     } catch (error) {
-      console.error("Error creating preference:", error);
+      logger.error("Error creating preference", { error, userId, householdId });
       res.status(500).json({ message: "Failed to create preference" });
     }
   });
@@ -2999,7 +2999,7 @@ export async function registerRoutes(
       }
       res.json(preference);
     } catch (error) {
-      console.error("Error updating preference:", error);
+      logger.error("Error updating preference", { error, userId, householdId });
       res.status(500).json({ message: "Failed to update preference" });
     }
   });
@@ -3014,7 +3014,7 @@ export async function registerRoutes(
       }
       res.status(204).send();
     } catch (error) {
-      console.error("Error deleting preference:", error);
+      logger.error("Error deleting preference", { error, householdId });
       res.status(500).json({ message: "Failed to delete preference" });
     }
   });
@@ -3027,7 +3027,7 @@ export async function registerRoutes(
       const importantDates = await storage.getImportantDates(householdId);
       res.json(importantDates);
     } catch (error) {
-      console.error("Error fetching important dates:", error);
+      logger.error("Error fetching important dates", { error, userId, householdId });
       res.status(500).json({ message: "Failed to fetch important dates" });
     }
   });
@@ -3049,7 +3049,7 @@ export async function registerRoutes(
       
       res.status(201).json(importantDate);
     } catch (error) {
-      console.error("Error creating important date:", error);
+      logger.error("Error creating important date", { error, userId, householdId });
       res.status(500).json({ message: "Failed to create important date" });
     }
   });
@@ -3070,7 +3070,7 @@ export async function registerRoutes(
       }
       res.json(importantDate);
     } catch (error) {
-      console.error("Error updating important date:", error);
+      logger.error("Error updating important date", { error, userId, householdId });
       res.status(500).json({ message: "Failed to update important date" });
     }
   });
@@ -3085,7 +3085,7 @@ export async function registerRoutes(
       }
       res.status(204).send();
     } catch (error) {
-      console.error("Error deleting important date:", error);
+      logger.error("Error deleting important date", { error, householdId });
       res.status(500).json({ message: "Failed to delete important date" });
     }
   });
@@ -3118,7 +3118,7 @@ export async function registerRoutes(
         res.json(maskedItems);
       }
     } catch (error) {
-      console.error("Error fetching access items:", error);
+      logger.error("Error fetching access items", { error, userId, householdId });
       res.status(500).json({ message: "Failed to fetch access items" });
     }
   });
@@ -3150,7 +3150,7 @@ export async function registerRoutes(
         value: data.isSensitive ? "********" : data.value,
       });
     } catch (error) {
-      console.error("Error creating access item:", error);
+      logger.error("Error creating access item", { error, userId, householdId });
       res.status(500).json({ message: "Failed to create access item" });
     }
   });
@@ -3177,7 +3177,7 @@ export async function registerRoutes(
         value: accessItem.isSensitive ? "********" : accessItem.value,
       });
     } catch (error) {
-      console.error("Error updating access item:", error);
+      logger.error("Error updating access item", { error, householdId });
       res.status(500).json({ message: "Failed to update access item" });
     }
   });
@@ -3192,7 +3192,7 @@ export async function registerRoutes(
       }
       res.status(204).send();
     } catch (error) {
-      console.error("Error deleting access item:", error);
+      logger.error("Error deleting access item", { error, householdId });
       res.status(500).json({ message: "Failed to delete access items" });
     }
   });
@@ -3224,7 +3224,7 @@ export async function registerRoutes(
       
       res.json({ value: decryptedValue });
     } catch (error) {
-      console.error("Error revealing access item:", error);
+      logger.error("Error revealing access item", { error, userId, householdId });
       res.status(500).json({ error: "Failed to reveal item" });
     }
   });
@@ -3243,7 +3243,7 @@ export async function registerRoutes(
       const grants = await storage.getAccessItemGrants(id);
       res.json(grants);
     } catch (error) {
-      console.error("Error fetching access item grants:", error);
+      logger.error("Error fetching access item grants", { error, householdId });
       res.status(500).json({ error: "Failed to fetch grants" });
     }
   });
@@ -3270,7 +3270,7 @@ export async function registerRoutes(
       
       res.status(201).json(grant);
     } catch (error) {
-      console.error("Error creating access item grant:", error);
+      logger.error("Error creating access item grant", { error, householdId });
       res.status(500).json({ error: "Failed to create grant" });
     }
   });
@@ -3285,7 +3285,7 @@ export async function registerRoutes(
       }
       res.status(204).send();
     } catch (error) {
-      console.error("Error deleting access item grant:", error);
+      logger.error("Error deleting access item grant", { error, grantId });
       res.status(500).json({ error: "Failed to delete grant" });
     }
   });
@@ -3298,7 +3298,7 @@ export async function registerRoutes(
       const templates = await storage.getQuickRequestTemplates(householdId);
       res.json(templates.filter(t => t.isActive));
     } catch (error) {
-      console.error("Error fetching quick request templates:", error);
+      logger.error("Error fetching quick request templates", { error, userId, householdId });
       res.status(500).json({ message: "Failed to fetch quick request templates" });
     }
   });
@@ -3316,7 +3316,7 @@ export async function registerRoutes(
       const templates = await storage.getQuickRequestTemplates(householdId);
       res.json(templates);
     } catch (error) {
-      console.error("Error fetching all quick request templates:", error);
+      logger.error("Error fetching all quick request templates", { error, userId, householdId });
       res.status(500).json({ message: "Failed to fetch quick request templates" });
     }
   });
@@ -3342,7 +3342,7 @@ export async function registerRoutes(
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid request data", errors: error.errors });
       }
-      console.error("Error creating quick request template:", error);
+      logger.error("Error creating quick request template", { error, userId, householdId });
       res.status(500).json({ message: "Failed to create quick request template" });
     }
   });
@@ -3369,7 +3369,7 @@ export async function registerRoutes(
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid request data", errors: error.errors });
       }
-      console.error("Error updating quick request template:", error);
+      logger.error("Error updating quick request template", { error, userId, householdId });
       res.status(500).json({ message: "Failed to update quick request template" });
     }
   });
@@ -3390,7 +3390,7 @@ export async function registerRoutes(
       }
       res.status(204).send();
     } catch (error) {
-      console.error("Error deleting quick request template:", error);
+      logger.error("Error deleting quick request template", { error, userId, householdId });
       res.status(500).json({ message: "Failed to delete quick request template" });
     }
   });
@@ -3403,7 +3403,7 @@ export async function registerRoutes(
       const playbooksList = await storage.getPlaybooks(householdId);
       res.json(playbooksList);
     } catch (error) {
-      console.error("Error fetching playbooks:", error);
+      logger.error("Error fetching playbooks", { error, userId, householdId });
       res.status(500).json({ message: "Failed to fetch playbooks" });
     }
   });
@@ -3420,7 +3420,7 @@ export async function registerRoutes(
       const steps = await storage.getPlaybookSteps(playbook.id);
       res.json({ ...playbook, steps });
     } catch (error) {
-      console.error("Error fetching playbook:", error);
+      logger.error("Error fetching playbook", { error, userId, householdId });
       res.status(500).json({ message: "Failed to fetch playbook" });
     }
   });
@@ -3461,7 +3461,7 @@ export async function registerRoutes(
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid request data", errors: error.errors });
       }
-      console.error("Error creating playbook:", error);
+      logger.error("Error creating playbook", { error, userId, householdId });
       res.status(500).json({ message: "Failed to create playbook" });
     }
   });
@@ -3509,7 +3509,7 @@ export async function registerRoutes(
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid request data", errors: error.errors });
       }
-      console.error("Error updating playbook:", error);
+      logger.error("Error updating playbook", { error, userId, householdId });
       res.status(500).json({ message: "Failed to update playbook" });
     }
   });
@@ -3530,7 +3530,7 @@ export async function registerRoutes(
       }
       res.status(204).send();
     } catch (error) {
-      console.error("Error deleting playbook:", error);
+      logger.error("Error deleting playbook", { error, userId, householdId });
       res.status(500).json({ message: "Failed to delete playbook" });
     }
   });
@@ -3562,7 +3562,7 @@ export async function registerRoutes(
       
       res.json(logs);
     } catch (error) {
-      console.error("Error fetching audit logs:", error);
+      logger.error("Error fetching audit logs", { error, userId, householdId });
       res.status(500).json({ message: "Failed to fetch audit logs" });
     }
   });
@@ -3589,7 +3589,7 @@ export async function registerRoutes(
         requirePinForSensitive: true 
       });
     } catch (error) {
-      console.error("Error fetching vault settings:", error);
+      logger.error("Error fetching vault settings", { error, userId, householdId });
       res.status(500).json({ message: "Failed to fetch vault settings" });
     }
   });
@@ -3624,7 +3624,7 @@ export async function registerRoutes(
       
       res.json({ success: true });
     } catch (error) {
-      console.error("Error setting vault PIN:", error);
+      logger.error("Error setting vault PIN", { error, userId, householdId });
       res.status(500).json({ message: "Failed to set vault PIN" });
     }
   });
@@ -3669,7 +3669,7 @@ export async function registerRoutes(
         expiresIn: (settings.autoLockMinutes || 5) * 60 * 1000 
       });
     } catch (error) {
-      console.error("Error verifying vault PIN:", error);
+      logger.error("Error verifying vault PIN", { error, userId, householdId });
       res.status(500).json({ message: "Failed to verify PIN" });
     }
   });
@@ -3705,7 +3705,7 @@ export async function registerRoutes(
       res.setHeader("Content-Disposition", `inline; filename="handoff-packet.html"`);
       res.send(html);
     } catch (error) {
-      console.error("Error generating handoff packet:", error);
+      logger.error("Error generating handoff packet", { error, userId, householdId });
       res.status(500).json({ message: "Failed to generate handoff packet" });
     }
   });
@@ -3725,7 +3725,7 @@ export async function registerRoutes(
       
       res.json(data);
     } catch (error) {
-      console.error("Error generating handoff data:", error);
+      logger.error("Error generating handoff data", { error, userId, householdId });
       res.status(500).json({ message: "Failed to generate handoff data" });
     }
   });
@@ -3749,7 +3749,7 @@ export async function registerRoutes(
           : "No new tasks to create for upcoming important dates"
       });
     } catch (error) {
-      console.error("Error generating moment tasks:", error);
+      logger.error("Error generating moment tasks", { error, userId, householdId });
       res.status(500).json({ message: "Failed to generate moment tasks" });
     }
   });
@@ -3772,7 +3772,7 @@ export async function registerRoutes(
       const notificationsList = await getNotifications(userId, householdId);
       res.json(notificationsList);
     } catch (error) {
-      console.error("Error fetching notifications:", error);
+      logger.error("Error fetching notifications", { error, userId, householdId });
       res.status(500).json({ message: "Failed to fetch notifications" });
     }
   });
@@ -3784,7 +3784,7 @@ export async function registerRoutes(
       const count = await getUnreadCount(userId, householdId);
       res.json({ count });
     } catch (error) {
-      console.error("Error fetching unread count:", error);
+      logger.error("Error fetching unread count", { error, userId, householdId });
       res.status(500).json({ message: "Failed to fetch unread count" });
     }
   });
@@ -3794,7 +3794,7 @@ export async function registerRoutes(
       await markNotificationRead(req.params.id);
       res.json({ success: true });
     } catch (error) {
-      console.error("Error marking notification read:", error);
+      logger.error("Error marking notification read", { error, notificationId: req.params.id });
       res.status(500).json({ message: "Failed to mark notification read" });
     }
   });
@@ -3806,7 +3806,7 @@ export async function registerRoutes(
       await markAllNotificationsRead(userId, householdId);
       res.json({ success: true });
     } catch (error) {
-      console.error("Error marking all notifications read:", error);
+      logger.error("Error marking all notifications read", { error, userId, householdId });
       res.status(500).json({ message: "Failed to mark all notifications read" });
     }
   });
@@ -3817,7 +3817,7 @@ export async function registerRoutes(
       const settings = await getNotificationSettings(userId);
       res.json(settings || {});
     } catch (error) {
-      console.error("Error fetching notification settings:", error);
+      logger.error("Error fetching notification settings", { error, userId });
       res.status(500).json({ message: "Failed to fetch notification settings" });
     }
   });
@@ -3829,7 +3829,7 @@ export async function registerRoutes(
       const settings = await upsertNotificationSettings(userId, householdId, req.body);
       res.json(settings);
     } catch (error) {
-      console.error("Error updating notification settings:", error);
+      logger.error("Error updating notification settings", { error, userId, householdId });
       res.status(500).json({ message: "Failed to update notification settings" });
     }
   });
@@ -3844,7 +3844,7 @@ export async function registerRoutes(
       const suggestions = await getSmartSuggestions(householdId);
       res.json(suggestions);
     } catch (error) {
-      console.error("Error fetching suggestions:", error);
+      logger.error("Error fetching suggestions", { error, householdId });
       res.status(500).json({ message: "Failed to fetch suggestions" });
     }
   });
@@ -3882,7 +3882,7 @@ export async function registerRoutes(
 
       res.json({ success: true });
     } catch (error) {
-      console.error("Error saving push subscription:", error);
+      logger.error("Error saving push subscription", { error, userId, householdId });
       res.status(500).json({ message: "Failed to save subscription" });
     }
   });
@@ -3899,7 +3899,7 @@ export async function registerRoutes(
       await removePushSubscription(userId, endpoint);
       res.json({ success: true });
     } catch (error) {
-      console.error("Error removing push subscription:", error);
+      logger.error("Error removing push subscription", { error, userId });
       res.status(500).json({ message: "Failed to remove subscription" });
     }
   });
@@ -3914,7 +3914,7 @@ export async function registerRoutes(
         createdAt: s.createdAt 
       })));
     } catch (error) {
-      console.error("Error fetching subscriptions:", error);
+      logger.error("Error fetching subscriptions", { error, userId });
       res.status(500).json({ message: "Failed to fetch subscriptions" });
     }
   });
@@ -3984,7 +3984,7 @@ export async function registerRoutes(
 
       res.json(results);
     } catch (error) {
-      console.error("Error searching:", error);
+      logger.error("Error searching", { error, userId, householdId });
       res.status(500).json({ message: "Failed to search" });
     }
   });
@@ -4009,7 +4009,7 @@ export async function registerRoutes(
         data,
       });
     } catch (error) {
-      console.error("Error exporting data:", error);
+      logger.error("Error exporting data", { error, userId });
       res.status(500).json({ message: "Failed to export data" });
     }
   });
@@ -4030,7 +4030,7 @@ export async function registerRoutes(
         ...result,
       });
     } catch (error: any) {
-      console.error("Error triggering sync:", error);
+      logger.error("Error triggering sync", { error, userId });
       res.status(500).json({ message: "Failed to trigger sync" });
     }
   });
@@ -4054,7 +4054,7 @@ export async function registerRoutes(
         downloadUrl: `/api/admin/backups/${filename}/download`,
       });
     } catch (error) {
-      console.error("Error creating backup:", error);
+      logger.error("Error creating backup", { error, userId });
       res.status(500).json({ message: "Failed to create backup" });
     }
   });
@@ -4072,7 +4072,7 @@ export async function registerRoutes(
       const backups = listBackups();
       res.json(backups);
     } catch (error) {
-      console.error("Error listing backups:", error);
+      logger.error("Error listing backups", { error, userId });
       res.status(500).json({ message: "Failed to list backups" });
     }
   });
@@ -4096,7 +4096,7 @@ export async function registerRoutes(
       res.setHeader("Content-Disposition", `attachment; filename="${req.params.filename}"`);
       createReadStream(filepath).pipe(res);
     } catch (error) {
-      console.error("Error downloading backup:", error);
+      logger.error("Error downloading backup", { error, userId, filename: req.params.filename });
       res.status(500).json({ message: "Failed to download backup" });
     }
   });
@@ -4118,7 +4118,7 @@ export async function registerRoutes(
 
       res.json({ message: "Backup deleted successfully" });
     } catch (error) {
-      console.error("Error deleting backup:", error);
+      logger.error("Error deleting backup", { error, userId, filename: req.params.filename });
       res.status(500).json({ message: "Failed to delete backup" });
     }
   });
@@ -4146,7 +4146,7 @@ export async function registerRoutes(
           });
           migratedCount++;
         } catch (error) {
-          console.error(`Failed to migrate vault item ${item.id}:`, error);
+          logger.error("Failed to migrate vault item", { error, itemId: item.id, householdId });
         }
       }
       
@@ -4157,7 +4157,7 @@ export async function registerRoutes(
         skippedCount,
       });
     } catch (error) {
-      console.error("Error migrating vault encryption:", error);
+      logger.error("Error migrating vault encryption", { error, householdId });
       res.status(500).json({ message: "Failed to migrate vault encryption" });
     }
   });
@@ -4175,7 +4175,7 @@ export async function registerRoutes(
       const settings = getBackupSettings();
       res.json(settings);
     } catch (error) {
-      console.error("Error getting backup settings:", error);
+      logger.error("Error getting backup settings", { error, userId });
       res.status(500).json({ message: "Failed to get backup settings" });
     }
   });
@@ -4195,7 +4195,7 @@ export async function registerRoutes(
       
       res.json(settings);
     } catch (error) {
-      console.error("Error updating backup settings:", error);
+      logger.error("Error updating backup settings", { error, userId });
       res.status(500).json({ message: "Failed to update backup settings" });
     }
   });
@@ -4216,7 +4216,7 @@ export async function registerRoutes(
       
       res.json(org);
     } catch (error) {
-      console.error("Error getting organization:", error);
+      logger.error("Error getting organization", { error, userId });
       res.status(500).json({ message: "Failed to get organization" });
     }
   });
@@ -4228,7 +4228,7 @@ export async function registerRoutes(
       const orgs = await storage.getOrganizationsByOwner(userId);
       res.json(orgs);
     } catch (error) {
-      console.error("Error getting organizations:", error);
+      logger.error("Error getting organizations", { error, userId });
       res.status(500).json({ message: "Failed to get organizations" });
     }
   });
@@ -4250,7 +4250,7 @@ export async function registerRoutes(
       
       res.json(org);
     } catch (error) {
-      console.error("Error getting organization:", error);
+      logger.error("Error getting organization", { error, userId, organizationId: req.params.id });
       res.status(500).json({ message: "Failed to get organization" });
     }
   });
@@ -4274,7 +4274,7 @@ export async function registerRoutes(
       const org = await storage.createOrganization(validatedData);
       res.status(201).json(org);
     } catch (error) {
-      console.error("Error creating organization:", error);
+      logger.error("Error creating organization", { error, userId });
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid data", errors: error.errors });
       }
@@ -4300,7 +4300,7 @@ export async function registerRoutes(
       const updatedOrg = await storage.updateOrganization(req.params.id, req.body);
       res.json(updatedOrg);
     } catch (error) {
-      console.error("Error updating organization:", error);
+      logger.error("Error updating organization", { error, userId, organizationId: req.params.id });
       res.status(500).json({ message: "Failed to update organization" });
     }
   });
@@ -4323,7 +4323,7 @@ export async function registerRoutes(
       const householdsData = await storage.getHouseholdsByOrganization(req.params.id);
       res.json(householdsData);
     } catch (error) {
-      console.error("Error getting organization households:", error);
+      logger.error("Error getting organization households", { error, userId, organizationId: req.params.id });
       res.status(500).json({ message: "Failed to get organization households" });
     }
   });
@@ -4356,7 +4356,7 @@ export async function registerRoutes(
       const household = await storage.createHousehold(validatedData);
       res.status(201).json(household);
     } catch (error) {
-      console.error("Error creating household:", error);
+      logger.error("Error creating household", { error, userId, organizationId: req.params.id });
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid data", errors: error.errors });
       }
@@ -4386,7 +4386,7 @@ export async function registerRoutes(
       const household = await storage.updateHousehold(req.params.id, { organizationId });
       res.json(household);
     } catch (error) {
-      console.error("Error linking household:", error);
+      logger.error("Error linking household", { error, userId, householdId: req.params.id });
       res.status(500).json({ message: "Failed to link household to organization" });
     }
   });
@@ -4421,7 +4421,7 @@ export async function registerRoutes(
       const subscription = await getSubscription(profile.organizationId);
       res.json(subscription);
     } catch (error) {
-      console.error("Error fetching subscription:", error);
+      logger.error("Error fetching subscription", { error, userId });
       res.status(500).json({ message: "Failed to fetch subscription" });
     }
   });
@@ -4451,7 +4451,7 @@ export async function registerRoutes(
 
       res.json(session);
     } catch (error) {
-      console.error("Error creating checkout:", error);
+      logger.error("Error creating checkout", { error, userId });
       res.status(500).json({ message: "Failed to create checkout session" });
     }
   });
@@ -4477,7 +4477,7 @@ export async function registerRoutes(
 
       res.json(session);
     } catch (error) {
-      console.error("Error creating portal session:", error);
+      logger.error("Error creating portal session", { error, userId });
       res.status(500).json({ message: "Failed to create billing portal" });
     }
   });
@@ -4495,7 +4495,7 @@ export async function registerRoutes(
       const invoiceList = await getInvoices(profile.organizationId);
       res.json(invoiceList);
     } catch (error) {
-      console.error("Error fetching invoices:", error);
+      logger.error("Error fetching invoices", { error, userId });
       res.status(500).json({ message: "Failed to fetch invoices" });
     }
   });
@@ -4512,7 +4512,7 @@ export async function registerRoutes(
       
       res.json(result);
     } catch (error) {
-      console.error("Webhook error:", error);
+      logger.error("Webhook error", { error });
       res.status(500).json({ message: "Webhook handler failed" });
     }
   });
@@ -4536,7 +4536,7 @@ export async function registerRoutes(
       const dashboard = await getAnalyticsDashboard(householdId, period);
       res.json(dashboard);
     } catch (error) {
-      console.error("Error fetching analytics:", error);
+      logger.error("Error fetching analytics", { error, userId, householdId });
       res.status(500).json({ message: "Failed to fetch analytics" });
     }
   });
@@ -4556,7 +4556,7 @@ export async function registerRoutes(
       const data = await getTasksOverTime(householdId, period);
       res.json(data);
     } catch (error) {
-      console.error("Error fetching tasks over time:", error);
+      logger.error("Error fetching tasks over time", { error, userId, householdId });
       res.status(500).json({ message: "Failed to fetch analytics" });
     }
   });
@@ -4571,7 +4571,7 @@ export async function registerRoutes(
       const data = await getTasksByCategory(householdId, period);
       res.json(data);
     } catch (error) {
-      console.error("Error fetching tasks by category:", error);
+      logger.error("Error fetching tasks by category", { error, userId, householdId });
       res.status(500).json({ message: "Failed to fetch analytics" });
     }
   });
@@ -4585,7 +4585,7 @@ export async function registerRoutes(
       const summary = await generateClientImpactSummary(householdId);
       res.json(summary);
     } catch (error) {
-      console.error("Error generating client summary:", error);
+      logger.error("Error generating client summary", { error, userId, householdId });
       res.status(500).json({ message: "Failed to generate summary" });
     }
   });
@@ -4599,7 +4599,7 @@ export async function registerRoutes(
       const stats = await getDashboardStats(householdId, period);
       res.json(stats);
     } catch (error) {
-      console.error("Error fetching analytics stats:", error);
+      logger.error("Error fetching analytics stats", { error, householdId });
       res.status(500).json({ message: "Failed to fetch analytics" });
     }
   });
@@ -4613,7 +4613,7 @@ export async function registerRoutes(
       const breakdown = await getTaskBreakdown(householdId, period);
       res.json(breakdown);
     } catch (error) {
-      console.error("Error fetching task breakdown:", error);
+      logger.error("Error fetching task breakdown", { error, householdId });
       res.status(500).json({ message: "Failed to fetch analytics" });
     }
   });
@@ -4627,7 +4627,7 @@ export async function registerRoutes(
       const breakdown = await getSpendingBreakdown(householdId, period);
       res.json(breakdown);
     } catch (error) {
-      console.error("Error fetching spending breakdown:", error);
+      logger.error("Error fetching spending breakdown", { error, householdId });
       res.status(500).json({ message: "Failed to fetch analytics" });
     }
   });
@@ -4641,7 +4641,7 @@ export async function registerRoutes(
       const timeline = await getTimelineData(householdId, period);
       res.json(timeline);
     } catch (error) {
-      console.error("Error fetching timeline:", error);
+      logger.error("Error fetching timeline", { error, householdId });
       res.status(500).json({ message: "Failed to fetch analytics" });
     }
   });
@@ -4655,7 +4655,7 @@ export async function registerRoutes(
       const performance = await getAssistantPerformance(householdId, period);
       res.json(performance);
     } catch (error) {
-      console.error("Error fetching performance:", error);
+      logger.error("Error fetching performance", { error, householdId });
       res.status(500).json({ message: "Failed to fetch analytics" });
     }
   });
@@ -4673,7 +4673,7 @@ export async function registerRoutes(
         .where(eq(emergencyContacts.householdId, householdId));
       res.json(contacts);
     } catch (error) {
-      console.error("Error fetching emergency contacts:", error);
+      logger.error("Error fetching emergency contacts", { error, userId, householdId });
       res.status(500).json({ message: "Failed to fetch contacts" });
     }
   });
@@ -4693,7 +4693,7 @@ export async function registerRoutes(
         .returning();
       res.status(201).json(contact);
     } catch (error) {
-      console.error("Error creating emergency contact:", error);
+      logger.error("Error creating emergency contact", { error, userId, householdId });
       res.status(500).json({ message: "Failed to create contact" });
     }
   });
@@ -4721,7 +4721,7 @@ export async function registerRoutes(
         .returning();
       res.json(updated);
     } catch (error) {
-      console.error("Error updating emergency contact:", error);
+      logger.error("Error updating emergency contact", { error, userId, householdId, contactId: req.params.id });
       res.status(500).json({ message: "Failed to update contact" });
     }
   });
@@ -4746,7 +4746,7 @@ export async function registerRoutes(
       await db.delete(emergencyContacts).where(eq(emergencyContacts.id, req.params.id));
       res.json({ success: true });
     } catch (error) {
-      console.error("Error deleting emergency contact:", error);
+      logger.error("Error deleting emergency contact", { error, userId, householdId, contactId: req.params.id });
       res.status(500).json({ message: "Failed to delete contact" });
     }
   });
@@ -4760,7 +4760,7 @@ export async function registerRoutes(
         .where(eq(emergencyProtocols.householdId, householdId));
       res.json(protocols);
     } catch (error) {
-      console.error("Error fetching protocols:", error);
+      logger.error("Error fetching protocols", { error, userId, householdId });
       res.status(500).json({ message: "Failed to fetch protocols" });
     }
   });
@@ -4780,7 +4780,7 @@ export async function registerRoutes(
         .returning();
       res.status(201).json(protocol);
     } catch (error) {
-      console.error("Error creating protocol:", error);
+      logger.error("Error creating protocol", { error, userId, householdId });
       res.status(500).json({ message: "Failed to create protocol" });
     }
   });
@@ -4799,7 +4799,7 @@ export async function registerRoutes(
         .orderBy(conversations.lastMessageAt);
       res.json(convos.reverse());
     } catch (error) {
-      console.error("Error fetching conversations:", error);
+      logger.error("Error fetching conversations", { error, userId, householdId });
       res.status(500).json({ message: "Failed to fetch conversations" });
     }
   });
@@ -4820,7 +4820,7 @@ export async function registerRoutes(
         .returning();
       res.status(201).json(convo);
     } catch (error) {
-      console.error("Error creating conversation:", error);
+      logger.error("Error creating conversation", { error, userId, householdId });
       res.status(500).json({ message: "Failed to create conversation" });
     }
   });
@@ -4843,7 +4843,7 @@ export async function registerRoutes(
         .orderBy(messages.createdAt);
       res.json(msgs);
     } catch (error) {
-      console.error("Error fetching messages:", error);
+      logger.error("Error fetching messages", { error, userId, householdId, conversationId });
       res.status(500).json({ message: "Failed to fetch messages" });
     }
   });
@@ -4888,7 +4888,7 @@ export async function registerRoutes(
 
       res.status(201).json(msg);
     } catch (error) {
-      console.error("Error sending message:", error);
+      logger.error("Error sending message", { error, userId, householdId, conversationId });
       res.status(500).json({ message: "Failed to send message" });
     }
   });
@@ -4928,7 +4928,7 @@ export async function registerRoutes(
 
       res.json({ success: true });
     } catch (error) {
-      console.error("Error marking message read:", error);
+      logger.error("Error marking message read", { error, userId, householdId, messageId });
       res.status(500).json({ message: "Failed to mark as read" });
     }
   });
@@ -4957,7 +4957,7 @@ export async function registerRoutes(
       const parsed = await parseRequest(text);
       res.json(parsed);
     } catch (error) {
-      console.error("Error parsing request:", error);
+      logger.error("Error parsing request", { error });
       res.status(500).json({ message: "Failed to parse request" });
     }
   });
@@ -4997,7 +4997,7 @@ export async function registerRoutes(
         });
         res.json({ brief });
       } catch (aiError) {
-        console.error("AI brief generation failed, using fallback:", aiError);
+        logger.error("AI brief generation failed, using fallback", { error: aiError, userId, householdId });
         const parts: string[] = [];
         if (upcomingEvents.length > 0) parts.push(`${upcomingEvents.length} event${upcomingEvents.length > 1 ? "s" : ""}`);
         if (upcomingTasks.length > 0) parts.push(`${upcomingTasks.length} task${upcomingTasks.length > 1 ? "s" : ""}`);
@@ -5006,7 +5006,7 @@ export async function registerRoutes(
         res.json({ brief: fallbackBrief, fallback: true });
       }
     } catch (error) {
-      console.error("Error generating brief:", error);
+      logger.error("Error generating brief", { error, userId, householdId });
       res.status(500).json({ message: "Failed to generate brief" });
     }
   });
@@ -5022,7 +5022,7 @@ export async function registerRoutes(
       const transcription = await transcribeVoice(audioBase64);
       res.json({ transcription });
     } catch (error) {
-      console.error("Error transcribing voice:", error);
+      logger.error("Error transcribing voice", { error });
       res.status(500).json({ message: "Failed to transcribe voice" });
     }
   });
@@ -5047,7 +5047,7 @@ export async function registerRoutes(
 
       res.json({ suggestions });
     } catch (error) {
-      console.error("Error getting smart actions:", error);
+      logger.error("Error getting smart actions", { error, userId, householdId });
       res.status(500).json({ message: "Failed to get suggestions" });
     }
   });
@@ -5065,7 +5065,7 @@ export async function registerRoutes(
       const result = await chat(messages, householdId);
       res.json(result);
     } catch (error) {
-      console.error("Error in AI chat:", error);
+      logger.error("Error in AI chat", { error, householdId });
       res.status(500).json({ message: "Failed to process chat" });
     }
   });
@@ -5099,7 +5099,7 @@ export async function registerRoutes(
         message: `I've submitted your request for "${title}". Your assistant will see it right away!`
       });
     } catch (error) {
-      console.error("Error creating request from chat:", error);
+      logger.error("Error creating request from chat", { error, userId, householdId });
       res.status(500).json({ message: "Failed to create request" });
     }
   });
@@ -5132,7 +5132,7 @@ export async function registerRoutes(
 
       res.json({ ...result, usedAI: true });
     } catch (error) {
-      console.error("Error parsing smart request:", error);
+      logger.error("Error parsing smart request", { error, householdId });
       res.status(500).json({ message: "Failed to parse request" });
     }
   });
@@ -5146,7 +5146,7 @@ export async function registerRoutes(
       const insights = await getProactiveInsights(householdId);
       res.json({ insights });
     } catch (error) {
-      console.error("Error fetching proactive insights:", error);
+      logger.error("Error fetching proactive insights", { error, householdId });
       res.status(500).json({ message: "Failed to fetch insights" });
     }
   });
@@ -5161,7 +5161,7 @@ export async function registerRoutes(
       
       res.json({ insights, generated: insights.length });
     } catch (error) {
-      console.error("Error generating insights:", error);
+      logger.error("Error generating insights", { error, householdId });
       res.status(500).json({ message: "Failed to generate insights" });
     }
   });
@@ -5174,7 +5174,7 @@ export async function registerRoutes(
       await dismissInsight(id);
       res.json({ success: true });
     } catch (error) {
-      console.error("Error dismissing insight:", error);
+      logger.error("Error dismissing insight", { error, insightId: req.params.id });
       res.status(500).json({ message: "Failed to dismiss insight" });
     }
   });
@@ -5193,7 +5193,7 @@ export async function registerRoutes(
       
       res.json(estimate);
     } catch (error) {
-      console.error("Error getting estimate:", error);
+      logger.error("Error getting estimate", { error, householdId });
       res.status(500).json({ message: "Failed to get estimate" });
     }
   });
@@ -5229,7 +5229,7 @@ export async function registerRoutes(
       
       res.json({ success: true });
     } catch (error) {
-      console.error("Error recording task completion:", error);
+      logger.error("Error recording task completion", { error, householdId });
       res.status(500).json({ message: "Failed to record completion" });
     }
   });
