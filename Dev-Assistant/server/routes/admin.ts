@@ -24,6 +24,52 @@ export function registerAdminRoutes(app: Router) {
   // AUDIT LOG ROUTES
   // ============================================
   
+  /**
+   * @openapi
+   * /audit-logs:
+   *   get:
+   *     summary: Get audit logs
+   *     description: Retrieve audit logs for the current household with optional filters
+   *     tags: [Audit]
+   *     security:
+   *       - session: []
+   *     parameters:
+   *       - $ref: '#/components/parameters/HouseholdHeader'
+   *       - in: query
+   *         name: entityType
+   *         schema:
+   *           type: string
+   *         description: Filter by entity type
+   *       - in: query
+   *         name: startDate
+   *         schema:
+   *           type: string
+   *           format: date-time
+   *         description: Filter logs after this date
+   *       - in: query
+   *         name: endDate
+   *         schema:
+   *           type: string
+   *           format: date-time
+   *         description: Filter logs before this date
+   *       - in: query
+   *         name: limit
+   *         schema:
+   *           type: integer
+   *           default: 100
+   *       - in: query
+   *         name: offset
+   *         schema:
+   *           type: integer
+   *           default: 0
+   *     responses:
+   *       200:
+   *         description: List of audit log entries
+   *       403:
+   *         description: Only assistants can view audit logs
+   *       500:
+   *         description: Failed to fetch audit logs
+   */
   app.get("/audit-logs", isAuthenticated, householdContext, requirePermission("CAN_VIEW_AUDIT_LOG"), async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
@@ -56,6 +102,25 @@ export function registerAdminRoutes(app: Router) {
   // VAULT SETTINGS ROUTES
   // ============================================
   
+  /**
+   * @openapi
+   * /vault/settings:
+   *   get:
+   *     summary: Get vault settings
+   *     description: Retrieve vault PIN and auto-lock settings for the household
+   *     tags: [Vault Settings]
+   *     security:
+   *       - session: []
+   *     parameters:
+   *       - $ref: '#/components/parameters/HouseholdHeader'
+   *     responses:
+   *       200:
+   *         description: Vault settings object
+   *       403:
+   *         description: Only assistants can manage vault settings
+   *       500:
+   *         description: Failed to fetch vault settings
+   */
   app.get("/vault/settings", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
@@ -79,6 +144,38 @@ export function registerAdminRoutes(app: Router) {
     }
   });
 
+  /**
+   * @openapi
+   * /vault/set-pin:
+   *   post:
+   *     summary: Set vault PIN
+   *     description: Set or update the vault PIN for the household
+   *     tags: [Vault Settings]
+   *     security:
+   *       - session: []
+   *     parameters:
+   *       - $ref: '#/components/parameters/HouseholdHeader'
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             required: [pin]
+   *             properties:
+   *               pin:
+   *                 type: string
+   *                 minLength: 4
+   *     responses:
+   *       200:
+   *         description: PIN set successfully
+   *       400:
+   *         description: PIN must be at least 4 characters
+   *       403:
+   *         description: Only assistants can set vault PIN
+   *       500:
+   *         description: Failed to set vault PIN
+   */
   app.post("/vault/set-pin", authLimiter, isAuthenticated, householdContext, requirePermission("CAN_EDIT_VAULT"), async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
@@ -114,6 +211,37 @@ export function registerAdminRoutes(app: Router) {
     }
   });
 
+  /**
+   * @openapi
+   * /vault/verify-pin:
+   *   post:
+   *     summary: Verify vault PIN
+   *     description: Verify the vault PIN to unlock the vault for a session
+   *     tags: [Vault Settings]
+   *     security:
+   *       - session: []
+   *     parameters:
+   *       - $ref: '#/components/parameters/HouseholdHeader'
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             required: [pin]
+   *             properties:
+   *               pin:
+   *                 type: string
+   *     responses:
+   *       200:
+   *         description: PIN verified, vault unlocked
+   *       400:
+   *         description: PIN required or no PIN set
+   *       401:
+   *         description: Invalid PIN
+   *       500:
+   *         description: Failed to verify PIN
+   */
   app.post("/vault/verify-pin", authLimiter, isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
@@ -163,6 +291,29 @@ export function registerAdminRoutes(app: Router) {
   // HANDOFF PACKET ROUTES
   // ============================================
   
+  /**
+   * @openapi
+   * /handoff:
+   *   get:
+   *     summary: Generate handoff packet HTML
+   *     description: Generate a full HTML handoff packet for the household
+   *     tags: [Handoff]
+   *     security:
+   *       - session: []
+   *     parameters:
+   *       - $ref: '#/components/parameters/HouseholdHeader'
+   *     responses:
+   *       200:
+   *         description: Handoff packet as HTML
+   *         content:
+   *           text/html:
+   *             schema:
+   *               type: string
+   *       403:
+   *         description: Only assistants can generate handoff packets
+   *       500:
+   *         description: Failed to generate handoff packet
+   */
   app.get("/handoff", isAuthenticated, householdContext, requirePermission("CAN_ADMIN_EXPORTS"), async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
@@ -195,6 +346,25 @@ export function registerAdminRoutes(app: Router) {
     }
   });
   
+  /**
+   * @openapi
+   * /handoff/data:
+   *   get:
+   *     summary: Get handoff data as JSON
+   *     description: Retrieve the raw handoff packet data for the household
+   *     tags: [Handoff]
+   *     security:
+   *       - session: []
+   *     parameters:
+   *       - $ref: '#/components/parameters/HouseholdHeader'
+   *     responses:
+   *       200:
+   *         description: Handoff data object
+   *       403:
+   *         description: Only assistants can access handoff data
+   *       500:
+   *         description: Failed to generate handoff data
+   */
   app.get("/handoff/data", isAuthenticated, householdContext, requirePermission("CAN_ADMIN_EXPORTS"), async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
@@ -215,6 +385,25 @@ export function registerAdminRoutes(app: Router) {
     }
   });
 
+  /**
+   * @openapi
+   * /moments/generate:
+   *   get:
+   *     summary: Generate moment tasks
+   *     description: Create tasks for upcoming important dates in the household
+   *     tags: [Handoff]
+   *     security:
+   *       - session: []
+   *     parameters:
+   *       - $ref: '#/components/parameters/HouseholdHeader'
+   *     responses:
+   *       200:
+   *         description: Number of tasks created
+   *       403:
+   *         description: Only assistants can generate moment tasks
+   *       500:
+   *         description: Failed to generate moment tasks
+   */
   app.get("/moments/generate", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
@@ -243,6 +432,23 @@ export function registerAdminRoutes(app: Router) {
   // NOTIFICATIONS ROUTES
   // ============================================
 
+  /**
+   * @openapi
+   * /notifications:
+   *   get:
+   *     summary: Get notifications
+   *     description: Retrieve all notifications for the current user in the household
+   *     tags: [Notifications]
+   *     security:
+   *       - session: []
+   *     parameters:
+   *       - $ref: '#/components/parameters/HouseholdHeader'
+   *     responses:
+   *       200:
+   *         description: List of notifications
+   *       500:
+   *         description: Failed to fetch notifications
+   */
   app.get("/notifications", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
@@ -255,6 +461,30 @@ export function registerAdminRoutes(app: Router) {
     }
   });
 
+  /**
+   * @openapi
+   * /notifications/unread-count:
+   *   get:
+   *     summary: Get unread notification count
+   *     description: Retrieve the count of unread notifications for the current user
+   *     tags: [Notifications]
+   *     security:
+   *       - session: []
+   *     parameters:
+   *       - $ref: '#/components/parameters/HouseholdHeader'
+   *     responses:
+   *       200:
+   *         description: Unread notification count
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 count:
+   *                   type: integer
+   *       500:
+   *         description: Failed to fetch unread count
+   */
   app.get("/notifications/unread-count", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
@@ -267,6 +497,29 @@ export function registerAdminRoutes(app: Router) {
     }
   });
 
+  /**
+   * @openapi
+   * /notifications/{id}/read:
+   *   patch:
+   *     summary: Mark notification as read
+   *     description: Mark a specific notification as read
+   *     tags: [Notifications]
+   *     security:
+   *       - session: []
+   *     parameters:
+   *       - $ref: '#/components/parameters/HouseholdHeader'
+   *       - in: path
+   *         name: id
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: Notification ID
+   *     responses:
+   *       200:
+   *         description: Notification marked as read
+   *       500:
+   *         description: Failed to mark notification read
+   */
   app.patch("/notifications/:id/read", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       await markNotificationRead(req.params.id);
@@ -277,6 +530,23 @@ export function registerAdminRoutes(app: Router) {
     }
   });
 
+  /**
+   * @openapi
+   * /notifications/mark-all-read:
+   *   post:
+   *     summary: Mark all notifications as read
+   *     description: Mark all notifications as read for the current user in the household
+   *     tags: [Notifications]
+   *     security:
+   *       - session: []
+   *     parameters:
+   *       - $ref: '#/components/parameters/HouseholdHeader'
+   *     responses:
+   *       200:
+   *         description: All notifications marked as read
+   *       500:
+   *         description: Failed to mark all notifications read
+   */
   app.post("/notifications/mark-all-read", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
@@ -289,6 +559,23 @@ export function registerAdminRoutes(app: Router) {
     }
   });
 
+  /**
+   * @openapi
+   * /notification-settings:
+   *   get:
+   *     summary: Get notification settings
+   *     description: Retrieve notification preferences for the current user
+   *     tags: [Notifications]
+   *     security:
+   *       - session: []
+   *     parameters:
+   *       - $ref: '#/components/parameters/HouseholdHeader'
+   *     responses:
+   *       200:
+   *         description: Notification settings object
+   *       500:
+   *         description: Failed to fetch notification settings
+   */
   app.get("/notification-settings", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
@@ -300,6 +587,29 @@ export function registerAdminRoutes(app: Router) {
     }
   });
 
+  /**
+   * @openapi
+   * /notification-settings:
+   *   patch:
+   *     summary: Update notification settings
+   *     description: Update notification preferences for the current user
+   *     tags: [Notifications]
+   *     security:
+   *       - session: []
+   *     parameters:
+   *       - $ref: '#/components/parameters/HouseholdHeader'
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *     responses:
+   *       200:
+   *         description: Updated notification settings
+   *       500:
+   *         description: Failed to update notification settings
+   */
   app.patch("/notification-settings", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
@@ -316,6 +626,23 @@ export function registerAdminRoutes(app: Router) {
   // AI SUGGESTIONS ROUTES
   // ============================================
 
+  /**
+   * @openapi
+   * /suggestions:
+   *   get:
+   *     summary: Get smart suggestions
+   *     description: Retrieve AI-powered smart suggestions for the household
+   *     tags: [Suggestions]
+   *     security:
+   *       - session: []
+   *     parameters:
+   *       - $ref: '#/components/parameters/HouseholdHeader'
+   *     responses:
+   *       200:
+   *         description: List of smart suggestions
+   *       500:
+   *         description: Failed to fetch suggestions
+   */
   app.get("/suggestions", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
@@ -331,6 +658,26 @@ export function registerAdminRoutes(app: Router) {
   // PUSH NOTIFICATIONS ROUTES
   // ============================================
 
+  /**
+   * @openapi
+   * /push/vapid-key:
+   *   get:
+   *     summary: Get VAPID public key
+   *     description: Retrieve the VAPID public key for push notification subscription
+   *     tags: [Push Notifications]
+   *     responses:
+   *       200:
+   *         description: VAPID public key and push enabled status
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 publicKey:
+   *                   type: string
+   *                 enabled:
+   *                   type: boolean
+   */
   app.get("/push/vapid-key", async (_req, res) => {
     const publicKey = getVapidPublicKey();
     res.json({ 
@@ -339,6 +686,45 @@ export function registerAdminRoutes(app: Router) {
     });
   });
 
+  /**
+   * @openapi
+   * /push/subscribe:
+   *   post:
+   *     summary: Subscribe to push notifications
+   *     description: Save a push notification subscription for the current user
+   *     tags: [Push Notifications]
+   *     security:
+   *       - session: []
+   *     parameters:
+   *       - $ref: '#/components/parameters/HouseholdHeader'
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             required: [endpoint, keys]
+   *             properties:
+   *               endpoint:
+   *                 type: string
+   *               keys:
+   *                 type: object
+   *                 required: [p256dh, auth]
+   *                 properties:
+   *                   p256dh:
+   *                     type: string
+   *                   auth:
+   *                     type: string
+   *               userAgent:
+   *                 type: string
+   *     responses:
+   *       200:
+   *         description: Subscription saved successfully
+   *       400:
+   *         description: Invalid subscription data
+   *       500:
+   *         description: Failed to save subscription
+   */
   app.post("/push/subscribe", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
@@ -365,6 +751,33 @@ export function registerAdminRoutes(app: Router) {
     }
   });
 
+  /**
+   * @openapi
+   * /push/unsubscribe:
+   *   post:
+   *     summary: Unsubscribe from push notifications
+   *     description: Remove a push notification subscription for the current user
+   *     tags: [Push Notifications]
+   *     security:
+   *       - session: []
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             required: [endpoint]
+   *             properties:
+   *               endpoint:
+   *                 type: string
+   *     responses:
+   *       200:
+   *         description: Subscription removed successfully
+   *       400:
+   *         description: Endpoint required
+   *       500:
+   *         description: Failed to remove subscription
+   */
   app.post("/push/unsubscribe", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
@@ -382,6 +795,21 @@ export function registerAdminRoutes(app: Router) {
     }
   });
 
+  /**
+   * @openapi
+   * /push/subscriptions:
+   *   get:
+   *     summary: Get push subscriptions
+   *     description: Retrieve all push notification subscriptions for the current user
+   *     tags: [Push Notifications]
+   *     security:
+   *       - session: []
+   *     responses:
+   *       200:
+   *         description: List of push subscriptions
+   *       500:
+   *         description: Failed to fetch subscriptions
+   */
   app.get("/push/subscriptions", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
@@ -401,6 +829,56 @@ export function registerAdminRoutes(app: Router) {
   // GLOBAL SEARCH ROUTE
   // ============================================
 
+  /**
+   * @openapi
+   * /search:
+   *   get:
+   *     summary: Global search
+   *     description: Search across tasks, updates, vendors, and preferences in the household
+   *     tags: [Search]
+   *     security:
+   *       - session: []
+   *     parameters:
+   *       - $ref: '#/components/parameters/HouseholdHeader'
+   *       - in: query
+   *         name: q
+   *         required: true
+   *         schema:
+   *           type: string
+   *           minLength: 2
+   *         description: Search query (minimum 2 characters)
+   *       - in: query
+   *         name: types
+   *         schema:
+   *           type: string
+   *           default: tasks,updates,vendors,preferences
+   *         description: Comma-separated list of entity types to search
+   *       - in: query
+   *         name: status
+   *         schema:
+   *           type: string
+   *         description: Filter tasks by status
+   *     responses:
+   *       200:
+   *         description: Search results grouped by type
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 tasks:
+   *                   type: array
+   *                 updates:
+   *                   type: array
+   *                 vendors:
+   *                   type: array
+   *                 preferences:
+   *                   type: array
+   *                 totalCount:
+   *                   type: integer
+   *       500:
+   *         description: Failed to search
+   */
   app.get("/search", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;

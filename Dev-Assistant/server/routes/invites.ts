@@ -10,6 +10,34 @@ import { requirePermission } from "../middleware/requirePermission";
 const router = Router();
 const householdContext = householdContextMiddleware;
 
+/**
+ * @openapi
+ * /invites:
+ *   get:
+ *     summary: List household invites
+ *     description: Returns all invites for the current household. Requires CAN_MANAGE_SETTINGS permission.
+ *     tags:
+ *       - Invites
+ *     security:
+ *       - session: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/HouseholdHeader'
+ *     responses:
+ *       200:
+ *         description: List of invites for the household
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Invite'
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Insufficient permissions
+ *       500:
+ *         description: Internal server error
+ */
 router.get("/invites", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_SETTINGS"), async (req: any, res) => {
   try {
     const householdId = req.householdId!;
@@ -26,6 +54,56 @@ router.get("/invites", isAuthenticated, householdContext, requirePermission("CAN
   }
 });
 
+/**
+ * @openapi
+ * /invites:
+ *   post:
+ *     summary: Create a household invite
+ *     description: Creates a new invite for a user to join the household. Generates a unique invite token and link. Requires CAN_MANAGE_SETTINGS permission.
+ *     tags:
+ *       - Invites
+ *     security:
+ *       - session: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/HouseholdHeader'
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 description: Email address of the person to invite
+ *               role:
+ *                 type: string
+ *                 description: Role to assign to the invited user (defaults to CLIENT)
+ *     responses:
+ *       201:
+ *         description: Invite created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/Invite'
+ *                 - type: object
+ *                   properties:
+ *                     inviteLink:
+ *                       type: string
+ *                       format: uri
+ *       400:
+ *         description: Email is required
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Insufficient permissions
+ *       500:
+ *         description: Internal server error
+ */
 router.post("/invites", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_SETTINGS"), async (req: any, res) => {
   try {
     const userId = req.user.claims.sub;
@@ -64,6 +142,44 @@ router.post("/invites", isAuthenticated, householdContext, requirePermission("CA
   }
 });
 
+/**
+ * @openapi
+ * /invites/{token}/accept:
+ *   post:
+ *     summary: Accept a household invite
+ *     description: Accepts a pending invite using the invite token. Adds the authenticated user to the household with the role specified in the invite.
+ *     tags:
+ *       - Invites
+ *     security:
+ *       - session: []
+ *     parameters:
+ *       - in: path
+ *         name: token
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The unique invite token
+ *     responses:
+ *       200:
+ *         description: Invite accepted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 householdId:
+ *                   type: string
+ *       400:
+ *         description: Cannot accept own invite, already a member, or invite expired
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Invalid or expired invite
+ *       500:
+ *         description: Internal server error
+ */
 router.post("/invites/:token/accept", isAuthenticated, async (req: any, res) => {
   try {
     const { token } = req.params;
@@ -130,6 +246,45 @@ router.post("/invites/:token/accept", isAuthenticated, async (req: any, res) => 
   }
 });
 
+/**
+ * @openapi
+ * /invites/{token}/info:
+ *   get:
+ *     summary: Get invite information
+ *     description: Returns public information about an invite by its token. Does not require authentication. Used to display invite details before accepting.
+ *     tags:
+ *       - Invites
+ *     parameters:
+ *       - in: path
+ *         name: token
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The unique invite token
+ *     responses:
+ *       200:
+ *         description: Invite information
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 householdName:
+ *                   type: string
+ *                 role:
+ *                   type: string
+ *                 email:
+ *                   type: string
+ *                 expiresAt:
+ *                   type: string
+ *                   format: date-time
+ *       400:
+ *         description: Invite is no longer pending or has expired
+ *       404:
+ *         description: Invite not found
+ *       500:
+ *         description: Internal server error
+ */
 router.get("/invites/:token/info", async (req, res) => {
   try {
     const { token } = req.params;
@@ -170,6 +325,34 @@ router.get("/invites/:token/info", async (req, res) => {
   }
 });
 
+/**
+ * @openapi
+ * /invites/{id}:
+ *   delete:
+ *     summary: Revoke a household invite
+ *     description: Revokes a pending invite by setting its status to REVOKED. Requires CAN_MANAGE_SETTINGS permission.
+ *     tags:
+ *       - Invites
+ *     security:
+ *       - session: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/HouseholdHeader'
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The invite ID to revoke
+ *     responses:
+ *       204:
+ *         description: Invite revoked successfully
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Insufficient permissions
+ *       500:
+ *         description: Internal server error
+ */
 router.delete("/invites/:id", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_SETTINGS"), async (req: any, res) => {
   try {
     const householdId = req.householdId!;

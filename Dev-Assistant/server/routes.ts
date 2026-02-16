@@ -9,6 +9,7 @@ import { responseTimeMiddleware } from "./middleware/responseTime";
 import { apiVersionMiddleware } from "./middleware/apiVersion";
 import { householdContextMiddleware } from "./middleware/householdContext";
 import { metrics } from "./lib/metrics";
+import { setupSwagger } from "./lib/swagger";
 import { startScheduledBackups } from "./services/scheduler";
 import { runMomentsAutomation } from "./routes/helpers";
 import householdRoutes from "./routes/households";
@@ -35,6 +36,8 @@ export async function registerRoutes(
 ): Promise<Server> {
   app.use(requestIdMiddleware);
   app.use(responseTimeMiddleware);
+
+  setupSwagger(app);
 
   app.get("/api/metrics", (_req, res) => {
     res.set("Content-Type", "text/plain; version=0.0.4; charset=utf-8");

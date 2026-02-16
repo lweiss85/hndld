@@ -15,6 +15,73 @@ import { getStorageProvider } from "../services/storage-provider";
 const householdContext = householdContextMiddleware;
 
 export function registerSpendingRoutes(app: Router) {
+  /**
+   * @openapi
+   * /spending:
+   *   get:
+   *     tags:
+   *       - Spending
+   *     summary: List spending items
+   *     description: Returns spending items for the current household. Supports optional filtering by serviceType and pagination via page/limit query params. Returns a paginated object when limit > 0, otherwise returns a plain array.
+   *     security:
+   *       - sessionAuth: []
+   *     parameters:
+   *       - in: header
+   *         name: x-household-id
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: Current household ID
+   *       - in: query
+   *         name: serviceType
+   *         schema:
+   *           type: string
+   *           enum: [CLEANING, PA]
+   *         description: Filter by service type
+   *       - in: query
+   *         name: page
+   *         schema:
+   *           type: integer
+   *           default: 1
+   *         description: Page number (used with limit)
+   *       - in: query
+   *         name: limit
+   *         schema:
+   *           type: integer
+   *           default: 0
+   *         description: Items per page. 0 returns all items as an array.
+   *     responses:
+   *       200:
+   *         description: Spending items retrieved successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               oneOf:
+   *                 - type: array
+   *                   items:
+   *                     $ref: '#/components/schemas/SpendingItem'
+   *                 - type: object
+   *                   properties:
+   *                     data:
+   *                       type: array
+   *                       items:
+   *                         $ref: '#/components/schemas/SpendingItem'
+   *                     pagination:
+   *                       type: object
+   *                       properties:
+   *                         page:
+   *                           type: integer
+   *                         limit:
+   *                           type: integer
+   *                         total:
+   *                           type: integer
+   *                         totalPages:
+   *                           type: integer
+   *       401:
+   *         description: Unauthorized
+   *       500:
+   *         description: Internal server error
+   */
   app.get("/spending", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
@@ -54,6 +121,54 @@ export function registerSpendingRoutes(app: Router) {
     }
   });
   
+  /**
+   * @openapi
+   * /spending:
+   *   post:
+   *     tags:
+   *       - Spending
+   *     summary: Create a spending item
+   *     description: Creates a new spending item in the current household.
+   *     security:
+   *       - sessionAuth: []
+   *     parameters:
+   *       - in: header
+   *         name: x-household-id
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: Current household ID
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             properties:
+   *               amount:
+   *                 type: integer
+   *                 description: Amount in cents
+   *               category:
+   *                 type: string
+   *               vendor:
+   *                 type: string
+   *               note:
+   *                 type: string
+   *               serviceType:
+   *                 type: string
+   *                 enum: [CLEANING, PA]
+   *     responses:
+   *       201:
+   *         description: Spending item created successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/SpendingItem'
+   *       401:
+   *         description: Unauthorized
+   *       500:
+   *         description: Internal server error
+   */
   app.post("/spending", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
@@ -74,7 +189,71 @@ export function registerSpendingRoutes(app: Router) {
     }
   });
 
-  // Update spending item status (for payment workflow)
+  /**
+   * @openapi
+   * /spending/{id}/status:
+   *   patch:
+   *     tags:
+   *       - Spending
+   *     summary: Update spending item status
+   *     description: Updates the status of a spending item as part of the payment workflow. Validates status transitions based on user role.
+   *     security:
+   *       - sessionAuth: []
+   *     parameters:
+   *       - in: header
+   *         name: x-household-id
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: Current household ID
+   *       - in: path
+   *         name: id
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: Spending item ID
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             required:
+   *               - status
+   *             properties:
+   *               status:
+   *                 type: string
+   *                 enum: [DRAFT, NEEDS_APPROVAL, APPROVED, PAYMENT_SENT, RECONCILED]
+   *               paymentMethodUsed:
+   *                 type: string
+   *                 enum: [VENMO, ZELLE, CASH_APP, PAYPAL]
+   *                 description: Payment method used (when status is PAYMENT_SENT)
+   *               paymentNote:
+   *                 type: string
+   *                 description: Optional note for the payment
+   *               tipAmount:
+   *                 type: number
+   *                 minimum: 0
+   *                 maximum: 50000
+   *                 description: Tip amount in cents (when status is PAYMENT_SENT)
+   *     responses:
+   *       200:
+   *         description: Spending item status updated successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/SpendingItem'
+   *       400:
+   *         description: Invalid status or payment method
+   *       401:
+   *         description: Unauthorized
+   *       403:
+   *         description: Insufficient permissions for this status transition
+   *       404:
+   *         description: Spending item not found
+   *       500:
+   *         description: Internal server error
+   */
   app.patch("/spending/:id/status", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
@@ -158,7 +337,58 @@ export function registerSpendingRoutes(app: Router) {
     }
   });
 
-  // Organization Payment Profile endpoints
+  /**
+   * @openapi
+   * /org/payment-profile:
+   *   get:
+   *     tags:
+   *       - Payment Settings
+   *     summary: Get organization payment profile
+   *     description: Retrieves the payment profile for the organization linked to the current household. Requires CAN_MANAGE_SETTINGS permission.
+   *     security:
+   *       - sessionAuth: []
+   *     parameters:
+   *       - in: header
+   *         name: x-household-id
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: Current household ID
+   *     responses:
+   *       200:
+   *         description: Organization payment profile retrieved successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 id:
+   *                   type: string
+   *                 venmoUsername:
+   *                   type: string
+   *                   nullable: true
+   *                 zelleRecipient:
+   *                   type: string
+   *                   nullable: true
+   *                 cashAppCashtag:
+   *                   type: string
+   *                   nullable: true
+   *                 paypalMeHandle:
+   *                   type: string
+   *                   nullable: true
+   *                 defaultPaymentMethod:
+   *                   type: string
+   *                 payNoteTemplate:
+   *                   type: string
+   *       401:
+   *         description: Unauthorized
+   *       403:
+   *         description: Insufficient permissions
+   *       404:
+   *         description: Household not linked to an organization
+   *       500:
+   *         description: Internal server error
+   */
   app.get("/org/payment-profile", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_SETTINGS"), async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
@@ -182,6 +412,65 @@ export function registerSpendingRoutes(app: Router) {
     }
   });
 
+  /**
+   * @openapi
+   * /org/payment-profile:
+   *   put:
+   *     tags:
+   *       - Payment Settings
+   *     summary: Update organization payment profile
+   *     description: Creates or updates the payment profile for the organization linked to the current household. Requires CAN_MANAGE_SETTINGS permission.
+   *     security:
+   *       - sessionAuth: []
+   *     parameters:
+   *       - in: header
+   *         name: x-household-id
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: Current household ID
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             properties:
+   *               venmoUsername:
+   *                 type: string
+   *                 description: Venmo username (@ prefix is stripped automatically)
+   *               zelleRecipient:
+   *                 type: string
+   *                 description: Zelle recipient email or phone
+   *                 maxLength: 100
+   *               cashAppCashtag:
+   *                 type: string
+   *                 description: Cash App cashtag ($ prefix is stripped automatically)
+   *               paypalMeHandle:
+   *                 type: string
+   *                 description: PayPal.me handle
+   *               defaultPaymentMethod:
+   *                 type: string
+   *                 enum: [VENMO, ZELLE, CASH_APP, PAYPAL]
+   *                 default: VENMO
+   *               payNoteTemplate:
+   *                 type: string
+   *                 description: Payment note template (max 500 chars). Supports placeholders {ref}, {category}, {date}, {vendor}, {amount}.
+   *                 maxLength: 500
+   *     responses:
+   *       200:
+   *         description: Organization payment profile updated successfully
+   *       400:
+   *         description: Invalid input (bad Venmo username, Zelle recipient, Cash App cashtag, PayPal handle, or template too long)
+   *       401:
+   *         description: Unauthorized
+   *       403:
+   *         description: Insufficient permissions
+   *       404:
+   *         description: Household not linked to an organization
+   *       500:
+   *         description: Internal server error
+   */
   app.put("/org/payment-profile", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_SETTINGS"), async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
@@ -259,7 +548,44 @@ export function registerSpendingRoutes(app: Router) {
     }
   });
 
-  // Household Payment Settings endpoints
+  /**
+   * @openapi
+   * /household/payment-settings:
+   *   get:
+   *     tags:
+   *       - Payment Settings
+   *     summary: Get household payment settings
+   *     description: Retrieves the household-level payment override settings along with the organization payment profile if available.
+   *     security:
+   *       - sessionAuth: []
+   *     parameters:
+   *       - in: header
+   *         name: x-household-id
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: Current household ID
+   *     responses:
+   *       200:
+   *         description: Household payment settings retrieved successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 override:
+   *                   type: object
+   *                   nullable: true
+   *                   description: Household-specific payment overrides
+   *                 orgProfile:
+   *                   type: object
+   *                   nullable: true
+   *                   description: Organization-level payment profile
+   *       401:
+   *         description: Unauthorized
+   *       500:
+   *         description: Internal server error
+   */
   app.get("/household/payment-settings", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
@@ -284,6 +610,59 @@ export function registerSpendingRoutes(app: Router) {
     }
   });
 
+  /**
+   * @openapi
+   * /household/payment-settings:
+   *   put:
+   *     tags:
+   *       - Payment Settings
+   *     summary: Update household payment settings
+   *     description: Creates or updates household-level payment override settings. Requires CAN_MANAGE_SETTINGS permission.
+   *     security:
+   *       - sessionAuth: []
+   *     parameters:
+   *       - in: header
+   *         name: x-household-id
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: Current household ID
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             properties:
+   *               useOrgDefaults:
+   *                 type: boolean
+   *                 default: true
+   *                 description: Whether to use organization defaults
+   *               venmoUsername:
+   *                 type: string
+   *               zelleRecipient:
+   *                 type: string
+   *               cashAppCashtag:
+   *                 type: string
+   *               paypalMeHandle:
+   *                 type: string
+   *               defaultPaymentMethod:
+   *                 type: string
+   *                 enum: [VENMO, ZELLE, CASH_APP, PAYPAL]
+   *               payNoteTemplate:
+   *                 type: string
+   *     responses:
+   *       200:
+   *         description: Household payment settings updated successfully
+   *       400:
+   *         description: Invalid input
+   *       401:
+   *         description: Unauthorized
+   *       403:
+   *         description: Insufficient permissions
+   *       500:
+   *         description: Internal server error
+   */
   app.put("/household/payment-settings", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_SETTINGS"), async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
@@ -344,7 +723,103 @@ export function registerSpendingRoutes(app: Router) {
     }
   });
 
-  // Pay Options endpoint - returns effective payment info for a spending item
+  /**
+   * @openapi
+   * /spending/{id}/pay-options:
+   *   get:
+   *     tags:
+   *       - Spending
+   *     summary: Get payment options for a spending item
+   *     description: Returns effective payment information for a specific spending item, including Venmo, Zelle, Cash App, and PayPal details with deep-link URLs pre-filled with amount and reference.
+   *     security:
+   *       - sessionAuth: []
+   *     parameters:
+   *       - in: header
+   *         name: x-household-id
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: Current household ID
+   *       - in: path
+   *         name: id
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: Spending item ID
+   *     responses:
+   *       200:
+   *         description: Payment options retrieved successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 ref:
+   *                   type: string
+   *                   description: Payment reference code
+   *                 amount:
+   *                   type: integer
+   *                   description: Amount in cents
+   *                 note:
+   *                   type: string
+   *                   description: Generated payment note
+   *                 venmo:
+   *                   type: object
+   *                   properties:
+   *                     enabled:
+   *                       type: boolean
+   *                     username:
+   *                       type: string
+   *                       nullable: true
+   *                     url:
+   *                       type: string
+   *                       nullable: true
+   *                 zelle:
+   *                   type: object
+   *                   properties:
+   *                     enabled:
+   *                       type: boolean
+   *                     recipient:
+   *                       type: string
+   *                       nullable: true
+   *                     note:
+   *                       type: string
+   *                 cashApp:
+   *                   type: object
+   *                   properties:
+   *                     enabled:
+   *                       type: boolean
+   *                     cashtag:
+   *                       type: string
+   *                       nullable: true
+   *                     url:
+   *                       type: string
+   *                       nullable: true
+   *                 paypal:
+   *                   type: object
+   *                   properties:
+   *                     enabled:
+   *                       type: boolean
+   *                     handle:
+   *                       type: string
+   *                       nullable: true
+   *                     url:
+   *                       type: string
+   *                       nullable: true
+   *                 preferredMethod:
+   *                   type: string
+   *                 display:
+   *                   type: object
+   *                   properties:
+   *                     payToLine:
+   *                       type: string
+   *       401:
+   *         description: Unauthorized
+   *       404:
+   *         description: Spending item not found
+   *       500:
+   *         description: Internal server error
+   */
   app.get("/spending/:id/pay-options", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
@@ -459,7 +934,52 @@ export function registerSpendingRoutes(app: Router) {
     }
   });
 
-  // General pay options endpoint - returns payment profile for the household (client accessible)
+  /**
+   * @openapi
+   * /pay-options:
+   *   get:
+   *     tags:
+   *       - Payment Settings
+   *     summary: Get general payment profile for household
+   *     description: Returns the effective payment profile for the current household, resolving organization defaults and household overrides. Accessible by all household members.
+   *     security:
+   *       - sessionAuth: []
+   *     parameters:
+   *       - in: header
+   *         name: x-household-id
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: Current household ID
+   *     responses:
+   *       200:
+   *         description: Payment profile retrieved successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 venmoUsername:
+   *                   type: string
+   *                   nullable: true
+   *                 zelleRecipient:
+   *                   type: string
+   *                   nullable: true
+   *                 cashAppCashtag:
+   *                   type: string
+   *                   nullable: true
+   *                 paypalMeHandle:
+   *                   type: string
+   *                   nullable: true
+   *                 defaultPaymentMethod:
+   *                   type: string
+   *                 payNoteTemplate:
+   *                   type: string
+   *       401:
+   *         description: Unauthorized
+   *       500:
+   *         description: Internal server error
+   */
   app.get("/pay-options", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
@@ -516,7 +1036,71 @@ export function registerSpendingRoutes(app: Router) {
   
   // ==================== INVOICE ENDPOINTS ====================
 
-  // POST /api/invoices/send - Assistant sends an invoice
+  /**
+   * @openapi
+   * /invoices/send:
+   *   post:
+   *     tags:
+   *       - Invoices
+   *     summary: Send an invoice
+   *     description: Creates and sends an invoice to the household client. Generates an HTML invoice document with payment instructions, saves it to storage, and creates a notification update. Requires CAN_EDIT_TASKS permission.
+   *     security:
+   *       - sessionAuth: []
+   *     parameters:
+   *       - in: header
+   *         name: x-household-id
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: Current household ID
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             required:
+   *               - title
+   *               - amount
+   *             properties:
+   *               title:
+   *                 type: string
+   *                 description: Invoice title / line item description
+   *               amount:
+   *                 type: integer
+   *                 description: Amount in cents
+   *               note:
+   *                 type: string
+   *                 description: Optional note for the invoice
+   *               dueDate:
+   *                 type: string
+   *                 format: date-time
+   *                 description: Optional due date for payment
+   *     responses:
+   *       200:
+   *         description: Invoice sent successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 success:
+   *                   type: boolean
+   *                 invoiceId:
+   *                   type: string
+   *                 invoiceNumber:
+   *                   type: string
+   *                 fileId:
+   *                   type: string
+   *       400:
+   *         description: Title and amount are required
+   *       401:
+   *         description: Unauthorized
+   *       403:
+   *         description: Insufficient permissions
+   *       500:
+   *         description: Internal server error
+   */
   app.post("/invoices/send", isAuthenticated, householdContext, requirePermission("CAN_EDIT_TASKS"), async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
@@ -685,7 +1269,60 @@ export function registerSpendingRoutes(app: Router) {
     }
   });
 
-  // GET /api/invoices/pending - Client checks if they have unpaid invoices
+  /**
+   * @openapi
+   * /invoices/pending:
+   *   get:
+   *     tags:
+   *       - Invoices
+   *     summary: Get pending invoices summary
+   *     description: Returns a summary of unpaid invoices for the current household, including count, total amount, and details of the latest invoice.
+   *     security:
+   *       - sessionAuth: []
+   *     parameters:
+   *       - in: header
+   *         name: x-household-id
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: Current household ID
+   *       - in: query
+   *         name: serviceType
+   *         schema:
+   *           type: string
+   *           enum: [CLEANING, PA]
+   *         description: Filter by service type
+   *     responses:
+   *       200:
+   *         description: Pending invoices summary retrieved successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 count:
+   *                   type: integer
+   *                 totalAmount:
+   *                   type: integer
+   *                   description: Total amount in cents
+   *                 latestInvoiceId:
+   *                   type: string
+   *                   nullable: true
+   *                 latestInvoiceTitle:
+   *                   type: string
+   *                   nullable: true
+   *                 latestInvoiceNumber:
+   *                   type: string
+   *                   nullable: true
+   *                 latestDueDate:
+   *                   type: string
+   *                   format: date-time
+   *                   nullable: true
+   *       401:
+   *         description: Unauthorized
+   *       500:
+   *         description: Internal server error
+   */
   app.get("/invoices/pending", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
@@ -738,7 +1375,37 @@ export function registerSpendingRoutes(app: Router) {
     }
   });
 
-  // GET /api/invoices - List all invoices
+  /**
+   * @openapi
+   * /invoices:
+   *   get:
+   *     tags:
+   *       - Invoices
+   *     summary: List all invoices
+   *     description: Returns all invoices for the current household, sorted by sent date descending.
+   *     security:
+   *       - sessionAuth: []
+   *     parameters:
+   *       - in: header
+   *         name: x-household-id
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: Current household ID
+   *     responses:
+   *       200:
+   *         description: Invoices retrieved successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: array
+   *               items:
+   *                 $ref: '#/components/schemas/SpendingItem'
+   *       401:
+   *         description: Unauthorized
+   *       500:
+   *         description: Internal server error
+   */
   app.get("/invoices", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;

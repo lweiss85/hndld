@@ -11,6 +11,34 @@ import { google } from "googleapis";
 const householdContext = householdContextMiddleware;
 
 export function registerGoogleCalendarRoutes(app: Router) {
+  /**
+   * @openapi
+   * /google/auth:
+   *   get:
+   *     summary: Initiate Google OAuth flow
+   *     description: Generates a Google OAuth authorization URL for connecting a Google Calendar account.
+   *     tags:
+   *       - Google Calendar
+   *     security:
+   *       - session: []
+   *     parameters:
+   *       - $ref: '#/components/parameters/HouseholdHeader'
+   *     responses:
+   *       200:
+   *         description: OAuth authorization URL
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 authUrl:
+   *                   type: string
+   *                   format: uri
+   *       400:
+   *         description: Missing household context
+   *       500:
+   *         description: Internal server error
+   */
   app.get("/google/auth", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
@@ -30,6 +58,31 @@ export function registerGoogleCalendarRoutes(app: Router) {
     }
   });
 
+  /**
+   * @openapi
+   * /google/callback:
+   *   get:
+   *     summary: Google OAuth callback
+   *     description: Handles the OAuth callback from Google, exchanges the authorization code for tokens, and saves the calendar connection.
+   *     tags:
+   *       - Google Calendar
+   *     parameters:
+   *       - in: query
+   *         name: code
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: OAuth authorization code
+   *       - in: query
+   *         name: state
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: Base64url-encoded state parameter
+   *     responses:
+   *       302:
+   *         description: Redirects to settings page on success or home page on error
+   */
   app.get("/google/callback", async (req: Request, res: Response) => {
     try {
       const { code, state } = req.query;
@@ -59,6 +112,51 @@ export function registerGoogleCalendarRoutes(app: Router) {
     }
   });
 
+  /**
+   * @openapi
+   * /google/calendars:
+   *   get:
+   *     summary: List Google calendars
+   *     description: Lists all available Google calendars for the connected account, including selection status.
+   *     tags:
+   *       - Google Calendar
+   *     security:
+   *       - session: []
+   *     parameters:
+   *       - $ref: '#/components/parameters/HouseholdHeader'
+   *     responses:
+   *       200:
+   *         description: List of calendars with connection info
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 connection:
+   *                   type: object
+   *                   properties:
+   *                     id:
+   *                       type: integer
+   *                     email:
+   *                       type: string
+   *                 calendars:
+   *                   type: array
+   *                   items:
+   *                     type: object
+   *                     properties:
+   *                       id:
+   *                         type: string
+   *                       name:
+   *                         type: string
+   *                       color:
+   *                         type: string
+   *                       isSelected:
+   *                         type: boolean
+   *       404:
+   *         description: No calendar connection found
+   *       500:
+   *         description: Internal server error
+   */
   app.get("/google/calendars", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
@@ -84,6 +182,46 @@ export function registerGoogleCalendarRoutes(app: Router) {
     }
   });
 
+  /**
+   * @openapi
+   * /google/calendars/select:
+   *   post:
+   *     summary: Select calendars to sync
+   *     description: Saves the selected Google calendars for syncing events into the household.
+   *     tags:
+   *       - Google Calendar
+   *     security:
+   *       - session: []
+   *     parameters:
+   *       - $ref: '#/components/parameters/HouseholdHeader'
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             required:
+   *               - calendarIds
+   *             properties:
+   *               calendarIds:
+   *                 type: array
+   *                 items:
+   *                   type: string
+   *     responses:
+   *       200:
+   *         description: Calendars selected successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 success:
+   *                   type: boolean
+   *       404:
+   *         description: No calendar connection found
+   *       500:
+   *         description: Internal server error
+   */
   app.post("/google/calendars/select", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
@@ -111,6 +249,30 @@ export function registerGoogleCalendarRoutes(app: Router) {
     }
   });
 
+  /**
+   * @openapi
+   * /google/sync:
+   *   post:
+   *     summary: Sync Google Calendar events
+   *     description: Triggers a sync of events from selected Google calendars into the household. Rate limited.
+   *     tags:
+   *       - Google Calendar
+   *     security:
+   *       - session: []
+   *     parameters:
+   *       - $ref: '#/components/parameters/HouseholdHeader'
+   *     responses:
+   *       200:
+   *         description: Sync result
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *       429:
+   *         description: Rate limit exceeded
+   *       500:
+   *         description: Internal server error
+   */
   app.post("/google/sync", expensiveLimiter, isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
@@ -122,6 +284,24 @@ export function registerGoogleCalendarRoutes(app: Router) {
     }
   });
 
+  /**
+   * @openapi
+   * /google/disconnect:
+   *   delete:
+   *     summary: Disconnect Google Calendar
+   *     description: Removes the Google Calendar connection and all synced calendar selections for the household.
+   *     tags:
+   *       - Google Calendar
+   *     security:
+   *       - session: []
+   *     parameters:
+   *       - $ref: '#/components/parameters/HouseholdHeader'
+   *     responses:
+   *       204:
+   *         description: Calendar disconnected successfully
+   *       500:
+   *         description: Internal server error
+   */
   app.delete("/google/disconnect", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;

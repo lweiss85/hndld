@@ -15,6 +15,69 @@ import { format } from "date-fns";
 const householdContext = householdContextMiddleware;
 
 export function registerTaskRoutes(app: Router) {
+  /**
+   * @openapi
+   * /tasks:
+   *   get:
+   *     tags: [Tasks]
+   *     summary: List tasks
+   *     description: Retrieve tasks for the current household. Staff users only see their own assigned cleaning tasks. Supports optional pagination via page/limit query params.
+   *     security:
+   *       - session: []
+   *     parameters:
+   *       - $ref: '#/components/parameters/HouseholdHeader'
+   *       - in: query
+   *         name: serviceType
+   *         schema:
+   *           type: string
+   *           enum: [CLEANING, PA]
+   *         description: Filter tasks by service type
+   *       - in: query
+   *         name: page
+   *         schema:
+   *           type: integer
+   *           default: 1
+   *         description: Page number for pagination (requires limit)
+   *       - in: query
+   *         name: limit
+   *         schema:
+   *           type: integer
+   *           default: 0
+   *         description: Number of tasks per page. 0 returns all tasks without pagination.
+   *     responses:
+   *       200:
+   *         description: Array of tasks or paginated result
+   *         content:
+   *           application/json:
+   *             schema:
+   *               oneOf:
+   *                 - type: array
+   *                   items:
+   *                     $ref: '#/components/schemas/Task'
+   *                 - type: object
+   *                   properties:
+   *                     data:
+   *                       type: array
+   *                       items:
+   *                         $ref: '#/components/schemas/Task'
+   *                     pagination:
+   *                       type: object
+   *                       properties:
+   *                         page:
+   *                           type: integer
+   *                         limit:
+   *                           type: integer
+   *                         total:
+   *                           type: integer
+   *                         totalPages:
+   *                           type: integer
+   *       500:
+   *         description: Server error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/Error'
+   */
   app.get("/tasks", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
@@ -57,6 +120,64 @@ export function registerTaskRoutes(app: Router) {
     }
   });
   
+  /**
+   * @openapi
+   * /tasks:
+   *   post:
+   *     tags: [Tasks]
+   *     summary: Create task
+   *     description: Create a new task in the current household. If no estimatedMinutes is provided, an AI estimate is attempted based on the title and category.
+   *     security:
+   *       - session: []
+   *     parameters:
+   *       - $ref: '#/components/parameters/HouseholdHeader'
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             required:
+   *               - title
+   *             properties:
+   *               title:
+   *                 type: string
+   *               description:
+   *                 type: string
+   *               category:
+   *                 type: string
+   *               urgency:
+   *                 type: string
+   *               location:
+   *                 type: string
+   *               notes:
+   *                 type: string
+   *               dueAt:
+   *                 type: string
+   *                 format: date-time
+   *               estimatedMinutes:
+   *                 type: integer
+   *               serviceType:
+   *                 type: string
+   *                 enum: [CLEANING, PA]
+   *               recurrence:
+   *                 type: string
+   *               assignedTo:
+   *                 type: string
+   *     responses:
+   *       201:
+   *         description: Task created successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/Task'
+   *       500:
+   *         description: Server error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/Error'
+   */
   app.post("/tasks", isAuthenticated, householdContext, requirePermission("CAN_EDIT_TASKS"), async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
@@ -98,6 +219,78 @@ export function registerTaskRoutes(app: Router) {
     }
   });
   
+  /**
+   * @openapi
+   * /tasks/{id}:
+   *   patch:
+   *     tags: [Tasks]
+   *     summary: Update task
+   *     description: Update an existing task by ID. Staff users can only update tasks assigned to them within the CLEANING service type.
+   *     security:
+   *       - session: []
+   *     parameters:
+   *       - $ref: '#/components/parameters/HouseholdHeader'
+   *       - in: path
+   *         name: id
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: Task ID
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             properties:
+   *               title:
+   *                 type: string
+   *               description:
+   *                 type: string
+   *               category:
+   *                 type: string
+   *               urgency:
+   *                 type: string
+   *               status:
+   *                 type: string
+   *               location:
+   *                 type: string
+   *               notes:
+   *                 type: string
+   *               dueAt:
+   *                 type: string
+   *                 format: date-time
+   *                 nullable: true
+   *               estimatedMinutes:
+   *                 type: integer
+   *               assignedTo:
+   *                 type: string
+   *     responses:
+   *       200:
+   *         description: Task updated successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/Task'
+   *       403:
+   *         description: Forbidden – staff cannot modify this task
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/Error'
+   *       404:
+   *         description: Task not found
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/Error'
+   *       500:
+   *         description: Server error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/Error'
+   */
   app.patch("/tasks/:id", isAuthenticated, householdContext, requirePermission("CAN_EDIT_TASKS"), async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
@@ -134,6 +327,45 @@ export function registerTaskRoutes(app: Router) {
     }
   });
   
+  /**
+   * @openapi
+   * /tasks/{id}:
+   *   delete:
+   *     tags: [Tasks]
+   *     summary: Delete task
+   *     description: Delete a task by ID. Staff users are not allowed to delete tasks.
+   *     security:
+   *       - session: []
+   *     parameters:
+   *       - $ref: '#/components/parameters/HouseholdHeader'
+   *       - in: path
+   *         name: id
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: Task ID
+   *     responses:
+   *       204:
+   *         description: Task deleted successfully
+   *       403:
+   *         description: Forbidden – staff cannot delete tasks
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/Error'
+   *       404:
+   *         description: Task not found
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/Error'
+   *       500:
+   *         description: Server error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/Error'
+   */
   app.delete("/tasks/:id", isAuthenticated, householdContext, requirePermission("CAN_EDIT_TASKS"), async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
@@ -158,7 +390,57 @@ export function registerTaskRoutes(app: Router) {
     }
   });
 
-  // Task completion endpoint with recurrence handling
+  /**
+   * @openapi
+   * /tasks/{id}/complete:
+   *   post:
+   *     tags: [Tasks]
+   *     summary: Complete task
+   *     description: Mark a task as done. If the task is recurring, a new task is automatically created for the next occurrence.
+   *     security:
+   *       - session: []
+   *     parameters:
+   *       - $ref: '#/components/parameters/HouseholdHeader'
+   *       - in: path
+   *         name: id
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: Task ID
+   *     responses:
+   *       200:
+   *         description: Task completed, with optional next recurring task
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 completedTask:
+   *                   $ref: '#/components/schemas/Task'
+   *                 nextTask:
+   *                   $ref: '#/components/schemas/Task'
+   *                 nextDue:
+   *                   type: string
+   *                   description: Formatted next due date (e.g. "Feb 20")
+   *       403:
+   *         description: Forbidden – staff cannot complete this task
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/Error'
+   *       404:
+   *         description: Task not found
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/Error'
+   *       500:
+   *         description: Server error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/Error'
+   */
   app.post("/tasks/:id/complete", isAuthenticated, householdContext, requirePermission("CAN_EDIT_TASKS"), async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
@@ -233,7 +515,72 @@ export function registerTaskRoutes(app: Router) {
     }
   });
 
-  // Task cancellation endpoint
+  /**
+   * @openapi
+   * /tasks/{id}/cancel:
+   *   post:
+   *     tags: [Tasks]
+   *     summary: Cancel task
+   *     description: Cancel a task by ID. Notifies household assistants of the cancellation. Cannot cancel tasks already done or cancelled.
+   *     security:
+   *       - session: []
+   *     parameters:
+   *       - $ref: '#/components/parameters/HouseholdHeader'
+   *       - in: path
+   *         name: id
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: Task ID
+   *     requestBody:
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             properties:
+   *               reason:
+   *                 type: string
+   *                 description: Optional cancellation reason
+   *     responses:
+   *       200:
+   *         description: Task cancelled successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 task:
+   *                   $ref: '#/components/schemas/Task'
+   *                 message:
+   *                   type: string
+   *                 notifiedAssistants:
+   *                   type: integer
+   *                   description: Number of assistants notified
+   *       400:
+   *         description: Task is already done or cancelled
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/Error'
+   *       403:
+   *         description: Forbidden – staff cannot cancel this task
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/Error'
+   *       404:
+   *         description: Task not found
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/Error'
+   *       500:
+   *         description: Server error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/Error'
+   */
   app.post("/tasks/:id/cancel", isAuthenticated, householdContext, requirePermission("CAN_EDIT_TASKS"), async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
@@ -320,7 +667,49 @@ export function registerTaskRoutes(app: Router) {
     }
   });
 
-  // Checklist routes
+  /**
+   * @openapi
+   * /tasks/{taskId}/checklist:
+   *   post:
+   *     tags: [Tasks]
+   *     summary: Add checklist item
+   *     description: Add a new checklist item to a task.
+   *     security:
+   *       - session: []
+   *     parameters:
+   *       - $ref: '#/components/parameters/HouseholdHeader'
+   *       - in: path
+   *         name: taskId
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: Task ID
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             required:
+   *               - text
+   *             properties:
+   *               text:
+   *                 type: string
+   *                 description: Checklist item text
+   *     responses:
+   *       201:
+   *         description: Checklist item created
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/TaskChecklistItem'
+   *       500:
+   *         description: Server error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/Error'
+   */
   app.post("/tasks/:taskId/checklist", isAuthenticated, householdContext, requirePermission("CAN_EDIT_TASKS"), async (req: Request, res: Response) => {
     try {
       const item = await storage.createTaskChecklistItem({
@@ -335,6 +724,60 @@ export function registerTaskRoutes(app: Router) {
     }
   });
 
+  /**
+   * @openapi
+   * /tasks/{taskId}/checklist/{id}:
+   *   patch:
+   *     tags: [Tasks]
+   *     summary: Update checklist item
+   *     description: Update a checklist item on a task (e.g. mark as done, change text).
+   *     security:
+   *       - session: []
+   *     parameters:
+   *       - $ref: '#/components/parameters/HouseholdHeader'
+   *       - in: path
+   *         name: taskId
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: Task ID
+   *       - in: path
+   *         name: id
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: Checklist item ID
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             properties:
+   *               text:
+   *                 type: string
+   *               done:
+   *                 type: boolean
+   *     responses:
+   *       200:
+   *         description: Checklist item updated
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/TaskChecklistItem'
+   *       404:
+   *         description: Checklist item not found
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/Error'
+   *       500:
+   *         description: Server error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/Error'
+   */
   app.patch("/tasks/:taskId/checklist/:id", isAuthenticated, householdContext, requirePermission("CAN_EDIT_TASKS"), async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
@@ -350,7 +793,33 @@ export function registerTaskRoutes(app: Router) {
     }
   });
 
-  // Task Templates routes
+  /**
+   * @openapi
+   * /task-templates:
+   *   get:
+   *     tags: [Task Templates]
+   *     summary: List task templates
+   *     description: Retrieve all task templates for the current household.
+   *     security:
+   *       - session: []
+   *     parameters:
+   *       - $ref: '#/components/parameters/HouseholdHeader'
+   *     responses:
+   *       200:
+   *         description: Array of task templates
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: array
+   *               items:
+   *                 $ref: '#/components/schemas/TaskTemplate'
+   *       500:
+   *         description: Server error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/Error'
+   */
   app.get("/task-templates", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
@@ -363,6 +832,59 @@ export function registerTaskRoutes(app: Router) {
     }
   });
 
+  /**
+   * @openapi
+   * /task-templates:
+   *   post:
+   *     tags: [Task Templates]
+   *     summary: Create task template
+   *     description: Create a new task template for the current household.
+   *     security:
+   *       - session: []
+   *     parameters:
+   *       - $ref: '#/components/parameters/HouseholdHeader'
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             required:
+   *               - title
+   *             properties:
+   *               title:
+   *                 type: string
+   *               description:
+   *                 type: string
+   *               category:
+   *                 type: string
+   *               urgency:
+   *                 type: string
+   *               estimatedMinutes:
+   *                 type: integer
+   *               recurrence:
+   *                 type: string
+   *               checklist:
+   *                 type: array
+   *                 items:
+   *                   type: object
+   *                   properties:
+   *                     text:
+   *                       type: string
+   *     responses:
+   *       201:
+   *         description: Task template created
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/TaskTemplate'
+   *       500:
+   *         description: Server error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/Error'
+   */
   app.post("/task-templates", isAuthenticated, householdContext, requirePermission("CAN_EDIT_TASKS"), async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
@@ -377,6 +899,62 @@ export function registerTaskRoutes(app: Router) {
     }
   });
 
+  /**
+   * @openapi
+   * /task-templates/{id}:
+   *   patch:
+   *     tags: [Task Templates]
+   *     summary: Update task template
+   *     description: Update an existing task template by ID.
+   *     security:
+   *       - session: []
+   *     parameters:
+   *       - $ref: '#/components/parameters/HouseholdHeader'
+   *       - in: path
+   *         name: id
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: Task template ID
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             properties:
+   *               title:
+   *                 type: string
+   *               description:
+   *                 type: string
+   *               category:
+   *                 type: string
+   *               urgency:
+   *                 type: string
+   *               estimatedMinutes:
+   *                 type: integer
+   *               recurrence:
+   *                 type: string
+   *     responses:
+   *       200:
+   *         description: Task template updated
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/TaskTemplate'
+   *       404:
+   *         description: Template not found
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/Error'
+   *       500:
+   *         description: Server error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/Error'
+   */
   app.patch("/task-templates/:id", isAuthenticated, householdContext, requirePermission("CAN_EDIT_TASKS"), async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
@@ -391,6 +969,39 @@ export function registerTaskRoutes(app: Router) {
     }
   });
 
+  /**
+   * @openapi
+   * /task-templates/{id}:
+   *   delete:
+   *     tags: [Task Templates]
+   *     summary: Delete task template
+   *     description: Delete a task template by ID.
+   *     security:
+   *       - session: []
+   *     parameters:
+   *       - $ref: '#/components/parameters/HouseholdHeader'
+   *       - in: path
+   *         name: id
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: Task template ID
+   *     responses:
+   *       204:
+   *         description: Task template deleted successfully
+   *       404:
+   *         description: Template not found
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/Error'
+   *       500:
+   *         description: Server error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/Error'
+   */
   app.delete("/task-templates/:id", isAuthenticated, householdContext, requirePermission("CAN_EDIT_TASKS"), async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;

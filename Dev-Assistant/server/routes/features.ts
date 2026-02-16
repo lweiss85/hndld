@@ -23,6 +23,31 @@ export function registerFeatureRoutes(app: Router) {
   // ANALYTICS ROUTES (Phase 1 - PRO Feature)
   // ============================================
 
+  /**
+   * @openapi
+   * /analytics/dashboard:
+   *   get:
+   *     tags: [Analytics]
+   *     summary: Get analytics dashboard
+   *     description: Returns the full analytics dashboard for a household (assistants only)
+   *     security:
+   *       - session: []
+   *     parameters:
+   *       - $ref: '#/components/parameters/HouseholdHeader'
+   *       - in: query
+   *         name: period
+   *         schema:
+   *           type: string
+   *           enum: [week, month, quarter, year]
+   *           default: month
+   *     responses:
+   *       200:
+   *         description: Analytics dashboard data
+   *       403:
+   *         description: Not an assistant
+   *       500:
+   *         description: Server error
+   */
   app.get("/analytics/dashboard", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
@@ -43,6 +68,31 @@ export function registerFeatureRoutes(app: Router) {
     }
   });
 
+  /**
+   * @openapi
+   * /analytics/tasks-over-time:
+   *   get:
+   *     tags: [Analytics]
+   *     summary: Get tasks over time data
+   *     description: Returns task completion trends over a given period (assistants only)
+   *     security:
+   *       - session: []
+   *     parameters:
+   *       - $ref: '#/components/parameters/HouseholdHeader'
+   *       - in: query
+   *         name: period
+   *         schema:
+   *           type: string
+   *           enum: [week, month, quarter, year]
+   *           default: month
+   *     responses:
+   *       200:
+   *         description: Tasks over time data
+   *       403:
+   *         description: Not an assistant
+   *       500:
+   *         description: Server error
+   */
   app.get("/analytics/tasks-over-time", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
@@ -63,6 +113,29 @@ export function registerFeatureRoutes(app: Router) {
     }
   });
 
+  /**
+   * @openapi
+   * /analytics/tasks-by-category:
+   *   get:
+   *     tags: [Analytics]
+   *     summary: Get tasks grouped by category
+   *     description: Returns task counts broken down by category for the given period
+   *     security:
+   *       - session: []
+   *     parameters:
+   *       - $ref: '#/components/parameters/HouseholdHeader'
+   *       - in: query
+   *         name: period
+   *         schema:
+   *           type: string
+   *           enum: [week, month, quarter, year]
+   *           default: month
+   *     responses:
+   *       200:
+   *         description: Tasks by category data
+   *       500:
+   *         description: Server error
+   */
   app.get("/analytics/tasks-by-category", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
@@ -78,6 +151,23 @@ export function registerFeatureRoutes(app: Router) {
     }
   });
 
+  /**
+   * @openapi
+   * /analytics/client-summary:
+   *   get:
+   *     tags: [Analytics]
+   *     summary: Get client impact summary
+   *     description: Generates a client-facing summary of assistant impact for the household
+   *     security:
+   *       - session: []
+   *     parameters:
+   *       - $ref: '#/components/parameters/HouseholdHeader'
+   *     responses:
+   *       200:
+   *         description: Client impact summary
+   *       500:
+   *         description: Server error
+   */
   app.get("/analytics/client-summary", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
@@ -92,6 +182,28 @@ export function registerFeatureRoutes(app: Router) {
     }
   });
 
+  /**
+   * @openapi
+   * /analytics/stats:
+   *   get:
+   *     tags: [Analytics]
+   *     summary: Get dashboard statistics
+   *     description: Returns high-level stats for the analytics dashboard
+   *     security:
+   *       - session: []
+   *     parameters:
+   *       - $ref: '#/components/parameters/HouseholdHeader'
+   *       - in: query
+   *         name: period
+   *         schema:
+   *           type: string
+   *           default: 30d
+   *     responses:
+   *       200:
+   *         description: Dashboard statistics
+   *       500:
+   *         description: Server error
+   */
   app.get("/analytics/stats", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
@@ -106,6 +218,28 @@ export function registerFeatureRoutes(app: Router) {
     }
   });
 
+  /**
+   * @openapi
+   * /analytics/task-breakdown:
+   *   get:
+   *     tags: [Analytics]
+   *     summary: Get task breakdown
+   *     description: Returns a detailed breakdown of tasks for the given period
+   *     security:
+   *       - session: []
+   *     parameters:
+   *       - $ref: '#/components/parameters/HouseholdHeader'
+   *       - in: query
+   *         name: period
+   *         schema:
+   *           type: string
+   *           default: 30d
+   *     responses:
+   *       200:
+   *         description: Task breakdown data
+   *       500:
+   *         description: Server error
+   */
   app.get("/analytics/task-breakdown", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
@@ -120,6 +254,28 @@ export function registerFeatureRoutes(app: Router) {
     }
   });
 
+  /**
+   * @openapi
+   * /analytics/spending-breakdown:
+   *   get:
+   *     tags: [Analytics]
+   *     summary: Get spending breakdown
+   *     description: Returns spending data broken down by category for the given period
+   *     security:
+   *       - session: []
+   *     parameters:
+   *       - $ref: '#/components/parameters/HouseholdHeader'
+   *       - in: query
+   *         name: period
+   *         schema:
+   *           type: string
+   *           default: 30d
+   *     responses:
+   *       200:
+   *         description: Spending breakdown data
+   *       500:
+   *         description: Server error
+   */
   app.get("/analytics/spending-breakdown", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
@@ -134,6 +290,28 @@ export function registerFeatureRoutes(app: Router) {
     }
   });
 
+  /**
+   * @openapi
+   * /analytics/timeline:
+   *   get:
+   *     tags: [Analytics]
+   *     summary: Get activity timeline
+   *     description: Returns a timeline of household activity for the given period
+   *     security:
+   *       - session: []
+   *     parameters:
+   *       - $ref: '#/components/parameters/HouseholdHeader'
+   *       - in: query
+   *         name: period
+   *         schema:
+   *           type: string
+   *           default: 30d
+   *     responses:
+   *       200:
+   *         description: Timeline data
+   *       500:
+   *         description: Server error
+   */
   app.get("/analytics/timeline", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
@@ -148,6 +326,28 @@ export function registerFeatureRoutes(app: Router) {
     }
   });
 
+  /**
+   * @openapi
+   * /analytics/performance:
+   *   get:
+   *     tags: [Analytics]
+   *     summary: Get assistant performance metrics
+   *     description: Returns performance metrics for the assistant in the household
+   *     security:
+   *       - session: []
+   *     parameters:
+   *       - $ref: '#/components/parameters/HouseholdHeader'
+   *       - in: query
+   *         name: period
+   *         schema:
+   *           type: string
+   *           default: 30d
+   *     responses:
+   *       200:
+   *         description: Performance metrics
+   *       500:
+   *         description: Server error
+   */
   app.get("/analytics/performance", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
@@ -166,6 +366,23 @@ export function registerFeatureRoutes(app: Router) {
   // EMERGENCY CONTACTS & PROTOCOLS (Phase 1)
   // ============================================
 
+  /**
+   * @openapi
+   * /emergency/contacts:
+   *   get:
+   *     tags: [Emergency Contacts]
+   *     summary: List emergency contacts
+   *     description: Returns all emergency contacts for the household
+   *     security:
+   *       - session: []
+   *     parameters:
+   *       - $ref: '#/components/parameters/HouseholdHeader'
+   *     responses:
+   *       200:
+   *         description: List of emergency contacts
+   *       500:
+   *         description: Server error
+   */
   app.get("/emergency/contacts", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
@@ -180,6 +397,31 @@ export function registerFeatureRoutes(app: Router) {
     }
   });
 
+  /**
+   * @openapi
+   * /emergency/contacts:
+   *   post:
+   *     tags: [Emergency Contacts]
+   *     summary: Create an emergency contact
+   *     description: Creates a new emergency contact for the household (assistants only)
+   *     security:
+   *       - session: []
+   *     parameters:
+   *       - $ref: '#/components/parameters/HouseholdHeader'
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *     responses:
+   *       201:
+   *         description: Emergency contact created
+   *       403:
+   *         description: Not an assistant
+   *       500:
+   *         description: Server error
+   */
   app.post("/emergency/contacts", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
@@ -200,6 +442,38 @@ export function registerFeatureRoutes(app: Router) {
     }
   });
 
+  /**
+   * @openapi
+   * /emergency/contacts/{id}:
+   *   patch:
+   *     tags: [Emergency Contacts]
+   *     summary: Update an emergency contact
+   *     description: Updates an existing emergency contact (assistants only)
+   *     security:
+   *       - session: []
+   *     parameters:
+   *       - $ref: '#/components/parameters/HouseholdHeader'
+   *       - in: path
+   *         name: id
+   *         required: true
+   *         schema:
+   *           type: string
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *     responses:
+   *       200:
+   *         description: Emergency contact updated
+   *       403:
+   *         description: Not an assistant
+   *       404:
+   *         description: Contact not found
+   *       500:
+   *         description: Server error
+   */
   app.patch("/emergency/contacts/:id", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
@@ -228,6 +502,32 @@ export function registerFeatureRoutes(app: Router) {
     }
   });
 
+  /**
+   * @openapi
+   * /emergency/contacts/{id}:
+   *   delete:
+   *     tags: [Emergency Contacts]
+   *     summary: Delete an emergency contact
+   *     description: Deletes an emergency contact from the household (assistants only)
+   *     security:
+   *       - session: []
+   *     parameters:
+   *       - $ref: '#/components/parameters/HouseholdHeader'
+   *       - in: path
+   *         name: id
+   *         required: true
+   *         schema:
+   *           type: string
+   *     responses:
+   *       200:
+   *         description: Emergency contact deleted
+   *       403:
+   *         description: Not an assistant
+   *       404:
+   *         description: Contact not found
+   *       500:
+   *         description: Server error
+   */
   app.delete("/emergency/contacts/:id", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
@@ -253,6 +553,23 @@ export function registerFeatureRoutes(app: Router) {
     }
   });
 
+  /**
+   * @openapi
+   * /emergency/protocols:
+   *   get:
+   *     tags: [Emergency Contacts]
+   *     summary: List emergency protocols
+   *     description: Returns all emergency protocols for the household
+   *     security:
+   *       - session: []
+   *     parameters:
+   *       - $ref: '#/components/parameters/HouseholdHeader'
+   *     responses:
+   *       200:
+   *         description: List of emergency protocols
+   *       500:
+   *         description: Server error
+   */
   app.get("/emergency/protocols", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
@@ -267,6 +584,31 @@ export function registerFeatureRoutes(app: Router) {
     }
   });
 
+  /**
+   * @openapi
+   * /emergency/protocols:
+   *   post:
+   *     tags: [Emergency Contacts]
+   *     summary: Create an emergency protocol
+   *     description: Creates a new emergency protocol for the household (assistants only)
+   *     security:
+   *       - session: []
+   *     parameters:
+   *       - $ref: '#/components/parameters/HouseholdHeader'
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *     responses:
+   *       201:
+   *         description: Emergency protocol created
+   *       403:
+   *         description: Not an assistant
+   *       500:
+   *         description: Server error
+   */
   app.post("/emergency/protocols", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
@@ -291,6 +633,23 @@ export function registerFeatureRoutes(app: Router) {
   // IN-APP MESSAGING ROUTES (Phase 1 - Premium)
   // ============================================
 
+  /**
+   * @openapi
+   * /conversations:
+   *   get:
+   *     tags: [Messaging]
+   *     summary: List conversations
+   *     description: Returns all conversations for the household, ordered by most recent message
+   *     security:
+   *       - session: []
+   *     parameters:
+   *       - $ref: '#/components/parameters/HouseholdHeader'
+   *     responses:
+   *       200:
+   *         description: List of conversations
+   *       500:
+   *         description: Server error
+   */
   app.get("/conversations", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
@@ -306,6 +665,38 @@ export function registerFeatureRoutes(app: Router) {
     }
   });
 
+  /**
+   * @openapi
+   * /conversations:
+   *   post:
+   *     tags: [Messaging]
+   *     summary: Create a conversation
+   *     description: Creates a new conversation in the household
+   *     security:
+   *       - session: []
+   *     parameters:
+   *       - $ref: '#/components/parameters/HouseholdHeader'
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             properties:
+   *               type:
+   *                 type: string
+   *               title:
+   *                 type: string
+   *               participantIds:
+   *                 type: array
+   *                 items:
+   *                   type: string
+   *     responses:
+   *       201:
+   *         description: Conversation created
+   *       500:
+   *         description: Server error
+   */
   app.post("/conversations", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
@@ -327,6 +718,31 @@ export function registerFeatureRoutes(app: Router) {
     }
   });
 
+  /**
+   * @openapi
+   * /conversations/{id}/messages:
+   *   get:
+   *     tags: [Messaging]
+   *     summary: Get messages in a conversation
+   *     description: Returns all messages for a specific conversation
+   *     security:
+   *       - session: []
+   *     parameters:
+   *       - $ref: '#/components/parameters/HouseholdHeader'
+   *       - in: path
+   *         name: id
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: Conversation ID
+   *     responses:
+   *       200:
+   *         description: List of messages
+   *       404:
+   *         description: Conversation not found
+   *       500:
+   *         description: Server error
+   */
   app.get("/conversations/:id/messages", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
@@ -350,6 +766,49 @@ export function registerFeatureRoutes(app: Router) {
     }
   });
 
+  /**
+   * @openapi
+   * /conversations/{id}/messages:
+   *   post:
+   *     tags: [Messaging]
+   *     summary: Send a message
+   *     description: Sends a new message in a conversation
+   *     security:
+   *       - session: []
+   *     parameters:
+   *       - $ref: '#/components/parameters/HouseholdHeader'
+   *       - in: path
+   *         name: id
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: Conversation ID
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             required: [text]
+   *             properties:
+   *               text:
+   *                 type: string
+   *               attachments:
+   *                 type: array
+   *               isVoice:
+   *                 type: boolean
+   *               voiceTranscription:
+   *                 type: string
+   *     responses:
+   *       201:
+   *         description: Message sent
+   *       400:
+   *         description: Invalid message text
+   *       404:
+   *         description: Conversation not found
+   *       500:
+   *         description: Server error
+   */
   app.post("/conversations/:id/messages", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
@@ -395,6 +854,31 @@ export function registerFeatureRoutes(app: Router) {
     }
   });
 
+  /**
+   * @openapi
+   * /messages/{id}/read:
+   *   patch:
+   *     tags: [Messaging]
+   *     summary: Mark a message as read
+   *     description: Marks a message as read by the current user
+   *     security:
+   *       - session: []
+   *     parameters:
+   *       - $ref: '#/components/parameters/HouseholdHeader'
+   *       - in: path
+   *         name: id
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: Message ID
+   *     responses:
+   *       200:
+   *         description: Message marked as read
+   *       404:
+   *         description: Message not found
+   *       500:
+   *         description: Server error
+   */
   app.patch("/messages/:id/read", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
@@ -437,6 +921,30 @@ export function registerFeatureRoutes(app: Router) {
   // AI ASSISTANT ROUTES (Phase 1 - Premium)
   // ============================================
 
+  /**
+   * @openapi
+   * /ai/status:
+   *   get:
+   *     tags: [AI Assistant]
+   *     summary: Get AI service status
+   *     description: Returns the current status and provider of the AI service
+   *     security:
+   *       - session: []
+   *     responses:
+   *       200:
+   *         description: AI service status
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 available:
+   *                   type: boolean
+   *                 provider:
+   *                   type: string
+   *                 demoMode:
+   *                   type: boolean
+   */
   app.get("/ai/status", isAuthenticated, async (_req, res) => {
     const { isDemoMode, getActiveProvider } = await import("../services/ai-provider");
     res.json({
@@ -446,6 +954,35 @@ export function registerFeatureRoutes(app: Router) {
     });
   });
 
+  /**
+   * @openapi
+   * /ai/parse-request:
+   *   post:
+   *     tags: [AI Assistant]
+   *     summary: Parse a natural language request
+   *     description: Uses AI to parse a natural language text into structured request data
+   *     security:
+   *       - session: []
+   *     parameters:
+   *       - $ref: '#/components/parameters/HouseholdHeader'
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             required: [text]
+   *             properties:
+   *               text:
+   *                 type: string
+   *     responses:
+   *       200:
+   *         description: Parsed request data
+   *       400:
+   *         description: Text required
+   *       500:
+   *         description: Server error
+   */
   app.post("/ai/parse-request", expensiveLimiter, isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const { text } = req.body;
@@ -462,6 +999,32 @@ export function registerFeatureRoutes(app: Router) {
     }
   });
 
+  /**
+   * @openapi
+   * /ai/weekly-brief:
+   *   get:
+   *     tags: [AI Assistant]
+   *     summary: Get AI-generated weekly brief
+   *     description: Generates a weekly brief summarizing upcoming events, tasks, and birthdays
+   *     security:
+   *       - session: []
+   *     parameters:
+   *       - $ref: '#/components/parameters/HouseholdHeader'
+   *     responses:
+   *       200:
+   *         description: Weekly brief
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 brief:
+   *                   type: string
+   *                 fallback:
+   *                   type: boolean
+   *       500:
+   *         description: Server error
+   */
   app.get("/ai/weekly-brief", expensiveLimiter, isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
@@ -511,6 +1074,35 @@ export function registerFeatureRoutes(app: Router) {
     }
   });
 
+  /**
+   * @openapi
+   * /ai/transcribe:
+   *   post:
+   *     tags: [AI Assistant]
+   *     summary: Transcribe voice audio
+   *     description: Transcribes base64-encoded audio to text using AI
+   *     security:
+   *       - session: []
+   *     parameters:
+   *       - $ref: '#/components/parameters/HouseholdHeader'
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             required: [audioBase64]
+   *             properties:
+   *               audioBase64:
+   *                 type: string
+   *     responses:
+   *       200:
+   *         description: Transcription result
+   *       400:
+   *         description: Audio data required
+   *       500:
+   *         description: Server error
+   */
   app.post("/ai/transcribe", expensiveLimiter, isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const { audioBase64 } = req.body;
@@ -527,6 +1119,23 @@ export function registerFeatureRoutes(app: Router) {
     }
   });
 
+  /**
+   * @openapi
+   * /ai/smart-actions:
+   *   post:
+   *     tags: [AI Assistant]
+   *     summary: Get smart action suggestions
+   *     description: Uses AI to suggest smart actions based on household context
+   *     security:
+   *       - session: []
+   *     parameters:
+   *       - $ref: '#/components/parameters/HouseholdHeader'
+   *     responses:
+   *       200:
+   *         description: Smart action suggestions
+   *       500:
+   *         description: Server error
+   */
   app.post("/ai/smart-actions", expensiveLimiter, isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
@@ -552,6 +1161,37 @@ export function registerFeatureRoutes(app: Router) {
     }
   });
 
+  /**
+   * @openapi
+   * /ai/chat:
+   *   post:
+   *     tags: [AI Assistant]
+   *     summary: Chat with AI assistant
+   *     description: Sends messages to the AI chat assistant and gets a response
+   *     security:
+   *       - session: []
+   *     parameters:
+   *       - $ref: '#/components/parameters/HouseholdHeader'
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             required: [messages]
+   *             properties:
+   *               messages:
+   *                 type: array
+   *                 items:
+   *                   type: object
+   *     responses:
+   *       200:
+   *         description: AI chat response
+   *       400:
+   *         description: Messages array required
+   *       500:
+   *         description: Server error
+   */
   app.post("/ai/chat", expensiveLimiter, isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
@@ -570,6 +1210,41 @@ export function registerFeatureRoutes(app: Router) {
     }
   });
 
+  /**
+   * @openapi
+   * /ai/chat/create-request:
+   *   post:
+   *     tags: [AI Assistant]
+   *     summary: Create a request from AI chat
+   *     description: Creates a household request from within the AI chat interface
+   *     security:
+   *       - session: []
+   *     parameters:
+   *       - $ref: '#/components/parameters/HouseholdHeader'
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             required: [title]
+   *             properties:
+   *               title:
+   *                 type: string
+   *               description:
+   *                 type: string
+   *               category:
+   *                 type: string
+   *               urgency:
+   *                 type: string
+   *     responses:
+   *       201:
+   *         description: Request created from chat
+   *       400:
+   *         description: Title is required
+   *       500:
+   *         description: Server error
+   */
   app.post("/ai/chat/create-request", expensiveLimiter, isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
@@ -604,6 +1279,38 @@ export function registerFeatureRoutes(app: Router) {
     }
   });
 
+  /**
+   * @openapi
+   * /ai/parse-smart:
+   *   post:
+   *     tags: [AI Assistant]
+   *     summary: Smart parse a natural language request
+   *     description: Parses natural language request text with optional AI enhancement and household context
+   *     security:
+   *       - session: []
+   *     parameters:
+   *       - $ref: '#/components/parameters/HouseholdHeader'
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             required: [text]
+   *             properties:
+   *               text:
+   *                 type: string
+   *               useAI:
+   *                 type: boolean
+   *                 default: true
+   *     responses:
+   *       200:
+   *         description: Parsed request data
+   *       400:
+   *         description: Request text too short
+   *       500:
+   *         description: Server error
+   */
   app.post("/ai/parse-smart", expensiveLimiter, isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
@@ -637,6 +1344,23 @@ export function registerFeatureRoutes(app: Router) {
     }
   });
 
+  /**
+   * @openapi
+   * /ai/insights:
+   *   get:
+   *     tags: [AI Assistant]
+   *     summary: Get proactive insights
+   *     description: Returns AI-generated proactive insights for the household
+   *     security:
+   *       - session: []
+   *     parameters:
+   *       - $ref: '#/components/parameters/HouseholdHeader'
+   *     responses:
+   *       200:
+   *         description: Proactive insights
+   *       500:
+   *         description: Server error
+   */
   app.get("/ai/insights", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
@@ -650,6 +1374,23 @@ export function registerFeatureRoutes(app: Router) {
     }
   });
 
+  /**
+   * @openapi
+   * /ai/insights/refresh:
+   *   post:
+   *     tags: [AI Assistant]
+   *     summary: Refresh proactive insights
+   *     description: Regenerates proactive insights using AI based on current household context
+   *     security:
+   *       - session: []
+   *     parameters:
+   *       - $ref: '#/components/parameters/HouseholdHeader'
+   *     responses:
+   *       200:
+   *         description: Refreshed insights
+   *       500:
+   *         description: Server error
+   */
   app.post("/ai/insights/refresh", expensiveLimiter, isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
@@ -665,6 +1406,29 @@ export function registerFeatureRoutes(app: Router) {
     }
   });
 
+  /**
+   * @openapi
+   * /ai/insights/{id}/dismiss:
+   *   post:
+   *     tags: [AI Assistant]
+   *     summary: Dismiss an insight
+   *     description: Dismisses a proactive insight so it no longer appears
+   *     security:
+   *       - session: []
+   *     parameters:
+   *       - $ref: '#/components/parameters/HouseholdHeader'
+   *       - in: path
+   *         name: id
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: Insight ID
+   *     responses:
+   *       200:
+   *         description: Insight dismissed
+   *       500:
+   *         description: Server error
+   */
   app.post("/ai/insights/:id/dismiss", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
@@ -678,6 +1442,30 @@ export function registerFeatureRoutes(app: Router) {
     }
   });
 
+  /**
+   * @openapi
+   * /ai/estimate-duration:
+   *   get:
+   *     tags: [AI Assistant]
+   *     summary: Estimate task duration
+   *     description: Uses AI to estimate the duration for a task based on category and household history
+   *     security:
+   *       - session: []
+   *     parameters:
+   *       - $ref: '#/components/parameters/HouseholdHeader'
+   *       - in: query
+   *         name: category
+   *         required: true
+   *         schema:
+   *           type: string
+   *     responses:
+   *       200:
+   *         description: Duration estimate
+   *       400:
+   *         description: Category required
+   *       500:
+   *         description: Server error
+   */
   app.get("/ai/estimate-duration", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
@@ -697,6 +1485,45 @@ export function registerFeatureRoutes(app: Router) {
     }
   });
 
+  /**
+   * @openapi
+   * /ai/learn/task-complete:
+   *   post:
+   *     tags: [AI Assistant]
+   *     summary: Record task completion for AI learning
+   *     description: Records a task completion event so the AI can learn and improve duration estimates
+   *     security:
+   *       - session: []
+   *     parameters:
+   *       - $ref: '#/components/parameters/HouseholdHeader'
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             required: [taskId, category, createdAt, completedAt]
+   *             properties:
+   *               taskId:
+   *                 type: string
+   *               category:
+   *                 type: string
+   *               estimatedMinutes:
+   *                 type: integer
+   *               createdAt:
+   *                 type: string
+   *                 format: date-time
+   *               completedAt:
+   *                 type: string
+   *                 format: date-time
+   *     responses:
+   *       200:
+   *         description: Task completion recorded
+   *       400:
+   *         description: Missing required fields or invalid dates
+   *       500:
+   *         description: Server error
+   */
   app.post("/ai/learn/task-complete", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;

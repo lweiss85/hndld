@@ -10,7 +10,31 @@ import { seedDemoData } from "./helpers";
 const householdContext = householdContextMiddleware;
 
 export async function registerUserProfileRoutes(app: Router): Promise<void> {
-  // Get user profile
+  /**
+   * @openapi
+   * /user-profile:
+   *   get:
+   *     summary: Get current user profile
+   *     description: Returns the authenticated user's profile. If no profile exists, returns a flag indicating role selection is needed.
+   *     tags:
+   *       - User Profile
+   *     security:
+   *       - session: []
+   *     responses:
+   *       200:
+   *         description: User profile or role selection prompt
+   *         content:
+   *           application/json:
+   *             schema:
+   *               oneOf:
+   *                 - $ref: '#/components/schemas/UserProfile'
+   *                 - type: object
+   *                   properties:
+   *                     needsRoleSelection:
+   *                       type: boolean
+   *       500:
+   *         description: Internal server error
+   */
   app.get("/user-profile", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
@@ -28,7 +52,40 @@ export async function registerUserProfileRoutes(app: Router): Promise<void> {
     }
   });
   
-  // Set user role (first-time setup)
+  /**
+   * @openapi
+   * /user/role:
+   *   post:
+   *     summary: Set user role (first-time setup)
+   *     description: Creates a new user profile with the selected role and seeds demo data. Can only be called once per user.
+   *     tags:
+   *       - User Profile
+   *     security:
+   *       - session: []
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             required:
+   *               - role
+   *             properties:
+   *               role:
+   *                 type: string
+   *                 enum: [ASSISTANT, CLIENT]
+   *     responses:
+   *       201:
+   *         description: User profile created
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/UserProfile'
+   *       400:
+   *         description: Invalid role or role already set
+   *       500:
+   *         description: Internal server error
+   */
   app.post("/user/role", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
@@ -67,7 +124,48 @@ export async function registerUserProfileRoutes(app: Router): Promise<void> {
     }
   });
   
-  // Get dashboard data
+  /**
+   * @openapi
+   * /dashboard:
+   *   get:
+   *     summary: Get dashboard data
+   *     description: Returns tasks, approvals, events, spending, and impact metrics for the household. Staff users see only their assigned tasks.
+   *     tags:
+   *       - User Profile
+   *     security:
+   *       - session: []
+   *     parameters:
+   *       - $ref: '#/components/parameters/HouseholdHeader'
+   *     responses:
+   *       200:
+   *         description: Dashboard data
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 tasks:
+   *                   type: array
+   *                   items:
+   *                     type: object
+   *                 approvals:
+   *                   type: array
+   *                   items:
+   *                     type: object
+   *                 events:
+   *                   type: array
+   *                   items:
+   *                     type: object
+   *                 spending:
+   *                   type: array
+   *                   items:
+   *                     type: object
+   *                 impact:
+   *                   type: object
+   *                   nullable: true
+   *       500:
+   *         description: Internal server error
+   */
   app.get("/dashboard", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
@@ -104,7 +202,37 @@ export async function registerUserProfileRoutes(app: Router): Promise<void> {
     }
   });
   
-  // Get today's tasks and events
+  /**
+   * @openapi
+   * /today:
+   *   get:
+   *     summary: Get today's tasks and events
+   *     description: Returns tasks and calendar events for the current day. Staff users see only their assigned tasks.
+   *     tags:
+   *       - User Profile
+   *     security:
+   *       - session: []
+   *     parameters:
+   *       - $ref: '#/components/parameters/HouseholdHeader'
+   *     responses:
+   *       200:
+   *         description: Today's tasks and events
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 tasks:
+   *                   type: array
+   *                   items:
+   *                     type: object
+   *                 events:
+   *                   type: array
+   *                   items:
+   *                     type: object
+   *       500:
+   *         description: Internal server error
+   */
   app.get("/today", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
@@ -127,7 +255,45 @@ export async function registerUserProfileRoutes(app: Router): Promise<void> {
     }
   });
   
-  // Get user's service memberships
+  /**
+   * @openapi
+   * /services/mine:
+   *   get:
+   *     summary: Get user's service memberships
+   *     description: Returns the authenticated user's service memberships for the current household. Creates a default PA membership if none exist.
+   *     tags:
+   *       - User Profile
+   *     security:
+   *       - session: []
+   *     parameters:
+   *       - $ref: '#/components/parameters/HouseholdHeader'
+   *     responses:
+   *       200:
+   *         description: Service memberships
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 householdId:
+   *                   type: integer
+   *                 memberships:
+   *                   type: array
+   *                   items:
+   *                     type: object
+   *                     properties:
+   *                       serviceType:
+   *                         type: string
+   *                       serviceRole:
+   *                         type: string
+   *                       isActive:
+   *                         type: boolean
+   *                 defaultServiceType:
+   *                   type: string
+   *                   nullable: true
+   *       500:
+   *         description: Internal server error
+   */
   app.get("/services/mine", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
@@ -171,7 +337,49 @@ export async function registerUserProfileRoutes(app: Router): Promise<void> {
     }
   });
   
-  // Set default service type
+  /**
+   * @openapi
+   * /services/set-default:
+   *   post:
+   *     summary: Set default service type
+   *     description: Sets the user's default service type for the current household. User must have an active membership for the service.
+   *     tags:
+   *       - User Profile
+   *     security:
+   *       - session: []
+   *     parameters:
+   *       - $ref: '#/components/parameters/HouseholdHeader'
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             required:
+   *               - serviceType
+   *             properties:
+   *               serviceType:
+   *                 type: string
+   *                 enum: [CLEANING, PA]
+   *     responses:
+   *       200:
+   *         description: Default service type updated
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 success:
+   *                   type: boolean
+   *                 defaultServiceType:
+   *                   type: string
+   *       400:
+   *         description: Invalid service type
+   *       403:
+   *         description: User does not have access to this service
+   *       500:
+   *         description: Internal server error
+   */
   app.post("/services/set-default", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;

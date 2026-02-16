@@ -44,6 +44,53 @@ const upload = multer({
   },
 });
 
+/**
+ * @openapi
+ * /files/upload:
+ *   post:
+ *     summary: Upload a file
+ *     description: Uploads a file to the household file storage. Supports images, PDFs, and office documents up to 10MB.
+ *     tags:
+ *       - Files
+ *     security:
+ *       - session: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/HouseholdHeader'
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - file
+ *             properties:
+ *               file:
+ *                 type: string
+ *                 format: binary
+ *               category:
+ *                 type: string
+ *                 default: OTHER
+ *               tags:
+ *                 type: string
+ *                 description: JSON array of tag strings
+ *               description:
+ *                 type: string
+ *               linkTo:
+ *                 type: string
+ *                 description: JSON object with entityType, entityId, and optional note
+ *     responses:
+ *       200:
+ *         description: Uploaded file record
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/File'
+ *       400:
+ *         description: No file provided or invalid file type
+ *       500:
+ *         description: Upload failed
+ */
 router.post("/upload", upload.single("file"), async (req: any, res) => {
   try {
     if (!req.file) {
@@ -96,6 +143,73 @@ router.post("/upload", upload.single("file"), async (req: any, res) => {
   }
 });
 
+/**
+ * @openapi
+ * /files:
+ *   get:
+ *     summary: List files
+ *     description: Lists files in the household with optional filtering by category, tags, uploader, date range, and search query.
+ *     tags:
+ *       - Files
+ *     security:
+ *       - session: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/HouseholdHeader'
+ *       - in: query
+ *         name: category
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: tags
+ *         schema:
+ *           type: array
+ *           items:
+ *             type: string
+ *       - in: query
+ *         name: uploadedBy
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: startDate
+ *         schema:
+ *           type: string
+ *           format: date-time
+ *       - in: query
+ *         name: endDate
+ *         schema:
+ *           type: string
+ *           format: date-time
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 50
+ *       - in: query
+ *         name: offset
+ *         schema:
+ *           type: integer
+ *           default: 0
+ *     responses:
+ *       200:
+ *         description: Paginated list of files
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 files:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/File'
+ *                 total:
+ *                   type: integer
+ *       500:
+ *         description: Internal server error
+ */
 router.get("/", async (req: any, res) => {
   try {
     const householdId = req.householdId;
@@ -128,6 +242,39 @@ router.get("/", async (req: any, res) => {
   }
 });
 
+/**
+ * @openapi
+ * /files/entity/{entityType}/{entityId}:
+ *   get:
+ *     summary: Get files linked to an entity
+ *     description: Returns all files linked to a specific entity (e.g., task, approval).
+ *     tags:
+ *       - Files
+ *     security:
+ *       - session: []
+ *     parameters:
+ *       - in: path
+ *         name: entityType
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: entityId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: List of files linked to the entity
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/File'
+ *       500:
+ *         description: Internal server error
+ */
 router.get("/entity/:entityType/:entityId", async (req: any, res) => {
   try {
     const { entityType, entityId } = req.params;
@@ -139,6 +286,30 @@ router.get("/entity/:entityType/:entityId", async (req: any, res) => {
   }
 });
 
+/**
+ * @openapi
+ * /files/meta/categories:
+ *   get:
+ *     summary: Get file categories
+ *     description: Returns all distinct file categories used in the household.
+ *     tags:
+ *       - Files
+ *     security:
+ *       - session: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/HouseholdHeader'
+ *     responses:
+ *       200:
+ *         description: List of category strings
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: string
+ *       500:
+ *         description: Internal server error
+ */
 router.get("/meta/categories", async (req: any, res) => {
   try {
     const householdId = req.householdId;
@@ -155,6 +326,30 @@ router.get("/meta/categories", async (req: any, res) => {
   }
 });
 
+/**
+ * @openapi
+ * /files/meta/tags:
+ *   get:
+ *     summary: Get file tags
+ *     description: Returns all distinct tags used across files in the household.
+ *     tags:
+ *       - Files
+ *     security:
+ *       - session: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/HouseholdHeader'
+ *     responses:
+ *       200:
+ *         description: Sorted list of tag strings
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: string
+ *       500:
+ *         description: Internal server error
+ */
 router.get("/meta/tags", async (req: any, res) => {
   try {
     const householdId = req.householdId;
@@ -178,6 +373,40 @@ router.get("/meta/tags", async (req: any, res) => {
   }
 });
 
+/**
+ * @openapi
+ * /files/{id}:
+ *   get:
+ *     summary: Get file details
+ *     description: Returns file metadata and usage information. Also tracks a file view.
+ *     tags:
+ *       - Files
+ *     security:
+ *       - session: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/HouseholdHeader'
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: File details with usage info
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/File'
+ *                 - type: object
+ *                   properties:
+ *                     usage:
+ *                       type: object
+ *       404:
+ *         description: File not found
+ *       500:
+ *         description: Internal server error
+ */
 router.get("/:id", async (req: any, res) => {
   try {
     const { id } = req.params;
@@ -209,6 +438,49 @@ router.get("/:id", async (req: any, res) => {
   }
 });
 
+/**
+ * @openapi
+ * /files/{id}:
+ *   patch:
+ *     summary: Update file metadata
+ *     description: Updates the category, tags, or description of a file.
+ *     tags:
+ *       - Files
+ *     security:
+ *       - session: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/HouseholdHeader'
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               category:
+ *                 type: string
+ *               tags:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *               description:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Updated file record
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/File'
+ *       404:
+ *         description: File not found
+ *       500:
+ *         description: Internal server error
+ */
 router.patch("/:id", async (req: any, res) => {
   try {
     const { id } = req.params;
@@ -240,6 +512,38 @@ router.patch("/:id", async (req: any, res) => {
   }
 });
 
+/**
+ * @openapi
+ * /files/{id}:
+ *   delete:
+ *     summary: Soft-delete a file
+ *     description: Marks a file and its entity links as deleted (soft delete).
+ *     tags:
+ *       - Files
+ *     security:
+ *       - session: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/HouseholdHeader'
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: File deleted
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *       404:
+ *         description: File not found
+ *       500:
+ *         description: Internal server error
+ */
 router.delete("/:id", async (req: any, res) => {
   try {
     const { id } = req.params;
@@ -265,6 +569,51 @@ router.delete("/:id", async (req: any, res) => {
   }
 });
 
+/**
+ * @openapi
+ * /files/{id}/link:
+ *   post:
+ *     summary: Link file to an entity
+ *     description: Creates a link between a file and an entity (e.g., task, approval).
+ *     tags:
+ *       - Files
+ *     security:
+ *       - session: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/HouseholdHeader'
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - entityType
+ *               - entityId
+ *             properties:
+ *               entityType:
+ *                 type: string
+ *               entityId:
+ *                 type: string
+ *               note:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: File link created
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *       404:
+ *         description: File not found
+ *       500:
+ *         description: Internal server error
+ */
 router.post("/:id/link", async (req: any, res) => {
   try {
     const { id } = req.params;
@@ -296,6 +645,45 @@ router.post("/:id/link", async (req: any, res) => {
   }
 });
 
+/**
+ * @openapi
+ * /files/{id}/link/{entityType}/{entityId}:
+ *   delete:
+ *     summary: Unlink file from an entity
+ *     description: Removes the link between a file and a specific entity.
+ *     tags:
+ *       - Files
+ *     security:
+ *       - session: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: entityType
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: entityId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: File unlinked
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *       500:
+ *         description: Internal server error
+ */
 router.delete("/:id/link/:entityType/:entityId", async (req: any, res) => {
   try {
     const { id, entityType, entityId } = req.params;

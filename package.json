@@ -13,10 +13,14 @@
     "@fontsource/fraunces": "^5.2.9",
     "@tanstack/react-virtual": "^3.13.18",
     "@types/supertest": "^6.0.3",
+    "@types/swagger-jsdoc": "^6.0.4",
+    "@types/swagger-ui-express": "^4.1.8",
     "@types/web-push": "^3.6.4",
     "framer-motion": "^12.29.0",
     "helmet": "^8.1.0",
     "supertest": "^7.2.2",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.1",
     "vite-plugin-pwa": "^1.2.0",
     "web-push": "^3.6.7"
   }

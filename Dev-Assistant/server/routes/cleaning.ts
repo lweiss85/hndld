@@ -12,6 +12,23 @@ export async function registerCleaningRoutes(app: Router): Promise<void> {
   // CLEANING SERVICE ENDPOINTS
   // ============================================
 
+  /**
+   * @openapi
+   * /addon-services:
+   *   get:
+   *     tags: [Addon Services]
+   *     summary: List add-on services
+   *     description: Returns all add-on services for the household
+   *     security:
+   *       - session: []
+   *     parameters:
+   *       - $ref: '#/components/parameters/HouseholdHeader'
+   *     responses:
+   *       200:
+   *         description: List of add-on services
+   *       500:
+   *         description: Server error
+   */
   app.get("/addon-services", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
@@ -23,6 +40,47 @@ export async function registerCleaningRoutes(app: Router): Promise<void> {
     }
   });
 
+  /**
+   * @openapi
+   * /addon-services:
+   *   post:
+   *     tags: [Addon Services]
+   *     summary: Create an add-on service
+   *     description: Creates a new add-on service for the household (assistants only)
+   *     security:
+   *       - session: []
+   *     parameters:
+   *       - $ref: '#/components/parameters/HouseholdHeader'
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             required: [name, priceInCents]
+   *             properties:
+   *               name:
+   *                 type: string
+   *               description:
+   *                 type: string
+   *               priceInCents:
+   *                 type: integer
+   *               estimatedMinutes:
+   *                 type: integer
+   *               category:
+   *                 type: string
+   *               sortOrder:
+   *                 type: integer
+   *     responses:
+   *       201:
+   *         description: Add-on service created
+   *       400:
+   *         description: Invalid input
+   *       403:
+   *         description: Not an assistant
+   *       500:
+   *         description: Server error
+   */
   app.post("/addon-services", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
@@ -61,6 +119,55 @@ export async function registerCleaningRoutes(app: Router): Promise<void> {
     }
   });
 
+  /**
+   * @openapi
+   * /addon-services/{id}:
+   *   patch:
+   *     tags: [Addon Services]
+   *     summary: Update an add-on service
+   *     description: Updates an existing add-on service (assistants only)
+   *     security:
+   *       - session: []
+   *     parameters:
+   *       - $ref: '#/components/parameters/HouseholdHeader'
+   *       - in: path
+   *         name: id
+   *         required: true
+   *         schema:
+   *           type: string
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             properties:
+   *               name:
+   *                 type: string
+   *               description:
+   *                 type: string
+   *               priceInCents:
+   *                 type: integer
+   *               estimatedMinutes:
+   *                 type: integer
+   *               category:
+   *                 type: string
+   *               sortOrder:
+   *                 type: integer
+   *               isActive:
+   *                 type: boolean
+   *     responses:
+   *       200:
+   *         description: Add-on service updated
+   *       400:
+   *         description: Invalid price
+   *       403:
+   *         description: Not an assistant
+   *       404:
+   *         description: Add-on service not found
+   *       500:
+   *         description: Server error
+   */
   app.patch("/addon-services/:id", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
@@ -102,6 +209,32 @@ export async function registerCleaningRoutes(app: Router): Promise<void> {
     }
   });
 
+  /**
+   * @openapi
+   * /addon-services/{id}:
+   *   delete:
+   *     tags: [Addon Services]
+   *     summary: Delete an add-on service
+   *     description: Deletes an add-on service from the household (assistants only)
+   *     security:
+   *       - session: []
+   *     parameters:
+   *       - $ref: '#/components/parameters/HouseholdHeader'
+   *       - in: path
+   *         name: id
+   *         required: true
+   *         schema:
+   *           type: string
+   *     responses:
+   *       200:
+   *         description: Add-on service deleted
+   *       403:
+   *         description: Not an assistant
+   *       404:
+   *         description: Add-on service not found
+   *       500:
+   *         description: Server error
+   */
   app.delete("/addon-services/:id", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
@@ -125,6 +258,23 @@ export async function registerCleaningRoutes(app: Router): Promise<void> {
     }
   });
 
+  /**
+   * @openapi
+   * /cleaning/next:
+   *   get:
+   *     tags: [Cleaning Service]
+   *     summary: Get next cleaning visit
+   *     description: Returns the next scheduled cleaning visit for the household
+   *     security:
+   *       - session: []
+   *     parameters:
+   *       - $ref: '#/components/parameters/HouseholdHeader'
+   *     responses:
+   *       200:
+   *         description: Next cleaning visit or null
+   *       500:
+   *         description: Server error
+   */
   app.get("/cleaning/next", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
@@ -136,6 +286,23 @@ export async function registerCleaningRoutes(app: Router): Promise<void> {
     }
   });
 
+  /**
+   * @openapi
+   * /cleaning/visits:
+   *   get:
+   *     tags: [Cleaning Service]
+   *     summary: List cleaning visits
+   *     description: Returns all cleaning visits for the household
+   *     security:
+   *       - session: []
+   *     parameters:
+   *       - $ref: '#/components/parameters/HouseholdHeader'
+   *     responses:
+   *       200:
+   *         description: List of cleaning visits
+   *       500:
+   *         description: Server error
+   */
   app.get("/cleaning/visits", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
@@ -147,6 +314,29 @@ export async function registerCleaningRoutes(app: Router): Promise<void> {
     }
   });
 
+  /**
+   * @openapi
+   * /cleaning/visits:
+   *   post:
+   *     tags: [Cleaning Service]
+   *     summary: Create a cleaning visit
+   *     description: Creates a new cleaning visit for the household
+   *     security:
+   *       - session: []
+   *     parameters:
+   *       - $ref: '#/components/parameters/HouseholdHeader'
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *     responses:
+   *       201:
+   *         description: Cleaning visit created
+   *       500:
+   *         description: Server error
+   */
   app.post("/cleaning/visits", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
@@ -161,6 +351,36 @@ export async function registerCleaningRoutes(app: Router): Promise<void> {
     }
   });
 
+  /**
+   * @openapi
+   * /cleaning/visits/{id}:
+   *   patch:
+   *     tags: [Cleaning Service]
+   *     summary: Update a cleaning visit
+   *     description: Updates an existing cleaning visit
+   *     security:
+   *       - session: []
+   *     parameters:
+   *       - $ref: '#/components/parameters/HouseholdHeader'
+   *       - in: path
+   *         name: id
+   *         required: true
+   *         schema:
+   *           type: string
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *     responses:
+   *       200:
+   *         description: Cleaning visit updated
+   *       404:
+   *         description: Cleaning visit not found
+   *       500:
+   *         description: Server error
+   */
   app.patch("/cleaning/visits/:id", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const { id } = req.params;

@@ -41,7 +41,9 @@ Preferred communication style: Simple, everyday language.
 
 ### Backend Architecture
 - **Runtime**: Node.js with Express.js server in TypeScript
-- **API Design**: RESTful API endpoints under `/api/*` prefix
+- **API Design**: RESTful endpoints under `/api/v1/*` prefix with URL-based versioning. Rate limiting via apiLimiter, authLimiter. Accept-Version header support via apiVersion middleware
+- **OpenAPI Documentation**: Swagger UI at `/api/docs`, JSON spec at `/api/docs/spec.json`. 155 documented endpoints across 43 tags using swagger-jsdoc and swagger-ui-express. JSDoc @openapi annotations on all route handlers in `server/routes/*.ts`. Component schemas defined in `server/lib/swagger.ts`
+- **Route Organization**: 13 domain-specific route modules in `server/routes/` (tasks, approvals, spending, calendar, household-concierge, admin, admin-ops, features, cleaning, user-profile, google-calendar, files, weekly-brief)
 - **Build System**: esbuild for server bundling, Vite for client bundling
 - **Development**: Hot module replacement via Vite middleware in development mode
 

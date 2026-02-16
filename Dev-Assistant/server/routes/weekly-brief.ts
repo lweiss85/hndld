@@ -40,6 +40,44 @@ async function verifyHouseholdAccess(req: any, res: Response, next: NextFunction
   next();
 }
 
+/**
+ * @openapi
+ * /{householdId}/weekly-brief:
+ *   get:
+ *     summary: Get latest weekly brief
+ *     description: Returns the latest weekly brief for the authenticated user in the specified household. Automatically marks it as read and tracks engagement.
+ *     tags:
+ *       - Weekly Brief
+ *     security:
+ *       - session: []
+ *     parameters:
+ *       - in: path
+ *         name: householdId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The household ID
+ *     responses:
+ *       200:
+ *         description: Latest weekly brief or null if none available
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 brief:
+ *                   oneOf:
+ *                     - $ref: '#/components/schemas/WeeklyBrief'
+ *                     - type: "null"
+ *                 message:
+ *                   type: string
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Access denied to this household
+ *       500:
+ *         description: Internal server error
+ */
 router.get(
   "/:householdId/weekly-brief",
   verifyHouseholdAccess,
@@ -67,6 +105,48 @@ router.get(
   }
 );
 
+/**
+ * @openapi
+ * /{householdId}/weekly-brief/history:
+ *   get:
+ *     summary: Get weekly brief history
+ *     description: Returns a paginated list of past weekly briefs for the authenticated user in the specified household.
+ *     tags:
+ *       - Weekly Brief
+ *     security:
+ *       - session: []
+ *     parameters:
+ *       - in: path
+ *         name: householdId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The household ID
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *         description: Maximum number of briefs to return
+ *     responses:
+ *       200:
+ *         description: List of weekly briefs
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 briefs:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/WeeklyBrief'
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Access denied to this household
+ *       500:
+ *         description: Internal server error
+ */
 router.get(
   "/:householdId/weekly-brief/history",
   verifyHouseholdAccess,
@@ -95,6 +175,44 @@ router.get(
   }
 );
 
+/**
+ * @openapi
+ * /{householdId}/weekly-brief/generate:
+ *   post:
+ *     summary: Generate a new weekly brief
+ *     description: Triggers generation of a new weekly brief for the authenticated user in the specified household.
+ *     tags:
+ *       - Weekly Brief
+ *     security:
+ *       - session: []
+ *     parameters:
+ *       - in: path
+ *         name: householdId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The household ID
+ *     responses:
+ *       200:
+ *         description: Weekly brief generated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 brief:
+ *                   $ref: '#/components/schemas/WeeklyBrief'
+ *                 content:
+ *                   type: string
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Access denied to this household
+ *       500:
+ *         description: Internal server error
+ */
 router.post(
   "/:householdId/weekly-brief/generate",
   verifyHouseholdAccess,
@@ -118,6 +236,67 @@ const feedbackSchema = z.object({
   feedbackText: z.string().optional(),
 });
 
+/**
+ * @openapi
+ * /{householdId}/weekly-brief/{briefId}/feedback:
+ *   post:
+ *     summary: Submit feedback for a weekly brief
+ *     description: Submits a rating and optional feedback text for a specific weekly brief. Tracks engagement for analytics.
+ *     tags:
+ *       - Weekly Brief
+ *     security:
+ *       - session: []
+ *     parameters:
+ *       - in: path
+ *         name: householdId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The household ID
+ *       - in: path
+ *         name: briefId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The weekly brief ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - rating
+ *             properties:
+ *               rating:
+ *                 type: integer
+ *                 minimum: 1
+ *                 maximum: 5
+ *               feedbackText:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Feedback submitted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *       400:
+ *         description: Invalid feedback data
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Access denied to this household
+ *       404:
+ *         description: Brief not found
+ *       500:
+ *         description: Internal server error
+ */
 router.post(
   "/:householdId/weekly-brief/:briefId/feedback",
   verifyHouseholdAccess,
@@ -165,6 +344,65 @@ const engagementSchema = z.object({
   metadata: z.record(z.any()).optional(),
 });
 
+/**
+ * @openapi
+ * /{householdId}/engagement:
+ *   post:
+ *     summary: Track user engagement
+ *     description: Records a user engagement event for analytics purposes. Supports various entity types and actions.
+ *     tags:
+ *       - Weekly Brief
+ *     security:
+ *       - session: []
+ *     parameters:
+ *       - in: path
+ *         name: householdId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The household ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - entityType
+ *             properties:
+ *               entityType:
+ *                 type: string
+ *                 description: Type of entity being engaged with
+ *               entityId:
+ *                 type: string
+ *                 description: Optional ID of the entity
+ *               action:
+ *                 type: string
+ *                 default: view
+ *                 description: The engagement action
+ *               metadata:
+ *                 type: object
+ *                 additionalProperties: true
+ *                 description: Additional metadata for the engagement event
+ *     responses:
+ *       200:
+ *         description: Engagement tracked successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *       400:
+ *         description: Invalid engagement data
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Access denied to this household
+ *       500:
+ *         description: Internal server error
+ */
 router.post(
   "/:householdId/engagement",
   verifyHouseholdAccess,

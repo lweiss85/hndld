@@ -12,6 +12,55 @@ import { z } from "zod";
 const householdContext = householdContextMiddleware;
 
 export function registerApprovalsRoutes(app: Router) {
+  /**
+   * @openapi
+   * /approvals:
+   *   get:
+   *     tags:
+   *       - Approvals
+   *     summary: List approvals with comments
+   *     description: >
+   *       Retrieves all approvals for the current household, each enriched with
+   *       associated comments. Results are filtered by the caller's role
+   *       (STAFF users see only CLEANING approvals related to their own tasks)
+   *       and optionally by serviceType query parameter.
+   *     security:
+   *       - session: []
+   *     parameters:
+   *       - in: header
+   *         name: x-household-id
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: The household context identifier
+   *       - in: query
+   *         name: serviceType
+   *         required: false
+   *         schema:
+   *           type: string
+   *           enum: [CLEANING, PA]
+   *         description: Filter approvals by service type
+   *     responses:
+   *       200:
+   *         description: List of approvals with nested comments
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: array
+   *               items:
+   *                 allOf:
+   *                   - $ref: '#/components/schemas/Approval'
+   *                   - type: object
+   *                     properties:
+   *                       comments:
+   *                         type: array
+   *                         items:
+   *                           $ref: '#/components/schemas/Comment'
+   *       401:
+   *         description: Unauthorized – session required
+   *       500:
+   *         description: Internal server error
+   */
   app.get("/approvals", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
@@ -48,6 +97,46 @@ export function registerApprovalsRoutes(app: Router) {
     }
   });
   
+  /**
+   * @openapi
+   * /approvals:
+   *   post:
+   *     tags:
+   *       - Approvals
+   *     summary: Create a new approval
+   *     description: >
+   *       Creates a new approval record in the current household.
+   *       Requires the CAN_EDIT_TASKS permission. Broadcasts an
+   *       approval:created WebSocket event on success.
+   *     security:
+   *       - session: []
+   *     parameters:
+   *       - in: header
+   *         name: x-household-id
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: The household context identifier
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             $ref: '#/components/schemas/ApprovalInput'
+   *     responses:
+   *       201:
+   *         description: Approval created successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/Approval'
+   *       401:
+   *         description: Unauthorized – session required
+   *       403:
+   *         description: Forbidden – CAN_EDIT_TASKS permission required
+   *       500:
+   *         description: Internal server error
+   */
   app.post("/approvals", isAuthenticated, householdContext, requirePermission("CAN_EDIT_TASKS"), async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
@@ -68,6 +157,55 @@ export function registerApprovalsRoutes(app: Router) {
     }
   });
   
+  /**
+   * @openapi
+   * /approvals/{id}:
+   *   patch:
+   *     tags:
+   *       - Approvals
+   *     summary: Update an approval status
+   *     description: >
+   *       Updates an existing approval's status. Requires the CAN_APPROVE
+   *       permission. STAFF users may only update approvals they created or
+   *       those related to tasks assigned to them. Broadcasts an
+   *       approval:updated WebSocket event on success.
+   *     security:
+   *       - session: []
+   *     parameters:
+   *       - in: header
+   *         name: x-household-id
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: The household context identifier
+   *       - in: path
+   *         name: id
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: The approval ID to update
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             $ref: '#/components/schemas/ApprovalStatusUpdate'
+   *     responses:
+   *       200:
+   *         description: Approval updated successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/Approval'
+   *       401:
+   *         description: Unauthorized – session required
+   *       403:
+   *         description: Forbidden – CAN_APPROVE permission required or insufficient access
+   *       404:
+   *         description: Approval not found
+   *       500:
+   *         description: Internal server error
+   */
   app.patch("/approvals/:id", isAuthenticated, householdContext, requirePermission("CAN_APPROVE"), async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
@@ -106,6 +244,88 @@ export function registerApprovalsRoutes(app: Router) {
     }
   });
   
+  /**
+   * @openapi
+   * /updates:
+   *   get:
+   *     tags:
+   *       - Updates
+   *     summary: List updates with comments
+   *     description: >
+   *       Retrieves all updates for the current household, each enriched with
+   *       associated comments. Supports optional pagination via page and limit
+   *       query parameters. STAFF users see only their own CLEANING updates.
+   *     security:
+   *       - session: []
+   *     parameters:
+   *       - in: header
+   *         name: x-household-id
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: The household context identifier
+   *       - in: query
+   *         name: serviceType
+   *         required: false
+   *         schema:
+   *           type: string
+   *           enum: [CLEANING, PA]
+   *         description: Filter updates by service type
+   *       - in: query
+   *         name: page
+   *         required: false
+   *         schema:
+   *           type: integer
+   *           default: 1
+   *         description: Page number for pagination
+   *       - in: query
+   *         name: limit
+   *         required: false
+   *         schema:
+   *           type: integer
+   *           default: 0
+   *         description: Number of items per page (0 returns all)
+   *     responses:
+   *       200:
+   *         description: >
+   *           List of updates with nested comments. When limit > 0, returns a
+   *           paginated wrapper with data and pagination metadata.
+   *         content:
+   *           application/json:
+   *             schema:
+   *               oneOf:
+   *                 - type: array
+   *                   items:
+   *                     allOf:
+   *                       - $ref: '#/components/schemas/Update'
+   *                       - type: object
+   *                         properties:
+   *                           comments:
+   *                             type: array
+   *                             items:
+   *                               $ref: '#/components/schemas/Comment'
+   *                 - type: object
+   *                   properties:
+   *                     data:
+   *                       type: array
+   *                       items:
+   *                         $ref: '#/components/schemas/Update'
+   *                     pagination:
+   *                       type: object
+   *                       properties:
+   *                         page:
+   *                           type: integer
+   *                         limit:
+   *                           type: integer
+   *                         total:
+   *                           type: integer
+   *                         totalPages:
+   *                           type: integer
+   *       401:
+   *         description: Unauthorized – session required
+   *       500:
+   *         description: Internal server error
+   */
   app.get("/updates", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
@@ -154,6 +374,46 @@ export function registerApprovalsRoutes(app: Router) {
     }
   });
   
+  /**
+   * @openapi
+   * /updates:
+   *   post:
+   *     tags:
+   *       - Updates
+   *     summary: Create a new update
+   *     description: >
+   *       Creates a new update record in the current household.
+   *       Requires the CAN_CREATE_UPDATE permission. Broadcasts an
+   *       update:created WebSocket event on success.
+   *     security:
+   *       - session: []
+   *     parameters:
+   *       - in: header
+   *         name: x-household-id
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: The household context identifier
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             $ref: '#/components/schemas/UpdateInput'
+   *     responses:
+   *       201:
+   *         description: Update created successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/Update'
+   *       401:
+   *         description: Unauthorized – session required
+   *       403:
+   *         description: Forbidden – CAN_CREATE_UPDATE permission required
+   *       500:
+   *         description: Internal server error
+   */
   app.post("/updates", isAuthenticated, householdContext, requirePermission("CAN_CREATE_UPDATE"), async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
@@ -174,6 +434,58 @@ export function registerApprovalsRoutes(app: Router) {
     }
   });
   
+  /**
+   * @openapi
+   * /updates/{id}/reactions:
+   *   post:
+   *     tags:
+   *       - Updates
+   *     summary: Toggle emoji reaction on an update
+   *     description: >
+   *       Toggles an emoji reaction on the specified update. If the user has
+   *       already reacted with the same emoji, the reaction is removed;
+   *       otherwise the reaction is added.
+   *     security:
+   *       - session: []
+   *     parameters:
+   *       - in: header
+   *         name: x-household-id
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: The household context identifier
+   *       - in: path
+   *         name: id
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: The update ID to react to
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             required:
+   *               - emoji
+   *             properties:
+   *               emoji:
+   *                 type: string
+   *                 description: The emoji character to toggle
+   *     responses:
+   *       200:
+   *         description: Update with toggled reaction
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/Update'
+   *       401:
+   *         description: Unauthorized – session required
+   *       404:
+   *         description: Update not found
+   *       500:
+   *         description: Internal server error
+   */
   app.post("/updates/:id/reactions", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
@@ -206,6 +518,37 @@ export function registerApprovalsRoutes(app: Router) {
     }
   });
   
+  /**
+   * @openapi
+   * /requests:
+   *   get:
+   *     tags:
+   *       - Requests
+   *     summary: List requests
+   *     description: Retrieves all requests for the current household.
+   *     security:
+   *       - session: []
+   *     parameters:
+   *       - in: header
+   *         name: x-household-id
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: The household context identifier
+   *     responses:
+   *       200:
+   *         description: List of requests
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: array
+   *               items:
+   *                 $ref: '#/components/schemas/Request'
+   *       401:
+   *         description: Unauthorized – session required
+   *       500:
+   *         description: Internal server error
+   */
   app.get("/requests", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
@@ -218,6 +561,54 @@ export function registerApprovalsRoutes(app: Router) {
     }
   });
   
+  /**
+   * @openapi
+   * /requests:
+   *   post:
+   *     tags:
+   *       - Requests
+   *     summary: Create a new request
+   *     description: >
+   *       Creates a new request in the current household. Requires the
+   *       CAN_CREATE_REQUESTS permission. The optional dueAt field is
+   *       converted to a Date. Broadcasts a request:created WebSocket event.
+   *     security:
+   *       - session: []
+   *     parameters:
+   *       - in: header
+   *         name: x-household-id
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: The household context identifier
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             allOf:
+   *               - $ref: '#/components/schemas/RequestInput'
+   *               - type: object
+   *                 properties:
+   *                   dueAt:
+   *                     type: string
+   *                     format: date-time
+   *                     nullable: true
+   *                     description: Optional due date for the request
+   *     responses:
+   *       201:
+   *         description: Request created successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/Request'
+   *       401:
+   *         description: Unauthorized – session required
+   *       403:
+   *         description: Forbidden – CAN_CREATE_REQUESTS permission required
+   *       500:
+   *         description: Internal server error
+   */
   app.post("/requests", isAuthenticated, householdContext, requirePermission("CAN_CREATE_REQUESTS"), async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
@@ -242,6 +633,53 @@ export function registerApprovalsRoutes(app: Router) {
     }
   });
 
+  /**
+   * @openapi
+   * /requests/{id}:
+   *   patch:
+   *     tags:
+   *       - Requests
+   *     summary: Update a request
+   *     description: >
+   *       Updates an existing request. Requires the CAN_UPDATE_REQUEST
+   *       permission. Broadcasts a request:updated WebSocket event on success.
+   *     security:
+   *       - session: []
+   *     parameters:
+   *       - in: header
+   *         name: x-household-id
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: The household context identifier
+   *       - in: path
+   *         name: id
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: The request ID to update
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             $ref: '#/components/schemas/RequestUpdate'
+   *     responses:
+   *       200:
+   *         description: Request updated successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/Request'
+   *       401:
+   *         description: Unauthorized – session required
+   *       403:
+   *         description: Forbidden – CAN_UPDATE_REQUEST permission required
+   *       404:
+   *         description: Request not found
+   *       500:
+   *         description: Internal server error
+   */
   app.patch("/requests/:id", isAuthenticated, householdContext, requirePermission("CAN_UPDATE_REQUEST"), async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
@@ -258,6 +696,57 @@ export function registerApprovalsRoutes(app: Router) {
     }
   });
   
+  /**
+   * @openapi
+   * /comments:
+   *   post:
+   *     tags:
+   *       - Comments
+   *     summary: Create a comment
+   *     description: >
+   *       Creates a new comment associated with an entity (approval, update,
+   *       request, etc.) identified by entityType and entityId.
+   *     security:
+   *       - session: []
+   *     parameters:
+   *       - in: header
+   *         name: x-household-id
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: The household context identifier
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             required:
+   *               - entityType
+   *               - entityId
+   *               - text
+   *             properties:
+   *               entityType:
+   *                 type: string
+   *                 description: The type of entity being commented on
+   *               entityId:
+   *                 type: string
+   *                 description: The ID of the entity being commented on
+   *               text:
+   *                 type: string
+   *                 description: The comment text
+   *     responses:
+   *       201:
+   *         description: Comment created successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/Comment'
+   *       401:
+   *         description: Unauthorized – session required
+   *       500:
+   *         description: Internal server error
+   */
   app.post("/comments", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
@@ -274,6 +763,37 @@ export function registerApprovalsRoutes(app: Router) {
     }
   });
   
+  /**
+   * @openapi
+   * /vendors:
+   *   get:
+   *     tags:
+   *       - Vendors
+   *     summary: List vendors
+   *     description: Retrieves all vendors for the current household.
+   *     security:
+   *       - session: []
+   *     parameters:
+   *       - in: header
+   *         name: x-household-id
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: The household context identifier
+   *     responses:
+   *       200:
+   *         description: List of vendors
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: array
+   *               items:
+   *                 $ref: '#/components/schemas/Vendor'
+   *       401:
+   *         description: Unauthorized – session required
+   *       500:
+   *         description: Internal server error
+   */
   app.get("/vendors", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
@@ -286,6 +806,41 @@ export function registerApprovalsRoutes(app: Router) {
     }
   });
   
+  /**
+   * @openapi
+   * /vendors:
+   *   post:
+   *     tags:
+   *       - Vendors
+   *     summary: Create a new vendor
+   *     description: Creates a new vendor record in the current household.
+   *     security:
+   *       - session: []
+   *     parameters:
+   *       - in: header
+   *         name: x-household-id
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: The household context identifier
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             $ref: '#/components/schemas/VendorInput'
+   *     responses:
+   *       201:
+   *         description: Vendor created successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/Vendor'
+   *       401:
+   *         description: Unauthorized – session required
+   *       500:
+   *         description: Internal server error
+   */
   app.post("/vendors", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
@@ -303,6 +858,62 @@ export function registerApprovalsRoutes(app: Router) {
     }
   });
 
+  /**
+   * @openapi
+   * /reactions:
+   *   get:
+   *     tags:
+   *       - Reactions
+   *     summary: Get reaction counts
+   *     description: >
+   *       Retrieves aggregated reaction counts and the current user's reactions
+   *       for a set of entities identified by entityType and entityIds.
+   *     security:
+   *       - session: []
+   *     parameters:
+   *       - in: header
+   *         name: x-household-id
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: The household context identifier
+   *       - in: query
+   *         name: entityType
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: The type of entities to fetch reactions for
+   *       - in: query
+   *         name: entityIds
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: Comma-separated list of entity IDs
+   *     responses:
+   *       200:
+   *         description: Reaction counts and user reactions
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 reactions:
+   *                   type: object
+   *                   additionalProperties:
+   *                     type: object
+   *                     additionalProperties:
+   *                       type: integer
+   *                   description: Map of entityId to reactionType counts
+   *                 userReactions:
+   *                   type: object
+   *                   additionalProperties:
+   *                     type: string
+   *                   description: Map of entityId to current user's reaction type
+   *       401:
+   *         description: Unauthorized – session required
+   *       500:
+   *         description: Internal server error
+   */
   // Reactions API
   app.get("/reactions", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
@@ -343,6 +954,87 @@ export function registerApprovalsRoutes(app: Router) {
     }
   });
   
+  /**
+   * @openapi
+   * /reactions:
+   *   post:
+   *     tags:
+   *       - Reactions
+   *     summary: Create or toggle a reaction
+   *     description: >
+   *       Creates, updates, or toggles off a reaction on an entity. The request
+   *       body is validated with Zod. If the user already has the same reaction
+   *       type on the entity, the reaction is removed (toggled off). Verifies
+   *       the target entity exists and belongs to the user's household. For
+   *       NEED_DETAILS or PLEASE_ADJUST reactions with a note, an auto-comment
+   *       is also created.
+   *     security:
+   *       - session: []
+   *     parameters:
+   *       - in: header
+   *         name: x-household-id
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: The household context identifier
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             required:
+   *               - entityType
+   *               - entityId
+   *               - reactionType
+   *             properties:
+   *               entityType:
+   *                 type: string
+   *                 enum: [TASK, APPROVAL, UPDATE, REQUEST]
+   *                 description: The type of entity to react to
+   *               entityId:
+   *                 type: string
+   *                 minLength: 1
+   *                 description: The ID of the entity to react to
+   *               reactionType:
+   *                 type: string
+   *                 enum: [LOOKS_GOOD, NEED_DETAILS, PLEASE_ADJUST, LOVE_IT, SAVE_THIS]
+   *                 description: The type of reaction
+   *               note:
+   *                 type: string
+   *                 description: Optional note (auto-creates a comment for NEED_DETAILS/PLEASE_ADJUST)
+   *     responses:
+   *       200:
+   *         description: Reaction toggled or upserted successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               oneOf:
+   *                 - type: object
+   *                   properties:
+   *                     action:
+   *                       type: string
+   *                       enum: [removed]
+   *                     entityId:
+   *                       type: string
+   *                     reactionType:
+   *                       type: string
+   *                 - type: object
+   *                   properties:
+   *                     action:
+   *                       type: string
+   *                       enum: [created, updated]
+   *                     reaction:
+   *                       $ref: '#/components/schemas/Reaction'
+   *       400:
+   *         description: Invalid request body – Zod validation failed
+   *       401:
+   *         description: Unauthorized – session required
+   *       404:
+   *         description: Target entity not found
+   *       500:
+   *         description: Internal server error
+   */
   app.post("/reactions", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
