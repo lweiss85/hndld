@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, versionedUrl } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { triggerHaptic } from "@/components/juice";
@@ -58,7 +58,7 @@ export function QuickReactions({ entityType, entityId, compact = false }: QuickR
     queryKey: ["/api/reactions", entityType, entityId, householdId],
     queryFn: async ({ queryKey }) => {
       const hId = queryKey[3] as string;
-      const res = await fetch(`/api/reactions?entityType=${entityType}&entityIds=${entityId}`, {
+      const res = await fetch(versionedUrl(`/api/reactions?entityType=${entityType}&entityIds=${entityId}`), {
         credentials: "include",
         headers: hId ? { "X-Household-Id": hId } : {},
       });

@@ -1,4 +1,5 @@
-import type { Express, Request, Response } from "express";
+import type { Request, Response } from "express";
+import type { Router } from "express";
 import { storage } from "../storage";
 import logger from "../lib/logger";
 import { isAuthenticated } from "../replit_integrations/auth";
@@ -16,13 +17,13 @@ async function getUserProfile(userId: string) {
   return storage.getUserProfile(userId);
 }
 
-export function registerFeatureRoutes(app: Express) {
+export function registerFeatureRoutes(app: Router) {
 
   // ============================================
   // ANALYTICS ROUTES (Phase 1 - PRO Feature)
   // ============================================
 
-  app.get("/api/analytics/dashboard", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/analytics/dashboard", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -42,7 +43,7 @@ export function registerFeatureRoutes(app: Express) {
     }
   });
 
-  app.get("/api/analytics/tasks-over-time", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/analytics/tasks-over-time", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -62,7 +63,7 @@ export function registerFeatureRoutes(app: Express) {
     }
   });
 
-  app.get("/api/analytics/tasks-by-category", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/analytics/tasks-by-category", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -77,7 +78,7 @@ export function registerFeatureRoutes(app: Express) {
     }
   });
 
-  app.get("/api/analytics/client-summary", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/analytics/client-summary", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -91,7 +92,7 @@ export function registerFeatureRoutes(app: Express) {
     }
   });
 
-  app.get("/api/analytics/stats", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/analytics/stats", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
       const period = (req.query.period as string) || "30d";
@@ -105,7 +106,7 @@ export function registerFeatureRoutes(app: Express) {
     }
   });
 
-  app.get("/api/analytics/task-breakdown", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/analytics/task-breakdown", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
       const period = (req.query.period as string) || "30d";
@@ -119,7 +120,7 @@ export function registerFeatureRoutes(app: Express) {
     }
   });
 
-  app.get("/api/analytics/spending-breakdown", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/analytics/spending-breakdown", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
       const period = (req.query.period as string) || "30d";
@@ -133,7 +134,7 @@ export function registerFeatureRoutes(app: Express) {
     }
   });
 
-  app.get("/api/analytics/timeline", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/analytics/timeline", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
       const period = (req.query.period as string) || "30d";
@@ -147,7 +148,7 @@ export function registerFeatureRoutes(app: Express) {
     }
   });
 
-  app.get("/api/analytics/performance", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/analytics/performance", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
       const period = (req.query.period as string) || "30d";
@@ -165,7 +166,7 @@ export function registerFeatureRoutes(app: Express) {
   // EMERGENCY CONTACTS & PROTOCOLS (Phase 1)
   // ============================================
 
-  app.get("/api/emergency/contacts", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/emergency/contacts", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -179,7 +180,7 @@ export function registerFeatureRoutes(app: Express) {
     }
   });
 
-  app.post("/api/emergency/contacts", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.post("/emergency/contacts", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -199,7 +200,7 @@ export function registerFeatureRoutes(app: Express) {
     }
   });
 
-  app.patch("/api/emergency/contacts/:id", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.patch("/emergency/contacts/:id", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -227,7 +228,7 @@ export function registerFeatureRoutes(app: Express) {
     }
   });
 
-  app.delete("/api/emergency/contacts/:id", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.delete("/emergency/contacts/:id", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -252,7 +253,7 @@ export function registerFeatureRoutes(app: Express) {
     }
   });
 
-  app.get("/api/emergency/protocols", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/emergency/protocols", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -266,7 +267,7 @@ export function registerFeatureRoutes(app: Express) {
     }
   });
 
-  app.post("/api/emergency/protocols", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.post("/emergency/protocols", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -290,7 +291,7 @@ export function registerFeatureRoutes(app: Express) {
   // IN-APP MESSAGING ROUTES (Phase 1 - Premium)
   // ============================================
 
-  app.get("/api/conversations", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/conversations", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -305,7 +306,7 @@ export function registerFeatureRoutes(app: Express) {
     }
   });
 
-  app.post("/api/conversations", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.post("/conversations", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -326,7 +327,7 @@ export function registerFeatureRoutes(app: Express) {
     }
   });
 
-  app.get("/api/conversations/:id/messages", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/conversations/:id/messages", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -349,7 +350,7 @@ export function registerFeatureRoutes(app: Express) {
     }
   });
 
-  app.post("/api/conversations/:id/messages", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.post("/conversations/:id/messages", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -394,7 +395,7 @@ export function registerFeatureRoutes(app: Express) {
     }
   });
 
-  app.patch("/api/messages/:id/read", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.patch("/messages/:id/read", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -436,7 +437,7 @@ export function registerFeatureRoutes(app: Express) {
   // AI ASSISTANT ROUTES (Phase 1 - Premium)
   // ============================================
 
-  app.get("/api/ai/status", isAuthenticated, async (_req, res) => {
+  app.get("/ai/status", isAuthenticated, async (_req, res) => {
     const { isDemoMode, getActiveProvider } = await import("../services/ai-provider");
     res.json({
       available: !isDemoMode(),
@@ -445,7 +446,7 @@ export function registerFeatureRoutes(app: Express) {
     });
   });
 
-  app.post("/api/ai/parse-request", expensiveLimiter, isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.post("/ai/parse-request", expensiveLimiter, isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const { text } = req.body;
       if (!text) {
@@ -461,7 +462,7 @@ export function registerFeatureRoutes(app: Express) {
     }
   });
 
-  app.get("/api/ai/weekly-brief", expensiveLimiter, isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/ai/weekly-brief", expensiveLimiter, isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -510,7 +511,7 @@ export function registerFeatureRoutes(app: Express) {
     }
   });
 
-  app.post("/api/ai/transcribe", expensiveLimiter, isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.post("/ai/transcribe", expensiveLimiter, isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const { audioBase64 } = req.body;
       if (!audioBase64 || typeof audioBase64 !== "string") {
@@ -526,7 +527,7 @@ export function registerFeatureRoutes(app: Express) {
     }
   });
 
-  app.post("/api/ai/smart-actions", expensiveLimiter, isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.post("/ai/smart-actions", expensiveLimiter, isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -551,7 +552,7 @@ export function registerFeatureRoutes(app: Express) {
     }
   });
 
-  app.post("/api/ai/chat", expensiveLimiter, isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.post("/ai/chat", expensiveLimiter, isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
       const { messages } = req.body;
@@ -569,7 +570,7 @@ export function registerFeatureRoutes(app: Express) {
     }
   });
 
-  app.post("/api/ai/chat/create-request", expensiveLimiter, isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.post("/ai/chat/create-request", expensiveLimiter, isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -603,7 +604,7 @@ export function registerFeatureRoutes(app: Express) {
     }
   });
 
-  app.post("/api/ai/parse-smart", expensiveLimiter, isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.post("/ai/parse-smart", expensiveLimiter, isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
       const { text, useAI = true } = req.body;
@@ -636,7 +637,7 @@ export function registerFeatureRoutes(app: Express) {
     }
   });
 
-  app.get("/api/ai/insights", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/ai/insights", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
       const { getProactiveInsights } = await import("../services/ai-agent");
@@ -649,7 +650,7 @@ export function registerFeatureRoutes(app: Express) {
     }
   });
 
-  app.post("/api/ai/insights/refresh", expensiveLimiter, isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.post("/ai/insights/refresh", expensiveLimiter, isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
       const { gatherHouseholdContext, generateProactiveInsights } = await import("../services/ai-agent");
@@ -664,7 +665,7 @@ export function registerFeatureRoutes(app: Express) {
     }
   });
 
-  app.post("/api/ai/insights/:id/dismiss", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.post("/ai/insights/:id/dismiss", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
       const { dismissInsight } = await import("../services/ai-agent");
@@ -677,7 +678,7 @@ export function registerFeatureRoutes(app: Express) {
     }
   });
 
-  app.get("/api/ai/estimate-duration", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/ai/estimate-duration", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
       const { category } = req.query;
@@ -696,7 +697,7 @@ export function registerFeatureRoutes(app: Express) {
     }
   });
 
-  app.post("/api/ai/learn/task-complete", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.post("/ai/learn/task-complete", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
       const { taskId, category, estimatedMinutes, createdAt, completedAt } = req.body;

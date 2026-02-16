@@ -63,7 +63,7 @@ import { format, addDays, addWeeks, nextMonday, setHours, isToday, isBefore, sta
 import { DateTimePicker } from "@/components/date-time-picker";
 import type { Task, InsertTask, TaskChecklistItem, TaskTemplate } from "@shared/schema";
 import { Label } from "@/components/ui/label";
-import { queryClient, apiRequest } from "@/lib/queryClient";
+import { queryClient, apiRequest, versionedUrl } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { SwipeRow } from "@/components/premium/swipe-row";
@@ -258,7 +258,7 @@ export default function Tasks() {
       formData.append("category", "OTHER");
       formData.append("linkTo", JSON.stringify({ entityType: "TASK", entityId: selectedTask.id }));
       
-      const response = await fetch("/api/files/upload", {
+      const response = await fetch(versionedUrl("/api/files/upload"), {
         method: "POST",
         body: formData,
         credentials: "include",

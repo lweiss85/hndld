@@ -6,6 +6,7 @@ import { setupAuth, registerAuthRoutes, isAuthenticated } from "./replit_integra
 import { apiLimiter } from "./lib/rate-limit";
 import { requestIdMiddleware } from "./middleware/requestId";
 import { responseTimeMiddleware } from "./middleware/responseTime";
+import { apiVersionMiddleware } from "./middleware/apiVersion";
 import { householdContextMiddleware } from "./middleware/householdContext";
 import { metrics } from "./lib/metrics";
 import { startScheduledBackups } from "./services/scheduler";
@@ -49,24 +50,30 @@ export async function registerRoutes(
 
   app.use("/api/", apiLimiter);
 
-  app.use("/api/households", isAuthenticated, householdRoutes);
-  app.use(inviteRoutes);
-  app.use("/api/files", isAuthenticated, householdContext, fileRoutes);
-  app.use("/api/h", isAuthenticated, weeklyBriefRoutes);
+  const v1 = express.Router();
+  v1.use(apiVersionMiddleware);
 
-  app.use("/uploads", express.static(join(process.cwd(), "uploads")));
+  v1.use("/households", isAuthenticated, householdRoutes);
+  v1.use(inviteRoutes);
+  v1.use("/files", isAuthenticated, householdContext, fileRoutes);
+  v1.use("/h", isAuthenticated, weeklyBriefRoutes);
 
-  registerGoogleCalendarRoutes(app);
-  registerUserProfileRoutes(app);
-  registerCleaningRoutes(app);
-  registerTaskRoutes(app);
-  registerApprovalsRoutes(app);
-  registerSpendingRoutes(app);
-  registerCalendarRoutes(app);
-  registerHouseholdConciergeRoutes(app);
-  registerAdminRoutes(app);
-  registerAdminOpsRoutes(app);
-  registerFeatureRoutes(app);
+  v1.use("/uploads", express.static(join(process.cwd(), "uploads")));
+
+  registerGoogleCalendarRoutes(v1);
+  registerUserProfileRoutes(v1);
+  registerCleaningRoutes(v1);
+  registerTaskRoutes(v1);
+  registerApprovalsRoutes(v1);
+  registerSpendingRoutes(v1);
+  registerCalendarRoutes(v1);
+  registerHouseholdConciergeRoutes(v1);
+  registerAdminRoutes(v1);
+  registerAdminOpsRoutes(v1);
+  registerFeatureRoutes(v1);
+
+  app.use("/api/v1", v1);
+  app.use("/api", v1);
 
   const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
   setInterval(runMomentsAutomation, TWENTY_FOUR_HOURS_MS);

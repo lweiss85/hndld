@@ -10,7 +10,7 @@ import { requirePermission } from "../middleware/requirePermission";
 const router = Router();
 const householdContext = householdContextMiddleware;
 
-router.get("/api/invites", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_SETTINGS"), async (req: any, res) => {
+router.get("/invites", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_SETTINGS"), async (req: any, res) => {
   try {
     const householdId = req.householdId!;
     
@@ -26,7 +26,7 @@ router.get("/api/invites", isAuthenticated, householdContext, requirePermission(
   }
 });
 
-router.post("/api/invites", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_SETTINGS"), async (req: any, res) => {
+router.post("/invites", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_SETTINGS"), async (req: any, res) => {
   try {
     const userId = req.user.claims.sub;
     const householdId = req.householdId!;
@@ -64,7 +64,7 @@ router.post("/api/invites", isAuthenticated, householdContext, requirePermission
   }
 });
 
-router.post("/api/invites/:token/accept", isAuthenticated, async (req: any, res) => {
+router.post("/invites/:token/accept", isAuthenticated, async (req: any, res) => {
   try {
     const { token } = req.params;
     const userId = req.user.claims.sub;
@@ -130,7 +130,7 @@ router.post("/api/invites/:token/accept", isAuthenticated, async (req: any, res)
   }
 });
 
-router.get("/api/invites/:token/info", async (req, res) => {
+router.get("/invites/:token/info", async (req, res) => {
   try {
     const { token } = req.params;
     
@@ -170,7 +170,7 @@ router.get("/api/invites/:token/info", async (req, res) => {
   }
 });
 
-router.delete("/api/invites/:id", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_SETTINGS"), async (req: any, res) => {
+router.delete("/invites/:id", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_SETTINGS"), async (req: any, res) => {
   try {
     const householdId = req.householdId!;
     const { id } = req.params;

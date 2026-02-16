@@ -1,4 +1,5 @@
-import type { Express, Request, Response } from "express";
+import type { Request, Response } from "express";
+import type { Router } from "express";
 import { storage } from "../storage";
 import logger from "../lib/logger";
 import { isAuthenticated } from "../replit_integrations/auth";
@@ -18,12 +19,12 @@ async function getUserProfile(userId: string) {
   return storage.getUserProfile(userId);
 }
 
-export function registerAdminRoutes(app: Express) {
+export function registerAdminRoutes(app: Router) {
   // ============================================
   // AUDIT LOG ROUTES
   // ============================================
   
-  app.get("/api/audit-logs", isAuthenticated, householdContext, requirePermission("CAN_VIEW_AUDIT_LOG"), async (req: Request, res: Response) => {
+  app.get("/audit-logs", isAuthenticated, householdContext, requirePermission("CAN_VIEW_AUDIT_LOG"), async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -55,7 +56,7 @@ export function registerAdminRoutes(app: Express) {
   // VAULT SETTINGS ROUTES
   // ============================================
   
-  app.get("/api/vault/settings", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/vault/settings", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -78,7 +79,7 @@ export function registerAdminRoutes(app: Express) {
     }
   });
 
-  app.post("/api/vault/set-pin", authLimiter, isAuthenticated, householdContext, requirePermission("CAN_EDIT_VAULT"), async (req: Request, res: Response) => {
+  app.post("/vault/set-pin", authLimiter, isAuthenticated, householdContext, requirePermission("CAN_EDIT_VAULT"), async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -113,7 +114,7 @@ export function registerAdminRoutes(app: Express) {
     }
   });
 
-  app.post("/api/vault/verify-pin", authLimiter, isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.post("/vault/verify-pin", authLimiter, isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -162,7 +163,7 @@ export function registerAdminRoutes(app: Express) {
   // HANDOFF PACKET ROUTES
   // ============================================
   
-  app.get("/api/handoff", isAuthenticated, householdContext, requirePermission("CAN_ADMIN_EXPORTS"), async (req: Request, res: Response) => {
+  app.get("/handoff", isAuthenticated, householdContext, requirePermission("CAN_ADMIN_EXPORTS"), async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -194,7 +195,7 @@ export function registerAdminRoutes(app: Express) {
     }
   });
   
-  app.get("/api/handoff/data", isAuthenticated, householdContext, requirePermission("CAN_ADMIN_EXPORTS"), async (req: Request, res: Response) => {
+  app.get("/handoff/data", isAuthenticated, householdContext, requirePermission("CAN_ADMIN_EXPORTS"), async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -214,7 +215,7 @@ export function registerAdminRoutes(app: Express) {
     }
   });
 
-  app.get("/api/moments/generate", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/moments/generate", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -242,7 +243,7 @@ export function registerAdminRoutes(app: Express) {
   // NOTIFICATIONS ROUTES
   // ============================================
 
-  app.get("/api/notifications", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/notifications", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -254,7 +255,7 @@ export function registerAdminRoutes(app: Express) {
     }
   });
 
-  app.get("/api/notifications/unread-count", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/notifications/unread-count", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -266,7 +267,7 @@ export function registerAdminRoutes(app: Express) {
     }
   });
 
-  app.patch("/api/notifications/:id/read", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.patch("/notifications/:id/read", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       await markNotificationRead(req.params.id);
       res.json({ success: true });
@@ -276,7 +277,7 @@ export function registerAdminRoutes(app: Express) {
     }
   });
 
-  app.post("/api/notifications/mark-all-read", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.post("/notifications/mark-all-read", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -288,7 +289,7 @@ export function registerAdminRoutes(app: Express) {
     }
   });
 
-  app.get("/api/notification-settings", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/notification-settings", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const settings = await getNotificationSettings(userId);
@@ -299,7 +300,7 @@ export function registerAdminRoutes(app: Express) {
     }
   });
 
-  app.patch("/api/notification-settings", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.patch("/notification-settings", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -315,7 +316,7 @@ export function registerAdminRoutes(app: Express) {
   // AI SUGGESTIONS ROUTES
   // ============================================
 
-  app.get("/api/suggestions", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/suggestions", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
       const suggestions = await getSmartSuggestions(householdId);
@@ -330,7 +331,7 @@ export function registerAdminRoutes(app: Express) {
   // PUSH NOTIFICATIONS ROUTES
   // ============================================
 
-  app.get("/api/push/vapid-key", async (_req, res) => {
+  app.get("/push/vapid-key", async (_req, res) => {
     const publicKey = getVapidPublicKey();
     res.json({ 
       publicKey,
@@ -338,7 +339,7 @@ export function registerAdminRoutes(app: Express) {
     });
   });
 
-  app.post("/api/push/subscribe", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.post("/push/subscribe", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -364,7 +365,7 @@ export function registerAdminRoutes(app: Express) {
     }
   });
 
-  app.post("/api/push/unsubscribe", isAuthenticated, async (req: Request, res: Response) => {
+  app.post("/push/unsubscribe", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const { endpoint } = req.body;
@@ -381,7 +382,7 @@ export function registerAdminRoutes(app: Express) {
     }
   });
 
-  app.get("/api/push/subscriptions", isAuthenticated, async (req: Request, res: Response) => {
+  app.get("/push/subscriptions", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const subscriptions = await getUserSubscriptions(userId);
@@ -400,7 +401,7 @@ export function registerAdminRoutes(app: Express) {
   // GLOBAL SEARCH ROUTE
   // ============================================
 
-  app.get("/api/search", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/search", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;

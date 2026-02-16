@@ -1,4 +1,5 @@
-import type { Express, Request, Response } from "express";
+import type { Request, Response } from "express";
+import type { Router } from "express";
 import { storage } from "../storage";
 import logger from "../lib/logger";
 import { isAuthenticated } from "../replit_integrations/auth";
@@ -22,13 +23,13 @@ async function getUserProfile(userId: string) {
   return storage.getUserProfile(userId);
 }
 
-export function registerHouseholdConciergeRoutes(app: Express) {
+export function registerHouseholdConciergeRoutes(app: Router) {
   // ============================================
   // HOUSEHOLD CONCIERGE ENDPOINTS
   // ============================================
 
   // Onboarding Status Endpoints
-  app.get("/api/onboarding/status", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/onboarding/status", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -45,7 +46,7 @@ export function registerHouseholdConciergeRoutes(app: Express) {
     }
   });
 
-  app.post("/api/onboarding/complete-phase", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.post("/onboarding/complete-phase", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -84,7 +85,7 @@ export function registerHouseholdConciergeRoutes(app: Express) {
     }
   });
 
-  app.post("/api/onboarding/settings", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.post("/onboarding/settings", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
       const settings = req.body;
@@ -101,7 +102,7 @@ export function registerHouseholdConciergeRoutes(app: Express) {
     }
   });
 
-  app.post("/api/onboarding/save-step", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.post("/onboarding/save-step", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const { step, data } = req.body;
       const householdId = req.householdId!;
@@ -181,7 +182,7 @@ export function registerHouseholdConciergeRoutes(app: Express) {
   });
 
   // Get current household (for service type detection)
-  app.get("/api/household", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/household", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
       const [household] = await db
@@ -202,7 +203,7 @@ export function registerHouseholdConciergeRoutes(app: Express) {
   });
 
   // Household Settings Endpoints
-  app.get("/api/household/settings", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/household/settings", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -219,7 +220,7 @@ export function registerHouseholdConciergeRoutes(app: Express) {
     }
   });
 
-  app.put("/api/household/settings", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.put("/household/settings", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -238,7 +239,7 @@ export function registerHouseholdConciergeRoutes(app: Express) {
   });
 
   // Household Locations Endpoints
-  app.get("/api/household/locations", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/household/locations", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -250,7 +251,7 @@ export function registerHouseholdConciergeRoutes(app: Express) {
     }
   });
 
-  app.post("/api/household/locations", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.post("/household/locations", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -272,7 +273,7 @@ export function registerHouseholdConciergeRoutes(app: Express) {
     }
   });
 
-  app.put("/api/household/locations/:id", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.put("/household/locations/:id", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -293,7 +294,7 @@ export function registerHouseholdConciergeRoutes(app: Express) {
     }
   });
 
-  app.delete("/api/household/locations/:id", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_SETTINGS"), async (req: Request, res: Response) => {
+  app.delete("/household/locations/:id", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_SETTINGS"), async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
       
@@ -309,7 +310,7 @@ export function registerHouseholdConciergeRoutes(app: Express) {
   });
 
   // People Endpoints
-  app.get("/api/people", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/people", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -321,7 +322,7 @@ export function registerHouseholdConciergeRoutes(app: Express) {
     }
   });
 
-  app.post("/api/people", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.post("/people", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -343,7 +344,7 @@ export function registerHouseholdConciergeRoutes(app: Express) {
     }
   });
 
-  app.put("/api/people/:id", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.put("/people/:id", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -364,7 +365,7 @@ export function registerHouseholdConciergeRoutes(app: Express) {
     }
   });
 
-  app.delete("/api/people/:id", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_SETTINGS"), async (req: Request, res: Response) => {
+  app.delete("/people/:id", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_SETTINGS"), async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
       
@@ -380,7 +381,7 @@ export function registerHouseholdConciergeRoutes(app: Express) {
   });
 
   // Preferences Endpoints
-  app.get("/api/preferences", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/preferences", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -392,7 +393,7 @@ export function registerHouseholdConciergeRoutes(app: Express) {
     }
   });
 
-  app.post("/api/preferences", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.post("/preferences", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -415,7 +416,7 @@ export function registerHouseholdConciergeRoutes(app: Express) {
     }
   });
 
-  app.put("/api/preferences/:id", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.put("/preferences/:id", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -436,7 +437,7 @@ export function registerHouseholdConciergeRoutes(app: Express) {
     }
   });
 
-  app.delete("/api/preferences/:id", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_SETTINGS"), async (req: Request, res: Response) => {
+  app.delete("/preferences/:id", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_SETTINGS"), async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
       
@@ -452,7 +453,7 @@ export function registerHouseholdConciergeRoutes(app: Express) {
   });
 
   // Important Dates Endpoints
-  app.get("/api/important-dates", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/important-dates", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -464,7 +465,7 @@ export function registerHouseholdConciergeRoutes(app: Express) {
     }
   });
 
-  app.post("/api/important-dates", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.post("/important-dates", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -486,7 +487,7 @@ export function registerHouseholdConciergeRoutes(app: Express) {
     }
   });
 
-  app.put("/api/important-dates/:id", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.put("/important-dates/:id", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -507,7 +508,7 @@ export function registerHouseholdConciergeRoutes(app: Express) {
     }
   });
 
-  app.delete("/api/important-dates/:id", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_SETTINGS"), async (req: Request, res: Response) => {
+  app.delete("/important-dates/:id", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_SETTINGS"), async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
       
@@ -523,7 +524,7 @@ export function registerHouseholdConciergeRoutes(app: Express) {
   });
 
   // Access Items Endpoints
-  app.get("/api/access-items", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/access-items", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -555,7 +556,7 @@ export function registerHouseholdConciergeRoutes(app: Express) {
     }
   });
 
-  app.post("/api/access-items", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.post("/access-items", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -587,7 +588,7 @@ export function registerHouseholdConciergeRoutes(app: Express) {
     }
   });
 
-  app.put("/api/access-items/:id", isAuthenticated, householdContext, requirePermission("CAN_EDIT_VAULT"), async (req: Request, res: Response) => {
+  app.put("/access-items/:id", isAuthenticated, householdContext, requirePermission("CAN_EDIT_VAULT"), async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
       const data = req.body;
@@ -614,7 +615,7 @@ export function registerHouseholdConciergeRoutes(app: Express) {
     }
   });
 
-  app.delete("/api/access-items/:id", isAuthenticated, householdContext, requirePermission("CAN_EDIT_VAULT"), async (req: Request, res: Response) => {
+  app.delete("/access-items/:id", isAuthenticated, householdContext, requirePermission("CAN_EDIT_VAULT"), async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
       
@@ -629,7 +630,7 @@ export function registerHouseholdConciergeRoutes(app: Express) {
     }
   });
 
-  app.post("/api/access-items/:id/reveal", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.post("/access-items/:id/reveal", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
       const userId = req.user!.claims.sub;
@@ -662,7 +663,7 @@ export function registerHouseholdConciergeRoutes(app: Express) {
   });
 
   // Access Item Grants (for STAFF access management)
-  app.get("/api/access-items/:id/grants", isAuthenticated, householdContext, requirePermission("CAN_EDIT_VAULT"), async (req: Request, res: Response) => {
+  app.get("/access-items/:id/grants", isAuthenticated, householdContext, requirePermission("CAN_EDIT_VAULT"), async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
       const householdId = req.householdId!;
@@ -680,7 +681,7 @@ export function registerHouseholdConciergeRoutes(app: Express) {
     }
   });
 
-  app.post("/api/access-items/:id/grants", isAuthenticated, householdContext, requirePermission("CAN_EDIT_VAULT"), async (req: Request, res: Response) => {
+  app.post("/access-items/:id/grants", isAuthenticated, householdContext, requirePermission("CAN_EDIT_VAULT"), async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
       const { userId: grantUserId, expiresAt } = req.body;
@@ -707,7 +708,7 @@ export function registerHouseholdConciergeRoutes(app: Express) {
     }
   });
 
-  app.delete("/api/access-items/:id/grants/:grantId", isAuthenticated, householdContext, requirePermission("CAN_EDIT_VAULT"), async (req: Request, res: Response) => {
+  app.delete("/access-items/:id/grants/:grantId", isAuthenticated, householdContext, requirePermission("CAN_EDIT_VAULT"), async (req: Request, res: Response) => {
     try {
       const { grantId } = req.params;
       
@@ -723,7 +724,7 @@ export function registerHouseholdConciergeRoutes(app: Express) {
   });
 
   // Quick Request Templates Endpoints
-  app.get("/api/quick-request-templates", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/quick-request-templates", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -735,7 +736,7 @@ export function registerHouseholdConciergeRoutes(app: Express) {
     }
   });
 
-  app.get("/api/quick-request-templates/all", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/quick-request-templates/all", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -753,7 +754,7 @@ export function registerHouseholdConciergeRoutes(app: Express) {
     }
   });
 
-  app.post("/api/quick-request-templates", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.post("/quick-request-templates", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -779,7 +780,7 @@ export function registerHouseholdConciergeRoutes(app: Express) {
     }
   });
 
-  app.patch("/api/quick-request-templates/:id", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.patch("/quick-request-templates/:id", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -806,7 +807,7 @@ export function registerHouseholdConciergeRoutes(app: Express) {
     }
   });
 
-  app.delete("/api/quick-request-templates/:id", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.delete("/quick-request-templates/:id", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -828,7 +829,7 @@ export function registerHouseholdConciergeRoutes(app: Express) {
   });
 
   // Playbooks (SOP Templates) Endpoints
-  app.get("/api/playbooks", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/playbooks", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -840,7 +841,7 @@ export function registerHouseholdConciergeRoutes(app: Express) {
     }
   });
 
-  app.get("/api/playbooks/:id", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/playbooks/:id", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -857,7 +858,7 @@ export function registerHouseholdConciergeRoutes(app: Express) {
     }
   });
 
-  app.post("/api/playbooks", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_PLAYBOOKS"), async (req: Request, res: Response) => {
+  app.post("/playbooks", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_PLAYBOOKS"), async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -898,7 +899,7 @@ export function registerHouseholdConciergeRoutes(app: Express) {
     }
   });
 
-  app.patch("/api/playbooks/:id", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_PLAYBOOKS"), async (req: Request, res: Response) => {
+  app.patch("/playbooks/:id", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_PLAYBOOKS"), async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -946,7 +947,7 @@ export function registerHouseholdConciergeRoutes(app: Express) {
     }
   });
 
-  app.delete("/api/playbooks/:id", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_PLAYBOOKS"), async (req: Request, res: Response) => {
+  app.delete("/playbooks/:id", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_PLAYBOOKS"), async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;

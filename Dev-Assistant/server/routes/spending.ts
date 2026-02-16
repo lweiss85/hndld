@@ -1,4 +1,5 @@
-import type { Express, Request, Response } from "express";
+import type { Request, Response } from "express";
+import type { Router } from "express";
 import { storage } from "../storage";
 import logger from "../lib/logger";
 import { isAuthenticated } from "../replit_integrations/auth";
@@ -13,8 +14,8 @@ import { getStorageProvider } from "../services/storage-provider";
 
 const householdContext = householdContextMiddleware;
 
-export function registerSpendingRoutes(app: Express) {
-  app.get("/api/spending", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+export function registerSpendingRoutes(app: Router) {
+  app.get("/spending", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -53,7 +54,7 @@ export function registerSpendingRoutes(app: Express) {
     }
   });
   
-  app.post("/api/spending", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.post("/spending", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -74,7 +75,7 @@ export function registerSpendingRoutes(app: Express) {
   });
 
   // Update spending item status (for payment workflow)
-  app.patch("/api/spending/:id/status", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.patch("/spending/:id/status", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
       const { status } = req.body;
@@ -158,7 +159,7 @@ export function registerSpendingRoutes(app: Express) {
   });
 
   // Organization Payment Profile endpoints
-  app.get("/api/org/payment-profile", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_SETTINGS"), async (req: Request, res: Response) => {
+  app.get("/org/payment-profile", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_SETTINGS"), async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
       
@@ -181,7 +182,7 @@ export function registerSpendingRoutes(app: Express) {
     }
   });
 
-  app.put("/api/org/payment-profile", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_SETTINGS"), async (req: Request, res: Response) => {
+  app.put("/org/payment-profile", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_SETTINGS"), async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -259,7 +260,7 @@ export function registerSpendingRoutes(app: Express) {
   });
 
   // Household Payment Settings endpoints
-  app.get("/api/household/payment-settings", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/household/payment-settings", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
       
@@ -283,7 +284,7 @@ export function registerSpendingRoutes(app: Express) {
     }
   });
 
-  app.put("/api/household/payment-settings", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_SETTINGS"), async (req: Request, res: Response) => {
+  app.put("/household/payment-settings", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_SETTINGS"), async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
       const { useOrgDefaults, venmoUsername, zelleRecipient, cashAppCashtag, paypalMeHandle, defaultPaymentMethod, payNoteTemplate } = req.body;
@@ -344,7 +345,7 @@ export function registerSpendingRoutes(app: Express) {
   });
 
   // Pay Options endpoint - returns effective payment info for a spending item
-  app.get("/api/spending/:id/pay-options", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/spending/:id/pay-options", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
       
@@ -459,7 +460,7 @@ export function registerSpendingRoutes(app: Express) {
   });
 
   // General pay options endpoint - returns payment profile for the household (client accessible)
-  app.get("/api/pay-options", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/pay-options", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
       
@@ -516,7 +517,7 @@ export function registerSpendingRoutes(app: Express) {
   // ==================== INVOICE ENDPOINTS ====================
 
   // POST /api/invoices/send - Assistant sends an invoice
-  app.post("/api/invoices/send", isAuthenticated, householdContext, requirePermission("CAN_EDIT_TASKS"), async (req: Request, res: Response) => {
+  app.post("/invoices/send", isAuthenticated, householdContext, requirePermission("CAN_EDIT_TASKS"), async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
       const userId = req.user!.claims.sub;
@@ -685,7 +686,7 @@ export function registerSpendingRoutes(app: Express) {
   });
 
   // GET /api/invoices/pending - Client checks if they have unpaid invoices
-  app.get("/api/invoices/pending", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/invoices/pending", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
       const serviceType = req.query.serviceType as string | undefined;
@@ -738,7 +739,7 @@ export function registerSpendingRoutes(app: Express) {
   });
 
   // GET /api/invoices - List all invoices
-  app.get("/api/invoices", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/invoices", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
 

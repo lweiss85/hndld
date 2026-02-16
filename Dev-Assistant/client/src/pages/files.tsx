@@ -45,7 +45,7 @@ import {
   Camera,
 } from "lucide-react";
 import { format } from "date-fns";
-import { queryClient } from "@/lib/queryClient";
+import { queryClient, versionedUrl } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { PhotoCapture } from "@/components/photo-capture";
 
@@ -118,7 +118,7 @@ export default function Files() {
     queryFn: async () => {
       const params = new URLSearchParams();
       if (categoryFilter !== "ALL") params.set("category", categoryFilter);
-      const res = await fetch(`/api/files?${params}`, { credentials: "include" });
+      const res = await fetch(versionedUrl(`/api/files?${params}`), { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch files");
       return res.json();
     },
@@ -126,7 +126,7 @@ export default function Files() {
 
   const deleteMutation = useMutation({
     mutationFn: async (fileId: string) => {
-      const res = await fetch(`/api/files/${fileId}`, {
+      const res = await fetch(versionedUrl(`/api/files/${fileId}`), {
         method: "DELETE",
         credentials: "include",
       });
@@ -164,7 +164,7 @@ export default function Files() {
         formData.append("tags", JSON.stringify(tags));
       }
 
-      const res = await fetch("/api/files/upload", {
+      const res = await fetch(versionedUrl("/api/files/upload"), {
         method: "POST",
         credentials: "include",
         body: formData,

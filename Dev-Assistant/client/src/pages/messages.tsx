@@ -10,7 +10,7 @@ import {
   MessageCircle, Send, Plus, ArrowLeft, User, Mic, MicOff, Loader2
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
-import { queryClient, apiRequest } from "@/lib/queryClient";
+import { queryClient, apiRequest, versionedUrl } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { Conversation, Message } from "@shared/schema";
 import { PageTransition, StaggeredList } from "@/components/juice";
@@ -122,7 +122,7 @@ function MessageThread({
   const { data: messages, isLoading } = useQuery<Message[]>({
     queryKey: ["/api/conversations", conversationId, "messages"],
     queryFn: async () => {
-      const res = await fetch(`/api/conversations/${conversationId}/messages`);
+      const res = await fetch(versionedUrl(`/api/conversations/${conversationId}/messages`));
       if (!res.ok) throw new Error("Failed to fetch messages");
       return res.json();
     },

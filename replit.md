@@ -26,7 +26,7 @@ Preferred communication style: Simple, everyday language.
 
 ### Backend Architecture
 - **Runtime**: Node.js with Express.js server in TypeScript
-- **API Design**: RESTful endpoints under `/api/*` prefix with rate limiting (apiLimiter, authLimiter, criticalLimiter)
+- **API Design**: RESTful endpoints under `/api/v1/*` prefix with URL-based versioning (see docs/API_VERSIONING.md). Rate limiting via apiLimiter, authLimiter, criticalLimiter. Accept-Version header support via apiVersion middleware. Unversioned: `/api/health`, `/api/metrics`, auth routes
 - **Route Organization**: Modular route files in `server/routes/` with domain-specific modules:
   - `helpers.ts` - Shared functions (calculateNextOccurrence, seedDemoData, getOrCreateHousehold, runMomentsAutomation)
   - `google-calendar.ts` - Google Calendar OAuth flow

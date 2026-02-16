@@ -1,4 +1,5 @@
-import type { Express, Request, Response } from "express";
+import type { Request, Response } from "express";
+import type { Router } from "express";
 import { storage } from "../storage";
 import logger from "../lib/logger";
 import { isAuthenticated } from "../replit_integrations/auth";
@@ -7,8 +8,8 @@ import * as googleCalendarReplit from "../services/google-calendar-replit";
 
 const householdContext = householdContextMiddleware;
 
-export function registerCalendarRoutes(app: Express) {
-  app.get("/api/calendar-events", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+export function registerCalendarRoutes(app: Router) {
+  app.get("/calendar-events", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -20,7 +21,7 @@ export function registerCalendarRoutes(app: Express) {
     }
   });
   
-  app.post("/api/calendar/sync", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.post("/calendar/sync", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -45,7 +46,7 @@ export function registerCalendarRoutes(app: Express) {
     }
   });
   
-  app.get("/api/calendar/status", isAuthenticated, householdContext, async (_req, res) => {
+  app.get("/calendar/status", isAuthenticated, householdContext, async (_req, res) => {
     try {
       const isConnected = await googleCalendarReplit.isGoogleCalendarConnected();
       res.json({ 
@@ -57,7 +58,7 @@ export function registerCalendarRoutes(app: Express) {
     }
   });
   
-  app.post("/api/calendar-events/:id/create-task", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.post("/calendar-events/:id/create-task", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;

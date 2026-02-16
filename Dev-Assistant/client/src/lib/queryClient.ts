@@ -1,5 +1,14 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
 
+const API_VERSION_PREFIX = "/api/v1";
+
+export function versionedUrl(url: string): string {
+  if (url.startsWith("/api/") && !url.startsWith("/api/v1/") && !url.startsWith("/api/auth/") && !url.startsWith("/api/login") && !url.startsWith("/api/logout") && !url.startsWith("/api/callback") && !url.startsWith("/api/health") && !url.startsWith("/api/metrics")) {
+    return url.replace(/^\/api/, API_VERSION_PREFIX);
+  }
+  return url;
+}
+
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
     const text = (await res.text()) || res.statusText;
@@ -14,7 +23,7 @@ export async function apiRequest(
 ): Promise<Response> {
   const activeHouseholdId = localStorage.getItem("activeHouseholdId");
   
-  const res = await fetch(url, {
+  const res = await fetch(versionedUrl(url), {
     method,
     headers: {
       ...(data ? { "Content-Type": "application/json" } : {}),
@@ -39,8 +48,9 @@ export const getQueryFn: <T>(options: {
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
     const activeHouseholdId = localStorage.getItem("activeHouseholdId");
+    const rawUrl = queryKey.join("/") as string;
     
-    const res = await fetch(queryKey.join("/") as string, {
+    const res = await fetch(versionedUrl(rawUrl), {
       credentials: "include",
       headers: activeHouseholdId ? { "X-Household-Id": activeHouseholdId } : {},
     });

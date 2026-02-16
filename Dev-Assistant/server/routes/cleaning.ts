@@ -1,4 +1,5 @@
-import type { Express, Request, Response } from "express";
+import type { Request, Response } from "express";
+import type { Router } from "express";
 import { storage } from "../storage";
 import logger from "../lib/logger";
 import { isAuthenticated } from "../replit_integrations/auth";
@@ -6,12 +7,12 @@ import { householdContextMiddleware } from "../middleware/householdContext";
 
 const householdContext = householdContextMiddleware;
 
-export async function registerCleaningRoutes(app: Express): Promise<void> {
+export async function registerCleaningRoutes(app: Router): Promise<void> {
   // ============================================
   // CLEANING SERVICE ENDPOINTS
   // ============================================
 
-  app.get("/api/addon-services", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/addon-services", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
       const addons = await storage.getAddonServices(householdId);
@@ -22,7 +23,7 @@ export async function registerCleaningRoutes(app: Express): Promise<void> {
     }
   });
 
-  app.post("/api/addon-services", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.post("/addon-services", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
       const userProfile = req.userProfile;
@@ -60,7 +61,7 @@ export async function registerCleaningRoutes(app: Express): Promise<void> {
     }
   });
 
-  app.patch("/api/addon-services/:id", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.patch("/addon-services/:id", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
       const userProfile = req.userProfile;
@@ -101,7 +102,7 @@ export async function registerCleaningRoutes(app: Express): Promise<void> {
     }
   });
 
-  app.delete("/api/addon-services/:id", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.delete("/addon-services/:id", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
       const userProfile = req.userProfile;
@@ -124,7 +125,7 @@ export async function registerCleaningRoutes(app: Express): Promise<void> {
     }
   });
 
-  app.get("/api/cleaning/next", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/cleaning/next", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
       const visit = await storage.getNextCleaningVisit(householdId);
@@ -135,7 +136,7 @@ export async function registerCleaningRoutes(app: Express): Promise<void> {
     }
   });
 
-  app.get("/api/cleaning/visits", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/cleaning/visits", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
       const visits = await storage.getCleaningVisits(householdId);
@@ -146,7 +147,7 @@ export async function registerCleaningRoutes(app: Express): Promise<void> {
     }
   });
 
-  app.post("/api/cleaning/visits", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.post("/cleaning/visits", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
       const visit = await storage.createCleaningVisit({
@@ -160,7 +161,7 @@ export async function registerCleaningRoutes(app: Express): Promise<void> {
     }
   });
 
-  app.patch("/api/cleaning/visits/:id", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.patch("/cleaning/visits/:id", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
       const visit = await storage.updateCleaningVisit(id, req.body);

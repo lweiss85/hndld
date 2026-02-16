@@ -1,4 +1,5 @@
-import type { Express, Request, Response } from "express";
+import type { Request, Response } from "express";
+import type { Router } from "express";
 import { storage } from "../storage";
 import logger from "../lib/logger";
 import { isAuthenticated } from "../replit_integrations/auth";
@@ -9,8 +10,8 @@ import { google } from "googleapis";
 
 const householdContext = householdContextMiddleware;
 
-export function registerGoogleCalendarRoutes(app: Express) {
-  app.get("/api/google/auth", isAuthenticated, async (req: Request, res: Response) => {
+export function registerGoogleCalendarRoutes(app: Router) {
+  app.get("/google/auth", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.headers["x-household-id"];
@@ -29,7 +30,7 @@ export function registerGoogleCalendarRoutes(app: Express) {
     }
   });
 
-  app.get("/api/google/callback", async (req: Request, res: Response) => {
+  app.get("/google/callback", async (req: Request, res: Response) => {
     try {
       const { code, state } = req.query;
       if (!code || !state) {
@@ -58,7 +59,7 @@ export function registerGoogleCalendarRoutes(app: Express) {
     }
   });
 
-  app.get("/api/google/calendars", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/google/calendars", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
       const connection = await googleCalendar.getConnection(householdId);
@@ -83,7 +84,7 @@ export function registerGoogleCalendarRoutes(app: Express) {
     }
   });
 
-  app.post("/api/google/calendars/select", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.post("/google/calendars/select", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
       const { calendarIds } = req.body;
@@ -110,7 +111,7 @@ export function registerGoogleCalendarRoutes(app: Express) {
     }
   });
 
-  app.post("/api/google/sync", expensiveLimiter, isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.post("/google/sync", expensiveLimiter, isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
       const result = await googleCalendar.syncCalendarEvents(householdId);
@@ -121,7 +122,7 @@ export function registerGoogleCalendarRoutes(app: Express) {
     }
   });
 
-  app.delete("/api/google/disconnect", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.delete("/google/disconnect", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
       await googleCalendar.disconnectCalendar(householdId);

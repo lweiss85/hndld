@@ -22,7 +22,7 @@ import {
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import type { Update, Comment, InsertUpdate } from "@shared/schema";
-import { queryClient, apiRequest } from "@/lib/queryClient";
+import { queryClient, apiRequest, versionedUrl } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useUser } from "@/lib/user-context";
 import { QuickReactions } from "@/components/quick-reactions";
@@ -74,7 +74,7 @@ export default function Updates() {
       formData.append("file", file);
       formData.append("category", "OTHER");
       
-      const response = await fetch("/api/files/upload", {
+      const response = await fetch(versionedUrl("/api/files/upload"), {
         method: "POST",
         body: formData,
         credentials: "include",

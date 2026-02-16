@@ -1,4 +1,5 @@
-import type { Express, Request, Response } from "express";
+import type { Request, Response } from "express";
+import type { Router } from "express";
 import { storage } from "../storage";
 import logger from "../lib/logger";
 import { isAuthenticated } from "../replit_integrations/auth";
@@ -13,8 +14,8 @@ import { format } from "date-fns";
 
 const householdContext = householdContextMiddleware;
 
-export function registerTaskRoutes(app: Express) {
-  app.get("/api/tasks", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+export function registerTaskRoutes(app: Router) {
+  app.get("/tasks", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -56,7 +57,7 @@ export function registerTaskRoutes(app: Express) {
     }
   });
   
-  app.post("/api/tasks", isAuthenticated, householdContext, requirePermission("CAN_EDIT_TASKS"), async (req: Request, res: Response) => {
+  app.post("/tasks", isAuthenticated, householdContext, requirePermission("CAN_EDIT_TASKS"), async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -97,7 +98,7 @@ export function registerTaskRoutes(app: Express) {
     }
   });
   
-  app.patch("/api/tasks/:id", isAuthenticated, householdContext, requirePermission("CAN_EDIT_TASKS"), async (req: Request, res: Response) => {
+  app.patch("/tasks/:id", isAuthenticated, householdContext, requirePermission("CAN_EDIT_TASKS"), async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -133,7 +134,7 @@ export function registerTaskRoutes(app: Express) {
     }
   });
   
-  app.delete("/api/tasks/:id", isAuthenticated, householdContext, requirePermission("CAN_EDIT_TASKS"), async (req: Request, res: Response) => {
+  app.delete("/tasks/:id", isAuthenticated, householdContext, requirePermission("CAN_EDIT_TASKS"), async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -158,7 +159,7 @@ export function registerTaskRoutes(app: Express) {
   });
 
   // Task completion endpoint with recurrence handling
-  app.post("/api/tasks/:id/complete", isAuthenticated, householdContext, requirePermission("CAN_EDIT_TASKS"), async (req: Request, res: Response) => {
+  app.post("/tasks/:id/complete", isAuthenticated, householdContext, requirePermission("CAN_EDIT_TASKS"), async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -233,7 +234,7 @@ export function registerTaskRoutes(app: Express) {
   });
 
   // Task cancellation endpoint
-  app.post("/api/tasks/:id/cancel", isAuthenticated, householdContext, requirePermission("CAN_EDIT_TASKS"), async (req: Request, res: Response) => {
+  app.post("/tasks/:id/cancel", isAuthenticated, householdContext, requirePermission("CAN_EDIT_TASKS"), async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -320,7 +321,7 @@ export function registerTaskRoutes(app: Express) {
   });
 
   // Checklist routes
-  app.post("/api/tasks/:taskId/checklist", isAuthenticated, householdContext, requirePermission("CAN_EDIT_TASKS"), async (req: Request, res: Response) => {
+  app.post("/tasks/:taskId/checklist", isAuthenticated, householdContext, requirePermission("CAN_EDIT_TASKS"), async (req: Request, res: Response) => {
     try {
       const item = await storage.createTaskChecklistItem({
         taskId: req.params.taskId,
@@ -334,7 +335,7 @@ export function registerTaskRoutes(app: Express) {
     }
   });
 
-  app.patch("/api/tasks/:taskId/checklist/:id", isAuthenticated, householdContext, requirePermission("CAN_EDIT_TASKS"), async (req: Request, res: Response) => {
+  app.patch("/tasks/:taskId/checklist/:id", isAuthenticated, householdContext, requirePermission("CAN_EDIT_TASKS"), async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
       const { taskId, id } = req.params;
@@ -350,7 +351,7 @@ export function registerTaskRoutes(app: Express) {
   });
 
   // Task Templates routes
-  app.get("/api/task-templates", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/task-templates", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -362,7 +363,7 @@ export function registerTaskRoutes(app: Express) {
     }
   });
 
-  app.post("/api/task-templates", isAuthenticated, householdContext, requirePermission("CAN_EDIT_TASKS"), async (req: Request, res: Response) => {
+  app.post("/task-templates", isAuthenticated, householdContext, requirePermission("CAN_EDIT_TASKS"), async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
       const template = await storage.createTaskTemplate({
@@ -376,7 +377,7 @@ export function registerTaskRoutes(app: Express) {
     }
   });
 
-  app.patch("/api/task-templates/:id", isAuthenticated, householdContext, requirePermission("CAN_EDIT_TASKS"), async (req: Request, res: Response) => {
+  app.patch("/task-templates/:id", isAuthenticated, householdContext, requirePermission("CAN_EDIT_TASKS"), async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
       const template = await storage.updateTaskTemplate(householdId, req.params.id, req.body);
@@ -390,7 +391,7 @@ export function registerTaskRoutes(app: Express) {
     }
   });
 
-  app.delete("/api/task-templates/:id", isAuthenticated, householdContext, requirePermission("CAN_EDIT_TASKS"), async (req: Request, res: Response) => {
+  app.delete("/task-templates/:id", isAuthenticated, householdContext, requirePermission("CAN_EDIT_TASKS"), async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
       const deleted = await storage.deleteTaskTemplate(householdId, req.params.id);

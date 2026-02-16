@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, versionedUrl } from "@/lib/queryClient";
 import { Home, Users, CheckCircle, XCircle, Clock } from "lucide-react";
 
 export default function JoinPage() {
@@ -19,7 +19,7 @@ export default function JoinPage() {
   const { data: inviteInfo, isLoading, error } = useQuery({
     queryKey: ["/api/invites", token, "info"],
     queryFn: async () => {
-      const response = await fetch(`/api/invites/${token}/info`);
+      const response = await fetch(versionedUrl(`/api/invites/${token}/info`));
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.error || "Failed to fetch invite");

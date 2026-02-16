@@ -23,7 +23,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { queryClient, apiRequest } from "@/lib/queryClient";
+import { queryClient, apiRequest, versionedUrl } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { 
   Building2, 
@@ -147,7 +147,7 @@ function OrganizationCard({ org }: { org: Organization }) {
   const { data: households = [], isLoading } = useQuery<Household[]>({
     queryKey: ["/api/organizations", org.id, "households"],
     queryFn: async () => {
-      const res = await fetch(`/api/organizations/${org.id}/households`, { credentials: "include" });
+      const res = await fetch(versionedUrl(`/api/organizations/${org.id}/households`), { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch households");
       return res.json();
     },

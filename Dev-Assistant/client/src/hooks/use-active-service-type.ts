@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useUser } from "@/lib/user-context";
+import { versionedUrl } from "@/lib/queryClient";
 
 export type ServiceType = "CLEANING" | "PA";
 export type ServiceRole = "CLIENT" | "PROVIDER";
@@ -29,7 +30,7 @@ export function useActiveServiceType() {
   const { data: servicesData, isLoading } = useQuery<ServicesResponse>({
     queryKey: [activeHouseholdId, "/api/services/mine"],
     queryFn: async () => {
-      const res = await fetch("/api/services/mine", {
+      const res = await fetch(versionedUrl("/api/services/mine"), {
         headers: activeHouseholdId ? { "X-Household-Id": activeHouseholdId } : {},
       });
       if (!res.ok) throw new Error("Failed to fetch services");

@@ -1,4 +1,5 @@
-import type { Express, Request, Response } from "express";
+import type { Request, Response } from "express";
+import type { Router } from "express";
 import { storage } from "../storage";
 import logger from "../lib/logger";
 import { isAuthenticated } from "../replit_integrations/auth";
@@ -8,9 +9,9 @@ import { seedDemoData } from "./helpers";
 
 const householdContext = householdContextMiddleware;
 
-export async function registerUserProfileRoutes(app: Express): Promise<void> {
+export async function registerUserProfileRoutes(app: Router): Promise<void> {
   // Get user profile
-  app.get("/api/user-profile", isAuthenticated, async (req: Request, res: Response) => {
+  app.get("/user-profile", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const profile = await storage.getUserProfile(userId);
@@ -28,7 +29,7 @@ export async function registerUserProfileRoutes(app: Express): Promise<void> {
   });
   
   // Set user role (first-time setup)
-  app.post("/api/user/role", isAuthenticated, async (req: Request, res: Response) => {
+  app.post("/user/role", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const { role } = req.body;
@@ -67,7 +68,7 @@ export async function registerUserProfileRoutes(app: Express): Promise<void> {
   });
   
   // Get dashboard data
-  app.get("/api/dashboard", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/dashboard", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -104,7 +105,7 @@ export async function registerUserProfileRoutes(app: Express): Promise<void> {
   });
   
   // Get today's tasks and events
-  app.get("/api/today", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/today", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -127,7 +128,7 @@ export async function registerUserProfileRoutes(app: Express): Promise<void> {
   });
   
   // Get user's service memberships
-  app.get("/api/services/mine", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/services/mine", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -171,7 +172,7 @@ export async function registerUserProfileRoutes(app: Express): Promise<void> {
   });
   
   // Set default service type
-  app.post("/api/services/set-default", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.post("/services/set-default", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;

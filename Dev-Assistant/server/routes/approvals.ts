@@ -1,4 +1,5 @@
-import type { Express, Request, Response } from "express";
+import type { Request, Response } from "express";
+import type { Router } from "express";
 import { storage } from "../storage";
 import logger from "../lib/logger";
 import { isAuthenticated } from "../replit_integrations/auth";
@@ -10,8 +11,8 @@ import { z } from "zod";
 
 const householdContext = householdContextMiddleware;
 
-export function registerApprovalsRoutes(app: Express) {
-  app.get("/api/approvals", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+export function registerApprovalsRoutes(app: Router) {
+  app.get("/approvals", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -47,7 +48,7 @@ export function registerApprovalsRoutes(app: Express) {
     }
   });
   
-  app.post("/api/approvals", isAuthenticated, householdContext, requirePermission("CAN_EDIT_TASKS"), async (req: Request, res: Response) => {
+  app.post("/approvals", isAuthenticated, householdContext, requirePermission("CAN_EDIT_TASKS"), async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -67,7 +68,7 @@ export function registerApprovalsRoutes(app: Express) {
     }
   });
   
-  app.patch("/api/approvals/:id", isAuthenticated, householdContext, requirePermission("CAN_APPROVE"), async (req: Request, res: Response) => {
+  app.patch("/approvals/:id", isAuthenticated, householdContext, requirePermission("CAN_APPROVE"), async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -105,7 +106,7 @@ export function registerApprovalsRoutes(app: Express) {
     }
   });
   
-  app.get("/api/updates", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/updates", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -153,7 +154,7 @@ export function registerApprovalsRoutes(app: Express) {
     }
   });
   
-  app.post("/api/updates", isAuthenticated, householdContext, requirePermission("CAN_CREATE_UPDATE"), async (req: Request, res: Response) => {
+  app.post("/updates", isAuthenticated, householdContext, requirePermission("CAN_CREATE_UPDATE"), async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -173,7 +174,7 @@ export function registerApprovalsRoutes(app: Express) {
     }
   });
   
-  app.post("/api/updates/:id/reactions", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.post("/updates/:id/reactions", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -205,7 +206,7 @@ export function registerApprovalsRoutes(app: Express) {
     }
   });
   
-  app.get("/api/requests", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/requests", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -217,7 +218,7 @@ export function registerApprovalsRoutes(app: Express) {
     }
   });
   
-  app.post("/api/requests", isAuthenticated, householdContext, requirePermission("CAN_CREATE_REQUESTS"), async (req: Request, res: Response) => {
+  app.post("/requests", isAuthenticated, householdContext, requirePermission("CAN_CREATE_REQUESTS"), async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -241,7 +242,7 @@ export function registerApprovalsRoutes(app: Express) {
     }
   });
 
-  app.patch("/api/requests/:id", isAuthenticated, householdContext, requirePermission("CAN_UPDATE_REQUEST"), async (req: Request, res: Response) => {
+  app.patch("/requests/:id", isAuthenticated, householdContext, requirePermission("CAN_UPDATE_REQUEST"), async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
       const userId = req.user!.claims.sub;
@@ -257,7 +258,7 @@ export function registerApprovalsRoutes(app: Express) {
     }
   });
   
-  app.post("/api/comments", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.post("/comments", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       
@@ -273,7 +274,7 @@ export function registerApprovalsRoutes(app: Express) {
     }
   });
   
-  app.get("/api/vendors", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/vendors", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -285,7 +286,7 @@ export function registerApprovalsRoutes(app: Express) {
     }
   });
   
-  app.post("/api/vendors", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.post("/vendors", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -303,7 +304,7 @@ export function registerApprovalsRoutes(app: Express) {
   });
 
   // Reactions API
-  app.get("/api/reactions", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/reactions", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -342,7 +343,7 @@ export function registerApprovalsRoutes(app: Express) {
     }
   });
   
-  app.post("/api/reactions", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.post("/reactions", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;

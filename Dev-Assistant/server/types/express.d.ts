@@ -6,6 +6,7 @@ declare global {
     interface User extends AuthUser {}
     interface Request {
       requestId?: string;
+      apiVersion?: string;
       householdId?: string;
       householdRole?: string;
       organizationId?: string;

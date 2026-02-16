@@ -1,4 +1,5 @@
-import type { Express, Request, Response } from "express";
+import type { Request, Response } from "express";
+import type { Router } from "express";
 import express from "express";
 import { storage } from "../storage";
 import logger from "../lib/logger";
@@ -24,13 +25,13 @@ async function getUserProfile(userId: string) {
   return storage.getUserProfile(userId);
 }
 
-export function registerAdminOpsRoutes(app: Express) {
+export function registerAdminOpsRoutes(app: Router) {
   // ============================================
   // ADMIN ROUTES (Assistant only)
   // ============================================
 
   // Export all data as JSON
-  app.get("/api/admin/export", isAuthenticated, householdContext, requirePermission("CAN_ADMIN_EXPORTS"), async (req: Request, res: Response) => {
+  app.get("/admin/export", isAuthenticated, householdContext, requirePermission("CAN_ADMIN_EXPORTS"), async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const profile = await getUserProfile(userId);
@@ -50,7 +51,7 @@ export function registerAdminOpsRoutes(app: Express) {
     }
   });
 
-  app.post("/api/admin/sync-calendars", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.post("/admin/sync-calendars", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const profile = await getUserProfile(userId);
@@ -72,7 +73,7 @@ export function registerAdminOpsRoutes(app: Express) {
   });
 
   // Create a backup ZIP
-  app.post("/api/admin/backup", criticalLimiter, isAuthenticated, householdContext, requirePermission("CAN_MANAGE_BACKUPS"), async (req: Request, res: Response) => {
+  app.post("/admin/backup", criticalLimiter, isAuthenticated, householdContext, requirePermission("CAN_MANAGE_BACKUPS"), async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const profile = await getUserProfile(userId);
@@ -96,7 +97,7 @@ export function registerAdminOpsRoutes(app: Express) {
   });
 
   // List all backups
-  app.get("/api/admin/backups", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_BACKUPS"), async (req: Request, res: Response) => {
+  app.get("/admin/backups", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_BACKUPS"), async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const profile = await getUserProfile(userId);
@@ -114,7 +115,7 @@ export function registerAdminOpsRoutes(app: Express) {
   });
 
   // Download a backup
-  app.get("/api/admin/backups/:filename/download", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_BACKUPS"), async (req: Request, res: Response) => {
+  app.get("/admin/backups/:filename/download", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_BACKUPS"), async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const profile = await getUserProfile(userId);
@@ -138,7 +139,7 @@ export function registerAdminOpsRoutes(app: Express) {
   });
 
   // Delete a backup
-  app.delete("/api/admin/backups/:filename", criticalLimiter, isAuthenticated, householdContext, requirePermission("CAN_MANAGE_BACKUPS"), async (req: Request, res: Response) => {
+  app.delete("/admin/backups/:filename", criticalLimiter, isAuthenticated, householdContext, requirePermission("CAN_MANAGE_BACKUPS"), async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const profile = await getUserProfile(userId);
@@ -160,7 +161,7 @@ export function registerAdminOpsRoutes(app: Express) {
   });
 
   // Migrate existing vault items to encrypted storage
-  app.post("/api/admin/migrate-vault-encryption", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_SETTINGS"), async (req: Request, res: Response) => {
+  app.post("/admin/migrate-vault-encryption", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_SETTINGS"), async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
       const accessItems = await storage.getAccessItems(householdId);
@@ -199,7 +200,7 @@ export function registerAdminOpsRoutes(app: Express) {
   });
 
   // Get backup settings
-  app.get("/api/admin/backup-settings", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/admin/backup-settings", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const profile = await getUserProfile(userId);
@@ -217,7 +218,7 @@ export function registerAdminOpsRoutes(app: Express) {
   });
 
   // Update backup settings
-  app.patch("/api/admin/backup-settings", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_BACKUPS"), async (req: Request, res: Response) => {
+  app.patch("/admin/backup-settings", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_BACKUPS"), async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const profile = await getUserProfile(userId);
@@ -241,7 +242,7 @@ export function registerAdminOpsRoutes(app: Express) {
   // ============================================================
   
   // Get current user's organization
-  app.get("/api/organizations/mine", isAuthenticated, async (req: Request, res: Response) => {
+  app.get("/organizations/mine", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const org = await storage.getOrganizationByOwner(userId);
@@ -258,7 +259,7 @@ export function registerAdminOpsRoutes(app: Express) {
   });
 
   // Get all organizations owned by current user
-  app.get("/api/organizations", isAuthenticated, async (req: Request, res: Response) => {
+  app.get("/organizations", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const orgs = await storage.getOrganizationsByOwner(userId);
@@ -270,7 +271,7 @@ export function registerAdminOpsRoutes(app: Express) {
   });
 
   // Get organization by ID
-  app.get("/api/organizations/:id", isAuthenticated, async (req: Request, res: Response) => {
+  app.get("/organizations/:id", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const org = await storage.getOrganization(req.params.id);
@@ -292,7 +293,7 @@ export function registerAdminOpsRoutes(app: Express) {
   });
 
   // Create a new organization (for assistants managing multiple households)
-  app.post("/api/organizations", isAuthenticated, async (req: Request, res: Response) => {
+  app.post("/organizations", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const profile = await getUserProfile(userId);
@@ -319,7 +320,7 @@ export function registerAdminOpsRoutes(app: Express) {
   });
 
   // Update organization
-  app.patch("/api/organizations/:id", isAuthenticated, async (req: Request, res: Response) => {
+  app.patch("/organizations/:id", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const org = await storage.getOrganization(req.params.id);
@@ -342,7 +343,7 @@ export function registerAdminOpsRoutes(app: Express) {
   });
 
   // Get households within an organization
-  app.get("/api/organizations/:id/households", isAuthenticated, async (req: Request, res: Response) => {
+  app.get("/organizations/:id/households", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const org = await storage.getOrganization(req.params.id);
@@ -365,7 +366,7 @@ export function registerAdminOpsRoutes(app: Express) {
   });
 
   // Create household within an organization
-  app.post("/api/organizations/:id/households", isAuthenticated, async (req: Request, res: Response) => {
+  app.post("/organizations/:id/households", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const profile = await getUserProfile(userId);
@@ -401,7 +402,7 @@ export function registerAdminOpsRoutes(app: Express) {
   });
 
   // Link existing household to organization
-  app.patch("/api/households/:id/organization", isAuthenticated, async (req: Request, res: Response) => {
+  app.patch("/households/:id/organization", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const profile = await getUserProfile(userId);
@@ -431,7 +432,7 @@ export function registerAdminOpsRoutes(app: Express) {
   // BILLING ROUTES (Phase 1)
   // ============================================
 
-  app.get("/api/billing/plans", async (_req, res) => {
+  app.get("/billing/plans", async (_req, res) => {
     const { SUBSCRIPTION_PLANS, isDemoMode } = await import("../services/billing");
     res.json({
       plans: SUBSCRIPTION_PLANS,
@@ -439,7 +440,7 @@ export function registerAdminOpsRoutes(app: Express) {
     });
   });
 
-  app.get("/api/billing/subscription", isAuthenticated, async (req: Request, res: Response) => {
+  app.get("/billing/subscription", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const profile = await getUserProfile(userId);
@@ -462,7 +463,7 @@ export function registerAdminOpsRoutes(app: Express) {
     }
   });
 
-  app.post("/api/billing/checkout", isAuthenticated, async (req: Request, res: Response) => {
+  app.post("/billing/checkout", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const profile = await getUserProfile(userId);
@@ -492,7 +493,7 @@ export function registerAdminOpsRoutes(app: Express) {
     }
   });
 
-  app.post("/api/billing/portal", isAuthenticated, async (req: Request, res: Response) => {
+  app.post("/billing/portal", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const profile = await getUserProfile(userId);
@@ -518,7 +519,7 @@ export function registerAdminOpsRoutes(app: Express) {
     }
   });
 
-  app.get("/api/billing/invoices", isAuthenticated, async (req: Request, res: Response) => {
+  app.get("/billing/invoices", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.claims.sub;
       const profile = await getUserProfile(userId);
@@ -536,7 +537,7 @@ export function registerAdminOpsRoutes(app: Express) {
     }
   });
 
-  app.post("/api/billing/webhooks", express.raw({ type: "application/json" }), async (req, res) => {
+  app.post("/billing/webhooks", express.raw({ type: "application/json" }), async (req, res) => {
     try {
       const signature = req.headers["stripe-signature"] as string;
       const { handleStripeWebhook } = await import("../services/billing");

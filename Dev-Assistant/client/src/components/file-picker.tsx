@@ -33,7 +33,7 @@ import {
   Camera,
 } from "lucide-react";
 import { format } from "date-fns";
-import { queryClient } from "@/lib/queryClient";
+import { queryClient, versionedUrl } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { PhotoCapture } from "@/components/photo-capture";
 
@@ -81,7 +81,7 @@ export function FilePicker({ entityType, entityId, onFilesChanged }: FilePickerP
   const { data: linkedFiles, refetch: refetchLinked } = useQuery<FileItem[]>({
     queryKey: ["/api/files/entity", entityType, entityId],
     queryFn: async () => {
-      const res = await fetch(`/api/files/entity/${entityType}/${entityId}`, {
+      const res = await fetch(versionedUrl(`/api/files/entity/${entityType}/${entityId}`), {
         credentials: "include",
       });
       if (!res.ok) throw new Error("Failed to fetch files");
@@ -98,7 +98,7 @@ export function FilePicker({ entityType, entityId, onFilesChanged }: FilePickerP
       const params = new URLSearchParams();
       if (categoryFilter !== "ALL") params.set("category", categoryFilter);
       params.set("limit", "100");
-      const res = await fetch(`/api/files?${params}`, { credentials: "include" });
+      const res = await fetch(versionedUrl(`/api/files?${params}`), { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch files");
       return res.json();
     },
@@ -107,7 +107,7 @@ export function FilePicker({ entityType, entityId, onFilesChanged }: FilePickerP
 
   const linkMutation = useMutation({
     mutationFn: async (fileId: string) => {
-      const res = await fetch(`/api/files/${fileId}/link`, {
+      const res = await fetch(versionedUrl(`/api/files/${fileId}/link`), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -124,7 +124,7 @@ export function FilePicker({ entityType, entityId, onFilesChanged }: FilePickerP
 
   const unlinkMutation = useMutation({
     mutationFn: async (fileId: string) => {
-      const res = await fetch(`/api/files/${fileId}/link/${entityType}/${entityId}`, {
+      const res = await fetch(versionedUrl(`/api/files/${fileId}/link/${entityType}/${entityId}`), {
         method: "DELETE",
         credentials: "include",
       });
@@ -149,7 +149,7 @@ export function FilePicker({ entityType, entityId, onFilesChanged }: FilePickerP
       formData.append("category", "OTHER");
       formData.append("linkTo", JSON.stringify({ entityType, entityId }));
 
-      const res = await fetch("/api/files/upload", {
+      const res = await fetch(versionedUrl("/api/files/upload"), {
         method: "POST",
         credentials: "include",
         body: formData,
@@ -262,7 +262,7 @@ export function FilePicker({ entityType, entityId, onFilesChanged }: FilePickerP
               formData.append("category", "PHOTO");
               formData.append("linkTo", JSON.stringify({ entityType, entityId }));
 
-              const res = await fetch("/api/files/upload", {
+              const res = await fetch(versionedUrl("/api/files/upload"), {
                 method: "POST",
                 credentials: "include",
                 body: formData,
@@ -411,7 +411,7 @@ export function AttachedFilesPreview({
   const { data: files } = useQuery<FileItem[]>({
     queryKey: ["/api/files/entity", entityType, entityId],
     queryFn: async () => {
-      const res = await fetch(`/api/files/entity/${entityType}/${entityId}`, {
+      const res = await fetch(versionedUrl(`/api/files/entity/${entityType}/${entityId}`), {
         credentials: "include",
       });
       if (!res.ok) throw new Error("Failed to fetch files");

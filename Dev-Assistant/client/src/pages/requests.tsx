@@ -33,7 +33,7 @@ import {
 import { format } from "date-fns";
 import { DateTimePicker } from "@/components/date-time-picker";
 import type { Request as RequestType, InsertRequest } from "@shared/schema";
-import { queryClient, apiRequest } from "@/lib/queryClient";
+import { queryClient, apiRequest, versionedUrl } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { QuickRequestButtons } from "@/components/quick-request-buttons";
 import { PhotoCapture } from "@/components/photo-capture";
@@ -139,7 +139,7 @@ export default function Requests() {
         formData.append("file", photo.file);
         formData.append("category", "PHOTO");
         
-        const res = await fetch("/api/files/upload", {
+        const res = await fetch(versionedUrl("/api/files/upload"), {
           method: "POST",
           credentials: "include",
           body: formData,
