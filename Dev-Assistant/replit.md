@@ -49,7 +49,7 @@ Preferred communication style: Simple, everyday language.
 - **Development**: Hot module replacement via Vite middleware in development mode
 
 ### Data Storage
-- **Database**: PostgreSQL with Drizzle ORM
+- **Database**: PostgreSQL with Drizzle ORM, optimized connection pool (max 20, idle timeout 30s, connect timeout 5s) with event-based monitoring and periodic status logging. Pool stats (total/idle/waiting/utilization/lifetime errors) exposed via `/api/metrics/json` and Prometheus `/api/metrics`
 - **Schema Location**: `shared/schema.ts` contains all table definitions with Drizzle-Zod integration for validation
 - **Key Tables**: organizations, households, user_profiles, tasks, approvals, updates, requests, comments, vendors, spending_items, calendar_events, playbooks, playbook_steps, quick_request_templates, audit_logs, vault_settings, sessions, users
 - **Session Storage**: PostgreSQL-backed sessions via connect-pg-simple
