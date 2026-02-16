@@ -122,16 +122,28 @@ app.use((req, res, next) => {
 
   app.use(sentryHandlers.errorHandler);
 
-  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-    const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
+  app.use((err: any, req: Request, res: Response, _next: NextFunction) => {
+    const requestId = (req as any).requestId || req.headers["x-request-id"] || undefined;
 
-    // Don't leak error details in production
-    if (process.env.NODE_ENV === "production" && status === 500) {
-      res.status(status).json({ message: "Internal Server Error" });
-    } else {
-      res.status(status).json({ message });
+    if (err.name === "AppError") {
+      const body: Record<string, unknown> = {
+        code: err.code,
+        message: err.message,
+        requestId,
+      };
+      if (err.details && process.env.NODE_ENV !== "production") {
+        body.details = err.details;
+      }
+      return res.status(err.status).json(body);
     }
+
+    const status = err.status || err.statusCode || 500;
+    const isProd = process.env.NODE_ENV === "production";
+    res.status(status).json({
+      code: status === 401 ? "UNAUTHORIZED" : status === 403 ? "FORBIDDEN" : status === 404 ? "NOT_FOUND" : "INTERNAL_ERROR",
+      message: isProd && status === 500 ? "Internal Server Error" : (err.message || "Internal Server Error"),
+      requestId,
+    });
   });
 
   // importantly only setup vite in development and after
