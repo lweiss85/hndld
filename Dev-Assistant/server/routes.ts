@@ -1,4 +1,5 @@
 import type { Express, Request, Response, NextFunction } from "express";
+
 import express from "express";
 import { createServer, type Server } from "http";
 import { createReadStream, existsSync } from "fs";
@@ -462,9 +463,9 @@ export async function registerRoutes(
   app.use("/uploads", express.static(join(process.cwd(), "uploads")));
   
   // Google Calendar OAuth Routes
-  app.get("/api/google/auth", isAuthenticated, async (req: any, res) => {
+  app.get("/api/google/auth", isAuthenticated, async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const householdId = req.headers["x-household-id"];
       
       if (!householdId) {
@@ -484,7 +485,7 @@ export async function registerRoutes(
     }
   });
   
-  app.get("/api/google/callback", async (req: any, res) => {
+  app.get("/api/google/callback", async (req: Request, res: Response) => {
     try {
       const { code, state } = req.query;
       
@@ -521,9 +522,9 @@ export async function registerRoutes(
     }
   });
   
-  app.get("/api/google/calendars", isAuthenticated, householdContext, async (req: any, res) => {
+  app.get("/api/google/calendars", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
-      const householdId = req.householdId;
+      const householdId = req.householdId!;
       const connection = await googleCalendar.getConnection(householdId);
       
       if (!connection) {
@@ -549,9 +550,9 @@ export async function registerRoutes(
     }
   });
   
-  app.post("/api/google/calendars/select", isAuthenticated, householdContext, async (req: any, res) => {
+  app.post("/api/google/calendars/select", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
-      const householdId = req.householdId;
+      const householdId = req.householdId!;
       const { calendarIds } = req.body;
       
       const connection = await googleCalendar.getConnection(householdId);
@@ -580,9 +581,9 @@ export async function registerRoutes(
     }
   });
   
-  app.post("/api/google/sync", expensiveLimiter, isAuthenticated, householdContext, async (req: any, res) => {
+  app.post("/api/google/sync", expensiveLimiter, isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
-      const householdId = req.householdId;
+      const householdId = req.householdId!;
       const result = await googleCalendar.syncCalendarEvents(householdId);
       res.json(result);
     } catch (error) {
@@ -591,9 +592,9 @@ export async function registerRoutes(
     }
   });
   
-  app.delete("/api/google/disconnect", isAuthenticated, householdContext, async (req: any, res) => {
+  app.delete("/api/google/disconnect", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
-      const householdId = req.householdId;
+      const householdId = req.householdId!;
       await googleCalendar.disconnectCalendar(householdId);
       res.status(204).send();
     } catch (error) {
@@ -602,9 +603,9 @@ export async function registerRoutes(
     }
   });
   
-  app.get("/api/user-profile", isAuthenticated, async (req: any, res) => {
+  app.get("/api/user-profile", isAuthenticated, async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const profile = await storage.getUserProfile(userId);
       
       // If no profile exists, user needs to select role first
@@ -620,9 +621,9 @@ export async function registerRoutes(
   });
   
   // Set user role (first-time setup)
-  app.post("/api/user/role", isAuthenticated, async (req: any, res) => {
+  app.post("/api/user/role", isAuthenticated, async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const { role } = req.body;
       
       if (!role || !["ASSISTANT", "CLIENT"].includes(role)) {
@@ -658,9 +659,9 @@ export async function registerRoutes(
     }
   });
   
-  app.get("/api/dashboard", isAuthenticated, householdContext, async (req: any, res) => {
+  app.get("/api/dashboard", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       const userRole = req.householdRole;
       
@@ -695,9 +696,9 @@ export async function registerRoutes(
   });
   
   // Service memberships endpoints
-  app.get("/api/services/mine", isAuthenticated, householdContext, async (req: any, res) => {
+  app.get("/api/services/mine", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       const userRole = req.householdRole;
       
@@ -738,9 +739,9 @@ export async function registerRoutes(
     }
   });
   
-  app.post("/api/services/set-default", isAuthenticated, householdContext, async (req: any, res) => {
+  app.post("/api/services/set-default", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       const { serviceType } = req.body;
       
@@ -773,7 +774,7 @@ export async function registerRoutes(
   // CLEANING SERVICE ENDPOINTS
   // ============================================
   
-  app.get("/api/addon-services", isAuthenticated, householdContext, async (req: any, res) => {
+  app.get("/api/addon-services", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
       const addons = await storage.getAddonServices(householdId);
@@ -784,7 +785,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/addon-services", isAuthenticated, householdContext, async (req: any, res) => {
+  app.post("/api/addon-services", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
       const userProfile = req.userProfile;
@@ -822,7 +823,7 @@ export async function registerRoutes(
     }
   });
 
-  app.patch("/api/addon-services/:id", isAuthenticated, householdContext, async (req: any, res) => {
+  app.patch("/api/addon-services/:id", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
       const userProfile = req.userProfile;
@@ -863,7 +864,7 @@ export async function registerRoutes(
     }
   });
 
-  app.delete("/api/addon-services/:id", isAuthenticated, householdContext, async (req: any, res) => {
+  app.delete("/api/addon-services/:id", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
       const userProfile = req.userProfile;
@@ -886,7 +887,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/cleaning/next", isAuthenticated, householdContext, async (req: any, res) => {
+  app.get("/api/cleaning/next", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
       const visit = await storage.getNextCleaningVisit(householdId);
@@ -897,7 +898,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/cleaning/visits", isAuthenticated, householdContext, async (req: any, res) => {
+  app.get("/api/cleaning/visits", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
       const visits = await storage.getCleaningVisits(householdId);
@@ -908,7 +909,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/cleaning/visits", isAuthenticated, householdContext, async (req: any, res) => {
+  app.post("/api/cleaning/visits", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
       const visit = await storage.createCleaningVisit({
@@ -922,7 +923,7 @@ export async function registerRoutes(
     }
   });
 
-  app.patch("/api/cleaning/visits/:id", isAuthenticated, householdContext, async (req: any, res) => {
+  app.patch("/api/cleaning/visits/:id", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
       const visit = await storage.updateCleaningVisit(id, req.body);
@@ -936,9 +937,9 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/today", isAuthenticated, householdContext, async (req: any, res) => {
+  app.get("/api/today", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       const userRole = req.householdRole;
       
@@ -958,9 +959,9 @@ export async function registerRoutes(
     }
   });
   
-  app.get("/api/tasks", isAuthenticated, householdContext, async (req: any, res) => {
+  app.get("/api/tasks", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       const userRole = req.householdRole;
       const serviceType = req.query.serviceType as string | undefined;
@@ -1000,9 +1001,9 @@ export async function registerRoutes(
     }
   });
   
-  app.post("/api/tasks", isAuthenticated, householdContext, requirePermission("CAN_EDIT_TASKS"), async (req: any, res) => {
+  app.post("/api/tasks", isAuthenticated, householdContext, requirePermission("CAN_EDIT_TASKS"), async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       
       let estimatedMinutes = req.body.estimatedMinutes;
@@ -1041,9 +1042,9 @@ export async function registerRoutes(
     }
   });
   
-  app.patch("/api/tasks/:id", isAuthenticated, householdContext, requirePermission("CAN_EDIT_TASKS"), async (req: any, res) => {
+  app.patch("/api/tasks/:id", isAuthenticated, householdContext, requirePermission("CAN_EDIT_TASKS"), async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       const userRole = req.householdRole;
       
@@ -1077,9 +1078,9 @@ export async function registerRoutes(
     }
   });
   
-  app.delete("/api/tasks/:id", isAuthenticated, householdContext, requirePermission("CAN_EDIT_TASKS"), async (req: any, res) => {
+  app.delete("/api/tasks/:id", isAuthenticated, householdContext, requirePermission("CAN_EDIT_TASKS"), async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       const userRole = req.householdRole;
       
@@ -1102,9 +1103,9 @@ export async function registerRoutes(
   });
 
   // Task completion endpoint with recurrence handling
-  app.post("/api/tasks/:id/complete", isAuthenticated, householdContext, requirePermission("CAN_EDIT_TASKS"), async (req: any, res) => {
+  app.post("/api/tasks/:id/complete", isAuthenticated, householdContext, requirePermission("CAN_EDIT_TASKS"), async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       const userRole = req.householdRole;
       const taskId = req.params.id;
@@ -1177,9 +1178,9 @@ export async function registerRoutes(
   });
 
   // Task cancellation endpoint
-  app.post("/api/tasks/:id/cancel", isAuthenticated, householdContext, requirePermission("CAN_EDIT_TASKS"), async (req: any, res) => {
+  app.post("/api/tasks/:id/cancel", isAuthenticated, householdContext, requirePermission("CAN_EDIT_TASKS"), async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       const userRole = req.householdRole;
       const taskId = req.params.id;
@@ -1264,7 +1265,7 @@ export async function registerRoutes(
   });
 
   // Checklist routes
-  app.post("/api/tasks/:taskId/checklist", isAuthenticated, householdContext, requirePermission("CAN_EDIT_TASKS"), async (req: any, res) => {
+  app.post("/api/tasks/:taskId/checklist", isAuthenticated, householdContext, requirePermission("CAN_EDIT_TASKS"), async (req: Request, res: Response) => {
     try {
       const item = await storage.createTaskChecklistItem({
         taskId: req.params.taskId,
@@ -1278,7 +1279,7 @@ export async function registerRoutes(
     }
   });
 
-  app.patch("/api/tasks/:taskId/checklist/:id", isAuthenticated, householdContext, requirePermission("CAN_EDIT_TASKS"), async (req: any, res) => {
+  app.patch("/api/tasks/:taskId/checklist/:id", isAuthenticated, householdContext, requirePermission("CAN_EDIT_TASKS"), async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
       const { taskId, id } = req.params;
@@ -1294,9 +1295,9 @@ export async function registerRoutes(
   });
 
   // Task Templates routes
-  app.get("/api/task-templates", isAuthenticated, householdContext, async (req: any, res) => {
+  app.get("/api/task-templates", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       const templates = await storage.getTaskTemplates(householdId);
       res.json(templates);
@@ -1306,7 +1307,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/task-templates", isAuthenticated, householdContext, requirePermission("CAN_EDIT_TASKS"), async (req: any, res) => {
+  app.post("/api/task-templates", isAuthenticated, householdContext, requirePermission("CAN_EDIT_TASKS"), async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
       const template = await storage.createTaskTemplate({
@@ -1320,7 +1321,7 @@ export async function registerRoutes(
     }
   });
 
-  app.patch("/api/task-templates/:id", isAuthenticated, householdContext, requirePermission("CAN_EDIT_TASKS"), async (req: any, res) => {
+  app.patch("/api/task-templates/:id", isAuthenticated, householdContext, requirePermission("CAN_EDIT_TASKS"), async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
       const template = await storage.updateTaskTemplate(householdId, req.params.id, req.body);
@@ -1334,7 +1335,7 @@ export async function registerRoutes(
     }
   });
 
-  app.delete("/api/task-templates/:id", isAuthenticated, householdContext, requirePermission("CAN_EDIT_TASKS"), async (req: any, res) => {
+  app.delete("/api/task-templates/:id", isAuthenticated, householdContext, requirePermission("CAN_EDIT_TASKS"), async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
       const deleted = await storage.deleteTaskTemplate(householdId, req.params.id);
@@ -1348,9 +1349,9 @@ export async function registerRoutes(
     }
   });
   
-  app.get("/api/approvals", isAuthenticated, householdContext, async (req: any, res) => {
+  app.get("/api/approvals", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       const userRole = req.householdRole;
       const serviceType = req.query.serviceType as string | undefined;
@@ -1384,9 +1385,9 @@ export async function registerRoutes(
     }
   });
   
-  app.post("/api/approvals", isAuthenticated, householdContext, requirePermission("CAN_EDIT_TASKS"), async (req: any, res) => {
+  app.post("/api/approvals", isAuthenticated, householdContext, requirePermission("CAN_EDIT_TASKS"), async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       
       const approval = await storage.createApproval({
@@ -1404,9 +1405,9 @@ export async function registerRoutes(
     }
   });
   
-  app.patch("/api/approvals/:id", isAuthenticated, householdContext, requirePermission("CAN_APPROVE"), async (req: any, res) => {
+  app.patch("/api/approvals/:id", isAuthenticated, householdContext, requirePermission("CAN_APPROVE"), async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       const userRole = req.householdRole;
       
@@ -1442,9 +1443,9 @@ export async function registerRoutes(
     }
   });
   
-  app.get("/api/updates", isAuthenticated, householdContext, async (req: any, res) => {
+  app.get("/api/updates", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       const userRole = req.householdRole;
       const serviceType = req.query.serviceType as string | undefined;
@@ -1490,9 +1491,9 @@ export async function registerRoutes(
     }
   });
   
-  app.post("/api/updates", isAuthenticated, householdContext, requirePermission("CAN_CREATE_UPDATE"), async (req: any, res) => {
+  app.post("/api/updates", isAuthenticated, householdContext, requirePermission("CAN_CREATE_UPDATE"), async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       
       const update = await storage.createUpdate({
@@ -1510,9 +1511,9 @@ export async function registerRoutes(
     }
   });
   
-  app.post("/api/updates/:id/reactions", isAuthenticated, householdContext, async (req: any, res) => {
+  app.post("/api/updates/:id/reactions", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       const { emoji } = req.body;
       
@@ -1542,9 +1543,9 @@ export async function registerRoutes(
     }
   });
   
-  app.get("/api/requests", isAuthenticated, householdContext, async (req: any, res) => {
+  app.get("/api/requests", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       const requests = await storage.getRequests(householdId);
       res.json(requests);
@@ -1554,9 +1555,9 @@ export async function registerRoutes(
     }
   });
   
-  app.post("/api/requests", isAuthenticated, householdContext, requirePermission("CAN_CREATE_REQUESTS"), async (req: any, res) => {
+  app.post("/api/requests", isAuthenticated, householdContext, requirePermission("CAN_CREATE_REQUESTS"), async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       
       // Convert dueAt string to Date if provided
@@ -1578,10 +1579,10 @@ export async function registerRoutes(
     }
   });
 
-  app.patch("/api/requests/:id", isAuthenticated, householdContext, requirePermission("CAN_UPDATE_REQUEST"), async (req: any, res) => {
+  app.patch("/api/requests/:id", isAuthenticated, householdContext, requirePermission("CAN_UPDATE_REQUEST"), async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const updated = await storage.updateRequest(householdId, req.params.id, req.body);
       if (!updated) {
         return res.status(404).json({ message: "Request not found" });
@@ -1594,9 +1595,9 @@ export async function registerRoutes(
     }
   });
   
-  app.post("/api/comments", isAuthenticated, householdContext, async (req: any, res) => {
+  app.post("/api/comments", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       
       const comment = await storage.createComment({
         ...req.body,
@@ -1610,9 +1611,9 @@ export async function registerRoutes(
     }
   });
   
-  app.get("/api/vendors", isAuthenticated, householdContext, async (req: any, res) => {
+  app.get("/api/vendors", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       const vendors = await storage.getVendors(householdId);
       res.json(vendors);
@@ -1622,9 +1623,9 @@ export async function registerRoutes(
     }
   });
   
-  app.post("/api/vendors", isAuthenticated, householdContext, async (req: any, res) => {
+  app.post("/api/vendors", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       
       const vendor = await storage.createVendor({
@@ -1639,9 +1640,9 @@ export async function registerRoutes(
     }
   });
   
-  app.get("/api/spending", isAuthenticated, householdContext, async (req: any, res) => {
+  app.get("/api/spending", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       const userRole = req.householdRole;
       const serviceType = req.query.serviceType as string | undefined;
@@ -1679,9 +1680,9 @@ export async function registerRoutes(
     }
   });
   
-  app.post("/api/spending", isAuthenticated, householdContext, async (req: any, res) => {
+  app.post("/api/spending", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       
       const item = await storage.createSpendingItem({
@@ -1700,12 +1701,12 @@ export async function registerRoutes(
   });
 
   // Update spending item status (for payment workflow)
-  app.patch("/api/spending/:id/status", isAuthenticated, householdContext, async (req: any, res) => {
+  app.patch("/api/spending/:id/status", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
       const { status } = req.body;
       const householdId = req.householdId!;
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const userRole = req.householdRole;
       
       // Validate status transition
@@ -1784,7 +1785,7 @@ export async function registerRoutes(
   });
 
   // Organization Payment Profile endpoints
-  app.get("/api/org/payment-profile", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_SETTINGS"), async (req: any, res) => {
+  app.get("/api/org/payment-profile", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_SETTINGS"), async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
       
@@ -1807,9 +1808,9 @@ export async function registerRoutes(
     }
   });
 
-  app.put("/api/org/payment-profile", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_SETTINGS"), async (req: any, res) => {
+  app.put("/api/org/payment-profile", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_SETTINGS"), async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       
       // Get the household's organization
@@ -1885,7 +1886,7 @@ export async function registerRoutes(
   });
 
   // Household Payment Settings endpoints
-  app.get("/api/household/payment-settings", isAuthenticated, householdContext, async (req: any, res) => {
+  app.get("/api/household/payment-settings", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
       
@@ -1909,7 +1910,7 @@ export async function registerRoutes(
     }
   });
 
-  app.put("/api/household/payment-settings", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_SETTINGS"), async (req: any, res) => {
+  app.put("/api/household/payment-settings", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_SETTINGS"), async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
       const { useOrgDefaults, venmoUsername, zelleRecipient, cashAppCashtag, paypalMeHandle, defaultPaymentMethod, payNoteTemplate } = req.body;
@@ -1955,7 +1956,7 @@ export async function registerRoutes(
       const { logAudit } = await import("./services/audit");
       await logAudit({
         householdId,
-        userId: req.user.claims.sub,
+        userId: req.user!.claims.sub,
         action: "HOUSEHOLD_PAYMENT_OVERRIDE_UPDATED",
         entityType: "SETTINGS",
         entityId: override.id,
@@ -1970,7 +1971,7 @@ export async function registerRoutes(
   });
 
   // Pay Options endpoint - returns effective payment info for a spending item
-  app.get("/api/spending/:id/pay-options", isAuthenticated, householdContext, async (req: any, res) => {
+  app.get("/api/spending/:id/pay-options", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
       
@@ -2085,7 +2086,7 @@ export async function registerRoutes(
   });
 
   // General pay options endpoint - returns payment profile for the household (client accessible)
-  app.get("/api/pay-options", isAuthenticated, householdContext, async (req: any, res) => {
+  app.get("/api/pay-options", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
       
@@ -2142,10 +2143,10 @@ export async function registerRoutes(
   // ==================== INVOICE ENDPOINTS ====================
 
   // POST /api/invoices/send - Assistant sends an invoice
-  app.post("/api/invoices/send", isAuthenticated, householdContext, requirePermission("CAN_EDIT_TASKS"), async (req: any, res) => {
+  app.post("/api/invoices/send", isAuthenticated, householdContext, requirePermission("CAN_EDIT_TASKS"), async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const { title, amount, note, dueDate } = req.body;
 
       if (!title || !amount) {
@@ -2311,7 +2312,7 @@ export async function registerRoutes(
   });
 
   // GET /api/invoices/pending - Client checks if they have unpaid invoices
-  app.get("/api/invoices/pending", isAuthenticated, householdContext, async (req: any, res) => {
+  app.get("/api/invoices/pending", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
       const serviceType = req.query.serviceType as string | undefined;
@@ -2364,7 +2365,7 @@ export async function registerRoutes(
   });
 
   // GET /api/invoices - List all invoices
-  app.get("/api/invoices", isAuthenticated, householdContext, async (req: any, res) => {
+  app.get("/api/invoices", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
 
@@ -2388,9 +2389,9 @@ export async function registerRoutes(
 
   // ==================== END INVOICE ENDPOINTS ====================
 
-  app.get("/api/calendar-events", isAuthenticated, householdContext, async (req: any, res) => {
+  app.get("/api/calendar-events", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       const events = await storage.getCalendarEvents(householdId);
       res.json(events);
@@ -2400,9 +2401,9 @@ export async function registerRoutes(
     }
   });
   
-  app.post("/api/calendar/sync", isAuthenticated, householdContext, async (req: any, res) => {
+  app.post("/api/calendar/sync", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       
       // Check if Replit Google Calendar connector is available
@@ -2437,9 +2438,9 @@ export async function registerRoutes(
     }
   });
   
-  app.post("/api/calendar-events/:id/create-task", isAuthenticated, householdContext, async (req: any, res) => {
+  app.post("/api/calendar-events/:id/create-task", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       
       const event = await storage.getCalendarEvent(householdId, req.params.id);
@@ -2467,9 +2468,9 @@ export async function registerRoutes(
   });
   
   // Reactions API
-  app.get("/api/reactions", isAuthenticated, householdContext, async (req: any, res) => {
+  app.get("/api/reactions", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       
       const entityType = req.query.entityType as string;
@@ -2506,9 +2507,9 @@ export async function registerRoutes(
     }
   });
   
-  app.post("/api/reactions", isAuthenticated, householdContext, async (req: any, res) => {
+  app.post("/api/reactions", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       
       // Validate request body with Zod
@@ -2594,9 +2595,9 @@ export async function registerRoutes(
   // ============================================
 
   // Onboarding Status Endpoints
-  app.get("/api/onboarding/status", isAuthenticated, householdContext, async (req: any, res) => {
+  app.get("/api/onboarding/status", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       const settings = await storage.getHouseholdSettings(householdId);
       
@@ -2611,9 +2612,9 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/onboarding/complete-phase", isAuthenticated, householdContext, async (req: any, res) => {
+  app.post("/api/onboarding/complete-phase", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       
       const profile = await getUserProfile(userId);
@@ -2650,9 +2651,9 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/onboarding/settings", isAuthenticated, householdContext, async (req: any, res) => {
+  app.post("/api/onboarding/settings", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
-      const householdId = req.householdId;
+      const householdId = req.householdId!;
       const settings = req.body;
       
       await storage.upsertHouseholdSettings(householdId, {
@@ -2667,10 +2668,10 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/onboarding/save-step", isAuthenticated, householdContext, async (req: any, res) => {
+  app.post("/api/onboarding/save-step", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const { step, data } = req.body;
-      const householdId = req.householdId;
+      const householdId = req.householdId!;
       
       switch (step) {
         case "basics":
@@ -2747,7 +2748,7 @@ export async function registerRoutes(
   });
 
   // Get current household (for service type detection)
-  app.get("/api/household", isAuthenticated, householdContext, async (req: any, res) => {
+  app.get("/api/household", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
       const [household] = await db
@@ -2768,9 +2769,9 @@ export async function registerRoutes(
   });
 
   // Household Settings Endpoints
-  app.get("/api/household/settings", isAuthenticated, householdContext, async (req: any, res) => {
+  app.get("/api/household/settings", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       let settings = await storage.getHouseholdSettings(householdId);
       
@@ -2785,9 +2786,9 @@ export async function registerRoutes(
     }
   });
 
-  app.put("/api/household/settings", isAuthenticated, householdContext, async (req: any, res) => {
+  app.put("/api/household/settings", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       
       const profile = await getUserProfile(userId);
@@ -2804,9 +2805,9 @@ export async function registerRoutes(
   });
 
   // Household Locations Endpoints
-  app.get("/api/household/locations", isAuthenticated, householdContext, async (req: any, res) => {
+  app.get("/api/household/locations", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       const locations = await storage.getHouseholdLocations(householdId);
       res.json(locations);
@@ -2816,9 +2817,9 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/household/locations", isAuthenticated, householdContext, async (req: any, res) => {
+  app.post("/api/household/locations", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       
       const profile = await getUserProfile(userId);
@@ -2838,9 +2839,9 @@ export async function registerRoutes(
     }
   });
 
-  app.put("/api/household/locations/:id", isAuthenticated, householdContext, async (req: any, res) => {
+  app.put("/api/household/locations/:id", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       
       const profile = await getUserProfile(userId);
@@ -2859,7 +2860,7 @@ export async function registerRoutes(
     }
   });
 
-  app.delete("/api/household/locations/:id", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_SETTINGS"), async (req: any, res) => {
+  app.delete("/api/household/locations/:id", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_SETTINGS"), async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
       
@@ -2875,9 +2876,9 @@ export async function registerRoutes(
   });
 
   // People Endpoints
-  app.get("/api/people", isAuthenticated, householdContext, async (req: any, res) => {
+  app.get("/api/people", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       const people = await storage.getPeople(householdId);
       res.json(people);
@@ -2887,9 +2888,9 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/people", isAuthenticated, householdContext, async (req: any, res) => {
+  app.post("/api/people", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       
       const profile = await getUserProfile(userId);
@@ -2909,9 +2910,9 @@ export async function registerRoutes(
     }
   });
 
-  app.put("/api/people/:id", isAuthenticated, householdContext, async (req: any, res) => {
+  app.put("/api/people/:id", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       
       const profile = await getUserProfile(userId);
@@ -2930,7 +2931,7 @@ export async function registerRoutes(
     }
   });
 
-  app.delete("/api/people/:id", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_SETTINGS"), async (req: any, res) => {
+  app.delete("/api/people/:id", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_SETTINGS"), async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
       
@@ -2946,9 +2947,9 @@ export async function registerRoutes(
   });
 
   // Preferences Endpoints
-  app.get("/api/preferences", isAuthenticated, householdContext, async (req: any, res) => {
+  app.get("/api/preferences", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       const preferences = await storage.getPreferences(householdId);
       res.json(preferences);
@@ -2958,9 +2959,9 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/preferences", isAuthenticated, householdContext, async (req: any, res) => {
+  app.post("/api/preferences", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       
       const profile = await getUserProfile(userId);
@@ -2981,9 +2982,9 @@ export async function registerRoutes(
     }
   });
 
-  app.put("/api/preferences/:id", isAuthenticated, householdContext, async (req: any, res) => {
+  app.put("/api/preferences/:id", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       
       const profile = await getUserProfile(userId);
@@ -3002,7 +3003,7 @@ export async function registerRoutes(
     }
   });
 
-  app.delete("/api/preferences/:id", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_SETTINGS"), async (req: any, res) => {
+  app.delete("/api/preferences/:id", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_SETTINGS"), async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
       
@@ -3018,9 +3019,9 @@ export async function registerRoutes(
   });
 
   // Important Dates Endpoints
-  app.get("/api/important-dates", isAuthenticated, householdContext, async (req: any, res) => {
+  app.get("/api/important-dates", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       const importantDates = await storage.getImportantDates(householdId);
       res.json(importantDates);
@@ -3030,9 +3031,9 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/important-dates", isAuthenticated, householdContext, async (req: any, res) => {
+  app.post("/api/important-dates", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       
       const profile = await getUserProfile(userId);
@@ -3052,9 +3053,9 @@ export async function registerRoutes(
     }
   });
 
-  app.put("/api/important-dates/:id", isAuthenticated, householdContext, async (req: any, res) => {
+  app.put("/api/important-dates/:id", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       
       const profile = await getUserProfile(userId);
@@ -3073,7 +3074,7 @@ export async function registerRoutes(
     }
   });
 
-  app.delete("/api/important-dates/:id", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_SETTINGS"), async (req: any, res) => {
+  app.delete("/api/important-dates/:id", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_SETTINGS"), async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
       
@@ -3089,9 +3090,9 @@ export async function registerRoutes(
   });
 
   // Access Items Endpoints
-  app.get("/api/access-items", isAuthenticated, householdContext, async (req: any, res) => {
+  app.get("/api/access-items", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       const userRole = req.householdRole;
       
@@ -3121,9 +3122,9 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/access-items", isAuthenticated, householdContext, async (req: any, res) => {
+  app.post("/api/access-items", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       
       const profile = await getUserProfile(userId);
@@ -3153,7 +3154,7 @@ export async function registerRoutes(
     }
   });
 
-  app.put("/api/access-items/:id", isAuthenticated, householdContext, requirePermission("CAN_EDIT_VAULT"), async (req: any, res) => {
+  app.put("/api/access-items/:id", isAuthenticated, householdContext, requirePermission("CAN_EDIT_VAULT"), async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
       const data = req.body;
@@ -3180,7 +3181,7 @@ export async function registerRoutes(
     }
   });
 
-  app.delete("/api/access-items/:id", isAuthenticated, householdContext, requirePermission("CAN_EDIT_VAULT"), async (req: any, res) => {
+  app.delete("/api/access-items/:id", isAuthenticated, householdContext, requirePermission("CAN_EDIT_VAULT"), async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
       
@@ -3195,10 +3196,10 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/access-items/:id/reveal", isAuthenticated, householdContext, async (req: any, res) => {
+  app.post("/api/access-items/:id/reveal", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       const userRole = req.householdRole;
       
@@ -3228,7 +3229,7 @@ export async function registerRoutes(
   });
 
   // Access Item Grants (for STAFF access management)
-  app.get("/api/access-items/:id/grants", isAuthenticated, householdContext, requirePermission("CAN_EDIT_VAULT"), async (req: any, res) => {
+  app.get("/api/access-items/:id/grants", isAuthenticated, householdContext, requirePermission("CAN_EDIT_VAULT"), async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
       const householdId = req.householdId!;
@@ -3246,11 +3247,11 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/access-items/:id/grants", isAuthenticated, householdContext, requirePermission("CAN_EDIT_VAULT"), async (req: any, res) => {
+  app.post("/api/access-items/:id/grants", isAuthenticated, householdContext, requirePermission("CAN_EDIT_VAULT"), async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
       const { userId: grantUserId, expiresAt } = req.body;
-      const grantedBy = req.user.claims.sub;
+      const grantedBy = req.user!.claims.sub;
       const householdId = req.householdId!;
       
       const item = await storage.getAccessItem(householdId, id);
@@ -3273,7 +3274,7 @@ export async function registerRoutes(
     }
   });
 
-  app.delete("/api/access-items/:id/grants/:grantId", isAuthenticated, householdContext, requirePermission("CAN_EDIT_VAULT"), async (req: any, res) => {
+  app.delete("/api/access-items/:id/grants/:grantId", isAuthenticated, householdContext, requirePermission("CAN_EDIT_VAULT"), async (req: Request, res: Response) => {
     try {
       const { grantId } = req.params;
       
@@ -3289,9 +3290,9 @@ export async function registerRoutes(
   });
 
   // Quick Request Templates Endpoints
-  app.get("/api/quick-request-templates", isAuthenticated, householdContext, async (req: any, res) => {
+  app.get("/api/quick-request-templates", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       const templates = await storage.getQuickRequestTemplates(householdId);
       res.json(templates.filter(t => t.isActive));
@@ -3301,9 +3302,9 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/quick-request-templates/all", isAuthenticated, householdContext, async (req: any, res) => {
+  app.get("/api/quick-request-templates/all", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       const profile = await getUserProfile(userId);
       
@@ -3319,9 +3320,9 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/quick-request-templates", isAuthenticated, householdContext, async (req: any, res) => {
+  app.post("/api/quick-request-templates", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       const profile = await getUserProfile(userId);
       
@@ -3345,9 +3346,9 @@ export async function registerRoutes(
     }
   });
 
-  app.patch("/api/quick-request-templates/:id", isAuthenticated, householdContext, async (req: any, res) => {
+  app.patch("/api/quick-request-templates/:id", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       const profile = await getUserProfile(userId);
       
@@ -3372,9 +3373,9 @@ export async function registerRoutes(
     }
   });
 
-  app.delete("/api/quick-request-templates/:id", isAuthenticated, householdContext, async (req: any, res) => {
+  app.delete("/api/quick-request-templates/:id", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       const profile = await getUserProfile(userId);
       
@@ -3394,9 +3395,9 @@ export async function registerRoutes(
   });
 
   // Playbooks (SOP Templates) Endpoints
-  app.get("/api/playbooks", isAuthenticated, householdContext, async (req: any, res) => {
+  app.get("/api/playbooks", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       const playbooksList = await storage.getPlaybooks(householdId);
       res.json(playbooksList);
@@ -3406,9 +3407,9 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/playbooks/:id", isAuthenticated, householdContext, async (req: any, res) => {
+  app.get("/api/playbooks/:id", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       const playbook = await storage.getPlaybook(householdId, req.params.id);
       if (!playbook) {
@@ -3423,9 +3424,9 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/playbooks", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_PLAYBOOKS"), async (req: any, res) => {
+  app.post("/api/playbooks", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_PLAYBOOKS"), async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       const profile = await getUserProfile(userId);
       
@@ -3464,9 +3465,9 @@ export async function registerRoutes(
     }
   });
 
-  app.patch("/api/playbooks/:id", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_PLAYBOOKS"), async (req: any, res) => {
+  app.patch("/api/playbooks/:id", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_PLAYBOOKS"), async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       const profile = await getUserProfile(userId);
       
@@ -3512,9 +3513,9 @@ export async function registerRoutes(
     }
   });
 
-  app.delete("/api/playbooks/:id", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_PLAYBOOKS"), async (req: any, res) => {
+  app.delete("/api/playbooks/:id", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_PLAYBOOKS"), async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       const profile = await getUserProfile(userId);
       
@@ -3537,9 +3538,9 @@ export async function registerRoutes(
   // AUDIT LOG ROUTES
   // ============================================
   
-  app.get("/api/audit-logs", isAuthenticated, householdContext, requirePermission("CAN_VIEW_AUDIT_LOG"), async (req: any, res) => {
+  app.get("/api/audit-logs", isAuthenticated, householdContext, requirePermission("CAN_VIEW_AUDIT_LOG"), async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       const profile = await getUserProfile(userId);
       
@@ -3569,9 +3570,9 @@ export async function registerRoutes(
   // VAULT SETTINGS ROUTES
   // ============================================
   
-  app.get("/api/vault/settings", isAuthenticated, householdContext, async (req: any, res) => {
+  app.get("/api/vault/settings", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       const profile = await getUserProfile(userId);
       
@@ -3592,9 +3593,9 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/vault/set-pin", authLimiter, isAuthenticated, householdContext, requirePermission("CAN_EDIT_VAULT"), async (req: any, res) => {
+  app.post("/api/vault/set-pin", authLimiter, isAuthenticated, householdContext, requirePermission("CAN_EDIT_VAULT"), async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       const profile = await getUserProfile(userId);
       
@@ -3627,9 +3628,9 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/vault/verify-pin", authLimiter, isAuthenticated, householdContext, async (req: any, res) => {
+  app.post("/api/vault/verify-pin", authLimiter, isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       
       const { pin } = req.body;
@@ -3676,9 +3677,9 @@ export async function registerRoutes(
   // HANDOFF PACKET ROUTES
   // ============================================
   
-  app.get("/api/handoff", isAuthenticated, householdContext, requirePermission("CAN_ADMIN_EXPORTS"), async (req: any, res) => {
+  app.get("/api/handoff", isAuthenticated, householdContext, requirePermission("CAN_ADMIN_EXPORTS"), async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       
       const profile = await getUserProfile(userId);
@@ -3708,9 +3709,9 @@ export async function registerRoutes(
     }
   });
   
-  app.get("/api/handoff/data", isAuthenticated, householdContext, requirePermission("CAN_ADMIN_EXPORTS"), async (req: any, res) => {
+  app.get("/api/handoff/data", isAuthenticated, householdContext, requirePermission("CAN_ADMIN_EXPORTS"), async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       
       const profile = await getUserProfile(userId);
@@ -3728,9 +3729,9 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/moments/generate", isAuthenticated, householdContext, async (req: any, res) => {
+  app.get("/api/moments/generate", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       
       const profile = await getUserProfile(userId);
@@ -3763,9 +3764,9 @@ export async function registerRoutes(
   // NOTIFICATIONS ROUTES
   // ============================================
 
-  app.get("/api/notifications", isAuthenticated, householdContext, async (req: any, res) => {
+  app.get("/api/notifications", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       const notificationsList = await getNotifications(userId, householdId);
       res.json(notificationsList);
@@ -3775,9 +3776,9 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/notifications/unread-count", isAuthenticated, householdContext, async (req: any, res) => {
+  app.get("/api/notifications/unread-count", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       const count = await getUnreadCount(userId, householdId);
       res.json({ count });
@@ -3787,7 +3788,7 @@ export async function registerRoutes(
     }
   });
 
-  app.patch("/api/notifications/:id/read", isAuthenticated, householdContext, async (req: any, res) => {
+  app.patch("/api/notifications/:id/read", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       await markNotificationRead(req.params.id);
       res.json({ success: true });
@@ -3797,9 +3798,9 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/notifications/mark-all-read", isAuthenticated, householdContext, async (req: any, res) => {
+  app.post("/api/notifications/mark-all-read", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       await markAllNotificationsRead(userId, householdId);
       res.json({ success: true });
@@ -3809,9 +3810,9 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/notification-settings", isAuthenticated, householdContext, async (req: any, res) => {
+  app.get("/api/notification-settings", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const settings = await getNotificationSettings(userId);
       res.json(settings || {});
     } catch (error) {
@@ -3820,9 +3821,9 @@ export async function registerRoutes(
     }
   });
 
-  app.patch("/api/notification-settings", isAuthenticated, householdContext, async (req: any, res) => {
+  app.patch("/api/notification-settings", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       const settings = await upsertNotificationSettings(userId, householdId, req.body);
       res.json(settings);
@@ -3836,7 +3837,7 @@ export async function registerRoutes(
   // AI SUGGESTIONS ROUTES
   // ============================================
 
-  app.get("/api/suggestions", isAuthenticated, householdContext, async (req: any, res) => {
+  app.get("/api/suggestions", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
       const suggestions = await getSmartSuggestions(householdId);
@@ -3859,9 +3860,9 @@ export async function registerRoutes(
     });
   });
 
-  app.post("/api/push/subscribe", isAuthenticated, householdContext, async (req: any, res) => {
+  app.post("/api/push/subscribe", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       const { endpoint, keys, userAgent } = req.body;
 
@@ -3885,9 +3886,9 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/push/unsubscribe", isAuthenticated, async (req: any, res) => {
+  app.post("/api/push/unsubscribe", isAuthenticated, async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const { endpoint } = req.body;
 
       if (!endpoint) {
@@ -3902,9 +3903,9 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/push/subscriptions", isAuthenticated, async (req: any, res) => {
+  app.get("/api/push/subscriptions", isAuthenticated, async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const subscriptions = await getUserSubscriptions(userId);
       res.json(subscriptions.map(s => ({ 
         id: s.id, 
@@ -3921,9 +3922,9 @@ export async function registerRoutes(
   // GLOBAL SEARCH ROUTE
   // ============================================
 
-  app.get("/api/search", isAuthenticated, householdContext, async (req: any, res) => {
+  app.get("/api/search", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       
       const query = (req.query.q as string || "").toLowerCase().trim();
@@ -3992,9 +3993,9 @@ export async function registerRoutes(
   // ============================================
 
   // Export all data as JSON
-  app.get("/api/admin/export", isAuthenticated, householdContext, requirePermission("CAN_ADMIN_EXPORTS"), async (req: any, res) => {
+  app.get("/api/admin/export", isAuthenticated, householdContext, requirePermission("CAN_ADMIN_EXPORTS"), async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const profile = await getUserProfile(userId);
       
       if (profile?.role !== "ASSISTANT") {
@@ -4012,9 +4013,9 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/admin/sync-calendars", isAuthenticated, householdContext, async (req: any, res) => {
+  app.post("/api/admin/sync-calendars", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const profile = await getUserProfile(userId);
       
       if (profile?.role !== "ASSISTANT") {
@@ -4034,9 +4035,9 @@ export async function registerRoutes(
   });
 
   // Create a backup ZIP
-  app.post("/api/admin/backup", criticalLimiter, isAuthenticated, householdContext, requirePermission("CAN_MANAGE_BACKUPS"), async (req: any, res) => {
+  app.post("/api/admin/backup", criticalLimiter, isAuthenticated, householdContext, requirePermission("CAN_MANAGE_BACKUPS"), async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const profile = await getUserProfile(userId);
       
       if (profile?.role !== "ASSISTANT") {
@@ -4058,9 +4059,9 @@ export async function registerRoutes(
   });
 
   // List all backups
-  app.get("/api/admin/backups", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_BACKUPS"), async (req: any, res) => {
+  app.get("/api/admin/backups", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_BACKUPS"), async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const profile = await getUserProfile(userId);
       
       if (profile?.role !== "ASSISTANT") {
@@ -4076,9 +4077,9 @@ export async function registerRoutes(
   });
 
   // Download a backup
-  app.get("/api/admin/backups/:filename/download", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_BACKUPS"), async (req: any, res) => {
+  app.get("/api/admin/backups/:filename/download", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_BACKUPS"), async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const profile = await getUserProfile(userId);
       
       if (profile?.role !== "ASSISTANT") {
@@ -4100,9 +4101,9 @@ export async function registerRoutes(
   });
 
   // Delete a backup
-  app.delete("/api/admin/backups/:filename", criticalLimiter, isAuthenticated, householdContext, requirePermission("CAN_MANAGE_BACKUPS"), async (req: any, res) => {
+  app.delete("/api/admin/backups/:filename", criticalLimiter, isAuthenticated, householdContext, requirePermission("CAN_MANAGE_BACKUPS"), async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const profile = await getUserProfile(userId);
       
       if (profile?.role !== "ASSISTANT") {
@@ -4122,7 +4123,7 @@ export async function registerRoutes(
   });
 
   // Migrate existing vault items to encrypted storage
-  app.post("/api/admin/migrate-vault-encryption", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_SETTINGS"), async (req: any, res) => {
+  app.post("/api/admin/migrate-vault-encryption", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_SETTINGS"), async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
       const accessItems = await storage.getAccessItems(householdId);
@@ -4161,9 +4162,9 @@ export async function registerRoutes(
   });
 
   // Get backup settings
-  app.get("/api/admin/backup-settings", isAuthenticated, householdContext, async (req: any, res) => {
+  app.get("/api/admin/backup-settings", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const profile = await getUserProfile(userId);
       
       if (profile?.role !== "ASSISTANT") {
@@ -4179,9 +4180,9 @@ export async function registerRoutes(
   });
 
   // Update backup settings
-  app.patch("/api/admin/backup-settings", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_BACKUPS"), async (req: any, res) => {
+  app.patch("/api/admin/backup-settings", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_BACKUPS"), async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const profile = await getUserProfile(userId);
       
       if (profile?.role !== "ASSISTANT") {
@@ -4203,9 +4204,9 @@ export async function registerRoutes(
   // ============================================================
   
   // Get current user's organization
-  app.get("/api/organizations/mine", isAuthenticated, async (req: any, res) => {
+  app.get("/api/organizations/mine", isAuthenticated, async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const org = await storage.getOrganizationByOwner(userId);
       
       if (!org) {
@@ -4220,9 +4221,9 @@ export async function registerRoutes(
   });
 
   // Get all organizations owned by current user
-  app.get("/api/organizations", isAuthenticated, async (req: any, res) => {
+  app.get("/api/organizations", isAuthenticated, async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const orgs = await storage.getOrganizationsByOwner(userId);
       res.json(orgs);
     } catch (error) {
@@ -4232,9 +4233,9 @@ export async function registerRoutes(
   });
 
   // Get organization by ID
-  app.get("/api/organizations/:id", isAuthenticated, async (req: any, res) => {
+  app.get("/api/organizations/:id", isAuthenticated, async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const org = await storage.getOrganization(req.params.id);
       
       if (!org) {
@@ -4254,9 +4255,9 @@ export async function registerRoutes(
   });
 
   // Create a new organization (for assistants managing multiple households)
-  app.post("/api/organizations", isAuthenticated, async (req: any, res) => {
+  app.post("/api/organizations", isAuthenticated, async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const profile = await getUserProfile(userId);
       
       // Only assistants can create organizations
@@ -4281,9 +4282,9 @@ export async function registerRoutes(
   });
 
   // Update organization
-  app.patch("/api/organizations/:id", isAuthenticated, async (req: any, res) => {
+  app.patch("/api/organizations/:id", isAuthenticated, async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const org = await storage.getOrganization(req.params.id);
       
       if (!org) {
@@ -4304,9 +4305,9 @@ export async function registerRoutes(
   });
 
   // Get households within an organization
-  app.get("/api/organizations/:id/households", isAuthenticated, async (req: any, res) => {
+  app.get("/api/organizations/:id/households", isAuthenticated, async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const org = await storage.getOrganization(req.params.id);
       
       if (!org) {
@@ -4327,9 +4328,9 @@ export async function registerRoutes(
   });
 
   // Create household within an organization
-  app.post("/api/organizations/:id/households", isAuthenticated, async (req: any, res) => {
+  app.post("/api/organizations/:id/households", isAuthenticated, async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const profile = await getUserProfile(userId);
       
       if (profile?.role !== "ASSISTANT") {
@@ -4363,9 +4364,9 @@ export async function registerRoutes(
   });
 
   // Link existing household to organization
-  app.patch("/api/households/:id/organization", isAuthenticated, async (req: any, res) => {
+  app.patch("/api/households/:id/organization", isAuthenticated, async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const profile = await getUserProfile(userId);
       
       if (profile?.role !== "ASSISTANT") {
@@ -4401,9 +4402,9 @@ export async function registerRoutes(
     });
   });
 
-  app.get("/api/billing/subscription", isAuthenticated, async (req: any, res) => {
+  app.get("/api/billing/subscription", isAuthenticated, async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const profile = await getUserProfile(userId);
       
       if (!profile?.organizationId) {
@@ -4424,9 +4425,9 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/billing/checkout", isAuthenticated, async (req: any, res) => {
+  app.post("/api/billing/checkout", isAuthenticated, async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const profile = await getUserProfile(userId);
       
       if (profile?.role !== "ASSISTANT") {
@@ -4454,9 +4455,9 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/billing/portal", isAuthenticated, async (req: any, res) => {
+  app.post("/api/billing/portal", isAuthenticated, async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const profile = await getUserProfile(userId);
       
       if (profile?.role !== "ASSISTANT") {
@@ -4480,9 +4481,9 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/billing/invoices", isAuthenticated, async (req: any, res) => {
+  app.get("/api/billing/invoices", isAuthenticated, async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const profile = await getUserProfile(userId);
       
       if (!profile?.organizationId) {
@@ -4519,9 +4520,9 @@ export async function registerRoutes(
   // ANALYTICS ROUTES (Phase 1 - PRO Feature)
   // ============================================
 
-  app.get("/api/analytics/dashboard", isAuthenticated, householdContext, async (req: any, res) => {
+  app.get("/api/analytics/dashboard", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       const profile = await getUserProfile(userId);
       
@@ -4539,9 +4540,9 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/analytics/tasks-over-time", isAuthenticated, householdContext, async (req: any, res) => {
+  app.get("/api/analytics/tasks-over-time", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       const profile = await getUserProfile(userId);
       
@@ -4559,9 +4560,9 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/analytics/tasks-by-category", isAuthenticated, householdContext, async (req: any, res) => {
+  app.get("/api/analytics/tasks-by-category", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       
       const period = (req.query.period as "week" | "month" | "quarter" | "year") || "month";
@@ -4574,9 +4575,9 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/analytics/client-summary", isAuthenticated, householdContext, async (req: any, res) => {
+  app.get("/api/analytics/client-summary", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       
       const { generateClientImpactSummary } = await import("./services/analytics");
@@ -4588,7 +4589,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/analytics/stats", isAuthenticated, householdContext, async (req: any, res) => {
+  app.get("/api/analytics/stats", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
       const period = (req.query.period as string) || "30d";
@@ -4602,7 +4603,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/analytics/task-breakdown", isAuthenticated, householdContext, async (req: any, res) => {
+  app.get("/api/analytics/task-breakdown", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
       const period = (req.query.period as string) || "30d";
@@ -4616,7 +4617,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/analytics/spending-breakdown", isAuthenticated, householdContext, async (req: any, res) => {
+  app.get("/api/analytics/spending-breakdown", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
       const period = (req.query.period as string) || "30d";
@@ -4630,7 +4631,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/analytics/timeline", isAuthenticated, householdContext, async (req: any, res) => {
+  app.get("/api/analytics/timeline", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
       const period = (req.query.period as string) || "30d";
@@ -4644,7 +4645,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/analytics/performance", isAuthenticated, householdContext, async (req: any, res) => {
+  app.get("/api/analytics/performance", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
       const period = (req.query.period as string) || "30d";
@@ -4662,9 +4663,9 @@ export async function registerRoutes(
   // EMERGENCY CONTACTS & PROTOCOLS (Phase 1)
   // ============================================
 
-  app.get("/api/emergency/contacts", isAuthenticated, householdContext, async (req: any, res) => {
+  app.get("/api/emergency/contacts", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       
       const contacts = await db.select().from(emergencyContacts)
@@ -4676,9 +4677,9 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/emergency/contacts", isAuthenticated, householdContext, async (req: any, res) => {
+  app.post("/api/emergency/contacts", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       const profile = await getUserProfile(userId);
       
@@ -4696,9 +4697,9 @@ export async function registerRoutes(
     }
   });
 
-  app.patch("/api/emergency/contacts/:id", isAuthenticated, householdContext, async (req: any, res) => {
+  app.patch("/api/emergency/contacts/:id", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       const profile = await getUserProfile(userId);
       
@@ -4724,9 +4725,9 @@ export async function registerRoutes(
     }
   });
 
-  app.delete("/api/emergency/contacts/:id", isAuthenticated, householdContext, async (req: any, res) => {
+  app.delete("/api/emergency/contacts/:id", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       const profile = await getUserProfile(userId);
       
@@ -4749,9 +4750,9 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/emergency/protocols", isAuthenticated, householdContext, async (req: any, res) => {
+  app.get("/api/emergency/protocols", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       
       const protocols = await db.select().from(emergencyProtocols)
@@ -4763,9 +4764,9 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/emergency/protocols", isAuthenticated, householdContext, async (req: any, res) => {
+  app.post("/api/emergency/protocols", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       const profile = await getUserProfile(userId);
       
@@ -4787,9 +4788,9 @@ export async function registerRoutes(
   // IN-APP MESSAGING ROUTES (Phase 1 - Premium)
   // ============================================
 
-  app.get("/api/conversations", isAuthenticated, householdContext, async (req: any, res) => {
+  app.get("/api/conversations", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       
       const convos = await db.select().from(conversations)
@@ -4802,9 +4803,9 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/conversations", isAuthenticated, householdContext, async (req: any, res) => {
+  app.post("/api/conversations", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       const { type, title, participantIds } = req.body;
 
@@ -4823,9 +4824,9 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/conversations/:id/messages", isAuthenticated, householdContext, async (req: any, res) => {
+  app.get("/api/conversations/:id/messages", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       const conversationId = req.params.id;
       
@@ -4846,9 +4847,9 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/conversations/:id/messages", isAuthenticated, householdContext, async (req: any, res) => {
+  app.post("/api/conversations/:id/messages", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       const conversationId = req.params.id;
       const { text, attachments, isVoice, voiceTranscription } = req.body;
@@ -4891,9 +4892,9 @@ export async function registerRoutes(
     }
   });
 
-  app.patch("/api/messages/:id/read", isAuthenticated, householdContext, async (req: any, res) => {
+  app.patch("/api/messages/:id/read", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       const messageId = req.params.id;
 
@@ -4944,7 +4945,7 @@ export async function registerRoutes(
     });
   });
 
-  app.post("/api/ai/parse-request", expensiveLimiter, isAuthenticated, householdContext, async (req: any, res) => {
+  app.post("/api/ai/parse-request", expensiveLimiter, isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const { text } = req.body;
       if (!text) {
@@ -4960,9 +4961,9 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/ai/weekly-brief", expensiveLimiter, isAuthenticated, householdContext, async (req: any, res) => {
+  app.get("/api/ai/weekly-brief", expensiveLimiter, isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       
       const events = await storage.getCalendarEvents(householdId);
@@ -5009,7 +5010,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/ai/transcribe", expensiveLimiter, isAuthenticated, householdContext, async (req: any, res) => {
+  app.post("/api/ai/transcribe", expensiveLimiter, isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const { audioBase64 } = req.body;
       if (!audioBase64 || typeof audioBase64 !== "string") {
@@ -5025,9 +5026,9 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/ai/smart-actions", expensiveLimiter, isAuthenticated, householdContext, async (req: any, res) => {
+  app.post("/api/ai/smart-actions", expensiveLimiter, isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
 
       const tasksList = await storage.getTasks(householdId);
@@ -5050,7 +5051,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/ai/chat", expensiveLimiter, isAuthenticated, householdContext, async (req: any, res) => {
+  app.post("/api/ai/chat", expensiveLimiter, isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
       const { messages } = req.body;
@@ -5068,9 +5069,9 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/ai/chat/create-request", expensiveLimiter, isAuthenticated, householdContext, async (req: any, res) => {
+  app.post("/api/ai/chat/create-request", expensiveLimiter, isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       const { title, description, category, urgency } = req.body;
 
@@ -5102,7 +5103,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/ai/parse-smart", expensiveLimiter, isAuthenticated, householdContext, async (req: any, res) => {
+  app.post("/api/ai/parse-smart", expensiveLimiter, isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
       const { text, useAI = true } = req.body;
@@ -5136,7 +5137,7 @@ export async function registerRoutes(
   });
 
   // Proactive AI Insights endpoints
-  app.get("/api/ai/insights", isAuthenticated, householdContext, async (req: any, res) => {
+  app.get("/api/ai/insights", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
       const { getProactiveInsights } = await import("./services/ai-agent");
@@ -5149,7 +5150,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/ai/insights/refresh", expensiveLimiter, isAuthenticated, householdContext, async (req: any, res) => {
+  app.post("/api/ai/insights/refresh", expensiveLimiter, isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
       const { gatherHouseholdContext, generateProactiveInsights } = await import("./services/ai-agent");
@@ -5164,7 +5165,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/ai/insights/:id/dismiss", isAuthenticated, householdContext, async (req: any, res) => {
+  app.post("/api/ai/insights/:id/dismiss", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
       const { dismissInsight } = await import("./services/ai-agent");
@@ -5177,7 +5178,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/ai/estimate-duration", isAuthenticated, householdContext, async (req: any, res) => {
+  app.get("/api/ai/estimate-duration", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
       const { category } = req.query;
@@ -5196,7 +5197,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/ai/learn/task-complete", isAuthenticated, householdContext, async (req: any, res) => {
+  app.post("/api/ai/learn/task-complete", isAuthenticated, householdContext, async (req: Request, res: Response) => {
     try {
       const householdId = req.householdId!;
       const { taskId, category, estimatedMinutes, createdAt, completedAt } = req.body;
