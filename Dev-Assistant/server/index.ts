@@ -4,7 +4,7 @@ import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
 import { initSentry, getSentryHandlers } from "./lib/sentry";
-import { startCalendarSync, stopCalendarSync, startProactiveAgent, stopProactiveAgent } from "./services/scheduler";
+import { getQueue, scheduleRecurringJobs, registerWorkers, stopQueue } from "./lib/queue";
 import { wsManager } from "./services/websocket";
 
 const app = express();
@@ -146,26 +146,18 @@ app.use((req, res, next) => {
 
   wsManager.initialize(httpServer);
 
-  if (process.env.NODE_ENV === "production" || process.env.ENABLE_CALENDAR_SYNC === "true") {
-    try {
-      startCalendarSync();
-      console.log("[SERVER] Calendar sync started");
-    } catch (error) {
-      console.error("[SERVER] Failed to start calendar sync:", error);
-    }
-  }
-  
   try {
-    startProactiveAgent();
-    console.log("[SERVER] Proactive AI agent started");
+    await getQueue();
+    await registerWorkers();
+    await scheduleRecurringJobs();
+    console.log("[SERVER] Job queue started with workers and recurring schedules");
   } catch (error) {
-    console.error("[SERVER] Failed to start proactive agent:", error);
+    console.error("[SERVER] Failed to start job queue:", error);
   }
 
-  process.on("SIGTERM", () => {
+  process.on("SIGTERM", async () => {
     console.log("[SERVER] SIGTERM received, shutting down gracefully...");
-    stopCalendarSync();
-    stopProactiveAgent();
+    await stopQueue();
     httpServer.close(() => {
       console.log("[SERVER] Server closed");
       process.exit(0);

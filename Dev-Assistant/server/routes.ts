@@ -30,6 +30,7 @@ import { registerHouseholdConciergeRoutes } from "./routes/household-concierge";
 import { registerAdminRoutes } from "./routes/admin";
 import { registerAdminOpsRoutes } from "./routes/admin-ops";
 import { registerFeatureRoutes } from "./routes/features";
+import { registerJobRoutes } from "./routes/jobs";
 
 const householdContext = householdContextMiddleware;
 
@@ -98,6 +99,7 @@ export async function registerRoutes(
   registerAdminRoutes(v1);
   registerAdminOpsRoutes(v1);
   registerFeatureRoutes(v1);
+  registerJobRoutes(v1);
 
   app.use("/api/v1", v1);
   app.use("/api", v1);

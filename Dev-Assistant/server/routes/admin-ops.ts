@@ -15,7 +15,7 @@ import { eq, and, sql } from "drizzle-orm";
 import { insertOrganizationSchema, insertHouseholdSchema } from "@shared/schema";
 import { createReadStream, existsSync } from "fs";
 import { join, basename } from "path";
-import { triggerImmediateSync } from "../services/scheduler";
+import { enqueueJob, JOB_NAMES } from "../lib/queue";
 import { z } from "zod";
 import * as googleCalendar from "../services/google-calendar";
 
@@ -97,11 +97,11 @@ export function registerAdminOpsRoutes(app: Router) {
         return res.status(403).json({ message: "Only assistants can trigger sync" });
       }
 
-      const result = await triggerImmediateSync();
+      const jobId = await enqueueJob(JOB_NAMES.CALENDAR_SYNC, { immediate: true });
       
       res.json({
-        message: "Calendar sync triggered",
-        ...result,
+        message: "Calendar sync job enqueued",
+        jobId,
       });
     } catch (error: any) {
       logger.error("Error triggering sync", { error, userId });
