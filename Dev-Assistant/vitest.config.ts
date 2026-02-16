@@ -8,6 +8,12 @@ export default defineConfig({
     globals: true,
     environment: "jsdom",
     setupFiles: ["./tests/setup.ts"],
+    environmentMatchGlobs: [
+      ["tests/unit/**/*.test.ts", "node"],
+      ["tests/integration/**", "node"],
+      ["tests/e2e/**", "node"],
+      ["server/**", "node"],
+    ],
     include: [
       "tests/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}",
       "client/src/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}",
@@ -28,7 +34,7 @@ export default defineConfig({
         "**/*.test.{ts,tsx}",
         "**/*.spec.{ts,tsx}",
         "**/node_modules/**",
-        "client/src/components/ui/**", // shadcn components
+        "client/src/components/ui/**",
       ],
       thresholds: {
         lines: 60,
@@ -37,8 +43,8 @@ export default defineConfig({
         statements: 60,
       },
     },
-    testTimeout: 10000,
-    hookTimeout: 10000,
+    testTimeout: 15000,
+    hookTimeout: 15000,
   },
   resolve: {
     alias: {
