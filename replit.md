@@ -27,6 +27,20 @@ Preferred communication style: Simple, everyday language.
 ### Backend Architecture
 - **Runtime**: Node.js with Express.js server in TypeScript
 - **API Design**: RESTful endpoints under `/api/*` prefix with rate limiting (apiLimiter, authLimiter, criticalLimiter)
+- **Route Organization**: Modular route files in `server/routes/` with domain-specific modules:
+  - `helpers.ts` - Shared functions (calculateNextOccurrence, seedDemoData, getOrCreateHousehold, runMomentsAutomation)
+  - `google-calendar.ts` - Google Calendar OAuth flow
+  - `user-profile.ts` - User profile, role setup, dashboard, services
+  - `cleaning.ts` - Cleaning service & addon services endpoints
+  - `tasks.ts` - Task CRUD, completion, recurrence, templates, checklists
+  - `approvals.ts` - Approvals, updates, requests, comments, vendors, reactions
+  - `spending.ts` - Spending, payments, invoices, payment profiles
+  - `calendar.ts` - Calendar events & sync
+  - `household-concierge.ts` - Onboarding, household settings, locations, people, preferences, dates, vault, playbooks
+  - `admin.ts` - Audit logs, vault settings, handoff, notifications, search, push, suggestions
+  - `admin-ops.ts` - Export, backup, organization management, billing
+  - `features.ts` - Analytics, emergency contacts, messaging, AI assistant
+  - Existing Router-pattern modules: `households.ts`, `invites.ts`, `files.ts`, `weekly-brief.ts`
 - **Authentication**: Replit Auth integration with session-based authentication
 - **Middleware**: Household context middleware for multi-tenant scoping, permission-based access control
 - **Build System**: esbuild for server bundling with dependency allowlist, Vite for client bundling
