@@ -8,6 +8,7 @@ import { storage } from "./storage";
 import { getStorageProvider } from "./services/storage-provider";
 import { escapeHtml } from "./lib/escape-html";
 import { encryptVaultValue, decryptVaultValue } from "./services/vault-encryption";
+import logger from "./lib/logger";
 import { serviceScopeMiddleware, getServiceTypeFilter } from "./middleware/serviceScope";
 import { setupAuth, registerAuthRoutes, isAuthenticated } from "./replit_integrations/auth";
 import { apiLimiter, authLimiter, expensiveLimiter, criticalLimiter } from "./lib/rate-limit";
