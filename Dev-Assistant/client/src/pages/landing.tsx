@@ -1,70 +1,236 @@
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Home, CheckSquare, Calendar, Users } from "lucide-react";
+import { motion } from "framer-motion";
+import { Home, ChevronDown, Shield, Calendar, Zap } from "lucide-react";
+
+const ease = [0.22, 1, 0.36, 1];
 
 export default function Landing() {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-muted/30 flex flex-col">
-      <header className="p-6">
-        <h1 className="text-2xl font-bold" data-testid="text-landing-title">hndld</h1>
-      </header>
+    <div className="min-h-screen bg-background">
 
-      <main className="flex-1 flex flex-col items-center justify-center px-6 pb-20">
-        <div className="max-w-md w-full space-y-8 text-center">
-          <div className="space-y-4">
-            <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-primary/10 mb-4">
-              <Home className="h-10 w-10 text-primary" />
-            </div>
-            <h2 className="text-3xl font-bold tracking-tight" data-testid="text-hero-heading">
-              Your Household, Simplified
+      <section className="relative min-h-screen flex flex-col items-center justify-center px-6 py-20 bg-gradient-to-b from-[hsl(36_33%_97%)] via-[hsl(36_30%_96%)] to-[hsl(220_25%_95%)]">
+
+        <motion.div
+          className="mb-12"
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.8, ease }}
+        >
+          <div className="w-16 h-16 rounded-2xl bg-[hsl(220_25%_92%)] flex items-center justify-center">
+            <Home className="w-8 h-8 text-[hsl(220_37%_25%)]" />
+          </div>
+        </motion.div>
+
+        <motion.h1
+          className="text-center max-w-2xl"
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.2, ease }}
+          data-testid="text-hero-heading"
+        >
+          <span className="block text-5xl md:text-7xl font-light text-[hsl(220_20%_20%)] tracking-tight">
+            Your Home,
+          </span>
+          <span className="block text-5xl md:text-7xl font-semibold text-[hsl(220_37%_25%)] tracking-tight">
+            hndld.
+          </span>
+        </motion.h1>
+
+        <motion.p
+          className="mt-8 text-xl md:text-2xl text-[hsl(220_10%_45%)] text-center max-w-xl font-light leading-relaxed"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.4, ease }}
+        >
+          The app for people who'd rather live in their home than manage it.
+        </motion.p>
+
+        <motion.div
+          className="mt-12 flex flex-col items-center gap-3"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.6, ease }}
+        >
+          <a
+            href="/api/login"
+            className="group relative px-10 py-4 text-white text-lg font-medium rounded-full transition-all duration-300 hover:scale-[1.02]"
+            style={{ backgroundColor: '#1D2A44', boxShadow: '0 10px 25px -5px rgba(29, 42, 68, 0.35)' }}
+            data-testid="button-login"
+          >
+            Get Started
+          </a>
+          <span className="text-sm text-[hsl(220_10%_55%)]">Free to start · No credit card required</span>
+        </motion.div>
+
+        <motion.div
+          className="absolute bottom-8 left-1/2 -translate-x-1/2"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1, y: [0, 8, 0] }}
+          transition={{
+            opacity: { delay: 1.5, duration: 0.5 },
+            y: { delay: 1.5, duration: 2, repeat: Infinity, ease: "easeInOut" }
+          }}
+        >
+          <ChevronDown className="w-6 h-6 text-[hsl(220_10%_60%)]" />
+        </motion.div>
+      </section>
+
+      <section className="py-24 px-6 bg-white">
+        <div className="max-w-6xl mx-auto">
+          <motion.div
+            className="text-center mb-16"
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.8 }}
+          >
+            <h2 className="text-3xl md:text-4xl font-light text-[hsl(220_20%_20%)]">
+              Everything in its place
             </h2>
-            <p className="text-muted-foreground text-lg">
-              Coordinate tasks, approvals, and updates with your household assistant in one seamless app.
+            <p className="mt-4 text-lg text-[hsl(220_10%_50%)] max-w-md mx-auto">
+              One calm space for approvals, updates, and household coordination.
             </p>
-          </div>
+          </motion.div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <Card className="border-0 bg-card/50">
-              <CardContent className="p-4 flex flex-col items-center gap-2">
-                <CheckSquare className="h-6 w-6 text-primary" />
-                <span className="text-sm font-medium">Quick Approvals</span>
-              </CardContent>
-            </Card>
-            <Card className="border-0 bg-card/50">
-              <CardContent className="p-4 flex flex-col items-center gap-2">
-                <Calendar className="h-6 w-6 text-primary" />
-                <span className="text-sm font-medium">Calendar Sync</span>
-              </CardContent>
-            </Card>
-            <Card className="border-0 bg-card/50">
-              <CardContent className="p-4 flex flex-col items-center gap-2">
-                <Users className="h-6 w-6 text-primary" />
-                <span className="text-sm font-medium">Team Updates</span>
-              </CardContent>
-            </Card>
-            <Card className="border-0 bg-card/50">
-              <CardContent className="p-4 flex flex-col items-center gap-2">
-                <Home className="h-6 w-6 text-primary" />
-                <span className="text-sm font-medium">Vendor Mgmt</span>
-              </CardContent>
-            </Card>
-          </div>
+          <motion.div
+            className="relative mx-auto max-w-4xl"
+            initial={{ opacity: 0, y: 40 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 1, ease }}
+          >
+            <div className="aspect-[4/3] rounded-3xl bg-gradient-to-br from-[hsl(220_20%_95%)] to-[hsl(36_25%_93%)] p-8 shadow-2xl shadow-black/5">
+              <div className="h-full rounded-2xl bg-white shadow-lg overflow-hidden border border-[hsl(220_15%_90%)]">
+                <div className="h-14 bg-[hsl(36_25%_98%)] border-b border-[hsl(220_15%_92%)] flex items-center px-5">
+                  <div className="w-8 h-8 rounded-full bg-[hsl(220_25%_90%)]" />
+                  <span className="ml-3 font-medium text-[hsl(220_20%_25%)]">This Week</span>
+                </div>
+                <div className="p-5 space-y-4">
+                  <div className="h-24 rounded-xl bg-gradient-to-r from-[hsl(220_22%_94%)] to-[hsl(220_18%_96%)]" />
+                  <div className="h-16 rounded-xl bg-[hsl(36_25%_97%)]" />
+                  <div className="h-16 rounded-xl bg-[hsl(36_25%_97%)]" />
+                </div>
+              </div>
+            </div>
 
-          <div className="pt-4">
-            <Button 
-              size="lg" 
-              className="w-full text-base font-semibold h-12"
-              onClick={() => window.location.href = "/api/login"}
-              data-testid="button-login"
-            >
-              Get Started
-            </Button>
-            <p className="text-xs text-muted-foreground mt-3">
-              Sign in with Google, GitHub, or email
-            </p>
+            <motion.div
+              className="absolute -top-6 -right-6 w-24 h-24 rounded-2xl bg-[hsl(42_40%_92%)] -z-10"
+              animate={{ y: [0, -10, 0], rotate: [0, 2, 0] }}
+              transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+            />
+            <motion.div
+              className="absolute -bottom-8 -left-8 w-32 h-32 rounded-full bg-[hsl(220_20%_94%)] -z-10"
+              animate={{ y: [0, 10, 0], rotate: [0, -2, 0] }}
+              transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}
+            />
+          </motion.div>
+        </div>
+      </section>
+
+      <section className="py-24 px-6 bg-[hsl(36_30%_97%)]">
+        <div className="max-w-4xl mx-auto">
+          <motion.h2
+            className="text-3xl md:text-4xl font-light text-[hsl(220_20%_20%)] text-center mb-20"
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+          >
+            How it works
+          </motion.h2>
+
+          <div className="space-y-16">
+            {[
+              { num: "01", title: "Your team posts updates", desc: "Cleaning done. Groceries delivered. Repair completed. You'll know." },
+              { num: "02", title: "You approve with a tap", desc: "New expense? Schedule change? One tap and it's handled." },
+              { num: "03", title: "Everything stays organized", desc: "Contacts, codes, preferences — all in one secure place." },
+            ].map((step, i) => (
+              <motion.div
+                key={step.num}
+                className="flex items-start gap-8"
+                initial={{ opacity: 0, x: -30 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.15, duration: 0.6 }}
+              >
+                <span className="text-6xl font-light text-[hsl(220_25%_85%)]">{step.num}</span>
+                <div>
+                  <h3 className="text-xl font-medium text-[hsl(220_20%_20%)]">{step.title}</h3>
+                  <p className="mt-2 text-[hsl(220_10%_50%)] text-lg">{step.desc}</p>
+                </div>
+              </motion.div>
+            ))}
           </div>
         </div>
-      </main>
+      </section>
+
+      <section className="py-32 px-6 bg-white">
+        <motion.div
+          className="max-w-3xl mx-auto text-center"
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.8 }}
+        >
+          <blockquote className="text-2xl md:text-3xl font-light text-[hsl(220_15%_25%)] leading-relaxed italic">
+            "I used to spend my Sundays coordinating the week ahead. Now I spend them with my family."
+          </blockquote>
+          <div className="mt-8 flex items-center justify-center gap-4">
+            <div className="w-12 h-12 rounded-full bg-[hsl(220_25%_90%)]" />
+            <div className="text-left">
+              <p className="font-medium text-[hsl(220_15%_25%)]">Sarah M.</p>
+              <p className="text-sm text-[hsl(220_10%_55%)]">Denver, CO</p>
+            </div>
+          </div>
+        </motion.div>
+      </section>
+
+      <section className="py-16 px-6 bg-[hsl(36_30%_97%)] border-y border-[hsl(220_15%_92%)]">
+        <div className="max-w-4xl mx-auto flex flex-wrap justify-center gap-x-12 gap-y-4 text-sm text-[hsl(220_10%_50%)]">
+          <span className="flex items-center gap-2">
+            <Shield className="w-4 h-4" /> Bank-level encryption
+          </span>
+          <span className="flex items-center gap-2">
+            <Calendar className="w-4 h-4" /> Google Calendar sync
+          </span>
+          <span className="flex items-center gap-2">
+            <Zap className="w-4 h-4" /> Setup in 5 minutes
+          </span>
+        </div>
+      </section>
+
+      <section className="py-32 px-6 bg-gradient-to-b from-white to-[hsl(220_20%_96%)]">
+        <motion.div
+          className="max-w-2xl mx-auto text-center"
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+        >
+          <h2 className="text-4xl md:text-5xl font-light text-[hsl(220_20%_20%)]">
+            Ready to reclaim your time?
+          </h2>
+          <p className="mt-6 text-xl text-[hsl(220_10%_50%)]">
+            Join hundreds of households already using hndld.
+          </p>
+          <a
+            href="/api/login"
+            className="inline-block mt-10 px-12 py-5 text-white text-lg font-medium rounded-full transition-all duration-300 hover:scale-[1.02]"
+            style={{ backgroundColor: '#1D2A44', boxShadow: '0 10px 25px -5px rgba(29, 42, 68, 0.35)' }}
+          >
+            Get Started Free
+          </a>
+        </motion.div>
+      </section>
+
+      <footer className="py-12 px-6 bg-[hsl(220_20%_12%)] text-[hsl(220_10%_70%)]">
+        <div className="max-w-4xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
+          <span className="font-medium text-white">hndld</span>
+          <div className="flex gap-8 text-sm">
+            <a href="/privacy" className="hover:text-white transition-colors">Privacy</a>
+            <a href="/terms" className="hover:text-white transition-colors">Terms</a>
+            <a href="mailto:hello@hndld.com" className="hover:text-white transition-colors">Contact</a>
+          </div>
+          <span className="text-sm">Made with care in Kansas</span>
+        </div>
+      </footer>
     </div>
   );
 }

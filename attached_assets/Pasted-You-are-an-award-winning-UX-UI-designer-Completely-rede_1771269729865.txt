@@ -1,0 +1,293 @@
+You are an award-winning UX/UI designer. Completely redesign the landing page at client/src/pages/landing.tsx to feel ultra-premium, like a luxury brand. This is for affluent clients who value their time.
+
+## DESIGN PHILOSOPHY
+- Confident, not desperate
+- Show, don't tell
+- White space is luxury
+- Every pixel intentional
+- Motion that breathes, not bounces
+
+## COMPLETE LANDING PAGE REPLACEMENT
+
+Replace the entire landing.tsx with this structure:
+
+### 1. HERO SECTION
+```tsx
+<section className="min-h-screen flex flex-col items-center justify-center px-6 py-20 bg-gradient-to-b from-[hsl(40_30%_97%)] via-[hsl(40_25%_96%)] to-[hsl(138_15%_95%)]">
+  
+  {/* Logo mark - subtle, top left or centered above headline */}
+  <motion.div 
+    className="mb-12"
+    initial={{ opacity: 0, scale: 0.9 }}
+    animate={{ opacity: 1, scale: 1 }}
+    transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+  >
+    <div className="w-16 h-16 rounded-2xl bg-[hsl(138_18%_92%)] flex items-center justify-center">
+      <Home className="w-8 h-8 text-[hsl(138_18%_45%)]" />
+    </div>
+  </motion.div>
+
+  {/* Main headline */}
+  <motion.h1 
+    className="text-center max-w-2xl"
+    initial={{ opacity: 0, y: 30 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ duration: 0.8, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
+  >
+    <span className="block text-5xl md:text-7xl font-light text-[hsl(30_10%_25%)] tracking-tight">
+      Your Home,
+    </span>
+    <span className="block text-5xl md:text-7xl font-semibold text-[hsl(138_18%_40%)] tracking-tight">
+      hndld.
+    </span>
+  </motion.h1>
+
+  {/* Subheadline */}
+  <motion.p 
+    className="mt-8 text-xl md:text-2xl text-[hsl(30_10%_45%)] text-center max-w-xl font-light leading-relaxed"
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ duration: 0.8, delay: 0.4, ease: [0.22, 1, 0.36, 1] }}
+  >
+    The app for people who'd rather live in their home than manage it.
+  </motion.p>
+
+  {/* CTA */}
+  <motion.div 
+    className="mt-12 flex flex-col items-center gap-3"
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ duration: 0.8, delay: 0.6, ease: [0.22, 1, 0.36, 1] }}
+  >
+    <a 
+      href="/api/login"
+      className="group relative px-10 py-4 bg-[hsl(138_18%_40%)] hover:bg-[hsl(138_20%_35%)] text-white text-lg font-medium rounded-full transition-all duration-300 shadow-lg shadow-[hsl(138_18%_40%)]/20 hover:shadow-xl hover:shadow-[hsl(138_18%_40%)]/30 hover:scale-[1.02]"
+    >
+      Get Started
+    </a>
+    <span className="text-sm text-[hsl(30_10%_55%)]">Free to start · No credit card required</span>
+  </motion.div>
+
+  {/* Scroll indicator */}
+  <motion.div 
+    className="absolute bottom-8 left-1/2 -translate-x-1/2"
+    initial={{ opacity: 0 }}
+    animate={{ opacity: 1, y: [0, 8, 0] }}
+    transition={{ 
+      opacity: { delay: 1.5, duration: 0.5 },
+      y: { delay: 1.5, duration: 2, repeat: Infinity, ease: "easeInOut" }
+    }}
+  >
+    <ChevronDown className="w-6 h-6 text-[hsl(30_10%_60%)]" />
+  </motion.div>
+</section>
+```
+
+### 2. PRODUCT PREVIEW SECTION
+```tsx
+<section className="py-24 px-6 bg-white">
+  <div className="max-w-6xl mx-auto">
+    
+    {/* Section intro */}
+    <motion.div 
+      className="text-center mb-16"
+      initial={{ opacity: 0, y: 30 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      transition={{ duration: 0.8 }}
+    >
+      <h2 className="text-3xl md:text-4xl font-light text-[hsl(30_10%_25%)]">
+        Everything in its place
+      </h2>
+      <p className="mt-4 text-lg text-[hsl(30_10%_50%)] max-w-md mx-auto">
+        One calm space for approvals, updates, and household coordination.
+      </p>
+    </motion.div>
+
+    {/* App mockup - floating phone/tablet showing dashboard */}
+    <motion.div 
+      className="relative mx-auto max-w-4xl"
+      initial={{ opacity: 0, y: 40 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
+    >
+      <div className="aspect-[4/3] rounded-3xl bg-gradient-to-br from-[hsl(138_15%_95%)] to-[hsl(40_20%_93%)] p-8 shadow-2xl shadow-black/5">
+        {/* Fake app UI preview */}
+        <div className="h-full rounded-2xl bg-white shadow-lg overflow-hidden border border-[hsl(30_10%_90%)]">
+          {/* Header bar */}
+          <div className="h-14 bg-[hsl(40_20%_98%)] border-b border-[hsl(30_10%_92%)] flex items-center px-5">
+            <div className="w-8 h-8 rounded-full bg-[hsl(138_18%_90%)]" />
+            <span className="ml-3 font-medium text-[hsl(30_10%_30%)]">This Week</span>
+          </div>
+          {/* Content preview */}
+          <div className="p-5 space-y-4">
+            <div className="h-24 rounded-xl bg-gradient-to-r from-[hsl(138_18%_94%)] to-[hsl(138_15%_96%)]" />
+            <div className="h-16 rounded-xl bg-[hsl(40_20%_97%)]" />
+            <div className="h-16 rounded-xl bg-[hsl(40_20%_97%)]" />
+          </div>
+        </div>
+      </div>
+      
+      {/* Floating accent elements */}
+      <motion.div 
+        className="absolute -top-6 -right-6 w-24 h-24 rounded-2xl bg-[hsl(138_25%_92%)] -z-10"
+        animate={{ y: [0, -10, 0], rotate: [0, 2, 0] }}
+        transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+      />
+      <motion.div 
+        className="absolute -bottom-8 -left-8 w-32 h-32 rounded-full bg-[hsl(40_30%_94%)] -z-10"
+        animate={{ y: [0, 10, 0], rotate: [0, -2, 0] }}
+        transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}
+      />
+    </motion.div>
+  </div>
+</section>
+```
+
+### 3. HOW IT WORKS - ELEGANT STEPS
+```tsx
+<section className="py-24 px-6 bg-[hsl(40_25%_97%)]">
+  <div className="max-w-4xl mx-auto">
+    
+    <motion.h2 
+      className="text-3xl md:text-4xl font-light text-[hsl(30_10%_25%)] text-center mb-20"
+      initial={{ opacity: 0 }}
+      whileInView={{ opacity: 1 }}
+      viewport={{ once: true }}
+    >
+      How it works
+    </motion.h2>
+
+    <div className="space-y-16">
+      {[
+        { num: "01", title: "Your team posts updates", desc: "Cleaning done. Groceries delivered. Repair completed. You'll know." },
+        { num: "02", title: "You approve with a tap", desc: "New expense? Schedule change? One tap and it's handled." },
+        { num: "03", title: "Everything stays organized", desc: "Contacts, codes, preferences — all in one secure place." },
+      ].map((step, i) => (
+        <motion.div 
+          key={step.num}
+          className="flex items-start gap-8"
+          initial={{ opacity: 0, x: -30 }}
+          whileInView={{ opacity: 1, x: 0 }}
+          viewport={{ once: true }}
+          transition={{ delay: i * 0.15, duration: 0.6 }}
+        >
+          <span className="text-6xl font-light text-[hsl(138_18%_85%)]">{step.num}</span>
+          <div>
+            <h3 className="text-xl font-medium text-[hsl(30_10%_25%)]">{step.title}</h3>
+            <p className="mt-2 text-[hsl(30_10%_50%)] text-lg">{step.desc}</p>
+          </div>
+        </motion.div>
+      ))}
+    </div>
+  </div>
+</section>
+```
+
+### 4. TESTIMONIAL - SINGLE POWERFUL QUOTE
+```tsx
+<section className="py-32 px-6 bg-white">
+  <motion.div 
+    className="max-w-3xl mx-auto text-center"
+    initial={{ opacity: 0, y: 30 }}
+    whileInView={{ opacity: 1, y: 0 }}
+    viewport={{ once: true }}
+    transition={{ duration: 0.8 }}
+  >
+    <blockquote className="text-2xl md:text-3xl font-light text-[hsl(30_10%_30%)] leading-relaxed italic">
+      "I used to spend my Sundays coordinating the week ahead. Now I spend them with my family."
+    </blockquote>
+    <div className="mt-8 flex items-center justify-center gap-4">
+      <div className="w-12 h-12 rounded-full bg-[hsl(138_18%_90%)]" />
+      <div className="text-left">
+        <p className="font-medium text-[hsl(30_10%_30%)]">Sarah M.</p>
+        <p className="text-sm text-[hsl(30_10%_55%)]">Denver, CO</p>
+      </div>
+    </div>
+  </motion.div>
+</section>
+```
+
+### 5. TRUST INDICATORS - SUBTLE, NOT SALESY
+```tsx
+<section className="py-16 px-6 bg-[hsl(40_25%_97%)] border-y border-[hsl(30_10%_92%)]">
+  <div className="max-w-4xl mx-auto flex flex-wrap justify-center gap-x-12 gap-y-4 text-sm text-[hsl(30_10%_50%)]">
+    <span className="flex items-center gap-2">
+      <Shield className="w-4 h-4" /> Bank-level encryption
+    </span>
+    <span className="flex items-center gap-2">
+      <Calendar className="w-4 h-4" /> Google Calendar sync
+    </span>
+    <span className="flex items-center gap-2">
+      <Zap className="w-4 h-4" /> Setup in 5 minutes
+    </span>
+  </div>
+</section>
+```
+
+### 6. FINAL CTA - CONFIDENT CLOSE
+```tsx
+<section className="py-32 px-6 bg-gradient-to-b from-white to-[hsl(138_15%_96%)]">
+  <motion.div 
+    className="max-w-2xl mx-auto text-center"
+    initial={{ opacity: 0, y: 30 }}
+    whileInView={{ opacity: 1, y: 0 }}
+    viewport={{ once: true }}
+  >
+    <h2 className="text-4xl md:text-5xl font-light text-[hsl(30_10%_25%)]">
+      Ready to reclaim your time?
+    </h2>
+    <p className="mt-6 text-xl text-[hsl(30_10%_50%)]">
+      Join hundreds of households already using hndld.
+    </p>
+    <a 
+      href="/api/login"
+      className="inline-block mt-10 px-12 py-5 bg-[hsl(138_18%_40%)] hover:bg-[hsl(138_20%_35%)] text-white text-lg font-medium rounded-full transition-all duration-300 shadow-lg shadow-[hsl(138_18%_40%)]/20 hover:shadow-xl hover:scale-[1.02]"
+    >
+      Get Started Free
+    </a>
+  </motion.div>
+</section>
+```
+
+### 7. FOOTER - MINIMAL
+```tsx
+<footer className="py-12 px-6 bg-[hsl(30_10%_12%)] text-[hsl(30_10%_70%)]">
+  <div className="max-w-4xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
+    <span className="font-medium text-white">hndld</span>
+    <div className="flex gap-8 text-sm">
+      <a href="/privacy" className="hover:text-white transition-colors">Privacy</a>
+      <a href="/terms" className="hover:text-white transition-colors">Terms</a>
+      <a href="mailto:hello@hndld.com" className="hover:text-white transition-colors">Contact</a>
+    </div>
+    <span className="text-sm">Made with care in Kansas</span>
+  </div>
+</footer>
+```
+
+## REQUIRED IMPORTS
+
+At the top of the file:
+```tsx
+import { motion } from "framer-motion";
+import { Home, ChevronDown, Shield, Calendar, Zap } from "lucide-react";
+```
+
+## CRITICAL STYLING NOTES
+
+- Use font-light for headlines (feels premium)
+- Generous padding (py-24, py-32)
+- Muted, warm color palette throughout
+- Rounded-full for CTAs (modern, approachable)
+- Shadows should be subtle and use brand colors
+- All animations use ease: [0.22, 1, 0.36, 1] for premium feel
+- Mobile: stack everything, reduce font sizes, maintain whitespace
+
+## DO NOT INCLUDE
+- Feature grid boxes
+- Multiple CTAs competing
+- Bright/harsh colors
+- Aggressive sales language
+- Cluttered layouts
+- Stock photo placeholders
