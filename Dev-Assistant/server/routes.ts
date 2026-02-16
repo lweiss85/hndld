@@ -5,7 +5,9 @@ import { join } from "path";
 import { setupAuth, registerAuthRoutes, isAuthenticated } from "./replit_integrations/auth";
 import { apiLimiter } from "./lib/rate-limit";
 import { requestIdMiddleware } from "./middleware/requestId";
+import { responseTimeMiddleware } from "./middleware/responseTime";
 import { householdContextMiddleware } from "./middleware/householdContext";
+import { metrics } from "./lib/metrics";
 import { startScheduledBackups } from "./services/scheduler";
 import { runMomentsAutomation } from "./routes/helpers";
 import householdRoutes from "./routes/households";
@@ -31,6 +33,16 @@ export async function registerRoutes(
   app: Express
 ): Promise<Server> {
   app.use(requestIdMiddleware);
+  app.use(responseTimeMiddleware);
+
+  app.get("/api/metrics", (_req, res) => {
+    res.set("Content-Type", "text/plain; version=0.0.4; charset=utf-8");
+    res.send(metrics.toPrometheus());
+  });
+
+  app.get("/api/metrics/json", (_req, res) => {
+    res.json(metrics.getStats());
+  });
 
   await setupAuth(app);
   registerAuthRoutes(app);
@@ -61,6 +73,8 @@ export async function registerRoutes(
   runMomentsAutomation();
 
   startScheduledBackups();
+
+  metrics.startDailyLog();
 
   return httpServer;
 }

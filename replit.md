@@ -42,7 +42,8 @@ Preferred communication style: Simple, everyday language.
   - `features.ts` - Analytics, emergency contacts, messaging, AI assistant
   - Existing Router-pattern modules: `households.ts`, `invites.ts`, `files.ts`, `weekly-brief.ts`
 - **Authentication**: Replit Auth integration with session-based authentication
-- **Middleware**: Household context middleware for multi-tenant scoping, permission-based access control
+- **Middleware**: Household context middleware for multi-tenant scoping, permission-based access control, request ID tracking (server/middleware/requestId.ts), response time APM (server/middleware/responseTime.ts)
+- **APM Monitoring**: Built-in metrics collector (server/lib/metrics.ts) with response time percentiles, slow DB query tracking (>100ms), Prometheus endpoint at `/api/metrics`, JSON stats at `/api/metrics/json`, daily P95 log summary at midnight
 - **Build System**: esbuild for server bundling with dependency allowlist, Vite for client bundling
 
 ### Data Storage

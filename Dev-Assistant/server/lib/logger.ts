@@ -119,16 +119,16 @@ const sanitizeFormat = winston.format((info) => {
   if (typeof info.message === "object") {
     info.message = sanitize(info.message);
   }
-  
+
   const { level, message, timestamp, ...meta } = info;
   const sanitizedMeta = sanitize(meta);
-  
-  return {
-    level,
-    message,
-    timestamp,
-    ...sanitizedMeta,
-  };
+
+  for (const key of Object.keys(meta)) {
+    delete (info as any)[key];
+  }
+  Object.assign(info, sanitizedMeta);
+
+  return info;
 });
 
 const logger = winston.createLogger({
