@@ -1,6 +1,18 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { Check, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+function usePrefersReducedMotion() {
+  const [reduced, setReduced] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    setReduced(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setReduced(e.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
+  return reduced;
+}
 
 interface SwipeRowProps {
   children: React.ReactNode;
@@ -30,6 +42,23 @@ export function SwipeRow({
   const startX = useRef(0);
   const startY = useRef(0);
   const containerRef = useRef<HTMLDivElement>(null);
+  const rafRef = useRef<number | null>(null);
+  const pendingX = useRef(0);
+  const prefersReducedMotion = usePrefersReducedMotion();
+
+  const scheduleUpdate = useCallback((newX: number) => {
+    if (prefersReducedMotion) {
+      setTranslateX(newX);
+      return;
+    }
+    pendingX.current = newX;
+    if (rafRef.current === null) {
+      rafRef.current = requestAnimationFrame(() => {
+        setTranslateX(pendingX.current);
+        rafRef.current = null;
+      });
+    }
+  }, [prefersReducedMotion]);
 
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     if (disabled) return;
@@ -50,7 +79,7 @@ export function SwipeRow({
     if (!directionLocked) {
       if (Math.abs(deltaY) > DIRECTION_LOCK_THRESHOLD) {
         setDirectionLocked("vertical");
-        setTranslateX(0);
+        scheduleUpdate(0);
         setIsDragging(false);
         return;
       }
@@ -67,13 +96,18 @@ export function SwipeRow({
     clampedX = Math.max(-maxSwipe, Math.min(maxSwipe, clampedX));
     
     if ((clampedX > 0 && onSwipeRight) || (clampedX < 0 && onSwipeLeft)) {
-      setTranslateX(clampedX);
+      scheduleUpdate(clampedX);
     } else {
-      setTranslateX(clampedX * 0.3);
+      scheduleUpdate(clampedX * 0.3);
     }
-  }, [disabled, isDragging, directionLocked, onSwipeRight, onSwipeLeft]);
+  }, [disabled, isDragging, directionLocked, onSwipeRight, onSwipeLeft, scheduleUpdate]);
 
   const handleTouchEnd = useCallback(() => {
+    if (rafRef.current !== null) {
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+    }
+
     if (disabled || directionLocked === "vertical") {
       setIsDragging(false);
       setTranslateX(0);
@@ -115,8 +149,7 @@ export function SwipeRow({
       {onSwipeRight && (
         <div
           className={cn(
-            "absolute inset-y-0 left-0 flex items-center justify-start px-4 bg-success text-success-foreground transition-opacity rounded-l-2xl",
-            showRightAction ? "opacity-100" : "opacity-0"
+            "absolute inset-y-0 left-0 flex items-center justify-start px-4 bg-success text-success-foreground rounded-l-2xl",
           )}
           style={{ 
             width: Math.max(60, Math.abs(translateX) + 20),
@@ -124,7 +157,7 @@ export function SwipeRow({
           }}
         >
           <div className="flex items-center gap-2">
-            <Check className={cn("w-5 h-5 transition-transform", rightProgress >= 1 && "scale-110")} />
+            <Check className={cn("w-5 h-5", rightProgress >= 1 && "scale-110")} style={{ transition: "transform 0.15s ease-out" }} />
             <span className="text-sm font-medium whitespace-nowrap">{rightLabel}</span>
           </div>
         </div>
@@ -133,8 +166,7 @@ export function SwipeRow({
       {onSwipeLeft && (
         <div
           className={cn(
-            "absolute inset-y-0 right-0 flex items-center justify-end px-4 bg-warning text-warning-foreground transition-opacity rounded-r-2xl",
-            showLeftAction ? "opacity-100" : "opacity-0"
+            "absolute inset-y-0 right-0 flex items-center justify-end px-4 bg-warning text-warning-foreground rounded-r-2xl",
           )}
           style={{ 
             width: Math.max(60, Math.abs(translateX) + 20),
@@ -143,17 +175,20 @@ export function SwipeRow({
         >
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium whitespace-nowrap">{leftLabel}</span>
-            <Clock className={cn("w-5 h-5 transition-transform", leftProgress >= 1 && "scale-110")} />
+            <Clock className={cn("w-5 h-5", leftProgress >= 1 && "scale-110")} style={{ transition: "transform 0.15s ease-out" }} />
           </div>
         </div>
       )}
       
       <div
         className={cn(
-          "relative bg-card transition-transform",
-          isDragging && directionLocked === "horizontal" ? "transition-none" : "duration-200 ease-out"
+          "relative bg-card",
+          isDragging && directionLocked === "horizontal" ? "" : "transition-transform duration-200 ease-out"
         )}
-        style={{ transform: `translateX(${translateX}px)` }}
+        style={{ 
+          transform: `translateX(${translateX}px)`,
+          willChange: isDragging ? "transform" : "auto",
+        }}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}

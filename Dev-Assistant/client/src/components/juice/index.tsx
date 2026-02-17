@@ -1,5 +1,17 @@
 import { cn } from "@/lib/utils";
-import { useEffect, useState, Children, isValidElement } from "react";
+import { useEffect, useState, useRef, useCallback, Children, isValidElement } from "react";
+
+function usePrefersReducedMotion() {
+  const [reduced, setReduced] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    setReduced(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setReduced(e.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
+  return reduced;
+}
 
 interface SuccessCheckProps {
   size?: number;
@@ -48,28 +60,46 @@ interface AnimatedNumberProps {
 
 export function AnimatedNumber({ value, duration = 500, className }: AnimatedNumberProps) {
   const [count, setCount] = useState(0);
+  const rafRef = useRef<number | null>(null);
+  const startRef = useRef(0);
+  const startTimeRef = useRef<number | null>(null);
+  const prefersReducedMotion = usePrefersReducedMotion();
 
   useEffect(() => {
-    const start = count;
-    const end = value;
-    const range = end - start;
-    const startTime = Date.now();
+    if (prefersReducedMotion) {
+      setCount(value);
+      return;
+    }
+
+    startRef.current = count;
+    startTimeRef.current = null;
+    const range = value - startRef.current;
 
     if (range === 0) return;
 
-    const timer = setInterval(() => {
-      const elapsed = Date.now() - startTime;
+    const animate = (timestamp: number) => {
+      if (!startTimeRef.current) {
+        startTimeRef.current = timestamp;
+      }
+      const elapsed = timestamp - startTimeRef.current;
       const progress = Math.min(elapsed / duration, 1);
       const eased = 1 - Math.pow(1 - progress, 3);
-      setCount(Math.floor(start + range * eased));
+      setCount(Math.floor(startRef.current + range * eased));
 
-      if (progress === 1) {
-        clearInterval(timer);
+      if (progress < 1) {
+        rafRef.current = requestAnimationFrame(animate);
       }
-    }, 16);
+    };
 
-    return () => clearInterval(timer);
-  }, [value, duration]);
+    rafRef.current = requestAnimationFrame(animate);
+
+    return () => {
+      if (rafRef.current) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
+    };
+  }, [value, duration, prefersReducedMotion]);
 
   return <span className={className}>{count}</span>;
 }
@@ -81,6 +111,8 @@ interface StaggeredListProps {
 }
 
 export function StaggeredList({ children, delay = 50, className }: StaggeredListProps) {
+  const prefersReducedMotion = usePrefersReducedMotion();
+
   return (
     <div className={className}>
       {Children.map(children, (child, i) => {
@@ -88,8 +120,8 @@ export function StaggeredList({ children, delay = 50, className }: StaggeredList
         return (
           <div
             key={child.key ?? i}
-            className="animate-fade-in-up"
-            style={{
+            className={prefersReducedMotion ? undefined : "animate-fade-in-up"}
+            style={prefersReducedMotion ? undefined : {
               animationDelay: `${i * delay}ms`,
               animationFillMode: "both",
             }}
@@ -121,3 +153,5 @@ export function triggerHaptic(intensity: "light" | "medium" | "heavy" = "light")
     navigator.vibrate(durations[intensity]);
   }
 }
+
+export { usePrefersReducedMotion };

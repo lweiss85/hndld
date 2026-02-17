@@ -145,7 +145,7 @@ export function BottomNav() {
                 aria-selected={isActive}
                 aria-label={tab.label}
                 className={cn(
-                  "relative flex flex-col items-center justify-center gap-0.5 py-1.5 flex-1 min-w-[64px] min-h-[44px] transition-all duration-200",
+                  "relative flex flex-col items-center justify-center gap-0.5 py-1.5 flex-1 min-w-[64px] min-h-[44px] transition-colors duration-200",
                   isActive ? "text-foreground" : "text-muted-foreground"
                 )}
                 data-testid={`button-nav-${tab.label.toLowerCase().replace(/\s+/g, '-')}`}

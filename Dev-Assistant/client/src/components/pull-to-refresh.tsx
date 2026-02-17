@@ -35,7 +35,8 @@ export function PullToRefreshIndicator({
             ? "scale(1) rotate(0deg)"
             : `scale(${0.5 + progress * 0.5}) rotate(${progress * 180}deg)`,
           opacity: Math.min(progress * 1.5, 1),
-          transition: isRefreshing ? "all 0.2s ease-out" : undefined,
+          willChange: "transform, opacity",
+          transition: isRefreshing ? "transform 0.2s ease-out, opacity 0.2s ease-out" : undefined,
         }}
       >
         <Loader2

@@ -358,18 +358,22 @@
 
 .hndld-breathe {
   animation: hndld-breathe 4s ease-in-out infinite;
+  will-change: transform, opacity;
 }
 
 .hndld-float {
   animation: hndld-float 3s ease-in-out infinite;
+  will-change: transform;
 }
 
 .hndld-scale-in {
   animation: hndld-scale-in 0.3s var(--ease-out-soft) forwards;
+  will-change: transform, opacity;
 }
 
 .hndld-slide-up {
   animation: hndld-slide-up 0.4s var(--ease-out-soft) forwards;
+  will-change: transform, opacity;
 }
 
 /* ====================================
@@ -435,6 +439,16 @@
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+
+  .hndld-breathe,
+  .hndld-float,
+  .hndld-scale-in,
+  .hndld-slide-up,
+  .animate-card-enter {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
   }
 }
 
@@ -530,6 +544,7 @@
   
   .animate-card-enter {
     animation: fade-in-up 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    will-change: transform, opacity;
   }
 
   /* Typography hierarchy - hndld Design System */
@@ -586,6 +601,7 @@
   position: absolute;
   inset: 0;
   transform: translateX(-100%);
+  will-change: transform;
   background: linear-gradient(
     90deg,
     transparent,
@@ -610,6 +626,7 @@
 
 .swipe-content {
   transition: transform 0.2s ease-out;
+  will-change: transform;
 }
 
 .swipe-action-left,

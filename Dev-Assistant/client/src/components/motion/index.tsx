@@ -1,17 +1,21 @@
-import { motion, AnimatePresence, useMotionValue, useTransform } from "framer-motion";
+import { motion, AnimatePresence, useMotionValue, useTransform, useReducedMotion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { forwardRef, useState, useCallback } from "react";
 
-export const PageTransition = ({ children }: { children: React.ReactNode }) => (
-  <motion.div
-    initial={{ opacity: 0, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
-    exit={{ opacity: 0, y: -10 }}
-    transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-  >
-    {children}
-  </motion.div>
-);
+export const PageTransition = ({ children }: { children: React.ReactNode }) => {
+  const prefersReducedMotion = useReducedMotion();
+  return (
+    <motion.div
+      initial={prefersReducedMotion ? false : { opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: -10 }}
+      transition={{ duration: prefersReducedMotion ? 0 : 0.4, ease: [0.22, 1, 0.36, 1] }}
+      style={{ willChange: "transform, opacity" }}
+    >
+      {children}
+    </motion.div>
+  );
+};
 
 export const StaggerContainer = ({ 
   children,
@@ -21,22 +25,25 @@ export const StaggerContainer = ({
   children: React.ReactNode;
   delay?: number;
   className?: string;
-}) => (
-  <motion.div
-    className={className}
-    initial="hidden"
-    animate="visible"
-    variants={{
-      hidden: { opacity: 0 },
-      visible: {
-        opacity: 1,
-        transition: { staggerChildren: delay, delayChildren: 0.1 }
-      }
-    }}
-  >
-    {children}
-  </motion.div>
-);
+}) => {
+  const prefersReducedMotion = useReducedMotion();
+  return (
+    <motion.div
+      className={className}
+      initial="hidden"
+      animate="visible"
+      variants={{
+        hidden: { opacity: prefersReducedMotion ? 1 : 0 },
+        visible: {
+          opacity: 1,
+          transition: { staggerChildren: prefersReducedMotion ? 0 : delay, delayChildren: prefersReducedMotion ? 0 : 0.1 }
+        }
+      }}
+    >
+      {children}
+    </motion.div>
+  );
+};
 
 export const StaggerItem = ({ 
   children,
@@ -44,21 +51,25 @@ export const StaggerItem = ({
 }: { 
   children: React.ReactNode;
   className?: string;
-}) => (
-  <motion.div
-    className={className}
-    variants={{
-      hidden: { opacity: 0, y: 20 },
-      visible: { 
-        opacity: 1, 
-        y: 0,
-        transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] }
-      }
-    }}
-  >
-    {children}
-  </motion.div>
-);
+}) => {
+  const prefersReducedMotion = useReducedMotion();
+  return (
+    <motion.div
+      className={className}
+      variants={{
+        hidden: { opacity: prefersReducedMotion ? 1 : 0, y: prefersReducedMotion ? 0 : 20 },
+        visible: { 
+          opacity: 1, 
+          y: 0,
+          transition: { duration: prefersReducedMotion ? 0 : 0.4, ease: [0.22, 1, 0.36, 1] }
+        }
+      }}
+      style={{ willChange: prefersReducedMotion ? "auto" : "transform, opacity" }}
+    >
+      {children}
+    </motion.div>
+  );
+};
 
 interface HndldButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'primary' | 'secondary' | 'ghost';
@@ -255,31 +266,35 @@ interface EmptyStateProps {
   };
 }
 
-export const EmptyState = ({ icon, title, description, action }: EmptyStateProps) => (
-  <motion.div
-    className="flex flex-col items-center justify-center py-16 px-4 text-center"
-    initial={{ opacity: 0, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
-    transition={{ duration: 0.5 }}
-  >
+export const EmptyState = ({ icon, title, description, action }: EmptyStateProps) => {
+  const prefersReducedMotion = useReducedMotion();
+  return (
     <motion.div
-      className="w-24 h-24 rounded-full bg-[hsl(var(--hndld-ink-100))] flex items-center justify-center mb-6 text-[hsl(var(--hndld-ink-600))]"
-      animate={{ y: [0, -5, 0] }}
-      transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+      className="flex flex-col items-center justify-center py-16 px-4 text-center"
+      initial={prefersReducedMotion ? false : { opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: prefersReducedMotion ? 0 : 0.5 }}
     >
-      {icon}
+      <motion.div
+        className="w-24 h-24 rounded-full bg-[hsl(var(--hndld-ink-100))] flex items-center justify-center mb-6 text-[hsl(var(--hndld-ink-600))]"
+        animate={prefersReducedMotion ? {} : { y: [0, -5, 0] }}
+        transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+        style={{ willChange: prefersReducedMotion ? "auto" : "transform" }}
+      >
+        {icon}
+      </motion.div>
+      
+      <h3 className="text-xl font-semibold mb-2">{title}</h3>
+      <p className="text-muted-foreground max-w-xs mb-6">{description}</p>
+      
+      {action && (
+        <HndldButton onClick={action.onClick}>
+          {action.label}
+        </HndldButton>
+        )}
     </motion.div>
-    
-    <h3 className="text-xl font-semibold mb-2">{title}</h3>
-    <p className="text-muted-foreground max-w-xs mb-6">{description}</p>
-    
-    {action && (
-      <HndldButton onClick={action.onClick}>
-        {action.label}
-      </HndldButton>
-    )}
-  </motion.div>
-);
+  );
+};
 
 export const SmartGreeting = ({ name }: { name: string }) => {
   const getGreeting = () => {
@@ -329,14 +344,20 @@ export const ShimmerSkeleton = ({
   className 
 }: { 
   className?: string;
-}) => (
-  <div className={cn("relative overflow-hidden bg-muted rounded-lg", className)}>
-    <motion.div
-      className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent"
-      animate={{ x: ['-100%', '100%'] }}
-      transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }}
-    />
-  </div>
-);
+}) => {
+  const prefersReducedMotion = useReducedMotion();
+  return (
+    <div className={cn("relative overflow-hidden bg-muted rounded-lg", className)}>
+      {!prefersReducedMotion && (
+        <motion.div
+          className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent"
+          animate={{ x: ['-100%', '100%'] }}
+          transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }}
+          style={{ willChange: "transform" }}
+        />
+      )}
+    </div>
+  );
+};
 
 export { motion, AnimatePresence };

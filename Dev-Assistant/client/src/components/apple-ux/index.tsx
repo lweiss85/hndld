@@ -129,7 +129,7 @@ export function ElevatedCard({
     <div
       onClick={onClick}
       className={cn(
-        "rounded-2xl bg-card border border-border/50 transition-all duration-300 ease-out",
+        "rounded-2xl bg-card border border-border/50 transition-transform duration-300 ease-out",
         getElevationClass(level),
         hover && "hover:scale-[1.02] hover:-translate-y-1",
         hover && level < 4 && `hover:${getElevationClass((level + 1) as ElevationLevel)}`,
@@ -159,34 +159,45 @@ interface DepthSheetProps {
  */
 export function DepthSheet({ open, onClose, children, className }: DepthSheetProps) {
   useEffect(() => {
+    const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
     if (open) {
       haptic("medium");
-      // Scale down background content
       document.body.style.overflow = "hidden";
-      const main = document.querySelector("main");
+      const main = document.querySelector("main") as HTMLElement | null;
       if (main) {
-        main.style.transition = "transform 0.4s cubic-bezier(0.32, 0.72, 0, 1), filter 0.4s ease";
-        main.style.transform = "scale(0.94) translateY(20px)";
-        main.style.filter = "blur(4px)";
-        main.style.borderRadius = "20px";
+        if (prefersReduced) {
+          main.style.opacity = "0.6";
+          main.style.transition = "opacity 0.01ms";
+        } else {
+          main.style.transition = "transform 0.4s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.4s ease";
+          main.style.transform = "scale(0.94) translateY(20px)";
+          main.style.opacity = "0.6";
+          main.style.borderRadius = "20px";
+          main.style.willChange = "transform, opacity";
+        }
       }
     } else {
       document.body.style.overflow = "";
-      const main = document.querySelector("main");
+      const main = document.querySelector("main") as HTMLElement | null;
       if (main) {
         main.style.transform = "";
-        main.style.filter = "";
+        main.style.opacity = "";
         main.style.borderRadius = "";
+        main.style.willChange = "";
+        main.style.transition = "";
       }
     }
     
     return () => {
       document.body.style.overflow = "";
-      const main = document.querySelector("main");
+      const main = document.querySelector("main") as HTMLElement | null;
       if (main) {
         main.style.transform = "";
-        main.style.filter = "";
+        main.style.opacity = "";
         main.style.borderRadius = "";
+        main.style.willChange = "";
+        main.style.transition = "";
       }
     };
   }, [open]);
@@ -380,7 +391,7 @@ export function LoadingButton({
     onClick?.(e);
   };
 
-  const baseStyles = "inline-flex items-center justify-center gap-2 rounded-xl font-medium transition-all duration-200 active:scale-[0.97]";
+  const baseStyles = "inline-flex items-center justify-center gap-2 rounded-xl font-medium transition-transform duration-200 active:scale-[0.97]";
   
   const variantStyles = {
     default: "bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm",
