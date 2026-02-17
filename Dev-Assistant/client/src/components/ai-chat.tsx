@@ -119,9 +119,10 @@ export function AIChat() {
               size="icon"
               className="h-12 w-12 rounded-full shadow-lg bg-[#1D2A44] hover:bg-[#2a3a5a]"
               onClick={() => setIsOpen(true)}
+              aria-label="Open AI assistant"
               data-testid="button-ai-chat-open"
             >
-              <Sparkles className="h-5 w-5 text-[#F6F2EA]" />
+              <Sparkles className="h-5 w-5 text-[#F6F2EA]" aria-hidden="true" />
             </Button>
           </TooltipTrigger>
           <TooltipContent side="left">AI Assistant</TooltipContent>
@@ -147,7 +148,7 @@ export function AIChat() {
       <CardHeader className="p-3 bg-[#1D2A44] text-[#F6F2EA]">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <Sparkles className="h-4 w-4" />
+            <Sparkles className="h-4 w-4" aria-hidden="true" />
             <CardTitle className="text-sm font-medium">AI Assistant</CardTitle>
           </div>
           <Tooltip>
@@ -157,9 +158,10 @@ export function AIChat() {
                 variant="ghost"
                 className="h-6 w-6 text-white/80 hover:text-white hover:bg-white/20"
                 onClick={() => setIsOpen(false)}
+                aria-label="Close AI assistant"
                 data-testid="button-ai-chat-close"
               >
-                <X className="h-4 w-4" />
+                <X className="h-4 w-4" aria-hidden="true" />
               </Button>
             </TooltipTrigger>
             <TooltipContent>Close</TooltipContent>
@@ -171,7 +173,7 @@ export function AIChat() {
         <CardContent className="p-3 space-y-3">
           {messages.length === 0 && (
             <div className="text-center py-6 text-muted-foreground">
-              <Sparkles className="h-8 w-8 mx-auto mb-2 opacity-50" />
+              <Sparkles className="h-8 w-8 mx-auto mb-2 opacity-50" aria-hidden="true" />
               <p className="text-sm">Ask me anything about your household</p>
               <p className="text-xs mt-1 opacity-75">Try: "What's on my schedule this week?"</p>
             </div>
@@ -198,7 +200,7 @@ export function AIChat() {
                     onClick={() => handleConfirmRequest(msg.action)}
                     disabled={createRequestMutation.isPending}
                   >
-                    <Check className="h-3 w-3 mr-1" />
+                    <Check className="h-3 w-3 mr-1" aria-hidden="true" />
                     Yes, submit it
                   </Button>
                   <Button
@@ -208,14 +210,14 @@ export function AIChat() {
                     onClick={handleDeclineRequest}
                     disabled={createRequestMutation.isPending}
                   >
-                    <XCircle className="h-3 w-3 mr-1" />
+                    <XCircle className="h-3 w-3 mr-1" aria-hidden="true" />
                     No thanks
                   </Button>
                 </div>
               )}
               {msg.confirmed && (
                 <div className="flex items-center gap-1 mt-2 text-xs text-green-600">
-                  <Check className="h-3 w-3" />
+                  <Check className="h-3 w-3" aria-hidden="true" />
                   Request submitted
                 </div>
               )}
@@ -223,7 +225,7 @@ export function AIChat() {
           ))}
           
           {chatMutation.isPending && (
-            <div className="flex gap-2">
+            <div className="flex gap-2" aria-busy="true" aria-label="Loading response">
               <Skeleton className="h-4 w-4 rounded-full animate-pulse" />
               <Skeleton className="h-4 w-4 rounded-full animate-pulse delay-75" />
               <Skeleton className="h-4 w-4 rounded-full animate-pulse delay-150" />
@@ -246,6 +248,7 @@ export function AIChat() {
             placeholder="Ask anything..."
             className="flex-1"
             disabled={chatMutation.isPending}
+            aria-label="Chat message"
             data-testid="input-ai-chat"
           />
           <Tooltip>
@@ -254,9 +257,10 @@ export function AIChat() {
                 type="submit"
                 size="icon"
                 disabled={!input.trim() || chatMutation.isPending}
+                aria-label="Send message"
                 data-testid="button-ai-chat-send"
               >
-                <Send className="h-4 w-4" />
+                <Send className="h-4 w-4" aria-hidden="true" />
               </Button>
             </TooltipTrigger>
             <TooltipContent>Send message</TooltipContent>

@@ -61,7 +61,7 @@ const URGENCY_LEVELS = [
 
 function RequestsSkeleton() {
   return (
-    <div className="px-4 py-6 space-y-4 max-w-4xl mx-auto">
+    <div className="px-4 py-6 space-y-4 max-w-4xl mx-auto" aria-busy="true">
       <Skeleton className="h-8 w-40" />
       <Skeleton className="h-12 w-full" />
       {[1, 2, 3].map((i) => (
@@ -183,12 +183,12 @@ export default function Requests() {
         onClick={() => setShowCreateDialog(true)}
         data-testid="button-ask"
       >
-        <Plus className="h-5 w-5 mr-2" />
+        <Plus className="h-5 w-5 mr-2" aria-hidden="true" />
         Ask for Something
       </Button>
 
       <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/50 rounded-lg px-4 py-3">
-        <Clock className="h-4 w-4 text-primary shrink-0" />
+        <Clock className="h-4 w-4 text-primary shrink-0" aria-hidden="true" />
         <span>Your assistant typically responds within <span className="font-medium text-foreground">2 hours</span> during business hours</span>
       </div>
 
@@ -197,7 +197,7 @@ export default function Requests() {
       {requests?.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-12 text-center">
           <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
-            <MessageSquare className="h-8 w-8 text-muted-foreground" />
+            <MessageSquare className="h-8 w-8 text-muted-foreground" aria-hidden="true" />
           </div>
           <h3 className="font-medium text-lg mb-1">No requests yet</h3>
           <p className="text-sm text-muted-foreground">
@@ -208,7 +208,7 @@ export default function Requests() {
         <div className="space-y-6">
           {/* Pending requests */}
           {(requests?.filter(r => !r.taskId).length ?? 0) > 0 && (
-            <div className="space-y-3">
+            <div className="space-y-3" aria-label="Pending requests list">
               <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
                 Pending Requests
               </h2>
@@ -225,7 +225,7 @@ export default function Requests() {
                         )}
                         <div className="flex flex-wrap items-center gap-2 mt-2">
                           <Badge variant="outline" className="text-xs">
-                            <Tag className="h-3 w-3 mr-1" />
+                            <Tag className="h-3 w-3 mr-1" aria-hidden="true" />
                             {request.category}
                           </Badge>
                         </div>
@@ -251,7 +251,7 @@ export default function Requests() {
           {(requests?.filter(r => r.taskId).length ?? 0) > 0 && (
             <div className="space-y-3">
               <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-success" />
+                <CheckCircle2 className="h-4 w-4 text-success" aria-hidden="true" />
                 Accepted
               </h2>
               {requests?.filter(r => r.taskId).map((request) => (
@@ -259,7 +259,7 @@ export default function Requests() {
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-start gap-3 flex-1 min-w-0">
-                        <CheckCircle2 className="h-5 w-5 text-success shrink-0 mt-0.5" />
+                        <CheckCircle2 className="h-5 w-5 text-success shrink-0 mt-0.5" aria-hidden="true" />
                         <div className="flex-1 min-w-0">
                           <h3 className="font-medium">{request.title}</h3>
                           {request.description && (
@@ -341,7 +341,7 @@ export default function Requests() {
                     onClick={() => setNewRequest({ ...newRequest, urgency: level.value as any })}
                     data-testid={`button-urgency-${level.value.toLowerCase()}`}
                   >
-                    {level.value === "HIGH" && <AlertTriangle className="h-3 w-3 mr-1" />}
+                    {level.value === "HIGH" && <AlertTriangle className="h-3 w-3 mr-1" aria-hidden="true" />}
                     {level.label}
                   </Button>
                 ))}
@@ -379,9 +379,10 @@ export default function Requests() {
                           type="button"
                           onClick={() => removePhoto(index)}
                           className="absolute -top-2 -right-2 h-5 w-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                          aria-label={`Remove photo ${index + 1}`}
                           data-testid={`button-remove-photo-${index}`}
                         >
-                          <X className="h-3 w-3" />
+                          <X className="h-3 w-3" aria-hidden="true" />
                         </button>
                       </div>
                     ))}

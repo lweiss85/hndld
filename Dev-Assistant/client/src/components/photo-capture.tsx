@@ -148,9 +148,10 @@ export function PhotoCapture({
         size={buttonSize}
         onClick={handleButtonClick}
         disabled={disabled}
+        aria-label={showLabel ? undefined : "Capture photo"}
         data-testid="button-capture-photo"
       >
-        <Camera className="h-4 w-4" />
+        <Camera className="h-4 w-4" aria-hidden="true" />
         {showLabel && <span className="ml-1">Photo</span>}
       </Button>
 
@@ -161,9 +162,10 @@ export function PhotoCapture({
         capture="environment"
         className="hidden"
         onChange={handleFileInput}
+        aria-label="Upload photo from device"
       />
 
-      <canvas ref={canvasRef} className="hidden" />
+      <canvas ref={canvasRef} className="hidden" aria-hidden="true" />
 
       <Dialog open={showCamera} onOpenChange={(open) => !open && stopCamera()}>
         <DialogContent className="max-w-lg p-0 overflow-hidden">
@@ -175,7 +177,7 @@ export function PhotoCapture({
             {capturedImage ? (
               <img
                 src={capturedImage}
-                alt="Captured"
+                alt="Captured photo preview"
                 className="w-full h-full object-contain"
               />
             ) : (
@@ -185,6 +187,7 @@ export function PhotoCapture({
                 playsInline
                 muted
                 className="w-full h-full object-contain"
+                aria-label="Camera viewfinder"
               />
             )}
           </div>
@@ -198,7 +201,7 @@ export function PhotoCapture({
                   onClick={retakePhoto}
                   data-testid="button-retake"
                 >
-                  <RotateCcw className="h-5 w-5 mr-2" />
+                  <RotateCcw className="h-5 w-5 mr-2" aria-hidden="true" />
                   Retake
                 </Button>
                 <Button
@@ -206,7 +209,7 @@ export function PhotoCapture({
                   onClick={confirmPhoto}
                   data-testid="button-confirm-photo"
                 >
-                  <Check className="h-5 w-5 mr-2" />
+                  <Check className="h-5 w-5 mr-2" aria-hidden="true" />
                   Use Photo
                 </Button>
               </>
@@ -216,25 +219,28 @@ export function PhotoCapture({
                   variant="outline"
                   size="icon"
                   onClick={switchCamera}
+                  aria-label="Switch camera"
                   data-testid="button-switch-camera"
                 >
-                  <RotateCcw className="h-5 w-5" />
+                  <RotateCcw className="h-5 w-5" aria-hidden="true" />
                 </Button>
                 <Button
                   size="lg"
                   className="rounded-full w-16 h-16"
                   onClick={capturePhoto}
+                  aria-label="Take photo"
                   data-testid="button-shutter"
                 >
-                  <Camera className="h-8 w-8" />
+                  <Camera className="h-8 w-8" aria-hidden="true" />
                 </Button>
                 <Button
                   variant="outline"
                   size="icon"
                   onClick={stopCamera}
+                  aria-label="Close camera"
                   data-testid="button-close-camera"
                 >
-                  <X className="h-5 w-5" />
+                  <X className="h-5 w-5" aria-hidden="true" />
                 </Button>
               </>
             )}
@@ -276,9 +282,10 @@ export function QuickPhotoButton({
         size="icon"
         onClick={handleClick}
         className={className}
+        aria-label="Add photo"
         data-testid="button-quick-photo"
       >
-        <ImagePlus className="h-5 w-5" />
+        <ImagePlus className="h-5 w-5" aria-hidden="true" />
       </Button>
       <input
         ref={fileInputRef}
@@ -287,6 +294,7 @@ export function QuickPhotoButton({
         capture="environment"
         className="hidden"
         onChange={handleFileInput}
+        aria-label="Upload photo from device"
       />
     </>
   );

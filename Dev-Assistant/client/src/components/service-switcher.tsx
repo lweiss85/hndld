@@ -36,10 +36,11 @@ export function ServiceSwitcher() {
           variant="ghost" 
           size="sm" 
           className="gap-1.5 text-xs font-medium text-ink-navy/70 hover:text-ink-navy"
+          aria-label="Switch service type"
         >
-          <CurrentIcon className="h-3.5 w-3.5" />
+          <CurrentIcon className="h-3.5 w-3.5" aria-hidden="true" />
           {current.label}
-          <ChevronDown className="h-3 w-3" />
+          <ChevronDown className="h-3 w-3" aria-hidden="true" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="min-w-[160px]">
@@ -54,7 +55,7 @@ export function ServiceSwitcher() {
               onClick={() => setActiveServiceType(serviceType)}
               className={isActive ? "bg-porcelain" : ""}
             >
-              <Icon className="h-4 w-4 mr-2" />
+              <Icon className="h-4 w-4 mr-2" aria-hidden="true" />
               {service.label}
             </DropdownMenuItem>
           );

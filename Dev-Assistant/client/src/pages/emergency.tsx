@@ -54,7 +54,7 @@ interface EmergencyProtocol {
 
 function EmergencySkeleton() {
   return (
-    <div className="px-4 py-6 space-y-6 max-w-4xl mx-auto">
+    <div className="px-4 py-6 space-y-6 max-w-4xl mx-auto" aria-busy="true">
       <Skeleton className="h-8 w-48" />
       <Skeleton className="h-10 w-full" />
       {[1, 2, 3].map((i) => (
@@ -187,11 +187,11 @@ export default function Emergency() {
       <Tabs defaultValue="contacts">
         <TabsList className="w-full">
           <TabsTrigger value="contacts" className="flex-1" data-testid="tab-contacts">
-            <Phone className="h-4 w-4 mr-2" />
+            <Phone aria-hidden="true" className="h-4 w-4 mr-2" />
             Contacts
           </TabsTrigger>
           <TabsTrigger value="protocols" className="flex-1" data-testid="tab-protocols">
-            <AlertTriangle className="h-4 w-4 mr-2" />
+            <AlertTriangle aria-hidden="true" className="h-4 w-4 mr-2" />
             Protocols
           </TabsTrigger>
         </TabsList>
@@ -208,7 +208,7 @@ export default function Emergency() {
                 }}
                 data-testid="button-add-contact"
               >
-                <Plus className="h-4 w-4 mr-1" />
+                <Plus aria-hidden="true" className="h-4 w-4 mr-1" />
                 Add Contact
               </Button>
             </div>
@@ -217,20 +217,20 @@ export default function Emergency() {
           {sortedContacts.length === 0 ? (
             <Card>
               <CardContent className="py-8 text-center">
-                <Phone className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                <Phone aria-hidden="true" className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                 <p className="text-muted-foreground">No emergency contacts yet</p>
                 <p className="text-sm text-muted-foreground">Add important contacts for quick access</p>
               </CardContent>
             </Card>
           ) : (
-            <StaggeredList className="space-y-3">
+            <StaggeredList className="space-y-3" aria-label="Emergency contacts list">
               {sortedContacts.map((contact) => (
                 <Card key={contact.id} data-testid={`card-contact-${contact.id}`}>
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex items-start gap-3">
                         <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
-                          <User className="h-5 w-5 text-muted-foreground" />
+                          <User aria-hidden="true" className="h-5 w-5 text-muted-foreground" />
                         </div>
                         <div>
                           <div className="flex items-center gap-2">
@@ -243,6 +243,7 @@ export default function Emergency() {
                           <a 
                             href={`tel:${contact.phone}`} 
                             className="text-sm text-primary hover:underline"
+                            aria-label={`Call ${contact.name} at ${contact.phone}`}
                             data-testid={`link-phone-${contact.id}`}
                           >
                             {contact.phone}
@@ -258,17 +259,19 @@ export default function Emergency() {
                             variant="ghost" 
                             size="icon"
                             onClick={() => handleEditContact(contact)}
+                            aria-label={`Edit ${contact.name}`}
                             data-testid={`button-edit-${contact.id}`}
                           >
-                            <Edit2 className="h-4 w-4" />
+                            <Edit2 aria-hidden="true" className="h-4 w-4" />
                           </Button>
                           <Button 
                             variant="ghost" 
                             size="icon"
                             onClick={() => deleteContactMutation.mutate(contact.id)}
+                            aria-label={`Delete ${contact.name}`}
                             data-testid={`button-delete-${contact.id}`}
                           >
-                            <Trash2 className="h-4 w-4" />
+                            <Trash2 aria-hidden="true" className="h-4 w-4" />
                           </Button>
                         </div>
                       )}
@@ -288,7 +291,7 @@ export default function Emergency() {
                 onClick={() => setShowProtocolDialog(true)}
                 data-testid="button-add-protocol"
               >
-                <Plus className="h-4 w-4 mr-1" />
+                <Plus aria-hidden="true" className="h-4 w-4 mr-1" />
                 Add Protocol
               </Button>
             </div>
@@ -297,18 +300,18 @@ export default function Emergency() {
           {(!protocols || protocols.length === 0) ? (
             <Card>
               <CardContent className="py-8 text-center">
-                <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                <FileText aria-hidden="true" className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                 <p className="text-muted-foreground">No emergency protocols yet</p>
                 <p className="text-sm text-muted-foreground">Create step-by-step guides for emergencies</p>
               </CardContent>
             </Card>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-3" aria-label="Emergency protocols list" role="region">
               {protocols.map((protocol) => (
                 <Card key={protocol.id} data-testid={`card-protocol-${protocol.id}`}>
                   <CardHeader className="pb-2">
                     <CardTitle className="text-lg flex items-center gap-2">
-                      <AlertTriangle className="h-5 w-5 text-amber-500" />
+                      <AlertTriangle aria-hidden="true" className="h-5 w-5 text-amber-500" />
                       {protocol.title}
                     </CardTitle>
                     <CardDescription>{protocol.description}</CardDescription>
@@ -445,7 +448,7 @@ export default function Emergency() {
                   </div>
                 ))}
                 <Button variant="outline" size="sm" onClick={addProtocolStep} className="w-full">
-                  <Plus className="h-4 w-4 mr-1" />
+                  <Plus aria-hidden="true" className="h-4 w-4 mr-1" />
                   Add Step
                 </Button>
               </div>

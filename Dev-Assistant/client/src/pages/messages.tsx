@@ -17,7 +17,7 @@ import { PageTransition, StaggeredList } from "@/components/juice";
 
 function MessagesSkeleton() {
   return (
-    <div className="px-4 py-6 space-y-4 max-w-4xl mx-auto">
+    <div className="px-4 py-6 space-y-4 max-w-4xl mx-auto" aria-busy="true">
       <Skeleton className="h-8 w-32" />
       <div className="space-y-3">
         {[1, 2, 3].map((i) => (
@@ -42,7 +42,7 @@ function ConversationsList({
       <div className="flex items-center justify-between gap-4 flex-wrap animate-fade-in-up">
         <h1 className="text-2xl font-semibold" data-testid="text-page-title">Messages</h1>
         <Button size="sm" onClick={onCreate} data-testid="button-new-conversation">
-          <Plus className="h-4 w-4 mr-2" />
+          <Plus aria-hidden="true" className="h-4 w-4 mr-2" />
           New
         </Button>
       </div>
@@ -50,7 +50,7 @@ function ConversationsList({
       {conversations.length === 0 ? (
         <Card className="text-center py-8">
           <CardContent>
-            <MessageCircle className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
+            <MessageCircle aria-hidden="true" className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
             <p className="text-muted-foreground">No conversations yet</p>
             <Button 
               variant="outline" 
@@ -64,7 +64,7 @@ function ConversationsList({
           </CardContent>
         </Card>
       ) : (
-        <StaggeredList className="space-y-2">
+        <StaggeredList className="space-y-2" aria-label="Conversations list">
           {conversations.map((convo) => (
             <Card 
               key={convo.id} 
@@ -74,7 +74,7 @@ function ConversationsList({
             >
               <CardContent className="p-4 flex items-center gap-4">
                 <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
-                  <MessageCircle className="h-5 w-5 text-muted-foreground" />
+                  <MessageCircle aria-hidden="true" className="h-5 w-5 text-muted-foreground" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-medium truncate">
@@ -242,7 +242,7 @@ function MessageThread({
 
   if (isLoading) {
     return (
-      <div className="space-y-4">
+      <div className="space-y-4" aria-busy="true">
         <Skeleton className="h-8 w-48" />
         <Skeleton className="h-64 w-full" />
       </div>
@@ -256,9 +256,10 @@ function MessageThread({
           variant="ghost" 
           size="icon" 
           onClick={onBack}
+          aria-label="Go back"
           data-testid="button-back"
         >
-          <ArrowLeft className="h-5 w-5" />
+          <ArrowLeft aria-hidden="true" className="h-5 w-5" />
         </Button>
         <div>
           <h2 className="font-semibold" data-testid="text-conversation-title">
@@ -276,7 +277,7 @@ function MessageThread({
             <p>No messages yet. Start the conversation!</p>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-4" aria-label="Message thread" role="region">
             {messages?.map((msg) => (
               <div 
                 key={msg.id} 
@@ -284,7 +285,7 @@ function MessageThread({
                 data-testid={`message-${msg.id}`}
               >
                 <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
-                  <User className="h-4 w-4 text-muted-foreground" />
+                  <User aria-hidden="true" className="h-4 w-4 text-muted-foreground" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
@@ -317,14 +318,15 @@ function MessageThread({
           variant={isRecording ? "destructive" : "outline"}
           onClick={isRecording ? stopRecording : startRecording}
           disabled={isTranscribing || sendMutation.isPending}
+          aria-label={isTranscribing ? "Transcribing audio" : isRecording ? "Stop recording" : "Start voice recording"}
           data-testid="button-voice"
         >
           {isTranscribing ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
+            <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" />
           ) : isRecording ? (
-            <MicOff className="h-4 w-4" />
+            <MicOff aria-hidden="true" className="h-4 w-4" />
           ) : (
-            <Mic className="h-4 w-4" />
+            <Mic aria-hidden="true" className="h-4 w-4" />
           )}
         </Button>
         <Input
@@ -333,14 +335,16 @@ function MessageThread({
           onKeyDown={handleKeyDown}
           placeholder={isRecording ? "Recording..." : "Type a message..."}
           disabled={sendMutation.isPending || isRecording}
+          aria-label="Type a message"
           data-testid="input-message"
         />
         <Button 
           onClick={handleSend}
           disabled={!newMessage.trim() || sendMutation.isPending}
+          aria-label="Send message"
           data-testid="button-send"
         >
-          <Send className="h-4 w-4" />
+          <Send aria-hidden="true" className="h-4 w-4" />
         </Button>
       </div>
     </div>

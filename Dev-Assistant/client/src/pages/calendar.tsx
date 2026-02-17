@@ -28,7 +28,7 @@ import { useState } from "react";
 
 function CalendarSkeleton() {
   return (
-    <div className="px-4 py-6 space-y-4 max-w-4xl mx-auto">
+    <div className="px-4 py-6 space-y-4 max-w-4xl mx-auto" aria-busy="true">
       <Skeleton className="h-8 w-40" />
       <Skeleton className="h-10 w-full" />
       {[1, 2, 3, 4].map((i) => (
@@ -121,7 +121,7 @@ export default function Calendar() {
             disabled={syncCalendarMutation.isPending || isFetching}
             data-testid="button-sync"
           >
-            <RefreshCw className={cn(
+            <RefreshCw aria-hidden="true" className={cn(
               "h-4 w-4 mr-1",
               (syncCalendarMutation.isPending || isFetching) && "animate-spin"
             )} />
@@ -133,7 +133,7 @@ export default function Calendar() {
           <Card className="bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800">
             <CardContent className="p-4">
               <div className="flex items-center gap-2 text-sm">
-                <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+                <CheckCircle aria-hidden="true" className="h-4 w-4 text-green-600 dark:text-green-400" />
                 <span className="text-green-700 dark:text-green-300">
                   Google Calendar connected. Events sync automatically.
                 </span>
@@ -144,7 +144,7 @@ export default function Calendar() {
           <Card className="bg-muted/30">
             <CardContent className="p-4">
               <div className="flex items-center gap-2 text-sm">
-                <CalendarIcon className="h-4 w-4 text-muted-foreground" />
+                <CalendarIcon aria-hidden="true" className="h-4 w-4 text-muted-foreground" />
                 <span className="text-muted-foreground">
                   Connect Google Calendar to sync your events
                 </span>
@@ -157,9 +157,9 @@ export default function Calendar() {
           <Card>
             <CardContent className="p-4">
               <CollapsibleTrigger asChild>
-                <button className="flex items-center justify-between gap-2 w-full text-left">
+                <button className="flex items-center justify-between gap-2 w-full text-left" aria-label="Skylight Calendar setup tip">
                   <div className="flex items-center gap-2">
-                    <Info className="h-4 w-4 text-muted-foreground" />
+                    <Info aria-hidden="true" className="h-4 w-4 text-muted-foreground" />
                     <span className="text-sm font-medium">Using Skylight Calendar?</span>
                   </div>
                   <Badge variant="secondary">Tap for setup</Badge>
@@ -186,7 +186,7 @@ export default function Calendar() {
                     onClick={() => window.open("https://myskylight.com/lp/calendar-syncing/", "_blank")}
                     data-testid="button-skylight-help"
                   >
-                    <ExternalLink className="h-4 w-4 mr-1" />
+                    <ExternalLink aria-hidden="true" className="h-4 w-4 mr-1" />
                     Skylight Help
                   </Button>
                 </div>
@@ -195,7 +195,7 @@ export default function Calendar() {
           </Card>
         </Collapsible>
 
-        <div className="space-y-6">
+        <div className="space-y-6" aria-label="Weekly calendar events" role="region">
           {weekDays.map((day) => {
             const dayKey = format(day, "yyyy-MM-dd");
             const dayEvents = eventsByDay[dayKey];
@@ -235,13 +235,13 @@ export default function Calendar() {
                                   <h3 className="font-medium">{event.title}</h3>
                                   <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground flex-wrap">
                                     <span className="flex items-center gap-1">
-                                      <Clock className="h-3 w-3" />
+                                      <Clock aria-hidden="true" className="h-3 w-3" />
                                       {format(new Date(event.startAt), "h:mm a")}
                                       {event.endAt && ` - ${format(new Date(event.endAt), "h:mm a")}`}
                                     </span>
                                     {event.location && (
                                       <span className="flex items-center gap-1">
-                                        <MapPin className="h-3 w-3" />
+                                        <MapPin aria-hidden="true" className="h-3 w-3" />
                                         {event.location}
                                       </span>
                                     )}
@@ -255,7 +255,7 @@ export default function Calendar() {
                                   disabled={createTaskFromEventMutation.isPending}
                                   data-testid={`button-create-task-${event.id}`}
                                 >
-                                  <Plus className="h-4 w-4 mr-1" />
+                                  <Plus aria-hidden="true" className="h-4 w-4 mr-1" />
                                   Task
                                 </Button>
                               </div>
@@ -278,7 +278,7 @@ export default function Calendar() {
           {events?.length === 0 && (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
-                <CalendarIcon className="h-8 w-8 text-muted-foreground" />
+                <CalendarIcon aria-hidden="true" className="h-8 w-8 text-muted-foreground" />
               </div>
               <h3 className="font-medium text-lg mb-1">No calendar events</h3>
               <p className="text-sm text-muted-foreground max-w-xs mb-4">

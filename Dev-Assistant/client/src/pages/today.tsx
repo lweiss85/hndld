@@ -47,7 +47,7 @@ const STATUS_COLORS: Record<string, string> = {
 
 function TodaySkeleton() {
   return (
-    <div className="px-4 py-6 space-y-4 max-w-4xl mx-auto">
+    <div className="px-4 py-6 space-y-4 max-w-4xl mx-auto" aria-busy="true">
       <Skeleton className="h-8 w-40" />
       <div className="space-y-3">
         {[1, 2, 3, 4, 5].map((i) => (
@@ -229,7 +229,7 @@ export default function Today() {
         </div>
         <Link href="/tasks">
           <Button size="sm" data-testid="button-add-task">
-            <Plus className="h-4 w-4 mr-1" />
+            <Plus className="h-4 w-4 mr-1" aria-hidden="true" />
             Add Task
           </Button>
         </Link>
@@ -241,11 +241,11 @@ export default function Today() {
         {pendingRequests.length > 0 && (
           <div className="space-y-2">
             <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-2">
-              <MessageSquare className="h-4 w-4" />
+              <MessageSquare className="h-4 w-4" aria-hidden="true" />
               Incoming Requests
               <Badge variant="secondary" className="ml-1">{pendingRequests.length}</Badge>
             </h2>
-            <div className="space-y-2">
+            <div className="space-y-2" aria-label="Incoming requests list">
               {pendingRequests.map((request) => (
                 <Card key={request.id} className="border-primary/20 bg-primary/5" data-testid={`card-request-${request.id}`}>
                   <CardContent className="p-4">
@@ -253,7 +253,7 @@ export default function Today() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
                           {request.urgency === "HIGH" && (
-                            <AlertTriangle className="h-4 w-4 text-destructive" />
+                            <AlertTriangle className="h-4 w-4 text-destructive" aria-hidden="true" />
                           )}
                           <h3 className="font-medium">{request.title}</h3>
                         </div>
@@ -279,7 +279,7 @@ export default function Today() {
                         disabled={convertToTaskMutation.isPending}
                         data-testid={`button-convert-${request.id}`}
                       >
-                        <ArrowRight className="h-4 w-4 mr-1" />
+                        <ArrowRight className="h-4 w-4 mr-1" aria-hidden="true" />
                         Add to Tasks
                       </Button>
                     </div>
@@ -292,14 +292,14 @@ export default function Today() {
 
         <div className="space-y-1">
           <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-2">
-            <Clock className="h-4 w-4" />
+            <Clock className="h-4 w-4" aria-hidden="true" />
             Timeline
           </h2>
           
           {timelineItems.length === 0 ? (
             <Card>
               <CardContent className="p-6 text-center">
-                <Calendar className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                <Calendar className="h-8 w-8 text-muted-foreground mx-auto mb-2" aria-hidden="true" />
                 <p className="text-sm text-muted-foreground">
                   No scheduled items for today
                 </p>
@@ -309,7 +309,7 @@ export default function Today() {
             <div className="relative">
               <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-border" />
               
-              <div className="space-y-3">
+              <div className="space-y-3" aria-label="Today's timeline">
                 {timelineItems.map((item, index) => {
                   const isPast = isBefore(item.time, now);
                   const isCurrent = !isPast && isBefore(now, item.endTime || addMinutes(item.time, 60));
@@ -354,7 +354,7 @@ export default function Today() {
                               <h3 className="font-medium mt-1">{item.title}</h3>
                               {item.location && (
                                 <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
-                                  <MapPin className="h-3 w-3" />
+                                  <MapPin className="h-3 w-3" aria-hidden="true" />
                                   {item.location}
                                 </p>
                               )}
@@ -371,9 +371,10 @@ export default function Today() {
                                     triggerHaptic("medium");
                                     toast({ title: "Task completed" });
                                   }}
+                                  aria-label="Mark as done"
                                   data-testid={`button-done-${item.id}`}
                                 >
-                                  <CheckCircle2 className="h-5 w-5" />
+                                  <CheckCircle2 className="h-5 w-5" aria-hidden="true" />
                                 </Button>
                                 
                                 {item.status !== "IN_PROGRESS" && (
@@ -385,35 +386,36 @@ export default function Today() {
                                       e.stopPropagation();
                                       updateTaskMutation.mutate({ id: item.id, status: "IN_PROGRESS" });
                                     }}
+                                    aria-label="Start task"
                                     data-testid={`button-start-${item.id}`}
                                   >
-                                    <Play className="h-4 w-4" />
+                                    <Play className="h-4 w-4" aria-hidden="true" />
                                   </Button>
                                 )}
                                 
                                 <DropdownMenu>
                                   <DropdownMenuTrigger asChild>
-                                    <Button size="icon" variant="ghost" className="h-8 w-8" data-testid={`button-more-${item.id}`}>
-                                      <MoreVertical className="h-4 w-4" />
+                                    <Button size="icon" variant="ghost" className="h-8 w-8" aria-label="More options" data-testid={`button-more-${item.id}`}>
+                                      <MoreVertical className="h-4 w-4" aria-hidden="true" />
                                     </Button>
                                   </DropdownMenuTrigger>
                                   <DropdownMenuContent align="end">
                                     <DropdownMenuItem onClick={() => {
                                       updateTaskMutation.mutate({ id: item.id, dueAt: setHours(new Date(), 17) });
                                     }}>
-                                      <Clock className="h-4 w-4 mr-2" />
+                                      <Clock className="h-4 w-4 mr-2" aria-hidden="true" />
                                       Move to 5pm
                                     </DropdownMenuItem>
                                     <DropdownMenuItem onClick={() => {
                                       updateTaskMutation.mutate({ id: item.id, dueAt: setHours(addDays(new Date(), 1), 9) });
                                     }}>
-                                      <Calendar className="h-4 w-4 mr-2" />
+                                      <Calendar className="h-4 w-4 mr-2" aria-hidden="true" />
                                       Move to tomorrow
                                     </DropdownMenuItem>
                                     <DropdownMenuItem onClick={() => {
                                       updateTaskMutation.mutate({ id: item.id, status: "WAITING_ON_CLIENT" });
                                     }}>
-                                      <Clock className="h-4 w-4 mr-2" />
+                                      <Clock className="h-4 w-4 mr-2" aria-hidden="true" />
                                       Mark waiting
                                     </DropdownMenuItem>
                                   </DropdownMenuContent>
@@ -422,7 +424,7 @@ export default function Today() {
                             )}
                             
                             {item.type === "task" && item.status === "DONE" && (
-                              <CheckCircle2 className="h-5 w-5 text-green-500" />
+                              <CheckCircle2 className="h-5 w-5 text-green-500" aria-hidden="true" />
                             )}
                           </div>
                         </CardContent>
@@ -446,7 +448,7 @@ export default function Today() {
                   <CardContent className="p-3">
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-3">
-                        <Circle className="h-4 w-4 text-muted-foreground shrink-0" />
+                        <Circle className="h-4 w-4 text-muted-foreground shrink-0" aria-hidden="true" />
                         <span className="text-sm font-medium truncate">{task.title}</span>
                       </div>
                       <Badge 

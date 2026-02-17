@@ -68,7 +68,7 @@ interface FileItem {
 
 function FilesSkeleton() {
   return (
-    <div className="px-4 py-6 space-y-4 max-w-4xl mx-auto">
+    <div className="px-4 py-6 space-y-4 max-w-4xl mx-auto" aria-busy="true">
       <Skeleton className="h-8 w-40" />
       <div className="flex gap-2">
         <Skeleton className="h-10 flex-1" />
@@ -204,7 +204,7 @@ export default function Files() {
             }}
           />
           <Button size="sm" onClick={() => fileInputRef.current?.click()} data-testid="button-upload-file">
-            <Upload className="h-4 w-4 mr-1" />
+            <Upload aria-hidden="true" className="h-4 w-4 mr-1" />
             Upload
           </Button>
         </div>
@@ -214,17 +214,19 @@ export default function Files() {
           className="hidden"
           onChange={handleFileSelect}
           accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
+          aria-label="Choose file to upload"
         />
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
         <div className="relative flex-1 min-w-[200px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Search aria-hidden="true" className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search files..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-9"
+            aria-label="Search files"
             data-testid="input-search-files"
           />
         </div>
@@ -245,17 +247,19 @@ export default function Files() {
             size="icon"
             variant={viewMode === "grid" ? "secondary" : "ghost"}
             onClick={() => setViewMode("grid")}
+            aria-label="Grid view"
             data-testid="button-view-grid"
           >
-            <Grid className="h-4 w-4" />
+            <Grid aria-hidden="true" className="h-4 w-4" />
           </Button>
           <Button
             size="icon"
             variant={viewMode === "list" ? "secondary" : "ghost"}
             onClick={() => setViewMode("list")}
+            aria-label="List view"
             data-testid="button-view-list"
           >
-            <List className="h-4 w-4" />
+            <List aria-hidden="true" className="h-4 w-4" />
           </Button>
         </div>
       </div>
@@ -263,7 +267,7 @@ export default function Files() {
       {filteredFiles.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-            <File className="h-12 w-12 text-muted-foreground mb-4" />
+            <File aria-hidden="true" className="h-12 w-12 text-muted-foreground mb-4" />
             <p className="text-muted-foreground">No files yet</p>
             <p className="text-sm text-muted-foreground">
               Upload receipts, documents, and photos
@@ -271,7 +275,7 @@ export default function Files() {
           </CardContent>
         </Card>
       ) : viewMode === "grid" ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3" aria-label="Files grid" role="region">
           {filteredFiles.map((file) => {
             const Icon = getFileIcon(file.mimeType);
             const isImage = file.mimeType.startsWith("image/");
@@ -298,7 +302,7 @@ export default function Files() {
                   )}
                   {file.linkedCount > 0 && (
                     <Badge className="absolute top-2 right-2" variant="secondary">
-                      <Link2 className="h-3 w-3 mr-1" />
+                      <Link2 aria-hidden="true" className="h-3 w-3 mr-1" />
                       {file.linkedCount}
                     </Badge>
                   )}
@@ -314,7 +318,7 @@ export default function Files() {
           })}
         </div>
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-2" aria-label="Files list" role="region">
           {filteredFiles.map((file) => {
             const Icon = getFileIcon(file.mimeType);
 
@@ -350,20 +354,20 @@ export default function Files() {
                   <div className="flex items-center gap-2">
                     {file.linkedCount > 0 && (
                       <Badge variant="secondary">
-                        <Link2 className="h-3 w-3 mr-1" />
+                        <Link2 aria-hidden="true" className="h-3 w-3 mr-1" />
                         {file.linkedCount}
                       </Badge>
                     )}
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                        <Button size="icon" variant="ghost" data-testid={`button-file-menu-${file.id}`}>
-                          <MoreVertical className="h-4 w-4" />
+                        <Button size="icon" variant="ghost" aria-label="File options" data-testid={`button-file-menu-${file.id}`}>
+                          <MoreVertical aria-hidden="true" className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem asChild>
                           <a href={file.publicUrl} target="_blank" rel="noopener noreferrer">
-                            <Download className="h-4 w-4 mr-2" />
+                            <Download aria-hidden="true" className="h-4 w-4 mr-2" />
                             Download
                           </a>
                         </DropdownMenuItem>
@@ -376,7 +380,7 @@ export default function Files() {
                           }}
                           className="text-destructive"
                         >
-                          <Trash2 className="h-4 w-4 mr-2" />
+                          <Trash2 aria-hidden="true" className="h-4 w-4 mr-2" />
                           Delete
                         </DropdownMenuItem>
                       </DropdownMenuContent>
@@ -397,7 +401,7 @@ export default function Files() {
           <div className="space-y-4">
             {uploadData.file && (
               <div className="flex items-center gap-3 p-3 bg-muted rounded-md">
-                <File className="h-8 w-8 text-muted-foreground" />
+                <File aria-hidden="true" className="h-8 w-8 text-muted-foreground" />
                 <div className="flex-1 min-w-0">
                   <p className="font-medium truncate">{uploadData.file.name}</p>
                   <p className="text-sm text-muted-foreground">
@@ -514,7 +518,7 @@ export default function Files() {
               <div className="flex gap-2 pt-2">
                 <Button variant="outline" className="flex-1" asChild>
                   <a href={selectedFile.publicUrl} target="_blank" rel="noopener noreferrer">
-                    <Eye className="h-4 w-4 mr-2" />
+                    <Eye aria-hidden="true" className="h-4 w-4 mr-2" />
                     Open
                   </a>
                 </Button>
@@ -528,7 +532,7 @@ export default function Files() {
                     }
                   }}
                 >
-                  <Trash2 className="h-4 w-4 mr-2" />
+                  <Trash2 aria-hidden="true" className="h-4 w-4 mr-2" />
                   Delete
                 </Button>
               </div>

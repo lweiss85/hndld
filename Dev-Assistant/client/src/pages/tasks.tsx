@@ -108,7 +108,7 @@ interface TaskWithChecklist extends Task {
 
 function TasksSkeleton() {
   return (
-    <div className="px-4 py-6 space-y-4 max-w-4xl mx-auto">
+    <div className="px-4 py-6 space-y-4 max-w-4xl mx-auto" aria-busy="true">
       <Skeleton className="h-8 w-40" />
       <Skeleton className="h-10 w-full" />
       {[1, 2, 3, 4].map((i) => (
@@ -455,7 +455,7 @@ export default function Tasks() {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button size="sm" variant="outline" data-testid="button-templates">
-                <FileText className="h-4 w-4 mr-1" />
+                <FileText className="h-4 w-4 mr-1" aria-hidden="true" />
                 Templates
               </Button>
             </DropdownMenuTrigger>
@@ -479,7 +479,7 @@ export default function Tasks() {
                       }}
                       data-testid={`template-${template.id}`}
                     >
-                      <IconComponent className="h-4 w-4 mr-2" />
+                      <IconComponent className="h-4 w-4 mr-2" aria-hidden="true" />
                       {template.name}
                     </DropdownMenuItem>
                   );
@@ -502,7 +502,7 @@ export default function Tasks() {
                       }}
                       data-testid={`template-${template.id}`}
                     >
-                      <IconComponent className="h-4 w-4 mr-2" />
+                      <IconComponent className="h-4 w-4 mr-2" aria-hidden="true" />
                       {template.name}
                     </DropdownMenuItem>
                   );
@@ -515,14 +515,14 @@ export default function Tasks() {
                 onClick={() => setShowTemplateDialog(true)}
                 data-testid="template-manage"
               >
-                <Settings className="h-4 w-4 mr-2" />
+                <Settings className="h-4 w-4 mr-2" aria-hidden="true" />
                 Manage Templates
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
           
           <Button size="sm" onClick={() => setShowCreateDialog(true)} data-testid="button-create-task">
-            <Plus className="h-4 w-4 mr-1" />
+            <Plus className="h-4 w-4 mr-1" aria-hidden="true" />
             New
           </Button>
         </div>
@@ -555,7 +555,7 @@ export default function Tasks() {
           onClick={() => setUrgencyFilter(urgencyFilter === "HIGH" ? null : "HIGH")}
           data-testid="filter-high-priority"
         >
-          <Flame className="h-4 w-4 mr-1" />
+          <Flame className="h-4 w-4 mr-1" aria-hidden="true" />
           High Priority
         </Button>
         
@@ -565,7 +565,7 @@ export default function Tasks() {
           onClick={() => setDueTodayFilter(!dueTodayFilter)}
           data-testid="filter-due-today"
         >
-          <Calendar className="h-4 w-4 mr-1" />
+          <Calendar className="h-4 w-4 mr-1" aria-hidden="true" />
           Due Today
         </Button>
         
@@ -575,7 +575,7 @@ export default function Tasks() {
           onClick={() => setOverdueFilter(!overdueFilter)}
           data-testid="filter-overdue"
         >
-          <AlertTriangle className="h-4 w-4 mr-1" />
+          <AlertTriangle className="h-4 w-4 mr-1" aria-hidden="true" />
           Overdue
         </Button>
         
@@ -585,7 +585,7 @@ export default function Tasks() {
           onClick={() => setNoDateFilter(!noDateFilter)}
           data-testid="filter-no-date"
         >
-          <HelpCircle className="h-4 w-4 mr-1" />
+          <HelpCircle className="h-4 w-4 mr-1" aria-hidden="true" />
           No Date Set
         </Button>
       </div>
@@ -593,7 +593,7 @@ export default function Tasks() {
       {filteredTasks?.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-12 text-center">
           <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
-            <CheckCircle2 className="h-8 w-8 text-muted-foreground" />
+            <CheckCircle2 className="h-8 w-8 text-muted-foreground" aria-hidden="true" />
           </div>
           <h3 className="font-medium text-lg mb-1">No tasks</h3>
           <p className="text-sm text-muted-foreground">
@@ -601,7 +601,7 @@ export default function Tasks() {
           </p>
         </div>
       ) : (
-        <StaggeredList className="space-y-2">
+        <StaggeredList className="space-y-2" aria-label="Task list">
           {filteredTasks?.map((task) => (
             <ContextMenu.Root key={task.id}>
               <ContextMenu.Trigger asChild>
@@ -629,9 +629,9 @@ export default function Tasks() {
                           }}
                         >
                           {task.status === "DONE" ? (
-                            <CheckCircle2 className="h-5 w-5 text-success" />
+                            <CheckCircle2 className="h-5 w-5 text-success" aria-hidden="true" />
                           ) : (
-                            <Circle className="h-5 w-5 text-muted-foreground" />
+                            <Circle className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
                           )}
                         </div>
                         <div className="flex-1 min-w-0">
@@ -650,30 +650,30 @@ export default function Tasks() {
                           </div>
                           <div className="flex flex-wrap items-center gap-2 mt-1.5">
                             <Badge variant="outline" className="text-xs">
-                              <Tag className="h-3 w-3 mr-1" />
+                              <Tag className="h-3 w-3 mr-1" aria-hidden="true" />
                               {task.category}
                             </Badge>
                             {task.dueAt && (
                               <span className="text-xs text-muted-foreground flex items-center gap-1">
-                                <Clock className="h-3 w-3" />
+                                <Clock className="h-3 w-3" aria-hidden="true" />
                                 {format(new Date(task.dueAt), "MMM d, h:mm a")}
                               </span>
                             )}
                             {task.location && (
                               <span className="text-xs text-muted-foreground flex items-center gap-1">
-                                <MapPin className="h-3 w-3" />
+                                <MapPin className="h-3 w-3" aria-hidden="true" />
                                 {task.location}
                               </span>
                             )}
                             {task.estimatedMinutes && (
                               <Badge variant="secondary" className="text-xs">
-                                <Clock className="h-3 w-3 mr-1" />
+                                <Clock className="h-3 w-3 mr-1" aria-hidden="true" />
                                 {task.estimatedMinutes < 60 ? `${task.estimatedMinutes}m` : `${task.estimatedMinutes / 60}h`}
                               </Badge>
                             )}
                             {task.recurrence && task.recurrence !== "none" && (
                               <Badge variant="outline" className="text-xs">
-                                <Repeat className="h-3 w-3 mr-1" />
+                                <Repeat className="h-3 w-3 mr-1" aria-hidden="true" />
                                 {task.recurrence === "custom" ? `Every ${task.recurrenceCustomDays}d` : task.recurrence}
                               </Badge>
                             )}
@@ -695,7 +695,7 @@ export default function Tasks() {
                           )}
                           {task.notes && (
                             <div className="mt-2 text-xs text-muted-foreground flex items-start gap-1.5 bg-muted/50 rounded-md p-2">
-                              <StickyNote className="h-3 w-3 mt-0.5 shrink-0" />
+                              <StickyNote className="h-3 w-3 mt-0.5 shrink-0" aria-hidden="true" />
                               <span className="line-clamp-2">{task.notes}</span>
                             </div>
                           )}
@@ -715,7 +715,7 @@ export default function Tasks() {
                                   }}
                                   data-testid={`button-start-${task.id}`}
                                 >
-                                  <Play className="h-4 w-4 mr-1" />
+                                  <Play className="h-4 w-4 mr-1" aria-hidden="true" />
                                   Start Now
                                 </Button>
                               )}
@@ -733,7 +733,7 @@ export default function Tasks() {
                                   }}
                                   data-testid={`button-nudge-${task.id}`}
                                 >
-                                  <Bell className="h-4 w-4 mr-1" />
+                                  <Bell className="h-4 w-4 mr-1" aria-hidden="true" />
                                   Send Reminder
                                 </Button>
                               )}
@@ -747,7 +747,7 @@ export default function Tasks() {
                                   }}
                                   data-testid={`button-complete-${task.id}`}
                                 >
-                                  <CheckCircle2 className="h-4 w-4 mr-1" />
+                                  <CheckCircle2 className="h-4 w-4 mr-1" aria-hidden="true" />
                                   Complete
                                 </Button>
                               )}
@@ -767,7 +767,7 @@ export default function Tasks() {
                     onSelect={() => completeTaskMutation.mutate(task.id)}
                     data-testid={`context-done-${task.id}`}
                   >
-                    <CheckCircle2 className="h-4 w-4" />
+                    <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
                     Mark as Done
                   </ContextMenu.Item>
                   
@@ -776,7 +776,7 @@ export default function Tasks() {
                     onSelect={() => updateTaskMutation.mutate({ id: task.id, status: "IN_PROGRESS" })}
                     data-testid={`context-start-${task.id}`}
                   >
-                    <Play className="h-4 w-4" />
+                    <Play className="h-4 w-4" aria-hidden="true" />
                     Start Now
                   </ContextMenu.Item>
                   
@@ -784,9 +784,9 @@ export default function Tasks() {
                   
                   <ContextMenu.Sub>
                     <ContextMenu.SubTrigger className="px-3 py-2 hover:bg-accent rounded-lg flex items-center gap-2 cursor-pointer">
-                      <Calendar className="h-4 w-4" />
+                      <Calendar className="h-4 w-4" aria-hidden="true" />
                       Reschedule
-                      <ChevronRight className="h-4 w-4 ml-auto" />
+                      <ChevronRight className="h-4 w-4 ml-auto" aria-hidden="true" />
                     </ContextMenu.SubTrigger>
                     
                     <ContextMenu.SubContent className="min-w-[160px] bg-card rounded-xl p-2 shadow-xl border z-50">
@@ -828,7 +828,7 @@ export default function Tasks() {
                     onSelect={() => setSelectedTask(task)}
                     data-testid={`context-edit-${task.id}`}
                   >
-                    <Edit className="h-4 w-4" />
+                    <Edit className="h-4 w-4" aria-hidden="true" />
                     Full Edit
                   </ContextMenu.Item>
                   
@@ -848,7 +848,7 @@ export default function Tasks() {
                     }}
                     data-testid={`context-cancel-${task.id}`}
                   >
-                    <XCircle className="h-4 w-4" />
+                    <XCircle className="h-4 w-4" aria-hidden="true" />
                     Cancel Task
                   </ContextMenu.Item>
                   
@@ -862,7 +862,7 @@ export default function Tasks() {
                     }}
                     data-testid={`context-delete-${task.id}`}
                   >
-                    <Trash className="h-4 w-4" />
+                    <Trash className="h-4 w-4" aria-hidden="true" />
                     Delete
                   </ContextMenu.Item>
                 </ContextMenu.Content>
@@ -1208,9 +1208,10 @@ export default function Tasks() {
                           setNewChecklistItem("");
                         }
                       }}
+                      aria-label="Add checklist item"
                       data-testid="button-add-checklist-item"
                     >
-                      <Plus className="h-4 w-4" />
+                      <Plus className="h-4 w-4" aria-hidden="true" />
                     </Button>
                   </div>
                 </div>
@@ -1346,7 +1347,7 @@ export default function Tasks() {
                       <div key={index} className="relative aspect-square">
                         <img 
                           src={img} 
-                          alt="" 
+                          alt={`Task photo ${index + 1}`} 
                           className="w-full h-full object-cover rounded-md"
                         />
                         <Button
@@ -1354,9 +1355,10 @@ export default function Tasks() {
                           size="sm"
                           className="absolute top-1 right-1 p-1"
                           onClick={() => removeTaskImage(index)}
+                          aria-label={`Remove task photo ${index + 1}`}
                           data-testid={`button-remove-task-image-${index}`}
                         >
-                          <X className="h-3 w-3" />
+                          <X className="h-3 w-3" aria-hidden="true" />
                         </Button>
                       </div>
                     ))}
@@ -1412,7 +1414,7 @@ export default function Tasks() {
                       className="flex items-center justify-between p-3 rounded-lg bg-muted/50"
                     >
                       <div className="flex items-center gap-2">
-                        <IconComponent className="h-4 w-4 text-muted-foreground" />
+                        <IconComponent className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
                         <div>
                           <p className="font-medium text-sm">{template.name}</p>
                           <p className="text-xs text-muted-foreground">{template.title}</p>
@@ -1423,17 +1425,19 @@ export default function Tasks() {
                           size="icon"
                           variant="ghost"
                           onClick={() => setEditingTemplate(template)}
+                          aria-label={`Edit template ${template.name}`}
                           data-testid={`button-edit-template-${template.id}`}
                         >
-                          <Edit className="h-4 w-4" />
+                          <Edit className="h-4 w-4" aria-hidden="true" />
                         </Button>
                         <Button
                           size="icon"
                           variant="ghost"
                           onClick={() => deleteTemplateMutation.mutate(template.id)}
+                          aria-label={`Delete template ${template.name}`}
                           data-testid={`button-delete-template-${template.id}`}
                         >
-                          <Trash className="h-4 w-4" />
+                          <Trash className="h-4 w-4" aria-hidden="true" />
                         </Button>
                       </div>
                     </div>
@@ -1533,7 +1537,7 @@ export default function Tasks() {
                 onClick={() => createTemplateMutation.mutate(newTemplate)}
                 data-testid="button-create-template"
               >
-                <Plus className="h-4 w-4 mr-1" />
+                <Plus className="h-4 w-4 mr-1" aria-hidden="true" />
                 Create Template
               </Button>
             </div>

@@ -57,7 +57,7 @@ export default function House() {
       <div className="flex items-center justify-between gap-4">
         <h1 className="text-2xl font-semibold" data-testid="text-page-title">House</h1>
         <Button size="sm" variant="outline" data-testid="button-add-info">
-          <Plus className="h-4 w-4 mr-1" />
+          <Plus aria-hidden="true" className="h-4 w-4 mr-1" />
           Add
         </Button>
       </div>
@@ -66,7 +66,7 @@ export default function House() {
         <CardContent className="p-6">
           <div className="flex items-center gap-4">
             <div className="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center">
-              <Building2 className="h-7 w-7 text-primary" />
+              <Building2 aria-hidden="true" className="h-7 w-7 text-primary" />
             </div>
             <div>
               <h2 className="font-semibold text-lg" data-testid="text-household-name">My Household</h2>
@@ -76,7 +76,7 @@ export default function House() {
         </CardContent>
       </Card>
 
-      <div className="space-y-3">
+      <div className="space-y-3" aria-label="House information sections" role="region">
         {HOUSE_SECTIONS.map((section) => (
           <Card 
             key={section.title} 
@@ -86,7 +86,7 @@ export default function House() {
             <CardContent className="p-4">
               <div className="flex items-center gap-4">
                 <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center shrink-0">
-                  <section.icon className="h-5 w-5 text-muted-foreground" />
+                  <section.icon aria-hidden="true" className="h-5 w-5 text-muted-foreground" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <h3 className="font-medium">{section.title}</h3>
@@ -101,7 +101,7 @@ export default function House() {
         ))}
       </div>
 
-      <div className="space-y-3">
+      <div className="space-y-3" aria-label="Quick links" role="region">
         <Link href="/files">
           <Card 
             className="hover-elevate cursor-pointer bg-gradient-to-r from-primary/5 to-transparent border-primary/20"
@@ -110,13 +110,13 @@ export default function House() {
             <CardContent className="p-4">
               <div className="flex items-center gap-4">
                 <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                  <FolderOpen className="h-5 w-5 text-primary" />
+                  <FolderOpen aria-hidden="true" className="h-5 w-5 text-primary" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <h3 className="font-medium">Files</h3>
                   <p className="text-sm text-muted-foreground">Receipts, documents, photos</p>
                 </div>
-                <ChevronRight className="h-5 w-5 text-muted-foreground shrink-0" />
+                <ChevronRight aria-hidden="true" className="h-5 w-5 text-muted-foreground shrink-0" />
               </div>
             </CardContent>
           </Card>
@@ -130,13 +130,13 @@ export default function House() {
             <CardContent className="p-4">
               <div className="flex items-center gap-4">
                 <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center shrink-0">
-                  <BookOpen className="h-5 w-5 text-muted-foreground" />
+                  <BookOpen aria-hidden="true" className="h-5 w-5 text-muted-foreground" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <h3 className="font-medium">Playbooks</h3>
                   <p className="text-sm text-muted-foreground">Standard operating procedures</p>
                 </div>
-                <ChevronRight className="h-5 w-5 text-muted-foreground shrink-0" />
+                <ChevronRight aria-hidden="true" className="h-5 w-5 text-muted-foreground shrink-0" />
               </div>
             </CardContent>
           </Card>
@@ -152,13 +152,13 @@ export default function House() {
             <CardContent className="p-4">
               <div className="flex items-center gap-4">
                 <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center shrink-0">
-                  <Users className="h-5 w-5 text-muted-foreground" />
+                  <Users aria-hidden="true" className="h-5 w-5 text-muted-foreground" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <h3 className="font-medium">Organizations</h3>
                   <p className="text-sm text-muted-foreground">Multi-household management</p>
                 </div>
-                <ChevronRight className="h-5 w-5 text-muted-foreground shrink-0" />
+                <ChevronRight aria-hidden="true" className="h-5 w-5 text-muted-foreground shrink-0" />
               </div>
             </CardContent>
           </Card>

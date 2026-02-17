@@ -157,10 +157,10 @@ function TimeReturnedCard({ impact }: { impact: ImpactMetrics }) {
   return (
     <LuxuryCard className="relative overflow-visible">
       <div className="flex items-center gap-2 mb-3">
-        <Clock className="w-5 h-5 text-primary" />
+        <Clock className="w-5 h-5 text-primary" aria-hidden="true" />
         <h3 className="font-semibold text-foreground">Time Returned</h3>
         <Badge variant="secondary" className="text-[10px] ml-auto">
-          <Sparkles className="w-3 h-3 mr-1" />
+          <Sparkles className="w-3 h-3 mr-1" aria-hidden="true" />
           White Glove Impact
         </Badge>
       </div>
@@ -197,7 +197,7 @@ function TimeReturnedCard({ impact }: { impact: ImpactMetrics }) {
 
 function WeeklyBriefSkeleton() {
   return (
-    <div className="px-5 py-6 space-y-6 max-w-4xl mx-auto">
+    <div className="px-5 py-6 space-y-6 max-w-4xl mx-auto" aria-busy="true">
       <div className="space-y-2">
         <div className="h-7 w-48 bg-muted rounded skeleton-shimmer" />
         <div className="h-4 w-32 bg-muted rounded skeleton-shimmer" />
@@ -317,7 +317,7 @@ function CleaningOverview() {
             {nextVisit ? (
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                  <CalendarDays className="w-6 h-6 text-primary" />
+                  <CalendarDays className="w-6 h-6 text-primary" aria-hidden="true" />
                 </div>
                 <div className="flex-1">
                   <p className="font-medium text-foreground">{nextVisit.title}</p>
@@ -325,7 +325,7 @@ function CleaningOverview() {
                     {nextVisit.dueAt ? format(new Date(nextVisit.dueAt), "EEEE, MMM d 'at' h:mm a") : "Not scheduled"}
                   </p>
                 </div>
-                <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                <ChevronRight className="w-5 h-5 text-muted-foreground" aria-hidden="true" />
               </div>
             ) : (
               <EmptyState
@@ -374,7 +374,7 @@ function CleaningOverview() {
               </div>
               <Link href="/updates">
                 <Button variant="ghost" size="sm" className="w-full">
-                  <Camera className="w-4 h-4 mr-2" />
+                  <Camera className="w-4 h-4 mr-2" aria-hidden="true" />
                   See all photos
                 </Button>
               </Link>
@@ -406,7 +406,7 @@ function CleaningOverview() {
               onClick={() => createTipMutation.mutate()}
               disabled={createTipMutation.isPending}
             >
-              <Heart className="w-4 h-4" />
+              <Heart className="w-4 h-4" aria-hidden="true" />
               Tip your cleaner
             </Button>
           </LuxuryCard>
@@ -497,14 +497,14 @@ export default function ThisWeek() {
         <div className="flex flex-wrap gap-3">
           <Button asChild className="rounded-xl">
             <Link href="/requests" data-testid="button-request-hero">
-              <MessageSquarePlus className="w-4 h-4 mr-2" />
+              <MessageSquarePlus className="w-4 h-4 mr-2" aria-hidden="true" />
               Request
             </Link>
           </Button>
           {pendingApprovals.length > 0 && (
             <Button variant="outline" asChild className="rounded-xl">
               <Link href="/approvals" data-testid="button-approvals-hero">
-                <Bell className="w-4 h-4 mr-2" />
+                <Bell className="w-4 h-4 mr-2" aria-hidden="true" />
                 Approvals ({pendingApprovals.length})
               </Link>
             </Button>
@@ -586,9 +586,9 @@ export default function ThisWeek() {
                   className="flex items-center gap-3 py-2.5 border-b border-border/50 last:border-0"
                   data-testid={`update-row-${update.id}`}
                 >
-                  <CheckCircle2 className="w-4 h-4 text-success shrink-0" />
+                  <CheckCircle2 className="w-4 h-4 text-success shrink-0" aria-hidden="true" />
                   <p className="text-sm text-foreground truncate flex-1">{update.text}</p>
-                  <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+                  <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" aria-hidden="true" />
                 </div>
               ))}
             </StaggeredList>

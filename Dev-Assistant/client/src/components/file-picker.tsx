@@ -220,7 +220,7 @@ export function FilePicker({ entityType, entityId, onFilesChanged }: FilePickerP
                     className="h-8 w-8 rounded object-cover"
                   />
                 ) : (
-                  <Icon className="h-5 w-5 text-muted-foreground" />
+                  <Icon className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
                 )}
                 <span className="text-sm truncate max-w-[120px]">{file.filename}</span>
                 <Tooltip>
@@ -230,9 +230,10 @@ export function FilePicker({ entityType, entityId, onFilesChanged }: FilePickerP
                       variant="ghost"
                       className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
                       onClick={() => unlinkMutation.mutate(file.id)}
+                      aria-label={`Remove file ${file.filename}`}
                       data-testid={`button-remove-file-${file.id}`}
                     >
-                      <X className="h-3 w-3" />
+                      <X className="h-3 w-3" aria-hidden="true" />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>Remove file</TooltipContent>
@@ -250,7 +251,7 @@ export function FilePicker({ entityType, entityId, onFilesChanged }: FilePickerP
           onClick={() => setShowPickerDialog(true)}
           data-testid="button-pick-file"
         >
-          <Link2 className="h-4 w-4 mr-1" />
+          <Link2 className="h-4 w-4 mr-1" aria-hidden="true" />
           Attach File
         </Button>
         <PhotoCapture
@@ -289,7 +290,7 @@ export function FilePicker({ entityType, entityId, onFilesChanged }: FilePickerP
           disabled={isUploading}
           data-testid="button-upload-new"
         >
-          <Upload className="h-4 w-4 mr-1" />
+          <Upload className="h-4 w-4 mr-1" aria-hidden="true" />
           {isUploading ? "Uploading..." : "Upload"}
         </Button>
         <input
@@ -298,6 +299,7 @@ export function FilePicker({ entityType, entityId, onFilesChanged }: FilePickerP
           className="hidden"
           onChange={handleFileUpload}
           accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
+          aria-label="Upload file"
         />
       </div>
 
@@ -309,17 +311,18 @@ export function FilePicker({ entityType, entityId, onFilesChanged }: FilePickerP
           <div className="space-y-4">
             <div className="flex gap-2">
               <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
                 <Input
                   placeholder="Search files..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-9"
+                  aria-label="Search files"
                   data-testid="input-search-picker"
                 />
               </div>
               <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                <SelectTrigger className="w-32" data-testid="select-picker-category">
+                <SelectTrigger className="w-32" aria-label="Filter by category" data-testid="select-picker-category">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -334,11 +337,11 @@ export function FilePicker({ entityType, entityId, onFilesChanged }: FilePickerP
 
             <div className="max-h-64 overflow-y-auto space-y-1">
               {libraryLoading ? (
-                <>
+                <div aria-busy="true" aria-label="Loading files" className="space-y-1">
                   <Skeleton className="h-12" />
                   <Skeleton className="h-12" />
                   <Skeleton className="h-12" />
-                </>
+                </div>
               ) : availableFiles.length === 0 ? (
                 <p className="text-center text-muted-foreground py-8">
                   No files available to attach
@@ -355,6 +358,11 @@ export function FilePicker({ entityType, entityId, onFilesChanged }: FilePickerP
                         isSelected ? "bg-primary/10 border border-primary" : "hover-elevate"
                       }`}
                       onClick={() => toggleFileSelection(file.id)}
+                      role="checkbox"
+                      tabIndex={0}
+                      aria-checked={isSelected}
+                      aria-label={`Select file ${file.filename}`}
+                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleFileSelection(file.id); } }}
                       data-testid={`picker-file-${file.id}`}
                     >
                       <div className="h-8 w-8 rounded bg-muted flex items-center justify-center shrink-0">
@@ -365,7 +373,7 @@ export function FilePicker({ entityType, entityId, onFilesChanged }: FilePickerP
                             className="object-cover w-full h-full rounded"
                           />
                         ) : (
-                          <Icon className="h-4 w-4 text-muted-foreground" />
+                          <Icon className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
@@ -375,7 +383,7 @@ export function FilePicker({ entityType, entityId, onFilesChanged }: FilePickerP
                         </p>
                       </div>
                       {isSelected && (
-                        <Check className="h-4 w-4 text-primary shrink-0" />
+                        <Check className="h-4 w-4 text-primary shrink-0" aria-hidden="true" />
                       )}
                     </div>
                   );
@@ -423,7 +431,7 @@ export function AttachedFilesPreview({
 
   return (
     <div className="flex items-center gap-1">
-      <File className="h-3 w-3 text-muted-foreground" />
+      <File className="h-3 w-3 text-muted-foreground" aria-hidden="true" />
       <span className="text-xs text-muted-foreground">{files.length}</span>
     </div>
   );

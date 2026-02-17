@@ -82,7 +82,7 @@
   --secondary-foreground: 220 24% 15%;
   
   --muted: 30 18% 93%;
-  --muted-foreground: 220 13% 46%; /* #667085 */
+  --muted-foreground: 220 13% 45%; /* WCAG AA 4.66:1 vs background */
   
   --accent: 30 18% 94%;
   --accent-foreground: 220 24% 15%;
@@ -416,10 +416,61 @@
     scroll-behavior: smooth;
   }
 
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+  }
+
   body {
     @apply font-sans antialiased bg-background text-foreground;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+  }
+
+  .skip-to-content {
+    position: absolute;
+    top: -100%;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 9999;
+    padding: 0.75rem 1.5rem;
+    background: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
+    border-radius: var(--radius);
+    font-weight: 600;
+    font-size: 0.875rem;
+    text-decoration: none;
+    white-space: nowrap;
+    box-shadow: var(--shadow-lg);
+    transition: top 0.15s ease;
+  }
+
+  .skip-to-content:focus {
+    top: 0.75rem;
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
+
+  *:focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+
+  button:focus-visible,
+  a:focus-visible,
+  [role="tab"]:focus-visible,
+  [role="button"]:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
+
+  :focus:not(:focus-visible) {
+    outline: none;
   }
 }
 

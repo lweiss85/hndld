@@ -128,20 +128,21 @@ export function SmartRequestInput({
           onChange={handleInputChange}
           placeholder={placeholder}
           className="min-h-[80px] pr-10 resize-none"
+          aria-label="Request description"
           data-testid="input-smart-request"
         />
         <div className="absolute right-2 top-2">
           {parseMutation.isPending ? (
-            <Sparkles className="h-5 w-5 text-violet-500 animate-pulse" />
+            <Sparkles className="h-5 w-5 text-violet-500 animate-pulse" aria-hidden="true" />
           ) : (
-            <Sparkles className="h-5 w-5 text-muted-foreground/40" />
+            <Sparkles className="h-5 w-5 text-muted-foreground/40" aria-hidden="true" />
           )}
         </div>
       </div>
 
       {parseMutation.isPending && !showPreview && (
         <Card>
-          <CardContent className="p-3 space-y-2">
+          <CardContent className="p-3 space-y-2" aria-busy="true" aria-label="Parsing request">
             <Skeleton className="h-4 w-3/4" />
             <div className="flex gap-2">
               <Skeleton className="h-5 w-16" />
@@ -165,7 +166,7 @@ export function SmartRequestInput({
               </div>
               {parsed.usedAI && (
                 <Badge variant="outline" className="shrink-0 text-xs border-violet-300 text-violet-600 dark:border-violet-700 dark:text-violet-400">
-                  <Sparkles className="h-3 w-3 mr-1" />
+                  <Sparkles className="h-3 w-3 mr-1" aria-hidden="true" />
                   AI
                 </Badge>
               )}
@@ -173,22 +174,22 @@ export function SmartRequestInput({
 
             <div className="flex flex-wrap items-center gap-2">
               <Badge className={cn("text-xs", CATEGORY_STYLES[parsed.category])}>
-                <Tag className="h-3 w-3 mr-1" />
+                <Tag className="h-3 w-3 mr-1" aria-hidden="true" />
                 {parsed.category}
               </Badge>
               <Badge className={cn("text-xs", URGENCY_STYLES[parsed.urgency])}>
-                <AlertTriangle className="h-3 w-3 mr-1" />
+                <AlertTriangle className="h-3 w-3 mr-1" aria-hidden="true" />
                 {parsed.urgency}
               </Badge>
               {parsed.suggestedDueDate && (
                 <Badge variant="outline" className="text-xs">
-                  <Clock className="h-3 w-3 mr-1" />
+                  <Clock className="h-3 w-3 mr-1" aria-hidden="true" />
                   {format(parseISO(parsed.suggestedDueDate), "MMM d")}
                 </Badge>
               )}
               {parsed.location && (
                 <Badge variant="outline" className="text-xs">
-                  <MapPin className="h-3 w-3 mr-1" />
+                  <MapPin className="h-3 w-3 mr-1" aria-hidden="true" />
                   {parsed.location}
                 </Badge>
               )}
@@ -202,7 +203,7 @@ export function SmartRequestInput({
                 className="flex-1"
                 data-testid="button-smart-request-submit"
               >
-                <Check className="h-4 w-4 mr-1" />
+                <Check className="h-4 w-4 mr-1" aria-hidden="true" />
                 Create Request
               </Button>
               <Button
@@ -210,9 +211,10 @@ export function SmartRequestInput({
                 variant="outline"
                 onClick={handleCancel}
                 disabled={isSubmitting}
+                aria-label="Cancel request"
                 data-testid="button-smart-request-cancel"
               >
-                <X className="h-4 w-4" />
+                <X className="h-4 w-4" aria-hidden="true" />
               </Button>
             </div>
           </CardContent>

@@ -76,13 +76,15 @@ export function NotificationCenter() {
               variant="ghost" 
               size="icon" 
               className="relative"
+              aria-label={`Notifications${unreadCount > 0 ? `, ${unreadCount} unread` : ''}`}
               data-testid="button-notification-center"
             >
-              <Bell className="h-5 w-5" />
+              <Bell className="h-5 w-5" aria-hidden="true" />
               {unreadCount > 0 && (
                 <Badge 
                   className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center text-[10px]"
                   variant="destructive"
+                  aria-hidden="true"
                 >
                   {unreadCount > 9 ? "9+" : unreadCount}
                 </Badge>
@@ -103,7 +105,7 @@ export function NotificationCenter() {
               disabled={markAllReadMutation.isPending}
               data-testid="button-mark-all-read"
             >
-              <CheckCheck className="h-4 w-4 mr-1" />
+              <CheckCheck className="h-4 w-4 mr-1" aria-hidden="true" />
               Mark all read
             </Button>
           )}
@@ -112,7 +114,7 @@ export function NotificationCenter() {
         <ScrollArea className="h-[calc(100vh-120px)]">
           {notifications.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
-              <Bell className="h-12 w-12 text-muted-foreground/50 mb-4" />
+              <Bell className="h-12 w-12 text-muted-foreground/50 mb-4" aria-hidden="true" />
               <h3 className="font-medium text-lg mb-1">No notifications</h3>
               <p className="text-sm text-muted-foreground">
                 You're all caught up
@@ -126,6 +128,10 @@ export function NotificationCenter() {
                   <div
                     key={notification.id}
                     onClick={() => handleNotificationClick(notification)}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`${notification.isRead ? '' : 'Unread: '}${notification.title}`}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleNotificationClick(notification); } }}
                     className={`p-3 rounded-xl cursor-pointer transition-colors ${
                       notification.isRead 
                         ? "bg-muted/30" 
@@ -139,7 +145,7 @@ export function NotificationCenter() {
                       }`}>
                         <Icon className={`h-4 w-4 ${
                           notification.isRead ? "text-muted-foreground" : "text-primary"
-                        }`} />
+                        }`} aria-hidden="true" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between gap-2">
@@ -149,7 +155,7 @@ export function NotificationCenter() {
                             {notification.title}
                           </h4>
                           {!notification.isRead && (
-                            <div className="h-2 w-2 rounded-full bg-primary shrink-0 mt-1.5" />
+                            <div className="h-2 w-2 rounded-full bg-primary shrink-0 mt-1.5" aria-hidden="true" />
                           )}
                         </div>
                         {notification.body && (

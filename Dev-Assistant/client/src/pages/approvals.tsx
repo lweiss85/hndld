@@ -44,7 +44,7 @@ interface ApprovalWithComments extends Approval {
 
 function ApprovalsSkeleton() {
   return (
-    <div className="px-4 py-6 space-y-4 max-w-4xl mx-auto">
+    <div className="px-4 py-6 space-y-4 max-w-4xl mx-auto" aria-busy="true">
       <Skeleton className="h-8 w-40" />
       {[1, 2, 3].map((i) => (
         <Skeleton key={i} className="h-40" />
@@ -151,7 +151,7 @@ export default function Approvals() {
         <h1 className="text-2xl font-semibold" data-testid="text-page-title">Approvals</h1>
         {activeRole === "ASSISTANT" && (
           <Button size="sm" onClick={() => setShowCreateDialog(true)} data-testid="button-create-approval">
-            <Plus className="h-4 w-4 mr-1" />
+            <Plus className="h-4 w-4 mr-1" aria-hidden="true" />
             New
           </Button>
         )}
@@ -164,7 +164,7 @@ export default function Approvals() {
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                    <Receipt className="h-5 w-5 text-primary" />
+                    <Receipt className="h-5 w-5 text-primary" aria-hidden="true" />
                   </div>
                   <div>
                     <p className="font-medium">Payments waiting</p>
@@ -175,7 +175,7 @@ export default function Approvals() {
                 </div>
                 <div className="flex items-center gap-2">
                   <Badge variant="secondary">{pendingPaymentsCount}</Badge>
-                  <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                  <ArrowRight className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
                 </div>
               </div>
             </CardContent>
@@ -186,7 +186,7 @@ export default function Approvals() {
       {pendingApprovals.length === 0 && pastApprovals.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-            <CheckCircle className="w-12 h-12 text-green-500 mb-3" />
+            <CheckCircle className="w-12 h-12 text-green-500 mb-3" aria-hidden="true" />
             <p className="font-medium">All caught up.</p>
             <p className="text-sm text-muted-foreground">Everything's hndld.</p>
           </CardContent>
@@ -198,7 +198,7 @@ export default function Approvals() {
               <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
                 Pending ({pendingApprovals.length})
               </h2>
-              <StaggeredList className="space-y-3">
+              <StaggeredList className="space-y-3" aria-label="Pending approvals list">
               {pendingApprovals.map((approval) => (
                 <Card 
                   key={approval.id} 
@@ -218,19 +218,19 @@ export default function Approvals() {
                         <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
                           {approval.amount && (
                             <span className="flex items-center gap-1">
-                              <DollarSign className="h-3 w-3" />
+                              <DollarSign className="h-3 w-3" aria-hidden="true" />
                               {(approval.amount / 100).toFixed(2)}
                             </span>
                           )}
                           {(approval.links as string[])?.length > 0 && (
                             <span className="flex items-center gap-1">
-                              <LinkIcon className="h-3 w-3" />
+                              <LinkIcon className="h-3 w-3" aria-hidden="true" />
                               {(approval.links as string[]).length}
                             </span>
                           )}
                           {(approval.images as string[])?.length > 0 && (
                             <span className="flex items-center gap-1">
-                              <ImageIcon className="h-3 w-3" />
+                              <ImageIcon className="h-3 w-3" aria-hidden="true" />
                               {(approval.images as string[]).length}
                             </span>
                           )}
@@ -291,7 +291,7 @@ export default function Approvals() {
           <div className="space-y-4">
             {selectedApproval?.amount && (
               <div className="flex items-center gap-2">
-                <DollarSign className="h-5 w-5 text-muted-foreground" />
+                <DollarSign className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
                 <span className="text-2xl font-bold">
                   ${(selectedApproval.amount / 100).toFixed(2)}
                 </span>
@@ -308,7 +308,7 @@ export default function Approvals() {
                   <img 
                     key={i} 
                     src={img} 
-                    alt="" 
+                    alt={`Approval image ${i + 1}`} 
                     className="rounded-md w-full aspect-square object-cover"
                   />
                 ))}
@@ -326,7 +326,7 @@ export default function Approvals() {
                   disabled={updateApprovalMutation.isPending}
                   data-testid="button-approve"
                 >
-                  <Check className="h-4 w-4 mr-1" />
+                  <Check className="h-4 w-4 mr-1" aria-hidden="true" />
                   Approve
                 </Button>
                 <Button 
@@ -339,7 +339,7 @@ export default function Approvals() {
                   disabled={updateApprovalMutation.isPending}
                   data-testid="button-decline"
                 >
-                  <X className="h-4 w-4 mr-1" />
+                  <X className="h-4 w-4 mr-1" aria-hidden="true" />
                   Decline
                 </Button>
               </div>
@@ -354,7 +354,7 @@ export default function Approvals() {
 
             <div className="border-t pt-4">
               <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
-                <MessageSquare className="h-4 w-4" />
+                <MessageSquare className="h-4 w-4" aria-hidden="true" />
                 Comments
               </h4>
               <div className="space-y-2 mb-3">
@@ -387,9 +387,10 @@ export default function Approvals() {
                     }
                   }}
                   disabled={!newComment.trim() || addCommentMutation.isPending}
+                  aria-label="Add comment"
                   data-testid="button-add-comment"
                 >
-                  <MessageSquare className="h-4 w-4" />
+                  <MessageSquare className="h-4 w-4" aria-hidden="true" />
                 </Button>
               </div>
             </div>

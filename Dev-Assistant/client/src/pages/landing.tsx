@@ -7,7 +7,7 @@ export default function Landing() {
   return (
     <div className="min-h-screen bg-background">
 
-      <section className="relative min-h-screen flex flex-col items-center justify-center px-6 py-20 bg-gradient-to-b from-[hsl(36_33%_97%)] via-[hsl(36_30%_96%)] to-[hsl(220_25%_95%)]">
+      <section aria-label="Hero" className="relative min-h-screen flex flex-col items-center justify-center px-6 py-20 bg-gradient-to-b from-[hsl(36_33%_97%)] via-[hsl(36_30%_96%)] to-[hsl(220_25%_95%)]">
 
         <motion.div
           className="mb-12"
@@ -16,7 +16,7 @@ export default function Landing() {
           transition={{ duration: 0.8, ease }}
         >
           <div className="w-16 h-16 rounded-2xl bg-[hsl(220_25%_92%)] flex items-center justify-center">
-            <Home className="w-8 h-8 text-[hsl(220_37%_25%)]" />
+            <Home aria-hidden="true" className="w-8 h-8 text-[hsl(220_37%_25%)]" />
           </div>
         </motion.div>
 
@@ -54,6 +54,7 @@ export default function Landing() {
             href="/api/login"
             className="group relative px-10 py-4 text-white text-lg font-medium rounded-full transition-all duration-300 hover:scale-[1.02]"
             style={{ backgroundColor: '#1D2A44', boxShadow: '0 10px 25px -5px rgba(29, 42, 68, 0.35)' }}
+            aria-label="Get started with hndld"
             data-testid="button-login"
           >
             Get Started
@@ -70,11 +71,11 @@ export default function Landing() {
             y: { delay: 1.5, duration: 2, repeat: Infinity, ease: "easeInOut" }
           }}
         >
-          <ChevronDown className="w-6 h-6 text-[hsl(220_10%_60%)]" />
+          <ChevronDown aria-hidden="true" className="w-6 h-6 text-[hsl(220_10%_60%)]" />
         </motion.div>
       </section>
 
-      <section className="py-24 px-6 bg-white">
+      <section aria-label="Features overview" className="py-24 px-6 bg-white">
         <div className="max-w-6xl mx-auto">
           <motion.div
             className="text-center mb-16"
@@ -126,7 +127,7 @@ export default function Landing() {
         </div>
       </section>
 
-      <section className="py-24 px-6 bg-[hsl(36_30%_97%)]">
+      <section aria-label="How it works" className="py-24 px-6 bg-[hsl(36_30%_97%)]">
         <div className="max-w-4xl mx-auto">
           <motion.h2
             className="text-3xl md:text-4xl font-light text-[hsl(220_20%_20%)] text-center mb-20"
@@ -162,7 +163,7 @@ export default function Landing() {
         </div>
       </section>
 
-      <section className="py-32 px-6 bg-white">
+      <section aria-label="Testimonial" className="py-32 px-6 bg-white">
         <motion.div
           className="max-w-3xl mx-auto text-center"
           initial={{ opacity: 0, y: 30 }}
@@ -183,21 +184,21 @@ export default function Landing() {
         </motion.div>
       </section>
 
-      <section className="py-16 px-6 bg-[hsl(36_30%_97%)] border-y border-[hsl(220_15%_92%)]">
+      <section aria-label="Trust indicators" className="py-16 px-6 bg-[hsl(36_30%_97%)] border-y border-[hsl(220_15%_92%)]">
         <div className="max-w-4xl mx-auto flex flex-wrap justify-center gap-x-12 gap-y-4 text-sm text-[hsl(220_10%_50%)]">
           <span className="flex items-center gap-2">
-            <Shield className="w-4 h-4" /> Bank-level encryption
+            <Shield aria-hidden="true" className="w-4 h-4" /> Bank-level encryption
           </span>
           <span className="flex items-center gap-2">
-            <Calendar className="w-4 h-4" /> Google Calendar sync
+            <Calendar aria-hidden="true" className="w-4 h-4" /> Google Calendar sync
           </span>
           <span className="flex items-center gap-2">
-            <Zap className="w-4 h-4" /> Setup in 5 minutes
+            <Zap aria-hidden="true" className="w-4 h-4" /> Setup in 5 minutes
           </span>
         </div>
       </section>
 
-      <section className="py-32 px-6 bg-gradient-to-b from-white to-[hsl(220_20%_96%)]">
+      <section aria-label="Call to action" className="py-32 px-6 bg-gradient-to-b from-white to-[hsl(220_20%_96%)]">
         <motion.div
           className="max-w-2xl mx-auto text-center"
           initial={{ opacity: 0, y: 30 }}
@@ -214,13 +215,14 @@ export default function Landing() {
             href="/api/login"
             className="inline-block mt-10 px-12 py-5 text-white text-lg font-medium rounded-full transition-all duration-300 hover:scale-[1.02]"
             style={{ backgroundColor: '#1D2A44', boxShadow: '0 10px 25px -5px rgba(29, 42, 68, 0.35)' }}
+            aria-label="Get started free with hndld"
           >
             Get Started Free
           </a>
         </motion.div>
       </section>
 
-      <footer className="py-12 px-6 bg-[hsl(220_20%_12%)] text-[hsl(220_10%_70%)]">
+      <footer aria-label="Site footer" className="py-12 px-6 bg-[hsl(220_20%_12%)] text-[hsl(220_10%_70%)]">
         <div className="max-w-4xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
           <span className="font-medium text-white">hndld</span>
           <div className="flex gap-8 text-sm">

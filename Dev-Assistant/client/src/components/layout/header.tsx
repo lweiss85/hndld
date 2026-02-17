@@ -30,7 +30,7 @@ export function Header() {
     : "?";
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur-sm">
+    <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur-sm" role="banner">
       <div className="flex h-14 items-center justify-between gap-4 px-4 max-w-4xl mx-auto">
         <div className="flex items-center gap-3">
           <Link href="/">
@@ -48,6 +48,7 @@ export function Header() {
               <Switch
                 checked={activeRole === "ASSISTANT"}
                 onCheckedChange={(checked) => setActiveRole(checked ? "ASSISTANT" : "CLIENT")}
+                aria-label={`Switch to ${activeRole === "ASSISTANT" ? "Client" : "Assistant"} view`}
                 data-testid="switch-role-toggle"
               />
               <span className={`text-xs font-medium ${activeRole === "ASSISTANT" ? "text-foreground" : "text-muted-foreground"}`}>
@@ -65,8 +66,8 @@ export function Header() {
             <Tooltip>
               <TooltipTrigger asChild>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" data-testid="button-more-menu">
-                    <MoreHorizontal className="h-5 w-5" />
+                  <Button variant="ghost" size="icon" aria-label="More options" data-testid="button-more-menu">
+                    <MoreHorizontal className="h-5 w-5" aria-hidden="true" />
                   </Button>
                 </DropdownMenuTrigger>
               </TooltipTrigger>
@@ -121,12 +122,13 @@ export function Header() {
                 variant="ghost"
                 size="icon"
                 onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
                 data-testid="button-theme-toggle"
               >
                 {theme === "dark" ? (
-                  <Sun className="h-5 w-5" />
+                  <Sun className="h-5 w-5" aria-hidden="true" />
                 ) : (
-                  <Moon className="h-5 w-5" />
+                  <Moon className="h-5 w-5" aria-hidden="true" />
                 )}
               </Button>
             </TooltipTrigger>
@@ -137,7 +139,7 @@ export function Header() {
             <Tooltip>
               <TooltipTrigger asChild>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="rounded-full" data-testid="button-user-menu">
+                  <Button variant="ghost" size="icon" className="rounded-full" aria-label="Account menu" data-testid="button-user-menu">
                     <Avatar className="h-8 w-8">
                       <AvatarImage src={user?.profileImageUrl || undefined} alt={user?.firstName || "User"} />
                       <AvatarFallback className="bg-primary/10 text-primary text-sm font-medium">

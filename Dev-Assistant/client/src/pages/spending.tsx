@@ -73,7 +73,7 @@ interface PayOptionsResponse {
 
 function SpendingSkeleton() {
   return (
-    <div className="px-4 py-6 space-y-4 max-w-4xl mx-auto">
+    <div className="px-4 py-6 space-y-4 max-w-4xl mx-auto" aria-busy="true">
       <Skeleton className="h-8 w-40" />
       <Skeleton className="h-6 w-64" />
       <Skeleton className="h-32 w-full" />
@@ -211,23 +211,24 @@ function ClientSpendingView() {
             size="icon"
             className="h-6 w-6"
             onClick={() => copyToClipboard(payToDisplay, "recipient")}
+            aria-label="Copy payment recipient"
             data-testid="button-copy-pay-to"
           >
-            <Copy className="h-3 w-3" />
+            <Copy className="h-3 w-3" aria-hidden="true" />
           </Button>
         </div>
       )}
 
       <div className="space-y-3">
         <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-2">
-          <Clock className="h-4 w-4" />
+          <Clock className="h-4 w-4" aria-hidden="true" />
           Waiting on you
         </h2>
         
         {waitingItems.length === 0 ? (
           <Card>
             <CardContent className="p-6 text-center">
-              <Sparkles className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+              <Sparkles className="h-8 w-8 text-muted-foreground mx-auto mb-2" aria-hidden="true" />
               <p className="text-muted-foreground">All set. Nothing needs your attention.</p>
             </CardContent>
           </Card>
@@ -259,7 +260,7 @@ function ClientSpendingView() {
                         disabled={updateStatusMutation.isPending}
                         data-testid={`button-approve-${item.id}`}
                       >
-                        <Check className="h-4 w-4 mr-1" />
+                        <Check className="h-4 w-4 mr-1" aria-hidden="true" />
                         Approve
                       </Button>
                     )}
@@ -268,7 +269,7 @@ function ClientSpendingView() {
                         onClick={() => openPaySheet(item)}
                         data-testid={`button-pay-${item.id}`}
                       >
-                        <CreditCard className="h-4 w-4 mr-1" />
+                        <CreditCard className="h-4 w-4 mr-1" aria-hidden="true" />
                         Pay now
                       </Button>
                     )}
@@ -283,7 +284,7 @@ function ClientSpendingView() {
       {paymentSentItems.length > 0 && (
         <div className="space-y-3">
           <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-2">
-            <Clock className="h-4 w-4" />
+            <Clock className="h-4 w-4" aria-hidden="true" />
             Being reconciled
           </h2>
           
@@ -318,14 +319,14 @@ function ClientSpendingView() {
 
       <div className="space-y-3">
         <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-2">
-          <Receipt className="h-4 w-4" />
+          <Receipt className="h-4 w-4" aria-hidden="true" />
           Recent receipts
         </h2>
         
         {recentReceipts.length === 0 ? (
           <Card>
             <CardContent className="p-6 text-center">
-              <FileText className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+              <FileText className="h-8 w-8 text-muted-foreground mx-auto mb-2" aria-hidden="true" />
               <p className="text-muted-foreground">Receipts will appear here as items are reconciled.</p>
             </CardContent>
           </Card>
@@ -336,7 +337,7 @@ function ClientSpendingView() {
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-3 min-w-0 flex-1">
                     <div className="w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center shrink-0">
-                      <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400" />
+                      <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400" aria-hidden="true" />
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
@@ -354,7 +355,7 @@ function ClientSpendingView() {
                   </div>
                   {item.receipts && item.receipts.length > 0 && (
                     <Button variant="outline" size="sm" data-testid={`button-receipt-${item.id}`}>
-                      <FileText className="h-4 w-4 mr-1" />
+                      <FileText className="h-4 w-4 mr-1" aria-hidden="true" />
                       Receipt
                     </Button>
                   )}
@@ -379,7 +380,7 @@ function ClientSpendingView() {
 
       <div className="space-y-3">
         <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-2">
-          <CreditCard className="h-4 w-4" />
+          <CreditCard className="h-4 w-4" aria-hidden="true" />
           Invoice History
         </h2>
         
@@ -389,7 +390,7 @@ function ClientSpendingView() {
             return (
               <Card>
                 <CardContent className="p-6 text-center">
-                  <CreditCard className="h-8 w-8 text-muted-foreground mx-auto mb-2 opacity-50" />
+                  <CreditCard className="h-8 w-8 text-muted-foreground mx-auto mb-2 opacity-50" aria-hidden="true" />
                   <p className="text-muted-foreground text-sm">No invoices yet</p>
                 </CardContent>
               </Card>
@@ -582,8 +583,8 @@ function AssistantSpendingView() {
         </div>
         <div className="flex items-center gap-2">
           <Link href="/payment-profile">
-            <Button variant="ghost" size="icon" data-testid="button-payment-settings">
-              <Settings className="h-5 w-5" />
+            <Button variant="ghost" size="icon" aria-label="Payment settings" data-testid="button-payment-settings">
+              <Settings className="h-5 w-5" aria-hidden="true" />
             </Button>
           </Link>
           <Button 
@@ -592,11 +593,11 @@ function AssistantSpendingView() {
             onClick={() => setShowInvoiceDialog(true)} 
             data-testid="button-send-invoice"
           >
-            <FileText className="h-4 w-4 mr-1" />
+            <FileText className="h-4 w-4 mr-1" aria-hidden="true" />
             Invoice
           </Button>
           <Button size="sm" onClick={() => setShowCreateDialog(true)} data-testid="button-add-expense">
-            <Plus className="h-4 w-4 mr-1" />
+            <Plus className="h-4 w-4 mr-1" aria-hidden="true" />
             Add
           </Button>
         </div>
@@ -607,7 +608,7 @@ function AssistantSpendingView() {
           <CardContent className="p-4">
             <div className="flex items-start gap-3">
               <div className="p-2 rounded-full bg-amber-100 dark:bg-amber-800 shrink-0">
-                <CreditCard className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+                <CreditCard className="h-5 w-5 text-amber-600 dark:text-amber-400" aria-hidden="true" />
               </div>
               <div className="flex-1 min-w-0">
                 <h3 className="font-medium">Set up payment methods</h3>
@@ -657,7 +658,7 @@ function AssistantSpendingView() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-base font-semibold flex items-center gap-2">
-              <TrendingUp className="h-4 w-4" />
+              <TrendingUp className="h-4 w-4" aria-hidden="true" />
               Top Categories
             </CardTitle>
           </CardHeader>
@@ -681,7 +682,7 @@ function AssistantSpendingView() {
         {spending?.length === 0 ? (
           <Card>
             <CardContent className="p-6 text-center">
-              <Receipt className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+              <Receipt className="h-8 w-8 text-muted-foreground mx-auto mb-2" aria-hidden="true" />
               <p className="text-sm text-muted-foreground">No expenses recorded yet</p>
             </CardContent>
           </Card>
@@ -699,13 +700,13 @@ function AssistantSpendingView() {
                     <div className="flex items-center gap-3 min-w-0 flex-1">
                       <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center shrink-0">
                         {isReconciled ? (
-                          <CheckCircle2 className="h-5 w-5 text-green-600" />
+                          <CheckCircle2 className="h-5 w-5 text-green-600" aria-hidden="true" />
                         ) : isPaymentSent ? (
-                          <Check className="h-5 w-5 text-blue-500" />
+                          <Check className="h-5 w-5 text-blue-500" aria-hidden="true" />
                         ) : isNeedsReimbursement ? (
-                          <Clock className="h-5 w-5 text-amber-500" />
+                          <Clock className="h-5 w-5 text-amber-500" aria-hidden="true" />
                         ) : (
-                          <DollarSign className="h-5 w-5 text-muted-foreground" />
+                          <DollarSign className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
                         )}
                       </div>
                       <div className="min-w-0 flex-1">
@@ -744,8 +745,8 @@ function AssistantSpendingView() {
                     
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" data-testid={`button-expense-menu-${item.id}`}>
-                          <MoreVertical className="h-4 w-4" />
+                        <Button variant="ghost" size="icon" aria-label="Expense options" data-testid={`button-expense-menu-${item.id}`}>
+                          <MoreVertical className="h-4 w-4" aria-hidden="true" />
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
@@ -754,7 +755,7 @@ function AssistantSpendingView() {
                             onClick={() => requestReimbursement(item)}
                             data-testid={`menu-request-reimbursement-${item.id}`}
                           >
-                            <Send className="h-4 w-4 mr-2" />
+                            <Send className="h-4 w-4 mr-2" aria-hidden="true" />
                             Request Reimbursement
                           </DropdownMenuItem>
                         )}
@@ -763,7 +764,7 @@ function AssistantSpendingView() {
                             onClick={() => markReconciled(item)}
                             data-testid={`menu-mark-reconciled-${item.id}`}
                           >
-                            <CheckCircle2 className="h-4 w-4 mr-2" />
+                            <CheckCircle2 className="h-4 w-4 mr-2" aria-hidden="true" />
                             Mark Reconciled
                           </DropdownMenuItem>
                         )}
@@ -772,7 +773,7 @@ function AssistantSpendingView() {
                             onClick={() => openPaySheet(item)}
                             data-testid={`menu-view-pay-${item.id}`}
                           >
-                            <CreditCard className="h-4 w-4 mr-2" />
+                            <CreditCard className="h-4 w-4 mr-2" aria-hidden="true" />
                             View Pay Options
                           </DropdownMenuItem>
                         )}
@@ -795,7 +796,7 @@ function AssistantSpendingView() {
             <div>
               <label className="text-sm font-medium mb-1 block">Amount</label>
               <div className="relative">
-                <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
                 <Input
                   type="number"
                   step="0.01"
@@ -874,7 +875,7 @@ function AssistantSpendingView() {
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5" />
+              <FileText className="h-5 w-5" aria-hidden="true" />
               Send Invoice
             </DialogTitle>
           </DialogHeader>
@@ -892,7 +893,7 @@ function AssistantSpendingView() {
             <div>
               <label className="text-sm font-medium mb-1 block">Amount</label>
               <div className="relative">
-                <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
                 <Input
                   type="number"
                   step="0.01"
@@ -948,7 +949,7 @@ function AssistantSpendingView() {
               className="w-full"
               data-testid="button-send-invoice-confirm"
             >
-              <Send className="h-4 w-4 mr-2" />
+              <Send className="h-4 w-4 mr-2" aria-hidden="true" />
               {sendInvoiceMutation.isPending ? "Sending..." : "Send Invoice"}
             </Button>
           </DialogFooter>

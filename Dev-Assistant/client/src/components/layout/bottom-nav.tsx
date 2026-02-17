@@ -32,34 +32,34 @@ interface NavItem {
 }
 
 const clientTabs: NavItem[] = [
-  { path: "/", icon: <Home className="h-5 w-5" />, label: "Home" },
-  { path: "/updates", icon: <FileText className="h-5 w-5" />, label: "Updates" },
-  { path: "/approvals", icon: <CheckSquare className="h-5 w-5" />, label: "Approvals" },
-  { path: "/pay", icon: <CreditCard className="h-5 w-5" />, label: "Pay" },
-  { path: "/messages", icon: <Mail className="h-5 w-5" />, label: "Messages" },
+  { path: "/", icon: <Home className="h-5 w-5" aria-hidden="true" />, label: "Home" },
+  { path: "/updates", icon: <FileText className="h-5 w-5" aria-hidden="true" />, label: "Updates" },
+  { path: "/approvals", icon: <CheckSquare className="h-5 w-5" aria-hidden="true" />, label: "Approvals" },
+  { path: "/pay", icon: <CreditCard className="h-5 w-5" aria-hidden="true" />, label: "Pay" },
+  { path: "/messages", icon: <Mail className="h-5 w-5" aria-hidden="true" />, label: "Messages" },
 ];
 
 const cleaningClientTabs: NavItem[] = [
-  { path: "/", icon: <Home className="h-5 w-5" />, label: "Home" },
-  { path: "/schedule", icon: <CalendarDays className="h-5 w-5" />, label: "Schedule" },
-  { path: "/addons", icon: <Sparkles className="h-5 w-5" />, label: "Add-ons" },
-  { path: "/pay", icon: <CreditCard className="h-5 w-5" />, label: "Pay" },
-  { path: "/messages", icon: <Mail className="h-5 w-5" />, label: "Messages" },
+  { path: "/", icon: <Home className="h-5 w-5" aria-hidden="true" />, label: "Home" },
+  { path: "/schedule", icon: <CalendarDays className="h-5 w-5" aria-hidden="true" />, label: "Schedule" },
+  { path: "/addons", icon: <Sparkles className="h-5 w-5" aria-hidden="true" />, label: "Add-ons" },
+  { path: "/pay", icon: <CreditCard className="h-5 w-5" aria-hidden="true" />, label: "Pay" },
+  { path: "/messages", icon: <Mail className="h-5 w-5" aria-hidden="true" />, label: "Messages" },
 ];
 
 const assistantTabs: NavItem[] = [
-  { path: "/", icon: <Clock className="h-5 w-5" />, label: "Today" },
-  { path: "/tasks", icon: <ClipboardList className="h-5 w-5" />, label: "Tasks" },
-  { path: "/calendar", icon: <Calendar className="h-5 w-5" />, label: "Calendar" },
-  { path: "/spending", icon: <Receipt className="h-5 w-5" />, label: "Money" },
-  { path: "/house", icon: <Building2 className="h-5 w-5" />, label: "House" },
+  { path: "/", icon: <Clock className="h-5 w-5" aria-hidden="true" />, label: "Today" },
+  { path: "/tasks", icon: <ClipboardList className="h-5 w-5" aria-hidden="true" />, label: "Tasks" },
+  { path: "/calendar", icon: <Calendar className="h-5 w-5" aria-hidden="true" />, label: "Calendar" },
+  { path: "/spending", icon: <Receipt className="h-5 w-5" aria-hidden="true" />, label: "Money" },
+  { path: "/house", icon: <Building2 className="h-5 w-5" aria-hidden="true" />, label: "House" },
 ];
 
 const staffTabs: NavItem[] = [
-  { path: "/", icon: <Clock className="h-5 w-5" />, label: "Today" },
-  { path: "/jobs", icon: <Briefcase className="h-5 w-5" />, label: "Jobs" },
-  { path: "/updates", icon: <FileText className="h-5 w-5" />, label: "Updates" },
-  { path: "/more", icon: <MoreHorizontal className="h-5 w-5" />, label: "More" },
+  { path: "/", icon: <Clock className="h-5 w-5" aria-hidden="true" />, label: "Today" },
+  { path: "/jobs", icon: <Briefcase className="h-5 w-5" aria-hidden="true" />, label: "Jobs" },
+  { path: "/updates", icon: <FileText className="h-5 w-5" aria-hidden="true" />, label: "Updates" },
+  { path: "/more", icon: <MoreHorizontal className="h-5 w-5" aria-hidden="true" />, label: "More" },
 ];
 
 export function BottomNav() {
@@ -118,7 +118,7 @@ export function BottomNav() {
               className="w-full h-12 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white shadow-lg shadow-emerald-500/25 font-semibold text-base"
               data-testid="button-pay-now-cta"
             >
-              <CreditCard className="h-5 w-5 mr-2" />
+              <CreditCard className="h-5 w-5 mr-2" aria-hidden="true" />
               Pay {formatAmount(pendingInvoices.totalAmount)}
               {pendingInvoices.count > 1 && (
                 <Badge variant="secondary" className="ml-2 bg-white/20 text-white border-0">

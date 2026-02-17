@@ -39,7 +39,7 @@ interface UpdateWithComments extends Update {
 
 function UpdatesSkeleton() {
   return (
-    <div className="px-4 py-6 space-y-4 max-w-4xl mx-auto">
+    <div className="px-4 py-6 space-y-4 max-w-4xl mx-auto" aria-busy="true">
       <Skeleton className="h-8 w-40" />
       {[1, 2, 3].map((i) => (
         <Skeleton key={i} className="h-48" />
@@ -155,7 +155,7 @@ export default function Updates() {
         <h1 className="text-2xl font-semibold" data-testid="text-page-title">Updates</h1>
         {(activeRole === "ASSISTANT" || (activeRole === "STAFF" && activeServiceType === "CLEANING")) && (
           <Button size="sm" onClick={() => setShowCreateDialog(true)} data-testid="button-create-update">
-            <Plus className="h-4 w-4 mr-1" />
+            <Plus className="h-4 w-4 mr-1" aria-hidden="true" />
             Post
           </Button>
         )}
@@ -164,7 +164,7 @@ export default function Updates() {
       {updates?.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-12 text-center">
           <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
-            <MessageSquare className="h-8 w-8 text-muted-foreground" />
+            <MessageSquare className="h-8 w-8 text-muted-foreground" aria-hidden="true" />
           </div>
           <h3 className="font-medium text-lg mb-1">No updates yet</h3>
           <p className="text-sm text-muted-foreground">
@@ -172,7 +172,7 @@ export default function Updates() {
           </p>
         </div>
       ) : (
-        <StaggeredList className="space-y-4">
+        <StaggeredList className="space-y-4" aria-label="Updates list">
           {updates?.map((update) => (
               <Card key={update.id} className="rounded-2xl" data-testid={`card-update-${update.id}`}>
                 <CardContent className="p-4">
@@ -197,7 +197,7 @@ export default function Updates() {
                             <img 
                               key={i} 
                               src={img} 
-                              alt="" 
+                              alt={`Update photo ${i + 1}`} 
                               className="rounded-md w-full aspect-square object-cover"
                             />
                           ))}
@@ -206,7 +206,7 @@ export default function Updates() {
 
                       {(update.receipts as string[])?.length > 0 && (
                         <div className="flex items-center gap-2 mt-3 p-2 rounded-md bg-muted/50">
-                          <Receipt className="h-4 w-4 text-muted-foreground" />
+                          <Receipt className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
                           <span className="text-xs text-muted-foreground">
                             {(update.receipts as string[]).length} receipt(s) attached
                           </span>
@@ -221,9 +221,10 @@ export default function Updates() {
                           size="sm"
                           className="h-8 px-2 gap-1 ml-auto"
                           onClick={() => setSelectedUpdate(update)}
+                          aria-label="View comments"
                           data-testid="button-comments"
                         >
-                          <MessageSquare className="h-4 w-4 text-muted-foreground" />
+                          <MessageSquare className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
                           {update.comments?.length || 0}
                         </Button>
                       </div>
@@ -280,9 +281,10 @@ export default function Updates() {
                 }
               }}
               disabled={!newComment.trim() || addCommentMutation.isPending}
+              aria-label="Add comment"
               data-testid="button-add-comment"
             >
-              <MessageSquare className="h-4 w-4" />
+              <MessageSquare className="h-4 w-4" aria-hidden="true" />
             </Button>
           </div>
         </DialogContent>
@@ -315,7 +317,7 @@ export default function Updates() {
                   <div key={img.id} className="relative aspect-square">
                     <img 
                       src={img.url} 
-                      alt="" 
+                      alt={`Uploaded photo ${index + 1}`} 
                       className="w-full h-full object-cover rounded-md"
                     />
                     <Button
@@ -323,9 +325,10 @@ export default function Updates() {
                       size="sm"
                       className="absolute top-1 right-1 p-1"
                       onClick={() => removeImage(index)}
+                      aria-label={`Remove photo ${index + 1}`}
                       data-testid={`button-remove-image-${index}`}
                     >
-                      <X className="h-3 w-3" />
+                      <X className="h-3 w-3" aria-hidden="true" />
                     </Button>
                   </div>
                 ))}
@@ -342,7 +345,7 @@ export default function Updates() {
               />
               {isUploading && (
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
                   Uploading...
                 </div>
               )}

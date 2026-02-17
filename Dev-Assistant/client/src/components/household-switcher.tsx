@@ -75,7 +75,7 @@ export function HouseholdSwitcher() {
   if (households.length === 1) {
     return (
       <div className="flex items-center gap-2 px-2 py-1 text-sm">
-        <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
+        <Building2 className="h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />
         <span className="text-muted-foreground text-xs">{households[0].name}</span>
       </div>
     );
@@ -88,13 +88,14 @@ export function HouseholdSwitcher() {
           variant="ghost" 
           size="sm"
           className="gap-1.5 px-2 h-auto py-1.5"
+          aria-label="Switch household"
           data-testid="household-switcher"
         >
-          <Building2 className="h-3.5 w-3.5" />
+          <Building2 className="h-3.5 w-3.5" aria-hidden="true" />
           <span className="text-xs font-medium max-w-24 truncate">
             {activeHousehold?.name || "Select"}
           </span>
-          <ChevronDown className="h-3 w-3" />
+          <ChevronDown className="h-3 w-3" aria-hidden="true" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-56">
@@ -114,7 +115,7 @@ export function HouseholdSwitcher() {
               </span>
             </div>
             {household.id === activeHouseholdId && (
-              <Check className="h-4 w-4 text-primary" />
+              <Check className="h-4 w-4 text-primary" aria-hidden="true" />
             )}
           </DropdownMenuItem>
         ))}

@@ -40,7 +40,7 @@ const VENDOR_CATEGORIES = [
 
 function VendorsSkeleton() {
   return (
-    <div className="px-4 py-6 space-y-4 max-w-4xl mx-auto">
+    <div className="px-4 py-6 space-y-4 max-w-4xl mx-auto" aria-busy="true">
       <Skeleton className="h-8 w-40" />
       <Skeleton className="h-10 w-full" />
       {[1, 2, 3, 4].map((i) => (
@@ -108,18 +108,19 @@ export default function Vendors() {
       <div className="flex items-center justify-between gap-4 animate-fade-in-up">
         <h1 className="text-2xl font-semibold" data-testid="text-page-title">Vendors</h1>
         <Button size="sm" onClick={() => setShowCreateDialog(true)} data-testid="button-add-vendor">
-          <Plus className="h-4 w-4 mr-1" />
+          <Plus aria-hidden="true" className="h-4 w-4 mr-1" />
           Add
         </Button>
       </div>
 
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Search aria-hidden="true" className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
           placeholder="Search vendors..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="pl-9"
+          aria-label="Search vendors"
           data-testid="input-search-vendors"
         />
       </div>
@@ -127,7 +128,7 @@ export default function Vendors() {
       {filteredVendors?.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-12 text-center">
           <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
-            <Building className="h-8 w-8 text-muted-foreground" />
+            <Building aria-hidden="true" className="h-8 w-8 text-muted-foreground" />
           </div>
           <h3 className="font-medium text-lg mb-1">No vendors yet</h3>
           <p className="text-sm text-muted-foreground">
@@ -135,7 +136,7 @@ export default function Vendors() {
           </p>
         </div>
       ) : (
-        <div className="space-y-6">
+        <div className="space-y-6" aria-label="Vendor list" role="region">
           {Object.entries(groupedVendors || {}).map(([category, categoryVendors]) => (
             <div key={category} className="space-y-2">
               <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
@@ -151,20 +152,20 @@ export default function Vendors() {
                   <CardContent className="p-4">
                     <div className="flex items-start gap-3">
                       <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                        <User className="h-5 w-5 text-primary" />
+                        <User aria-hidden="true" className="h-5 w-5 text-primary" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <h3 className="font-medium">{vendor.name}</h3>
                         <div className="flex flex-wrap items-center gap-3 mt-1 text-sm text-muted-foreground">
                           {vendor.phone && (
                             <span className="flex items-center gap-1">
-                              <Phone className="h-3 w-3" />
+                              <Phone aria-hidden="true" className="h-3 w-3" />
                               {vendor.phone}
                             </span>
                           )}
                           {vendor.email && (
                             <span className="flex items-center gap-1">
-                              <Mail className="h-3 w-3" />
+                              <Mail aria-hidden="true" className="h-3 w-3" />
                               {vendor.email}
                             </span>
                           )}
@@ -189,6 +190,7 @@ export default function Vendors() {
               placeholder="Vendor name"
               value={newVendor.name || ""}
               onChange={(e) => setNewVendor({ ...newVendor, name: e.target.value })}
+              aria-label="Vendor name"
               data-testid="input-vendor-name"
             />
             
@@ -197,6 +199,7 @@ export default function Vendors() {
               type="tel"
               value={newVendor.phone || ""}
               onChange={(e) => setNewVendor({ ...newVendor, phone: e.target.value })}
+              aria-label="Phone number"
               data-testid="input-vendor-phone"
             />
 
@@ -205,6 +208,7 @@ export default function Vendors() {
               type="email"
               value={newVendor.email || ""}
               onChange={(e) => setNewVendor({ ...newVendor, email: e.target.value })}
+              aria-label="Email"
               data-testid="input-vendor-email"
             />
 
@@ -230,6 +234,7 @@ export default function Vendors() {
               value={newVendor.notes || ""}
               onChange={(e) => setNewVendor({ ...newVendor, notes: e.target.value })}
               rows={2}
+              aria-label="Notes"
               data-testid="input-vendor-notes"
             />
           </div>
@@ -261,8 +266,9 @@ export default function Vendors() {
                 <a 
                   href={`tel:${selectedVendor.phone}`}
                   className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
+                  aria-label={`Call ${selectedVendor.name} at ${selectedVendor.phone}`}
                 >
-                  <Phone className="h-5 w-5 text-muted-foreground" />
+                  <Phone aria-hidden="true" className="h-5 w-5 text-muted-foreground" />
                   <span>{selectedVendor.phone}</span>
                 </a>
               )}
@@ -271,8 +277,9 @@ export default function Vendors() {
                 <a 
                   href={`mailto:${selectedVendor.email}`}
                   className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
+                  aria-label={`Email ${selectedVendor.name} at ${selectedVendor.email}`}
                 >
-                  <Mail className="h-5 w-5 text-muted-foreground" />
+                  <Mail aria-hidden="true" className="h-5 w-5 text-muted-foreground" />
                   <span>{selectedVendor.email}</span>
                 </a>
               )}

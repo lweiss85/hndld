@@ -53,9 +53,10 @@ export function GlobalSearchTrigger() {
             variant="ghost" 
             size="icon"
             onClick={() => setOpen(true)}
+            aria-label="Search"
             data-testid="button-global-search"
           >
-            <Search className="h-5 w-5" />
+            <Search className="h-5 w-5" aria-hidden="true" />
           </Button>
         </TooltipTrigger>
         <TooltipContent>Search (⌘K)</TooltipContent>
@@ -127,13 +128,14 @@ function GlobalSearchDialog({ open, onOpenChange }: GlobalSearchDialogProps) {
         </DialogHeader>
         
         <div className="flex items-center border-b px-4 py-3">
-          <Search className="h-5 w-5 text-muted-foreground mr-3" />
+          <Search className="h-5 w-5 text-muted-foreground mr-3" aria-hidden="true" />
           <Input
             ref={inputRef}
             placeholder="Search tasks, updates, vendors..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             className="border-0 focus-visible:ring-0 px-0 text-base"
+            aria-label="Search tasks, updates, vendors, and preferences"
             data-testid="input-global-search"
           />
           {query && (
@@ -144,8 +146,9 @@ function GlobalSearchDialog({ open, onOpenChange }: GlobalSearchDialogProps) {
                   size="icon"
                   className="h-8 w-8"
                   onClick={() => setQuery("")}
+                  aria-label="Clear search"
                 >
-                  <X className="h-4 w-4" />
+                  <X className="h-4 w-4" aria-hidden="true" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent>Clear search</TooltipContent>
@@ -153,7 +156,7 @@ function GlobalSearchDialog({ open, onOpenChange }: GlobalSearchDialogProps) {
           )}
         </div>
 
-        <div className="flex items-center gap-2 px-4 py-2 border-b">
+        <div className="flex items-center gap-2 px-4 py-2 border-b" role="group" aria-label="Search filters">
           {filterOptions.map((filter) => {
             const isActive = activeFilters.includes(filter.id);
             return (
@@ -162,9 +165,12 @@ function GlobalSearchDialog({ open, onOpenChange }: GlobalSearchDialogProps) {
                 variant={isActive ? "default" : "outline"}
                 className="cursor-pointer"
                 onClick={() => toggleFilter(filter.id)}
+                role="checkbox"
+                aria-checked={isActive}
+                aria-label={`Filter by ${filter.label}`}
                 data-testid={`filter-${filter.id}`}
               >
-                <filter.icon className="h-3 w-3 mr-1" />
+                <filter.icon className="h-3 w-3 mr-1" aria-hidden="true" />
                 {filter.label}
               </Badge>
             );
@@ -173,14 +179,14 @@ function GlobalSearchDialog({ open, onOpenChange }: GlobalSearchDialogProps) {
 
         <ScrollArea className="max-h-[400px]">
           {isLoading && query.length >= 2 && (
-            <div className="p-8 text-center text-muted-foreground">
+            <div className="p-8 text-center text-muted-foreground" aria-busy="true" aria-label="Searching">
               Searching...
             </div>
           )}
 
           {showEmptyState && (
             <div className="p-8 text-center">
-              <Search className="h-12 w-12 text-muted-foreground/50 mx-auto mb-3" />
+              <Search className="h-12 w-12 text-muted-foreground/50 mx-auto mb-3" aria-hidden="true" />
               <p className="text-muted-foreground">No results found for "{query}"</p>
             </div>
           )}
@@ -283,7 +289,7 @@ function SearchResultSection<T extends { id: string }>({
   return (
     <div className="mb-4">
       <div className="flex items-center gap-2 px-2 py-1 text-xs text-muted-foreground font-medium uppercase tracking-wide">
-        <Icon className="h-3 w-3" />
+        <Icon className="h-3 w-3" aria-hidden="true" />
         {title}
       </div>
       {items.map((item) => (
@@ -291,13 +297,17 @@ function SearchResultSection<T extends { id: string }>({
           key={item.id}
           onClick={() => onItemClick(item)}
           className="p-2 rounded-lg cursor-pointer hover-elevate active-elevate-2"
+          role="button"
+          tabIndex={0}
+          aria-label={`View ${title.toLowerCase()} result`}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onItemClick(item); } }}
           data-testid={`search-result-${item.id}`}
         >
           <div className="flex items-center justify-between gap-2">
             <div className="flex-1 min-w-0">
               {renderItem(item)}
             </div>
-            <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
+            <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" aria-hidden="true" />
           </div>
         </div>
       ))}
