@@ -7,6 +7,7 @@ import { initSentry, getSentryHandlers } from "./lib/sentry";
 import { getQueue, scheduleRecurringJobs, registerWorkers, stopQueue } from "./lib/queue";
 import logger from "./lib/logger";
 import { wsManager } from "./services/websocket";
+import { pool } from "./db";
 
 const app = express();
 const httpServer = createServer(app);
@@ -59,24 +60,60 @@ app.use(express.urlencoded({ extended: false, limit: "10mb" }));
 // =============================================================================
 // HEALTH CHECK ENDPOINTS
 // =============================================================================
-app.get("/health", (_req, res) => {
-  res.status(200).json({ 
-    status: "healthy", 
+
+async function checkDatabase(): Promise<boolean> {
+  try {
+    await pool.query("SELECT 1");
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function checkQueue(): Promise<boolean> {
+  try {
+    const q = await getQueue();
+    return q !== null;
+  } catch {
+    return false;
+  }
+}
+
+app.get("/health", async (_req, res) => {
+  const checks = {
+    database: await checkDatabase(),
+    queue: await checkQueue(),
+  };
+
+  const healthy = Object.values(checks).every(Boolean);
+
+  res.status(healthy ? 200 : 503).json({
+    status: healthy ? "healthy" : "degraded",
     timestamp: new Date().toISOString(),
-    version: process.env.npm_package_version || "1.0.0"
+    version: process.env.npm_package_version || "1.0.0",
+    checks,
   });
 });
 
-app.get("/api/health", (_req, res) => {
-  // Only expose details in development
+app.get("/api/health", async (_req, res) => {
+  const checks = {
+    database: await checkDatabase(),
+    queue: await checkQueue(),
+  };
+
+  const healthy = Object.values(checks).every(Boolean);
+
   if (process.env.NODE_ENV === "production") {
-    res.status(200).json({ status: "healthy" });
+    res.status(healthy ? 200 : 503).json({
+      status: healthy ? "healthy" : "degraded",
+    });
   } else {
-    res.status(200).json({ 
-      status: "healthy", 
+    res.status(healthy ? 200 : 503).json({
+      status: healthy ? "healthy" : "degraded",
       timestamp: new Date().toISOString(),
       environment: process.env.NODE_ENV || "development",
-      version: process.env.npm_package_version || "1.0.0"
+      version: process.env.npm_package_version || "1.0.0",
+      checks,
     });
   }
 });
