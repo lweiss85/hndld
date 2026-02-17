@@ -149,6 +149,7 @@ export function BottomNav() {
                   isActive ? "text-foreground" : "text-muted-foreground"
                 )}
                 data-testid={`button-nav-${tab.label.toLowerCase().replace(/\s+/g, '-')}`}
+                data-tour={`nav-${tab.label.toLowerCase().replace(/\s+/g, '-')}`}
               >
                 {isActive && (
                   <div className="absolute inset-1 bg-primary/10 rounded-xl" />

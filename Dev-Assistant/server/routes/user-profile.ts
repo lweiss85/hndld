@@ -57,6 +57,22 @@ export async function registerUserProfileRoutes(app: Router): Promise<void> {
       next(internalError("Failed to fetch user profile"));
     }
   });
+
+  app.patch("/user-profile/tour", isAuthenticated, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const userId = req.user!.claims.sub;
+      const { completed } = req.body;
+      const profile = await storage.getUserProfile(userId);
+      if (!profile) {
+        throw badRequest("No profile found");
+      }
+      await storage.updateUserProfile(profile.id, { tourCompleted: completed === true } as any);
+      cache.invalidate(CacheKeys.userProfile(userId));
+      res.json({ success: true });
+    } catch (error) {
+      next(error);
+    }
+  });
   
   /**
    * @openapi

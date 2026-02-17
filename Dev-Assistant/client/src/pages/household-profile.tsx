@@ -44,6 +44,7 @@ import {
   Bell
 } from "lucide-react";
 import { PushNotificationToggle } from "@/components/push-notification-toggle";
+import { ReplayTourButton } from "@/components/onboarding/replay-tour-button";
 import { format } from "date-fns";
 import type { 
   HouseholdSettings, 
@@ -285,6 +286,21 @@ function OverviewTab({ settings, isAssistant }: { settings?: HouseholdSettings; 
           <PushNotificationToggle />
           <p className="text-xs text-muted-foreground mt-3">
             Enable to receive instant alerts about approvals, tasks, and updates
+          </p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Home className="h-5 w-5" />
+            App Tour
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ReplayTourButton />
+          <p className="text-xs text-muted-foreground mt-3">
+            Replay the guided walkthrough of the app's main features
           </p>
         </CardContent>
       </Card>

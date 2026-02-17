@@ -30,7 +30,7 @@ Preferred communication style: Simple, everyday language.
 - **Route Organization**: Modular route files in `server/routes/` with domain-specific modules:
   - `helpers.ts` - Shared functions (calculateNextOccurrence, seedDemoData, getOrCreateHousehold, runMomentsAutomation)
   - `google-calendar.ts` - Google Calendar OAuth flow
-  - `user-profile.ts` - User profile, role setup, dashboard, services
+  - `user-profile.ts` - User profile, role setup, dashboard, services, onboarding tour completion
   - `cleaning.ts` - Cleaning service & addon services endpoints
   - `tasks.ts` - Task CRUD, completion, recurrence, templates, checklists
   - `approvals.ts` - Approvals, updates, requests, comments, vendors, reactions

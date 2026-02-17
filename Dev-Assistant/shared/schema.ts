@@ -70,6 +70,7 @@ export const userProfiles = pgTable("user_profiles", {
   role: userRoleEnum("role").default("CLIENT").notNull(),
   isDefault: boolean("is_default").default(false),
   defaultServiceType: serviceTypeEnum("default_service_type"),
+  tourCompleted: boolean("tour_completed").default(false),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

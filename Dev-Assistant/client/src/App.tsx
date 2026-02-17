@@ -16,6 +16,7 @@ import { AppLayout } from "@/components/layout/app-layout";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AnimatePresence } from "framer-motion";
 import { LiveAnnouncerProvider } from "@/components/accessibility/live-region";
+import { OnboardingTourProvider } from "@/components/onboarding/tour";
 
 import Landing from "@/pages/landing";
 import ThisWeek from "@/pages/this-week";
@@ -200,25 +201,31 @@ function AuthenticatedApp() {
 
   if (activeRole === "ASSISTANT") {
     return (
-      <AppLayout>
-        <AssistantRouter />
-      </AppLayout>
+      <OnboardingTourProvider>
+        <AppLayout>
+          <AssistantRouter />
+        </AppLayout>
+      </OnboardingTourProvider>
     );
   }
 
   if (activeRole === "STAFF") {
     return (
-      <AppLayout>
-        <StaffRouter />
-      </AppLayout>
+      <OnboardingTourProvider>
+        <AppLayout>
+          <StaffRouter />
+        </AppLayout>
+      </OnboardingTourProvider>
     );
   }
 
   return (
     <OnboardingGuard>
-      <AppLayout>
-        <ClientRouter />
-      </AppLayout>
+      <OnboardingTourProvider>
+        <AppLayout>
+          <ClientRouter />
+        </AppLayout>
+      </OnboardingTourProvider>
     </OnboardingGuard>
   );
 }
