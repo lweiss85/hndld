@@ -1,0 +1,44 @@
+Fix server/routes/celebrations.ts to achieve 10/10 code quality:
+
+1. Add this import at the top of the file:
+   import logger from "../lib/logger";
+
+2. Replace all 8 instances of `catch (error: any)` with `catch (error: unknown)`
+
+3. Replace all 8 console.error calls with structured logger calls. For each one:
+   
+   Replace:
+   console.error("Error fetching celebrations:", error);
+   
+   With:
+   logger.error("Error fetching celebrations", { error: error instanceof Error ? error.message : String(error) });
+
+Here are all the replacements needed:
+
+Line ~34: console.error("Error fetching celebrations:", error);
+→ logger.error("Error fetching celebrations", { error: error instanceof Error ? error.message : String(error) });
+
+Line ~57: console.error("Error fetching active celebrations:", error);
+→ logger.error("Error fetching active celebrations", { error: error instanceof Error ? error.message : String(error) });
+
+Line ~70: console.error("Error fetching summary:", error);
+→ logger.error("Error fetching summary", { error: error instanceof Error ? error.message : String(error) });
+
+Line ~93: console.error("Error marking celebration seen:", error);
+→ logger.error("Error marking celebration seen", { error: error instanceof Error ? error.message : String(error) });
+
+Line ~116: console.error("Error dismissing celebration:", error);
+→ logger.error("Error dismissing celebration", { error: error instanceof Error ? error.message : String(error) });
+
+Line ~158: console.error("Error sharing celebration:", error);
+→ logger.error("Error sharing celebration", { error: error instanceof Error ? error.message : String(error) });
+
+Line ~174: console.error("Error fetching handwritten notes:", error);
+→ logger.error("Error fetching handwritten notes", { error: error instanceof Error ? error.message : String(error) });
+
+Line ~200: console.error("Error approving note:", error);
+→ logger.error("Error approving note", { error: error instanceof Error ? error.message : String(error) });
+
+After making these changes, verify with:
+grep -c ": any" server/routes/celebrations.ts  # Should be 0
+grep -c "console\." server/routes/celebrations.ts  # Should be 0

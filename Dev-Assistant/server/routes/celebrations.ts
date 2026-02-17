@@ -4,6 +4,7 @@ import { eq, and, desc, sql } from "drizzle-orm";
 import { celebrations, handwrittenNotes } from "../../shared/schema";
 import { isAuthenticated } from "../replit_integrations/auth";
 import { householdContextMiddleware } from "../middleware/householdContext";
+import logger from "../lib/logger";
 
 const householdContext = householdContextMiddleware;
 import {
@@ -30,8 +31,8 @@ export function registerCelebrationRoutes(router: Router) {
         .limit(50);
 
       res.json(items);
-    } catch (error: any) {
-      console.error("Error fetching celebrations:", error);
+    } catch (error: unknown) {
+      logger.error("Error fetching celebrations", { error: error instanceof Error ? error.message : String(error) });
       res.status(500).json({ error: "Failed to fetch celebrations" });
     }
   });
@@ -53,8 +54,8 @@ export function registerCelebrationRoutes(router: Router) {
         .orderBy(desc(celebrations.triggeredAt));
 
       res.json(items);
-    } catch (error: any) {
-      console.error("Error fetching active celebrations:", error);
+    } catch (error: unknown) {
+      logger.error("Error fetching active celebrations", { error: error instanceof Error ? error.message : String(error) });
       res.status(500).json({ error: "Failed to fetch active celebrations" });
     }
   });
@@ -66,8 +67,8 @@ export function registerCelebrationRoutes(router: Router) {
 
       const summary = await getHouseholdSummary(householdId);
       res.json(summary);
-    } catch (error: any) {
-      console.error("Error fetching summary:", error);
+    } catch (error: unknown) {
+      logger.error("Error fetching summary", { error: error instanceof Error ? error.message : String(error) });
       res.status(500).json({ error: "Failed to fetch summary" });
     }
   });
@@ -89,8 +90,8 @@ export function registerCelebrationRoutes(router: Router) {
 
       if (!updated) return res.status(404).json({ error: "Celebration not found" });
       res.json(updated);
-    } catch (error: any) {
-      console.error("Error marking celebration seen:", error);
+    } catch (error: unknown) {
+      logger.error("Error marking celebration seen", { error: error instanceof Error ? error.message : String(error) });
       res.status(500).json({ error: "Failed to update celebration" });
     }
   });
@@ -112,8 +113,8 @@ export function registerCelebrationRoutes(router: Router) {
 
       if (!updated) return res.status(404).json({ error: "Celebration not found" });
       res.json(updated);
-    } catch (error: any) {
-      console.error("Error dismissing celebration:", error);
+    } catch (error: unknown) {
+      logger.error("Error dismissing celebration", { error: error instanceof Error ? error.message : String(error) });
       res.status(500).json({ error: "Failed to dismiss celebration" });
     }
   });
@@ -154,8 +155,8 @@ export function registerCelebrationRoutes(router: Router) {
         .returning();
 
       res.json({ celebration: updated, shareableHtml });
-    } catch (error: any) {
-      console.error("Error sharing celebration:", error);
+    } catch (error: unknown) {
+      logger.error("Error sharing celebration", { error: error instanceof Error ? error.message : String(error) });
       res.status(500).json({ error: "Failed to share celebration" });
     }
   });
@@ -170,8 +171,8 @@ export function registerCelebrationRoutes(router: Router) {
         .orderBy(desc(handwrittenNotes.createdAt));
 
       res.json(notes);
-    } catch (error: any) {
-      console.error("Error fetching handwritten notes:", error);
+    } catch (error: unknown) {
+      logger.error("Error fetching handwritten notes", { error: error instanceof Error ? error.message : String(error) });
       res.status(500).json({ error: "Failed to fetch handwritten notes" });
     }
   });
@@ -196,8 +197,8 @@ export function registerCelebrationRoutes(router: Router) {
 
       if (!updated) return res.status(404).json({ error: "Note not found" });
       res.json(updated);
-    } catch (error: any) {
-      console.error("Error approving note:", error);
+    } catch (error: unknown) {
+      logger.error("Error approving note", { error: error instanceof Error ? error.message : String(error) });
       res.status(500).json({ error: "Failed to approve note" });
     }
   });
