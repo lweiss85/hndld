@@ -34,7 +34,7 @@ export async function exchangeCodeForTokens(code: string) {
 export async function saveConnection(
   householdId: string,
   userId: string,
-  tokens: any,
+  tokens: { access_token?: string; refresh_token?: string; expiry_date?: number; token_type?: string; scope?: string },
   email?: string
 ) {
   const accessTokenEncrypted = encrypt(tokens.access_token);

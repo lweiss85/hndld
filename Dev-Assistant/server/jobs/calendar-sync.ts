@@ -31,9 +31,10 @@ export async function handleCalendarSyncJob(job: PgBoss.Job): Promise<void> {
         errorCount++;
         logger.debug("[CalendarSync Job] Skipped household", { householdId, error: result.error });
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       errorCount++;
-      logger.error("[CalendarSync Job] Failed for household", { householdId, error: error.message });
+      const message = error instanceof Error ? error.message : "Unknown error";
+      logger.error("[CalendarSync Job] Failed for household", { householdId, error: message });
     }
   }
 

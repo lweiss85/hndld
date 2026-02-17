@@ -15,7 +15,19 @@ import { google } from 'googleapis';
 import { storage } from "../storage";
 import type { InsertCalendarEvent } from "@shared/schema";
 
-let connectionSettings: any;
+interface ConnectionSettings {
+  settings: {
+    access_token?: string;
+    expires_at?: string;
+    oauth?: {
+      credentials?: {
+        access_token?: string;
+      };
+    };
+  };
+}
+
+let connectionSettings: ConnectionSettings | null = null;
 
 async function getAccessToken() {
   if (connectionSettings && connectionSettings.settings.expires_at && new Date(connectionSettings.settings.expires_at).getTime() > Date.now()) {
@@ -41,7 +53,7 @@ async function getAccessToken() {
         'X_REPLIT_TOKEN': xReplitToken
       }
     }
-  ).then(res => res.json()).then(data => data.items?.[0]);
+  ).then(res => res.json()).then((data: Record<string, unknown>) => ((data.items as ConnectionSettings[]) ?? [])[0] ?? null);
 
   const accessToken = connectionSettings?.settings?.access_token || connectionSettings?.settings?.oauth?.credentials?.access_token;
 

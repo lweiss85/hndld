@@ -19,9 +19,9 @@ export function requestIdMiddleware(req: Request, res: Response, next: NextFunct
   res.setHeader("X-Request-ID", requestId);
 
   const originalJson = res.json.bind(res);
-  res.json = function (body: any) {
+  res.json = function (this: Response, body: unknown) {
     if (res.statusCode >= 400 && body && typeof body === "object" && !Array.isArray(body)) {
-      body.requestId = requestId;
+      (body as Record<string, unknown>).requestId = requestId;
     }
     return originalJson(body);
   };

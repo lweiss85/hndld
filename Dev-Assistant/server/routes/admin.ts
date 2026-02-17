@@ -894,10 +894,10 @@ export function registerAdminRoutes(app: Router) {
       }
 
       const results: {
-        tasks: any[];
-        updates: any[];
-        vendors: any[];
-        preferences: any[];
+        tasks: Record<string, unknown>[];
+        updates: Record<string, unknown>[];
+        vendors: Record<string, unknown>[];
+        preferences: Record<string, unknown>[];
         totalCount: number;
       } = { tasks: [], updates: [], vendors: [], preferences: [], totalCount: 0 };
 

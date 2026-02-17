@@ -1,4 +1,4 @@
-import { Router, NextFunction } from "express";
+import { Router, Request, NextFunction } from "express";
 import { storage } from "../storage";
 import { forbidden, internalError } from "../lib/errors";
 
@@ -39,7 +39,7 @@ const router = Router();
  *       500:
  *         description: Internal server error
  */
-router.get("/mine", async (req: any, res, next: NextFunction) => {
+router.get("/mine", async (req: Request, res, next: NextFunction) => {
   try {
     const userId = req.user.claims.sub;
     
@@ -99,7 +99,7 @@ router.get("/mine", async (req: any, res, next: NextFunction) => {
  *       500:
  *         description: Internal server error
  */
-router.post("/set-default", async (req: any, res, next: NextFunction) => {
+router.post("/set-default", async (req: Request, res, next: NextFunction) => {
   try {
     const { householdId } = req.body;
     const userId = req.user.claims.sub;

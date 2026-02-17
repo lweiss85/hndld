@@ -100,16 +100,18 @@ export function startCalendarSync(): void {
             errorCount++;
             console.log(`[Scheduler] Skipped household ${householdId}: ${result.error}`);
           }
-        } catch (error: any) {
+        } catch (error: unknown) {
           errorCount++;
-          console.error(`[Scheduler] Failed to sync household ${householdId}:`, error.message);
+          const message = error instanceof Error ? error.message : "Unknown error";
+          console.error(`[Scheduler] Failed to sync household ${householdId}:`, message);
         }
       }
 
       const duration = Date.now() - startTime;
       console.log(`[Scheduler] Calendar sync complete: ${totalSynced} events, ${successCount} succeeded, ${errorCount} failed (${duration}ms)`);
-    } catch (error: any) {
-      console.error("[Scheduler] Calendar sync job failed:", error.message);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Unknown error";
+      console.error("[Scheduler] Calendar sync job failed:", message);
     }
   });
 
@@ -162,8 +164,9 @@ export function startProactiveAgent(): void {
       await runProactiveAgent();
       const duration = Date.now() - startTime;
       console.log(`[Scheduler] Proactive agent completed (${duration}ms)`);
-    } catch (error: any) {
-      console.error("[Scheduler] Proactive agent failed:", error.message);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Unknown error";
+      console.error("[Scheduler] Proactive agent failed:", message);
     }
   });
 
@@ -171,8 +174,9 @@ export function startProactiveAgent(): void {
     console.log("[Scheduler] Running evening proactive check...");
     try {
       await runProactiveAgent();
-    } catch (error: any) {
-      console.error("[Scheduler] Evening proactive check failed:", error.message);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Unknown error";
+      console.error("[Scheduler] Evening proactive check failed:", message);
     }
   });
 
@@ -208,8 +212,9 @@ export function startWeeklyBriefScheduler(): void {
     try {
       const result = await runWeeklyBriefScheduler();
       console.log(`[Scheduler] Weekly briefs: ${result.sent} sent, ${result.failed} failed`);
-    } catch (error: any) {
-      console.error("[Scheduler] Weekly brief scheduler failed:", error.message);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Unknown error";
+      console.error("[Scheduler] Weekly brief scheduler failed:", message);
     }
   });
 
@@ -218,8 +223,9 @@ export function startWeeklyBriefScheduler(): void {
     try {
       const result = await runWeeklyBriefScheduler();
       console.log(`[Scheduler] Weekly briefs (evening): ${result.sent} sent, ${result.failed} failed`);
-    } catch (error: any) {
-      console.error("[Scheduler] Weekly brief scheduler (evening) failed:", error.message);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Unknown error";
+      console.error("[Scheduler] Weekly brief scheduler (evening) failed:", message);
     }
   });
 

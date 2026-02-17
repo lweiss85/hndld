@@ -122,8 +122,8 @@ app.use((req, res, next) => {
 
   app.use(sentryHandlers.errorHandler);
 
-  app.use((err: any, req: Request, res: Response, _next: NextFunction) => {
-    const requestId = (req as any).requestId || req.headers["x-request-id"] || undefined;
+  app.use((err: Error & { code?: string; status?: number; statusCode?: number; details?: unknown; name?: string }, req: Request, res: Response, _next: NextFunction) => {
+    const requestId = req.requestId || req.headers["x-request-id"] || undefined;
 
     if (err.name === "AppError") {
       const body: Record<string, unknown> = {
@@ -132,11 +132,11 @@ app.use((req, res, next) => {
         requestId,
       };
       if (err.details) {
-        if (err.status < 500 || process.env.NODE_ENV !== "production") {
+        if ((err.status ?? 500) < 500 || process.env.NODE_ENV !== "production") {
           body.details = err.details;
         }
       }
-      return res.status(err.status).json(body);
+      return res.status(err.status ?? 500).json(body);
     }
 
     const status = err.status || err.statusCode || 500;

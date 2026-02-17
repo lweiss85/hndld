@@ -46,16 +46,16 @@ export function getSession() {
 }
 
 function updateUserSession(
-  user: any,
+  user: Express.User,
   tokens: client.TokenEndpointResponse & client.TokenEndpointResponseHelpers
 ) {
-  user.claims = tokens.claims();
+  user.claims = tokens.claims() as unknown as typeof user.claims;
   user.access_token = tokens.access_token;
   user.refresh_token = tokens.refresh_token;
   user.expires_at = user.claims?.exp;
 }
 
-async function upsertUser(claims: any) {
+async function upsertUser(claims: Record<string, string>) {
   await authStorage.upsertUser({
     id: claims["sub"],
     email: claims["email"],
@@ -83,9 +83,9 @@ export async function setupAuth(app: Express) {
     tokens: client.TokenEndpointResponse & client.TokenEndpointResponseHelpers,
     verified: passport.AuthenticateCallback
   ) => {
-    const user = {};
+    const user = {} as Express.User;
     updateUserSession(user, tokens);
-    await upsertUser(tokens.claims());
+    await upsertUser(tokens.claims() as unknown as Record<string, string>);
     verified(null, user);
   };
 

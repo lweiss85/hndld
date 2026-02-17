@@ -318,9 +318,10 @@ export async function handleStripeWebhook(payload: Buffer, signature: string): P
   let event;
   try {
     event = stripe.webhooks.constructEvent(payload, signature, webhookSecret);
-  } catch (webhookError: any) {
-    console.error("[Billing] Webhook signature verification failed:", webhookError?.message || webhookError);
-    return { received: true, error: webhookError?.message || "Webhook signature verification failed" };
+  } catch (webhookError: unknown) {
+    const webhookMessage = webhookError instanceof Error ? webhookError.message : "Webhook signature verification failed";
+    console.error("[Billing] Webhook signature verification failed:", webhookMessage);
+    return { received: true, error: webhookMessage };
   }
 
   switch (event.type) {

@@ -67,16 +67,16 @@ const SENSITIVE_PATTERNS = [
   /private/i,
 ];
 
-function sanitize(obj: any, seen = new WeakSet()): any {
+function sanitize(obj: unknown, seen = new WeakSet<object>()): unknown {
   if (obj === null || obj === undefined) {
     return obj;
   }
 
   if (typeof obj === "object") {
-    if (seen.has(obj)) {
+    if (seen.has(obj as object)) {
       return "[Circular]";
     }
-    seen.add(obj);
+    seen.add(obj as object);
   }
 
   if (Array.isArray(obj)) {
@@ -84,7 +84,7 @@ function sanitize(obj: any, seen = new WeakSet()): any {
   }
 
   if (typeof obj === "object") {
-    const sanitized: Record<string, any> = {};
+    const sanitized: Record<string, unknown> = {};
     
     for (const [key, value] of Object.entries(obj)) {
       const isSensitive = 

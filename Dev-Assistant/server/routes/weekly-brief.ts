@@ -1,4 +1,4 @@
-import { Router, Response, NextFunction } from "express";
+import { Router, Request, Response, NextFunction } from "express";
 import { z } from "zod";
 import {
   getLatestBrief,
@@ -14,7 +14,7 @@ import { unauthorized, forbidden, badRequest, notFound } from "../lib/errors";
 
 const router = Router();
 
-async function verifyHouseholdAccess(req: any, res: Response, next: NextFunction) {
+async function verifyHouseholdAccess(req: Request, res: Response, next: NextFunction) {
   const { householdId } = req.params;
   const userId = req.user?.claims?.sub;
 
@@ -82,7 +82,7 @@ async function verifyHouseholdAccess(req: any, res: Response, next: NextFunction
 router.get(
   "/:householdId/weekly-brief",
   verifyHouseholdAccess,
-  async (req: any, res: Response, next: NextFunction) => {
+  async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { householdId } = req.params;
       const userId = req.user.claims.sub;
@@ -151,7 +151,7 @@ router.get(
 router.get(
   "/:householdId/weekly-brief/history",
   verifyHouseholdAccess,
-  async (req: any, res: Response, next: NextFunction) => {
+  async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { householdId } = req.params;
       const userId = req.user.claims.sub;
@@ -217,7 +217,7 @@ router.get(
 router.post(
   "/:householdId/weekly-brief/generate",
   verifyHouseholdAccess,
-  async (req: any, res: Response, next: NextFunction) => {
+  async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { householdId } = req.params;
       const userId = req.user.claims.sub;
@@ -301,7 +301,7 @@ const feedbackSchema = z.object({
 router.post(
   "/:householdId/weekly-brief/:briefId/feedback",
   verifyHouseholdAccess,
-  async (req: any, res: Response, next: NextFunction) => {
+  async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { briefId, householdId } = req.params;
       const userId = req.user.claims.sub;
@@ -407,7 +407,7 @@ const engagementSchema = z.object({
 router.post(
   "/:householdId/engagement",
   verifyHouseholdAccess,
-  async (req: any, res: Response, next: NextFunction) => {
+  async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { householdId } = req.params;
       const userId = req.user.claims.sub;

@@ -10,7 +10,7 @@ interface AuthenticatedSocket extends WebSocket {
 
 export interface BroadcastMessage {
   type: string;
-  payload: any;
+  payload: Record<string, unknown>;
   householdId: string;
   excludeUserId?: string;
 }
@@ -148,7 +148,7 @@ class WebSocketManager {
     }
   }
 
-  private handleMessage(ws: AuthenticatedSocket, message: any) {
+  private handleMessage(ws: AuthenticatedSocket, message: Record<string, unknown>) {
     switch (message.type) {
       case "ping":
         ws.send(JSON.stringify({ type: "pong" }));
@@ -160,7 +160,7 @@ class WebSocketManager {
     }
   }
 
-  broadcast(eventType: WSEventType, payload: any, householdId: string, excludeUserId?: string) {
+  broadcast(eventType: WSEventType, payload: Record<string, unknown>, householdId: string, excludeUserId?: string) {
     const householdClients = this.clients.get(householdId);
     if (!householdClients || householdClients.size === 0) {
       return;
@@ -192,7 +192,7 @@ class WebSocketManager {
     }
   }
 
-  sendToUser(userId: string, eventType: WSEventType, payload: any) {
+  sendToUser(userId: string, eventType: WSEventType, payload: Record<string, unknown>) {
     const userClients = this.userSockets.get(userId);
     if (!userClients) return;
 

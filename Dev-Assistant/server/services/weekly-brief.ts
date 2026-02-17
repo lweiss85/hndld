@@ -160,7 +160,7 @@ async function gatherWeeklyData(householdId: string, weekStart: Date, weekEnd: D
 export async function generatePersonalizedBrief(
   userId: string,
   householdId: string
-): Promise<{ content: string; personalizationData: any }> {
+): Promise<{ content: string; personalizationData: Record<string, unknown> }> {
   const weekStart = startOfWeek(new Date(), { weekStartsOn: 0 });
   const weekEnd = endOfWeek(new Date(), { weekStartsOn: 0 });
 

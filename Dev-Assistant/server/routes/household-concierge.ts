@@ -147,7 +147,7 @@ export function registerHouseholdConciergeRoutes(app: Router) {
       }
       
       const { phase } = parseResult.data;
-      const updateData: any = {};
+      const updateData: Record<string, unknown> = {};
       
       if (phase === 1) updateData.onboardingPhase1Complete = true;
       if (phase === 2) updateData.onboardingPhase2Complete = true;

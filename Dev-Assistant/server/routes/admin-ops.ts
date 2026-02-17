@@ -104,7 +104,7 @@ export function registerAdminOpsRoutes(app: Router) {
         message: "Calendar sync job enqueued",
         jobId,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error("Error triggering sync", { error, userId });
       next(internalError("Failed to trigger sync"));
     }

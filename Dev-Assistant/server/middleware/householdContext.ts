@@ -84,8 +84,8 @@ export async function householdContextMiddleware(
     req.userProfile = memberProfile;
 
     next();
-  } catch (error: any) {
-    if (error.name === "AppError") {
+  } catch (error: unknown) {
+    if (error instanceof Error && (error as { name?: string }).name === "AppError") {
       return next(error);
     }
     next(internalError("Failed to determine household context"));

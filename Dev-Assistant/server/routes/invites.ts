@@ -1,4 +1,4 @@
-import { Router, NextFunction } from "express";
+import { Router, Request, NextFunction } from "express";
 import { db } from "../db";
 import { householdInvites, userProfiles, households } from "@shared/schema";
 import { eq, and, sql } from "drizzle-orm";
@@ -39,7 +39,7 @@ const householdContext = householdContextMiddleware;
  *       500:
  *         description: Internal server error
  */
-router.get("/invites", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_SETTINGS"), async (req: any, res, next: NextFunction) => {
+router.get("/invites", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_SETTINGS"), async (req: Request, res, next: NextFunction) => {
   try {
     const householdId = req.householdId!;
     
@@ -105,7 +105,7 @@ router.get("/invites", isAuthenticated, householdContext, requirePermission("CAN
  *       500:
  *         description: Internal server error
  */
-router.post("/invites", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_SETTINGS"), async (req: any, res, next: NextFunction) => {
+router.post("/invites", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_SETTINGS"), async (req: Request, res, next: NextFunction) => {
   try {
     const userId = req.user.claims.sub;
     const householdId = req.householdId!;
@@ -181,7 +181,7 @@ router.post("/invites", isAuthenticated, householdContext, requirePermission("CA
  *       500:
  *         description: Internal server error
  */
-router.post("/invites/:token/accept", isAuthenticated, async (req: any, res, next: NextFunction) => {
+router.post("/invites/:token/accept", isAuthenticated, async (req: Request, res, next: NextFunction) => {
   try {
     const { token } = req.params;
     const userId = req.user.claims.sub;
@@ -354,7 +354,7 @@ router.get("/invites/:token/info", async (req, res, next: NextFunction) => {
  *       500:
  *         description: Internal server error
  */
-router.delete("/invites/:id", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_SETTINGS"), async (req: any, res, next: NextFunction) => {
+router.delete("/invites/:id", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_SETTINGS"), async (req: Request, res, next: NextFunction) => {
   try {
     const householdId = req.householdId!;
     const { id } = req.params;

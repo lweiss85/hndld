@@ -113,13 +113,13 @@ if (poolLogInterval.unref) poolLogInterval.unref();
 
 const originalQuery = pool.query.bind(pool);
 
-pool.query = function trackedQuery(...args: any[]) {
+pool.query = function trackedQuery(...args: unknown[]) {
   const start = process.hrtime.bigint();
-  const queryText = typeof args[0] === "string"
+  const queryText: string = typeof args[0] === "string"
     ? args[0]
-    : args[0]?.text || "unknown";
+    : String((args[0] as Record<string, unknown>)?.text ?? "unknown");
 
-  const result = (originalQuery as any)(...args);
+  const result = (originalQuery as Function)(...args);
 
   if (result && typeof result.then === "function") {
     result.then(() => {

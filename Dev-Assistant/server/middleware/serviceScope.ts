@@ -62,8 +62,8 @@ export async function serviceScopeMiddleware(
     }
 
     next();
-  } catch (error: any) {
-    if (error.name === "AppError") {
+  } catch (error: unknown) {
+    if (error instanceof Error && (error as { name?: string }).name === "AppError") {
       return next(error);
     }
     next(internalError("Error in service scope middleware"));

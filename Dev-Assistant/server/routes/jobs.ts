@@ -32,8 +32,9 @@ export function registerJobRoutes(app: Router) {
           queues: counts,
           jobNames: Object.values(JOB_NAMES),
         });
-      } catch (error: any) {
-        logger.error("Error fetching job dashboard", { error: error.message });
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : "Unknown error";
+        logger.error("Error fetching job dashboard", { error: message });
         next(internalError("Failed to fetch job data"));
       }
     }
@@ -71,8 +72,9 @@ export function registerJobRoutes(app: Router) {
           message: `Job ${jobName} enqueued`,
           jobId,
         });
-      } catch (error: any) {
-        logger.error("Error triggering job", { error: error.message });
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : "Unknown error";
+        logger.error("Error triggering job", { error: message });
         next(internalError("Failed to trigger job"));
       }
     }

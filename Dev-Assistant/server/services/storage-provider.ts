@@ -3,7 +3,7 @@ import path from "path";
 import crypto from "crypto";
 import { db } from "../db";
 import { files, fileLinks } from "@shared/schema";
-import { eq, and, isNull, desc, gte, lte, sql, ilike, or } from "drizzle-orm";
+import { eq, and, isNull, desc, gte, lte, sql, ilike, or, type SQL } from "drizzle-orm";
 
 export interface StorageProvider {
   upload(filePath: string, content: Buffer, mimeType?: string): Promise<string>;
@@ -177,8 +177,8 @@ export interface ListFilesFilters {
 export async function listFiles(
   householdId: string,
   filters: ListFilesFilters = {}
-): Promise<{ files: any[]; total: number }> {
-  const conditions: any[] = [
+): Promise<{ files: Record<string, unknown>[]; total: number }> {
+  const conditions: SQL[] = [
     eq(files.householdId, householdId),
     isNull(files.deletedAt),
   ];
@@ -355,7 +355,7 @@ export async function updateFileMetadata(
     description?: string;
   }
 ) {
-  const data: any = { updatedAt: new Date() };
+  const data: Record<string, unknown> = { updatedAt: new Date() };
   
   if (updates.category) {
     data.category = updates.category;

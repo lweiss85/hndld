@@ -293,7 +293,7 @@ export function registerSpendingRoutes(app: Router) {
       }
       
       // Update the item
-      const updateData: any = { status };
+      const updateData: Record<string, unknown> = { status };
       if (status === "PAYMENT_SENT") {
         updateData.paidAt = new Date();
         // Include tip amount and payment method when marking as paid

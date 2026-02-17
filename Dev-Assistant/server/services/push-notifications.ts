@@ -101,9 +101,10 @@ export async function sendPushNotification(
           payload
         );
         sent++;
-      } catch (error: any) {
-        console.error(`[Push] Failed to send to ${sub.endpoint}:`, error.message);
-        if (error.statusCode === 410 || error.statusCode === 404) {
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : "Unknown error";
+        console.error(`[Push] Failed to send to ${sub.endpoint}:`, message);
+        if ((error as { statusCode?: number }).statusCode === 410 || (error as { statusCode?: number }).statusCode === 404) {
           await removePushSubscription(userId, sub.endpoint);
         }
         failed++;

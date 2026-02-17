@@ -39,8 +39,9 @@ export async function handleSendEmailJob(job: PgBoss.Job<EmailJobData>): Promise
     });
 
     logger.info("[SendEmail Job] Sent successfully", { jobId: job.id, to });
-  } catch (error: any) {
-    logger.error("[SendEmail Job] Failed", { jobId: job.id, to, error: error.message });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Unknown error";
+    logger.error("[SendEmail Job] Failed", { jobId: job.id, to, error: message });
     throw error;
   }
 }
