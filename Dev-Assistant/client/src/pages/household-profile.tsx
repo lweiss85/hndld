@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -45,6 +45,7 @@ import {
 } from "lucide-react";
 import { PushNotificationToggle } from "@/components/push-notification-toggle";
 import { ReplayTourButton } from "@/components/onboarding/replay-tour-button";
+import { useTheme } from "@/lib/theme-provider";
 import { format } from "date-fns";
 import type { 
   HouseholdSettings, 
@@ -290,6 +291,8 @@ function OverviewTab({ settings, isAssistant }: { settings?: HouseholdSettings; 
         </CardContent>
       </Card>
 
+      <AppearanceCard />
+
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-lg">
@@ -305,6 +308,55 @@ function OverviewTab({ settings, isAssistant }: { settings?: HouseholdSettings; 
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+function AppearanceCard() {
+  const { theme, setTheme, oled, setOled } = useTheme();
+  const [systemDark, setSystemDark] = useState(false);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-color-scheme: dark)");
+    setSystemDark(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setSystemDark(e.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
+
+  const isDark = theme === "dark" || (theme === "system" && systemDark);
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="flex items-center gap-2 text-lg">
+          <Eye className="h-5 w-5" />
+          Appearance
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="flex items-center justify-between">
+          <Label htmlFor="dark-mode-toggle">Dark mode</Label>
+          <Switch
+            id="dark-mode-toggle"
+            checked={isDark}
+            onCheckedChange={(checked) => setTheme(checked ? "dark" : "light")}
+          />
+        </div>
+        {isDark && (
+          <div className="flex items-center justify-between">
+            <div>
+              <Label htmlFor="oled-toggle">True black (OLED)</Label>
+              <p className="text-xs text-muted-foreground mt-0.5">Pure black background for OLED screens</p>
+            </div>
+            <Switch
+              id="oled-toggle"
+              checked={oled}
+              onCheckedChange={setOled}
+            />
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 

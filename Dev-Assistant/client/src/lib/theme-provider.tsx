@@ -11,11 +11,15 @@ type ThemeProviderProps = {
 type ThemeProviderState = {
   theme: Theme;
   setTheme: (theme: Theme) => void;
+  oled: boolean;
+  setOled: (oled: boolean) => void;
 };
 
 const initialState: ThemeProviderState = {
   theme: "system",
   setTheme: () => null,
+  oled: false,
+  setOled: () => null,
 };
 
 const ThemeProviderContext = createContext<ThemeProviderState>(initialState);
@@ -28,6 +32,9 @@ export function ThemeProvider({
 }: ThemeProviderProps) {
   const [theme, setTheme] = useState<Theme>(
     () => (localStorage.getItem(storageKey) as Theme) || defaultTheme
+  );
+  const [oled, setOled] = useState<boolean>(
+    () => localStorage.getItem("houseops-oled") === "true"
   );
 
   useEffect(() => {
@@ -48,11 +55,25 @@ export function ThemeProvider({
     root.classList.add(theme);
   }, [theme]);
 
+  useEffect(() => {
+    const root = window.document.documentElement;
+    if (oled) {
+      root.setAttribute("data-oled", "true");
+    } else {
+      root.removeAttribute("data-oled");
+    }
+  }, [oled]);
+
   const value = {
     theme,
     setTheme: (theme: Theme) => {
       localStorage.setItem(storageKey, theme);
       setTheme(theme);
+    },
+    oled,
+    setOled: (val: boolean) => {
+      localStorage.setItem("houseops-oled", String(val));
+      setOled(val);
     },
   };
 
