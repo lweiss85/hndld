@@ -11,6 +11,7 @@
   "description": "",
   "dependencies": {
     "@fontsource/fraunces": "^5.2.9",
+    "@reactour/tour": "^3.8.0",
     "@tanstack/react-virtual": "^3.13.18",
     "@types/supertest": "^6.0.3",
     "@types/swagger-jsdoc": "^6.0.4",
