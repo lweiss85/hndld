@@ -40,6 +40,7 @@ Preferred communication style: Simple, everyday language.
   - `admin.ts` - Audit logs, vault settings, handoff, notifications, search, push, suggestions
   - `admin-ops.ts` - Export, backup, organization management, billing
   - `features.ts` - Analytics, emergency contacts, messaging, AI assistant
+  - `insights.ts` - Home Intelligence insights endpoint (GET /api/v1/insights, POST /api/v1/insights/:id/dismiss)
   - Existing Router-pattern modules: `households.ts`, `invites.ts`, `files.ts`, `weekly-brief.ts`
 - **Authentication**: Replit Auth integration with session-based authentication
 - **Middleware**: Household context middleware for multi-tenant scoping, permission-based access control, request ID tracking (server/middleware/requestId.ts), response time APM (server/middleware/responseTime.ts)
@@ -50,7 +51,7 @@ Preferred communication style: Simple, everyday language.
 - **Database**: PostgreSQL with Drizzle ORM
 - **Schema Location**: `shared/schema.ts` contains all table definitions with Drizzle-Zod integration for validation
 - **Multi-Tenancy**: Organizations → Households → Users hierarchy with row-level security
-- **Key Tables**: organizations, households, user_profiles, tasks, approvals, updates, requests, vendors, spending_items, calendar_events, playbooks, access_items (vault), files, messages
+- **Key Tables**: organizations, households, user_profiles, tasks, approvals, updates, requests, vendors, spending_items, calendar_events, playbooks, access_items (vault), files, messages, household_insights
 - **Session Storage**: PostgreSQL-backed sessions
 
 ### Security Features
@@ -64,7 +65,7 @@ Preferred communication style: Simple, everyday language.
 ### Third-Party Services
 - **Stripe**: Billing and subscription management with webhook handling (server/services/billing.ts)
 - **Google Calendar API**: OAuth-based calendar sync with AES-256-GCM token encryption (server/services/google-calendar.ts)
-- **Anthropic Claude / OpenAI**: AI assistant for request parsing, weekly brief generation, voice transcription (server/services/ai-provider.ts)
+- **Anthropic Claude / OpenAI**: AI assistant for request parsing, weekly brief generation, voice transcription (server/services/ai-provider.ts), Home Intelligence calendar suggestions (server/services/home-intelligence.ts)
 - **Nodemailer**: Email notifications with configurable SMTP
 - **Sentry**: Error monitoring and performance tracking (production only)
 

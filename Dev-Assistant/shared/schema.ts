@@ -1174,7 +1174,40 @@ export type InsertOrganizationPaymentProfile = z.infer<typeof insertOrganization
 export type HouseholdPaymentOverride = typeof householdPaymentOverrides.$inferSelect;
 export type InsertHouseholdPaymentOverride = z.infer<typeof insertHouseholdPaymentOverrideSchema>;
 
+// Home Intelligence - Learned Household Insights
+export const insightCategoryEnum = pgEnum("insight_category", [
+  "MAINTENANCE_PREDICTION",
+  "SPENDING_ANOMALY",
+  "HOUSEHOLD_PATTERN",
+  "CALENDAR_SUGGESTION",
+  "VENDOR_PERFORMANCE",
+]);
+
+export const householdInsights = pgTable("household_insights", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  householdId: varchar("household_id").references(() => households.id).notNull(),
+  category: insightCategoryEnum("category").notNull(),
+  title: text("title").notNull(),
+  summary: text("summary").notNull(),
+  confidence: integer("confidence").default(50).notNull(),
+  data: jsonb("data").$type<Record<string, unknown>>().default({}),
+  isActive: boolean("is_active").default(true).notNull(),
+  isDismissed: boolean("is_dismissed").default(false).notNull(),
+  lastAnalyzedAt: timestamp("last_analyzed_at").defaultNow().notNull(),
+  expiresAt: timestamp("expires_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  index("household_insights_household_idx").on(table.householdId),
+  index("household_insights_category_idx").on(table.category),
+  index("household_insights_active_idx").on(table.householdId, table.isActive),
+]);
+
+export const insertHouseholdInsightSchema = createInsertSchema(householdInsights);
+
 // Proactive AI Types
+export type HouseholdInsight = typeof householdInsights.$inferSelect;
+export type InsertHouseholdInsight = z.infer<typeof insertHouseholdInsightSchema>;
 export type ProactiveInsight = typeof proactiveInsights.$inferSelect;
 export type InsertProactiveInsight = typeof proactiveInsights.$inferInsert;
 export type TaskPattern = typeof taskPatterns.$inferSelect;

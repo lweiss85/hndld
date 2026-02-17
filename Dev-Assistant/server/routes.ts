@@ -31,6 +31,7 @@ import { registerAdminRoutes } from "./routes/admin";
 import { registerAdminOpsRoutes } from "./routes/admin-ops";
 import { registerFeatureRoutes } from "./routes/features";
 import { registerJobRoutes } from "./routes/jobs";
+import { registerInsightRoutes } from "./routes/insights";
 
 const householdContext = householdContextMiddleware;
 
@@ -100,6 +101,7 @@ export async function registerRoutes(
   registerAdminOpsRoutes(v1);
   registerFeatureRoutes(v1);
   registerJobRoutes(v1);
+  registerInsightRoutes(v1);
 
   app.use("/api/v1", v1);
   app.use("/api", v1);
