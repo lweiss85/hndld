@@ -6,6 +6,12 @@ import {
 import { eq, and, gte, lte, desc, sql, count } from "drizzle-orm";
 import { subDays, addDays, differenceInDays, format, startOfDay } from "date-fns";
 import { generateCompletion, isDemoMode } from "./ai-provider";
+import {
+  analyzePeopleConnections,
+  analyzeVendorConnections,
+  analyzeServiceConnections,
+  analyzeScheduleConnections,
+} from "./home-intelligence-connections";
 import logger from "../lib/logger";
 
 interface InsightResult {
@@ -440,31 +446,34 @@ export async function trackVendorPerformance(householdId: string): Promise<Insig
 }
 
 export async function generateAllInsights(householdId: string): Promise<InsightResult[]> {
-  const [maintenance, spending, patterns, calendar, vendorPerf] = await Promise.all([
-    analyzeMaintenancePredictions(householdId).catch(e => {
-      logger.error("[HomeIntelligence] Maintenance analysis failed", { error: e instanceof Error ? e.message : String(e), householdId });
+  const safeRun = (name: string, fn: () => Promise<InsightResult[]>) =>
+    fn().catch(e => {
+      logger.error(`[HomeIntelligence] ${name} analysis failed`, {
+        error: e instanceof Error ? e.message : String(e),
+        householdId,
+      });
       return [] as InsightResult[];
-    }),
-    detectSpendingAnomalies(householdId).catch(e => {
-      logger.error("[HomeIntelligence] Spending analysis failed", { error: e instanceof Error ? e.message : String(e), householdId });
-      return [] as InsightResult[];
-    }),
-    learnHouseholdPatterns(householdId).catch(e => {
-      logger.error("[HomeIntelligence] Pattern analysis failed", { error: e instanceof Error ? e.message : String(e), householdId });
-      return [] as InsightResult[];
-    }),
-    generateCalendarSuggestions(householdId).catch(e => {
-      logger.error("[HomeIntelligence] Calendar analysis failed", { error: e instanceof Error ? e.message : String(e), householdId });
-      return [] as InsightResult[];
-    }),
-    trackVendorPerformance(householdId).catch(e => {
-      logger.error("[HomeIntelligence] Vendor analysis failed", { error: e instanceof Error ? e.message : String(e), householdId });
-      return [] as InsightResult[];
-    }),
+    });
+
+  const [
+    maintenance, spending, patterns, calendar, vendorPerf,
+    peopleConn, vendorConn, serviceConn, scheduleConn,
+  ] = await Promise.all([
+    safeRun("Maintenance", () => analyzeMaintenancePredictions(householdId)),
+    safeRun("Spending", () => detectSpendingAnomalies(householdId)),
+    safeRun("Pattern", () => learnHouseholdPatterns(householdId)),
+    safeRun("Calendar", () => generateCalendarSuggestions(householdId)),
+    safeRun("Vendor", () => trackVendorPerformance(householdId)),
+    safeRun("People", () => analyzePeopleConnections(householdId)),
+    safeRun("VendorConnections", () => analyzeVendorConnections(householdId)),
+    safeRun("Service", () => analyzeServiceConnections(householdId)),
+    safeRun("Schedule", () => analyzeScheduleConnections(householdId)),
   ]);
 
-  return [...maintenance, ...spending, ...patterns, ...calendar, ...vendorPerf]
-    .sort((a, b) => b.confidence - a.confidence);
+  return [
+    ...maintenance, ...spending, ...patterns, ...calendar, ...vendorPerf,
+    ...peopleConn, ...vendorConn, ...serviceConn, ...scheduleConn,
+  ].sort((a, b) => b.confidence - a.confidence);
 }
 
 export async function getInsights(householdId: string, forceRefresh = false) {
@@ -509,7 +518,7 @@ export async function getInsights(householdId: string, forceRefresh = false) {
       .insert(householdInsights)
       .values({
         householdId,
-        category: insight.category as "MAINTENANCE_PREDICTION" | "SPENDING_ANOMALY" | "HOUSEHOLD_PATTERN" | "CALENDAR_SUGGESTION" | "VENDOR_PERFORMANCE",
+        category: insight.category as typeof householdInsights.$inferInsert.category,
         title: insight.title,
         summary: insight.summary,
         confidence: insight.confidence,

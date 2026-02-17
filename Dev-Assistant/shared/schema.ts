@@ -1181,6 +1181,15 @@ export const insightCategoryEnum = pgEnum("insight_category", [
   "HOUSEHOLD_PATTERN",
   "CALENDAR_SUGGESTION",
   "VENDOR_PERFORMANCE",
+  "PEOPLE_BIRTHDAY",
+  "PEOPLE_DIETARY",
+  "VENDOR_RATINGS",
+  "VENDOR_FAVORITES",
+  "SERVICE_COSTS",
+  "SERVICE_HISTORY",
+  "SCHEDULE_CLEANING",
+  "SCHEDULE_PATTERNS",
+  "SCHEDULE_PREDICTIONS",
 ]);
 
 export const householdInsights = pgTable("household_insights", {
