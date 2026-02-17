@@ -1,6 +1,7 @@
 import { WebSocketServer, WebSocket } from "ws";
 import { Server } from "http";
 import { parse } from "url";
+import logger from "../lib/logger";
 
 interface AuthenticatedSocket extends WebSocket {
   userId?: string;
@@ -38,7 +39,7 @@ class WebSocketManager {
 
   initialize(server: Server) {
     if (this.initialized) {
-      console.log("[WebSocket] Already initialized, skipping");
+      logger.info("[WebSocket] Already initialized, skipping");
       return;
     }
     this.initialized = true;
@@ -61,7 +62,7 @@ class WebSocketManager {
           const message = JSON.parse(data.toString());
           this.handleMessage(ws, message);
         } catch (e) {
-          console.error("WebSocket message parse error:", e);
+          logger.error("WebSocket message parse error", { error: e instanceof Error ? e.message : String(e) });
         }
       });
 
@@ -70,7 +71,7 @@ class WebSocketManager {
       });
 
       ws.on("error", (error) => {
-        console.error("WebSocket error:", error);
+        logger.error("WebSocket error", { error: error instanceof Error ? error.message : String(error) });
         this.removeClient(ws);
       });
     });
@@ -91,7 +92,7 @@ class WebSocketManager {
       clearInterval(interval);
     });
 
-    console.log("[WebSocket] Server initialized on /ws");
+    logger.info("[WebSocket] Server initialized on /ws");
   }
 
   private authenticateSocket(ws: AuthenticatedSocket, token: string) {
@@ -126,9 +127,9 @@ class WebSocketManager {
         payload: { userId, householdId }
       }));
 
-      console.log(`[WebSocket] Client connected: user=${userId}, household=${householdId}`);
+      logger.info("[WebSocket] Client connected", { userId, householdId });
     } catch (error) {
-      console.error("Socket authentication error:", error);
+      logger.error("Socket authentication error", { error: error instanceof Error ? error.message : String(error) });
       ws.close(4001, "Authentication failed");
     }
   }
@@ -156,7 +157,7 @@ class WebSocketManager {
       case "subscribe":
         break;
       default:
-        console.log("[WebSocket] Unknown message type:", message.type);
+        logger.info("[WebSocket] Unknown message type", { messageType: message.type });
     }
   }
 
@@ -180,7 +181,7 @@ class WebSocketManager {
             client.send(message);
             sentCount++;
           } catch (error) {
-            console.error("[WebSocket] Error sending message to client:", error);
+            logger.error("[WebSocket] Error sending message to client", { error: error instanceof Error ? error.message : String(error), householdId });
             this.removeClient(client);
           }
         }
@@ -188,7 +189,7 @@ class WebSocketManager {
     });
 
     if (sentCount > 0) {
-      console.log(`[WebSocket] Broadcast ${eventType} to ${sentCount} clients in household ${householdId}`);
+      logger.info("[WebSocket] Broadcast message", { eventType, sentCount, householdId });
     }
   }
 
@@ -207,7 +208,7 @@ class WebSocketManager {
         try {
           client.send(message);
         } catch (error) {
-          console.error("[WebSocket] Error sending message to user:", error);
+          logger.error("[WebSocket] Error sending message to user", { error: error instanceof Error ? error.message : String(error), userId });
           this.removeClient(client);
         }
       }

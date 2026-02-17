@@ -11,6 +11,7 @@ import {
   isBefore, isAfter
 } from "date-fns";
 import { generateCompletion, getActiveProvider } from "./ai-provider";
+import logger from "../lib/logger";
 
 interface ProactiveInsight {
   id?: string;
@@ -245,7 +246,7 @@ export async function generateProactiveInsights(
         insights.push(aiInsight);
       }
     } catch (error) {
-      console.error("Failed to generate AI insight:", error);
+      logger.error("Failed to generate AI insight", { error: error instanceof Error ? error.message : String(error), householdId: context.householdId });
     }
   }
 
@@ -438,7 +439,7 @@ export async function getSmartEstimate(householdId: string, category: string): P
 }
 
 export async function runProactiveAgent(): Promise<void> {
-  console.log("[AI Agent] Starting proactive analysis...");
+  logger.info("[AI Agent] Starting proactive analysis...");
   
   const allHouseholds = await db.select({ id: households.id }).from(households);
   
@@ -467,11 +468,11 @@ export async function runProactiveAgent(): Promise<void> {
         });
       }
       
-      console.log(`[AI Agent] Generated ${insights.length} insights for household ${household.id}`);
+      logger.info("[AI Agent] Generated insights for household", { insightCount: insights.length, householdId: household.id });
     } catch (error) {
-      console.error(`[AI Agent] Failed for household ${household.id}:`, error);
+      logger.error("[AI Agent] Failed for household", { householdId: household.id, error: error instanceof Error ? error.message : String(error) });
     }
   }
   
-  console.log("[AI Agent] Proactive analysis complete");
+  logger.info("[AI Agent] Proactive analysis complete");
 }

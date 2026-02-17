@@ -1,6 +1,7 @@
 import { db } from "../db";
 import { auditLogs, type InsertAuditLog } from "@shared/schema";
 import { desc, eq, and, gte, lte } from "drizzle-orm";
+import logger from "../lib/logger";
 
 type EntityType = 
   | "TASK" | "APPROVAL" | "UPDATE" | "REQUEST" | "VENDOR" | "SPENDING"
@@ -35,7 +36,7 @@ export async function logAudit(options: LogAuditOptions) {
     const [log] = await db.insert(auditLogs).values(entry).returning();
     return log;
   } catch (error) {
-    console.error("[Audit] Failed to log:", error);
+    logger.error("[Audit] Failed to log", { error: error instanceof Error ? error.message : String(error) });
     return null;
   }
 }

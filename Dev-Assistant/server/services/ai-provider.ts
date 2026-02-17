@@ -1,3 +1,5 @@
+import logger from "../lib/logger";
+
 const DEMO_MODE = !process.env.ANTHROPIC_API_KEY && !process.env.OPENAI_API_KEY;
 
 export type AIProvider = "ANTHROPIC" | "OPENAI" | "NONE";
@@ -72,7 +74,7 @@ export async function generateCompletion(options: AICompletionOptions): Promise<
       return await callOpenAI(options);
     }
   } catch (error) {
-    console.error(`AI provider error (${provider}):`, error);
+    logger.error("AI provider error", { provider, error: error instanceof Error ? error.message : String(error) });
     throw new Error("AI service temporarily unavailable");
   }
 }

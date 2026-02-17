@@ -2,6 +2,7 @@ import archiver from "archiver";
 import { createWriteStream, createReadStream, existsSync, mkdirSync, readdirSync, statSync, unlinkSync, writeFileSync, readFileSync } from "fs";
 import { join } from "path";
 import { db } from "../db";
+import logger from "../lib/logger";
 import { 
   households, userProfiles, tasks, taskChecklistItems, approvals, updates, requests,
   comments, reactions, vendors, spendingItems, calendarEvents, householdSettings,
@@ -125,7 +126,7 @@ export async function createBackupZip(isScheduled: boolean = false): Promise<str
     const archive = archiver("zip", { zlib: { level: 9 } });
 
     output.on("close", () => {
-      console.log(`[Backup] Created ${zipFilename} (${archive.pointer()} bytes)`);
+      logger.info("[Backup] Created backup", { zipFilename, bytes: archive.pointer() });
       resolve(zipPath);
     });
 
@@ -201,7 +202,7 @@ export function cleanupOldBackups(): number {
     if (backup.createdAt < cutoffDate) {
       if (deleteBackup(backup.filename)) {
         deletedCount++;
-        console.log(`[Backup] Cleaned up old backup: ${backup.filename}`);
+        logger.info("[Backup] Cleaned up old backup", { filename: backup.filename });
       }
     }
   }

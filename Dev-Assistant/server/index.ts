@@ -5,6 +5,7 @@ import { serveStatic } from "./static";
 import { createServer } from "http";
 import { initSentry, getSentryHandlers } from "./lib/sentry";
 import { getQueue, scheduleRecurringJobs, registerWorkers, stopQueue } from "./lib/queue";
+import logger from "./lib/logger";
 import { wsManager } from "./services/websocket";
 
 const app = express();
@@ -88,7 +89,7 @@ export function log(message: string, source = "express") {
     hour12: true,
   });
 
-  console.log(`${formattedTime} [${source}] ${message}`);
+  logger.info(message, { source, timestamp: formattedTime });
 }
 
 app.use((req, res, next) => {
@@ -164,16 +165,16 @@ app.use((req, res, next) => {
     await getQueue();
     await registerWorkers();
     await scheduleRecurringJobs();
-    console.log("[SERVER] Job queue started with workers and recurring schedules");
+    logger.info("[SERVER] Job queue started with workers and recurring schedules");
   } catch (error) {
-    console.error("[SERVER] Failed to start job queue:", error);
+    logger.error("[SERVER] Failed to start job queue", { error: error instanceof Error ? error.message : String(error) });
   }
 
   process.on("SIGTERM", async () => {
-    console.log("[SERVER] SIGTERM received, shutting down gracefully...");
+    logger.info("[SERVER] SIGTERM received, shutting down gracefully...");
     await stopQueue();
     httpServer.close(() => {
-      console.log("[SERVER] Server closed");
+      logger.info("[SERVER] Server closed");
       process.exit(0);
     });
   });

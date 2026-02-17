@@ -5,6 +5,7 @@ import { runProactiveAgent } from "./ai-agent";
 import { runWeeklyBriefScheduler } from "./weekly-brief";
 import { db } from "../db";
 import { calendarConnections } from "@shared/schema";
+import logger from "../lib/logger";
 
 let scheduledBackupTask: ReturnType<typeof cron.schedule> | null = null;
 let calendarSyncJob: ReturnType<typeof cron.schedule> | null = null;
@@ -17,7 +18,7 @@ export function startScheduledBackups(): void {
   const settings = getBackupSettings();
   
   if (!settings.scheduledBackupsEnabled) {
-    console.log("[Scheduler] Scheduled backups are disabled");
+    logger.info("[Scheduler] Scheduled backups are disabled");
     return;
   }
 
@@ -28,28 +29,28 @@ export function startScheduledBackups(): void {
   const cronExpression = `${settings.backupTimeMinute} ${settings.backupTimeHour} * * *`;
   
   scheduledBackupTask = cron.schedule(cronExpression, async () => {
-    console.log("[Scheduler] Running scheduled backup...");
+    logger.info("[Scheduler] Running scheduled backup...");
     try {
       const backupPath = await createBackupZip(true);
-      console.log(`[Scheduler] Backup completed: ${backupPath}`);
+      logger.info("[Scheduler] Backup completed", { backupPath });
       
       const deletedCount = cleanupOldBackups();
       if (deletedCount > 0) {
-        console.log(`[Scheduler] Cleaned up ${deletedCount} old backups`);
+        logger.info("[Scheduler] Cleaned up old backups", { deletedCount });
       }
     } catch (error) {
-      console.error("[Scheduler] Backup failed:", error);
+      logger.error("[Scheduler] Backup failed", { error: error instanceof Error ? error.message : String(error) });
     }
   });
 
-  console.log(`[Scheduler] Scheduled backups enabled at ${settings.backupTimeHour}:${String(settings.backupTimeMinute).padStart(2, "0")}`);
+  logger.info("[Scheduler] Scheduled backups enabled", { hour: settings.backupTimeHour, minute: settings.backupTimeMinute });
 }
 
 export function stopScheduledBackups(): void {
   if (scheduledBackupTask) {
     scheduledBackupTask.stop();
     scheduledBackupTask = null;
-    console.log("[Scheduler] Scheduled backups stopped");
+    logger.info("[Scheduler] Scheduled backups stopped");
   }
 }
 
@@ -60,19 +61,19 @@ export function restartScheduledBackups(): void {
 
 export function startCalendarSync(): void {
   if (calendarSyncJob) {
-    console.log("[Scheduler] Calendar sync already running");
+    logger.info("[Scheduler] Calendar sync already running");
     return;
   }
 
   const isEnabled = process.env.ENABLE_CALENDAR_SYNC !== "false";
   if (!isEnabled) {
-    console.log("[Scheduler] Calendar sync disabled via env var");
+    logger.info("[Scheduler] Calendar sync disabled via env var");
     return;
   }
 
   calendarSyncJob = cron.schedule("*/15 * * * *", async () => {
     const startTime = Date.now();
-    console.log("[Scheduler] Starting calendar sync...");
+    logger.info("[Scheduler] Starting calendar sync...");
     
     try {
       const connections = await db
@@ -80,7 +81,7 @@ export function startCalendarSync(): void {
         .from(calendarConnections);
       
       if (connections.length === 0) {
-        console.log("[Scheduler] No calendar connections to sync");
+        logger.info("[Scheduler] No calendar connections to sync");
         return;
       }
 
@@ -95,39 +96,39 @@ export function startCalendarSync(): void {
           if (result.synced !== undefined) {
             totalSynced += result.synced;
             successCount++;
-            console.log(`[Scheduler] Synced ${result.synced} events for household ${householdId}`);
+            logger.info("[Scheduler] Synced events for household", { synced: result.synced, householdId });
           } else if (result.error) {
             errorCount++;
-            console.log(`[Scheduler] Skipped household ${householdId}: ${result.error}`);
+            logger.info("[Scheduler] Skipped household", { householdId, reason: result.error });
           }
         } catch (error: unknown) {
           errorCount++;
           const message = error instanceof Error ? error.message : "Unknown error";
-          console.error(`[Scheduler] Failed to sync household ${householdId}:`, message);
+          logger.error("[Scheduler] Failed to sync household", { householdId, error: message });
         }
       }
 
       const duration = Date.now() - startTime;
-      console.log(`[Scheduler] Calendar sync complete: ${totalSynced} events, ${successCount} succeeded, ${errorCount} failed (${duration}ms)`);
+      logger.info("[Scheduler] Calendar sync complete", { totalSynced, successCount, errorCount, duration });
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : "Unknown error";
-      console.error("[Scheduler] Calendar sync job failed:", message);
+      logger.error("[Scheduler] Calendar sync job failed", { error: message });
     }
   });
 
-  console.log("[Scheduler] Calendar sync scheduled (every 15 minutes)");
+  logger.info("[Scheduler] Calendar sync scheduled (every 15 minutes)");
 }
 
 export function stopCalendarSync(): void {
   if (calendarSyncJob) {
     calendarSyncJob.stop();
     calendarSyncJob = null;
-    console.log("[Scheduler] Calendar sync stopped");
+    logger.info("[Scheduler] Calendar sync stopped");
   }
 }
 
 export async function triggerImmediateSync(): Promise<{ total: number; succeeded: number; failed: number }> {
-  console.log("[Scheduler] Triggering immediate calendar sync...");
+  logger.info("[Scheduler] Triggering immediate calendar sync...");
   
   const connections = await db
     .selectDistinct({ householdId: calendarConnections.householdId })
@@ -146,41 +147,41 @@ export async function triggerImmediateSync(): Promise<{ total: number; succeeded
 
 export function startProactiveAgent(): void {
   if (proactiveAgentJob) {
-    console.log("[Scheduler] Proactive agent already running");
+    logger.info("[Scheduler] Proactive agent already running");
     return;
   }
 
   const isEnabled = process.env.ENABLE_PROACTIVE_AI !== "false";
   if (!isEnabled) {
-    console.log("[Scheduler] Proactive AI agent disabled via env var");
+    logger.info("[Scheduler] Proactive AI agent disabled via env var");
     return;
   }
 
   proactiveAgentJob = cron.schedule("0 8 * * *", async () => {
     const startTime = Date.now();
-    console.log("[Scheduler] Running proactive AI agent...");
+    logger.info("[Scheduler] Running proactive AI agent...");
     
     try {
       await runProactiveAgent();
       const duration = Date.now() - startTime;
-      console.log(`[Scheduler] Proactive agent completed (${duration}ms)`);
+      logger.info("[Scheduler] Proactive agent completed", { duration });
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : "Unknown error";
-      console.error("[Scheduler] Proactive agent failed:", message);
+      logger.error("[Scheduler] Proactive agent failed", { error: message });
     }
   });
 
   eveningAgentJob = cron.schedule("0 18 * * *", async () => {
-    console.log("[Scheduler] Running evening proactive check...");
+    logger.info("[Scheduler] Running evening proactive check...");
     try {
       await runProactiveAgent();
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : "Unknown error";
-      console.error("[Scheduler] Evening proactive check failed:", message);
+      logger.error("[Scheduler] Evening proactive check failed", { error: message });
     }
   });
 
-  console.log("[Scheduler] Proactive AI agent scheduled (8am and 6pm daily)");
+  logger.info("[Scheduler] Proactive AI agent scheduled (8am and 6pm daily)");
 }
 
 export function stopProactiveAgent(): void {
@@ -192,44 +193,44 @@ export function stopProactiveAgent(): void {
     eveningAgentJob.stop();
     eveningAgentJob = null;
   }
-  console.log("[Scheduler] Proactive agent stopped");
+  logger.info("[Scheduler] Proactive agent stopped");
 }
 
 export function startWeeklyBriefScheduler(): void {
   if (weeklyBriefMorningJob || weeklyBriefEveningJob) {
-    console.log("[Scheduler] Weekly brief scheduler already running");
+    logger.info("[Scheduler] Weekly brief scheduler already running");
     return;
   }
 
   const isEnabled = process.env.ENABLE_WEEKLY_BRIEF !== "false";
   if (!isEnabled) {
-    console.log("[Scheduler] Weekly brief scheduler disabled via env var");
+    logger.info("[Scheduler] Weekly brief scheduler disabled via env var");
     return;
   }
 
   weeklyBriefMorningJob = cron.schedule("0 8 * * 0", async () => {
-    console.log("[Scheduler] Running Sunday morning weekly brief delivery...");
+    logger.info("[Scheduler] Running Sunday morning weekly brief delivery...");
     try {
       const result = await runWeeklyBriefScheduler();
-      console.log(`[Scheduler] Weekly briefs: ${result.sent} sent, ${result.failed} failed`);
+      logger.info("[Scheduler] Weekly briefs delivered", { sent: result.sent, failed: result.failed });
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : "Unknown error";
-      console.error("[Scheduler] Weekly brief scheduler failed:", message);
+      logger.error("[Scheduler] Weekly brief scheduler failed", { error: message });
     }
   });
 
   weeklyBriefEveningJob = cron.schedule("0 18 * * 0", async () => {
-    console.log("[Scheduler] Running Sunday evening weekly brief delivery...");
+    logger.info("[Scheduler] Running Sunday evening weekly brief delivery...");
     try {
       const result = await runWeeklyBriefScheduler();
-      console.log(`[Scheduler] Weekly briefs (evening): ${result.sent} sent, ${result.failed} failed`);
+      logger.info("[Scheduler] Weekly briefs (evening) delivered", { sent: result.sent, failed: result.failed });
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : "Unknown error";
-      console.error("[Scheduler] Weekly brief scheduler (evening) failed:", message);
+      logger.error("[Scheduler] Weekly brief scheduler (evening) failed", { error: message });
     }
   });
 
-  console.log("[Scheduler] Weekly brief scheduler started (Sunday 8am and 6pm)");
+  logger.info("[Scheduler] Weekly brief scheduler started (Sunday 8am and 6pm)");
 }
 
 export function stopWeeklyBriefScheduler(): void {
@@ -241,7 +242,7 @@ export function stopWeeklyBriefScheduler(): void {
     weeklyBriefEveningJob.stop();
     weeklyBriefEveningJob = null;
   }
-  console.log("[Scheduler] Weekly brief scheduler stopped");
+  logger.info("[Scheduler] Weekly brief scheduler stopped");
 }
 
 export function startAllSchedulers(): void {

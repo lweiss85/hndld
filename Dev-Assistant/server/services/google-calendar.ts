@@ -3,6 +3,7 @@ import { db } from "../db";
 import { calendarConnections, calendarSelections, calendarEvents } from "@shared/schema";
 import { eq, and } from "drizzle-orm";
 import { encrypt, decrypt } from "../lib/crypto";
+import logger from "../lib/logger";
 
 export function getOAuthClient() {
   const clientId = process.env.GOOGLE_CLIENT_ID;
@@ -245,7 +246,7 @@ export async function syncCalendarEvents(householdId: string) {
         .set({ lastSynced: new Date() })
         .where(eq(calendarSelections.id, selection.id));
     } catch (error) {
-      console.error(`Error syncing calendar ${selection.calendarId}:`, error);
+      logger.error("Error syncing calendar", { calendarId: selection.calendarId, error: error instanceof Error ? error.message : String(error) });
     }
   }
 

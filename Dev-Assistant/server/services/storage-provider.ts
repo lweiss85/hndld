@@ -4,6 +4,7 @@ import crypto from "crypto";
 import { db } from "../db";
 import { files, fileLinks } from "@shared/schema";
 import { eq, and, isNull, desc, gte, lte, sql, ilike, or, type SQL } from "drizzle-orm";
+import logger from "../lib/logger";
 
 export interface StorageProvider {
   upload(filePath: string, content: Buffer, mimeType?: string): Promise<string>;
@@ -78,23 +79,23 @@ class S3CompatibleStorageProvider implements StorageProvider {
     this.endpoint = process.env.OBJECT_STORAGE_ENDPOINT || "";
     this.localFallback = new LocalStorageProvider();
     
-    console.log("[Storage] S3 provider initialized - note: full AWS SDK integration required for production use");
-    console.log("[Storage] Currently falling back to local storage. Configure AWS SDK for S3 operations.");
+    logger.info("[Storage] S3 provider initialized - note: full AWS SDK integration required for production use");
+    logger.info("[Storage] Currently falling back to local storage. Configure AWS SDK for S3 operations.");
   }
 
   async upload(filePath: string, content: Buffer, mimeType?: string): Promise<string> {
-    console.log(`[Storage] S3 upload requested for: ${filePath}`);
-    console.log("[Storage] Falling back to local storage (AWS SDK not configured)");
+    logger.info("[Storage] S3 upload requested", { filePath });
+    logger.info("[Storage] Falling back to local storage (AWS SDK not configured)");
     return this.localFallback.upload(filePath, content, mimeType);
   }
 
   async download(key: string): Promise<Buffer | null> {
-    console.log(`[Storage] S3 download requested for: ${key}`);
+    logger.info("[Storage] S3 download requested", { key });
     return this.localFallback.download(key);
   }
 
   async delete(key: string): Promise<boolean> {
-    console.log(`[Storage] S3 delete requested for: ${key}`);
+    logger.info("[Storage] S3 delete requested", { key });
     return this.localFallback.delete(key);
   }
 
@@ -118,10 +119,10 @@ export function getStorageProvider(): StorageProvider {
   );
 
   if (hasS3Config && process.env.FEATURE_OBJECT_STORAGE === "true") {
-    console.log("[Storage] Using S3-compatible storage provider");
+    logger.info("[Storage] Using S3-compatible storage provider");
     storageProvider = new S3CompatibleStorageProvider();
   } else {
-    console.log("[Storage] Using local storage provider");
+    logger.info("[Storage] Using local storage provider");
     storageProvider = new LocalStorageProvider();
   }
 

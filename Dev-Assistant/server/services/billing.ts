@@ -1,6 +1,7 @@
 import { db } from "../db";
 import { subscriptions, paymentMethods, invoices, organizations } from "@shared/schema";
 import { eq } from "drizzle-orm";
+import logger from "../lib/logger";
 
 const DEMO_MODE = !process.env.STRIPE_SECRET_KEY;
 
@@ -212,7 +213,7 @@ export async function createCheckoutSession(
   try {
     Stripe = (await import("stripe")).default;
   } catch (importError) {
-    console.error("[Billing] Failed to import Stripe module:", importError);
+    logger.error("[Billing] Failed to import Stripe module", { error: importError instanceof Error ? importError.message : String(importError) });
     throw new Error("Payment processing is unavailable. Please try again later.");
   }
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
@@ -275,7 +276,7 @@ export async function createBillingPortalSession(
   try {
     Stripe = (await import("stripe")).default;
   } catch (importError) {
-    console.error("[Billing] Failed to import Stripe module:", importError);
+    logger.error("[Billing] Failed to import Stripe module", { error: importError instanceof Error ? importError.message : String(importError) });
     throw new Error("Payment processing is unavailable. Please try again later.");
   }
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
@@ -308,7 +309,7 @@ export async function handleStripeWebhook(payload: Buffer, signature: string): P
   try {
     Stripe = (await import("stripe")).default;
   } catch (importError) {
-    console.error("[Billing] Failed to import Stripe module:", importError);
+    logger.error("[Billing] Failed to import Stripe module", { error: importError instanceof Error ? importError.message : String(importError) });
     return { received: false, error: "Stripe module unavailable", isServerError: true };
   }
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
@@ -320,7 +321,7 @@ export async function handleStripeWebhook(payload: Buffer, signature: string): P
     event = stripe.webhooks.constructEvent(payload, signature, webhookSecret);
   } catch (webhookError: unknown) {
     const webhookMessage = webhookError instanceof Error ? webhookError.message : "Webhook signature verification failed";
-    console.error("[Billing] Webhook signature verification failed:", webhookMessage);
+    logger.error("[Billing] Webhook signature verification failed", { error: webhookMessage });
     return { received: true, error: webhookMessage };
   }
 

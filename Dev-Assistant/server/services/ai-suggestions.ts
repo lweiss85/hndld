@@ -3,6 +3,7 @@ import { tasks, calendarEvents, vendors } from "@shared/schema";
 import { eq, desc, gte, lte, and, ne } from "drizzle-orm";
 import { generateCompletion, getActiveProvider } from "./ai-provider";
 import { subDays, addDays, startOfDay, endOfDay, format, differenceInDays } from "date-fns";
+import logger from "../lib/logger";
 
 export interface SmartSuggestion {
   id: string;
@@ -216,7 +217,7 @@ Return ONLY valid JSON array, no explanation.`;
       priority: existingSuggestionCount + i + 1,
     }));
   } catch (error) {
-    console.error("AI suggestion error:", error);
+    logger.error("AI suggestion error", { error: error instanceof Error ? error.message : String(error) });
     return [];
   }
 }

@@ -1,5 +1,6 @@
 import { db } from "../db";
 import { eq, and, gte, lte, desc, sql, inArray } from "drizzle-orm";
+import logger from "../lib/logger";
 import {
   weeklyBriefs,
   userEngagement,
@@ -254,7 +255,7 @@ Keep it concise but make it feel personal, not generic.`;
       },
     };
   } catch (error) {
-    console.error("[WeeklyBrief] AI generation failed:", error);
+    logger.error("[WeeklyBrief] AI generation failed", { error: error instanceof Error ? error.message : String(error), userId, householdId });
     return {
       content: `Your week at ${householdName}: ${weeklyData.stats.totalTasks} tasks, ${weeklyData.stats.pendingApprovals} approvals waiting, and ${weeklyData.stats.upcomingEvents} events coming up.`,
       personalizationData: {
@@ -423,7 +424,7 @@ export async function trackUserEngagement(
 }
 
 export async function runWeeklyBriefScheduler(): Promise<{ sent: number; failed: number }> {
-  console.log("[WeeklyBrief] Running scheduled brief delivery...");
+  logger.info("[WeeklyBrief] Running scheduled brief delivery...");
 
   const now = new Date();
   const dayOfWeek = now.toLocaleDateString("en-US", { weekday: "long" }).toLowerCase();
@@ -445,14 +446,14 @@ export async function runWeeklyBriefScheduler(): Promise<{ sent: number; failed:
     try {
       await createAndSendWeeklyBrief(user.userId, user.householdId);
       sent++;
-      console.log(`[WeeklyBrief] Sent brief to user ${user.userId}`);
+      logger.info("[WeeklyBrief] Sent brief to user", { userId: user.userId, householdId: user.householdId });
     } catch (error) {
       failed++;
-      console.error(`[WeeklyBrief] Failed for user ${user.userId}:`, error);
+      logger.error("[WeeklyBrief] Failed for user", { userId: user.userId, error: error instanceof Error ? error.message : String(error) });
     }
   }
 
-  console.log(`[WeeklyBrief] Completed: ${sent} sent, ${failed} failed`);
+  logger.info("[WeeklyBrief] Completed", { sent, failed });
   return { sent, failed };
 }
 

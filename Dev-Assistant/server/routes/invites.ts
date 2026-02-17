@@ -7,6 +7,7 @@ import { isAuthenticated } from "../replit_integrations/auth";
 import { householdContextMiddleware } from "../middleware/householdContext";
 import { requirePermission } from "../middleware/requirePermission";
 import { badRequest, notFound, internalError } from "../lib/errors";
+import logger from "../lib/logger";
 
 const router = Router();
 const householdContext = householdContextMiddleware;
@@ -50,7 +51,7 @@ router.get("/invites", isAuthenticated, householdContext, requirePermission("CAN
     
     res.json(invites);
   } catch (error) {
-    console.error("Error fetching invites:", error);
+    logger.error("Error fetching invites", { error: error instanceof Error ? error.message : String(error), householdId });
     next(internalError("Failed to fetch invites"));
   }
 });
@@ -138,7 +139,7 @@ router.post("/invites", isAuthenticated, householdContext, requirePermission("CA
     
     res.status(201).json({ ...invite, inviteLink });
   } catch (error) {
-    console.error("Error creating invite:", error);
+    logger.error("Error creating invite", { error: error instanceof Error ? error.message : String(error), householdId });
     next(internalError("Failed to create invite"));
   }
 });
@@ -242,7 +243,7 @@ router.post("/invites/:token/accept", isAuthenticated, async (req: Request, res,
     
     res.json({ success: true, householdId: invite.householdId });
   } catch (error) {
-    console.error("Error accepting invite:", error);
+    logger.error("Error accepting invite", { error: error instanceof Error ? error.message : String(error), token });
     next(internalError("Failed to accept invite"));
   }
 });
@@ -321,7 +322,7 @@ router.get("/invites/:token/info", async (req, res, next: NextFunction) => {
       expiresAt: invite.expiresAt,
     });
   } catch (error) {
-    console.error("Error getting invite info:", error);
+    logger.error("Error getting invite info", { error: error instanceof Error ? error.message : String(error), token });
     next(internalError("Failed to get invite info"));
   }
 });
@@ -369,7 +370,7 @@ router.delete("/invites/:id", isAuthenticated, householdContext, requirePermissi
     
     res.status(204).send();
   } catch (error) {
-    console.error("Error revoking invite:", error);
+    logger.error("Error revoking invite", { error: error instanceof Error ? error.message : String(error), householdId });
     next(internalError("Failed to revoke invite"));
   }
 });

@@ -1,12 +1,13 @@
 import * as Sentry from "@sentry/node";
 import { Express, RequestHandler, ErrorRequestHandler } from "express";
+import logger from "./logger";
 
 export function initSentry(app: Express) {
   const sentryDsn = process.env.SENTRY_DSN;
   const environment = process.env.NODE_ENV || "development";
 
   if (environment !== "production" || !sentryDsn) {
-    console.log("[SENTRY] Error monitoring disabled (not production or no DSN)");
+    logger.info("[SENTRY] Error monitoring disabled (not production or no DSN)");
     return;
   }
 
@@ -37,9 +38,9 @@ export function initSentry(app: Express) {
       },
     });
 
-    console.log("[SENTRY] Error monitoring enabled");
+    logger.info("[SENTRY] Error monitoring enabled");
   } catch (error) {
-    console.error("[SENTRY] Failed to initialize:", error);
+    logger.error("[SENTRY] Failed to initialize", { error: error instanceof Error ? error.message : String(error) });
   }
 }
 
@@ -64,7 +65,7 @@ export function captureException(error: Error, context?: Record<string, any>) {
       extra: context,
     });
   } else {
-    console.error("[ERROR]", error, context);
+    logger.error("[ERROR]", { error: error instanceof Error ? error.message : String(error), context });
   }
 }
 
@@ -72,6 +73,6 @@ export function captureMessage(message: string, level: Sentry.SeverityLevel = "i
   if (process.env.NODE_ENV === "production" && process.env.SENTRY_DSN) {
     Sentry.captureMessage(message, level);
   } else {
-    console.log(`[${level.toUpperCase()}]`, message);
+    logger.info(message, { level });
   }
 }

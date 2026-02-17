@@ -1,6 +1,7 @@
 import { Router, Request, NextFunction } from "express";
 import { storage } from "../storage";
 import { forbidden, internalError } from "../lib/errors";
+import logger from "../lib/logger";
 
 const router = Router();
 
@@ -53,7 +54,7 @@ router.get("/mine", async (req: Request, res, next: NextFunction) => {
       isDefault: h.isDefault,
     })));
   } catch (error) {
-    console.error("Error fetching user households:", error);
+    logger.error("Error fetching user households", { error: error instanceof Error ? error.message : String(error) });
     next(internalError("Failed to fetch households"));
   }
 });
@@ -115,7 +116,7 @@ router.post("/set-default", async (req: Request, res, next: NextFunction) => {
     
     res.json({ success: true, defaultHouseholdId: householdId });
   } catch (error) {
-    console.error("Error setting default household:", error);
+    logger.error("Error setting default household", { error: error instanceof Error ? error.message : String(error), householdId });
     next(internalError("Failed to set default household"));
   }
 });

@@ -1,6 +1,7 @@
 import { db } from "../db";
 import { pushSubscriptions, notificationSettings, type InsertPushSubscription } from "@shared/schema";
 import { eq, and } from "drizzle-orm";
+import logger from "../lib/logger";
 
 const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY;
 const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY;
@@ -49,7 +50,7 @@ export async function sendPushNotification(
   url?: string
 ): Promise<{ sent: number; failed: number }> {
   if (!isPushEnabled()) {
-    console.log("[Push] Push notifications not configured");
+    logger.info("[Push] Push notifications not configured");
     return { sent: 0, failed: 0 };
   }
 
@@ -103,7 +104,7 @@ export async function sendPushNotification(
         sent++;
       } catch (error: unknown) {
         const message = error instanceof Error ? error.message : "Unknown error";
-        console.error(`[Push] Failed to send to ${sub.endpoint}:`, message);
+        logger.error("[Push] Failed to send notification", { endpoint: sub.endpoint, error: message });
         if ((error as { statusCode?: number }).statusCode === 410 || (error as { statusCode?: number }).statusCode === 404) {
           await removePushSubscription(userId, sub.endpoint);
         }
@@ -111,7 +112,7 @@ export async function sendPushNotification(
       }
     }
   } catch (error) {
-    console.error("[Push] Error loading web-push:", error);
+    logger.error("[Push] Error loading web-push", { error: error instanceof Error ? error.message : String(error) });
   }
 
   return { sent, failed };

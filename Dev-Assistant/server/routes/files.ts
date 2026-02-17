@@ -14,6 +14,7 @@ import {
   updateFileMetadata,
 } from "../services/storage-provider";
 import { badRequest, notFound, internalError } from "../lib/errors";
+import logger from "../lib/logger";
 
 const router = Router();
 
@@ -139,7 +140,7 @@ router.post("/upload", upload.single("file"), async (req: Request, res, next: Ne
     
     res.json(file);
   } catch (error: unknown) {
-    console.error("Upload error:", error);
+    logger.error("Upload error", { error: error instanceof Error ? error.message : String(error), householdId: req.householdId });
     next(internalError(error instanceof Error ? error.message : "Upload failed"));
   }
 });
@@ -238,7 +239,7 @@ router.get("/", async (req: Request, res, next: NextFunction) => {
     
     res.json(result);
   } catch (error: unknown) {
-    console.error("Error listing files:", error);
+    logger.error("Error listing files", { error: error instanceof Error ? error.message : String(error), householdId: req.householdId });
     next(internalError("Failed to list files"));
   }
 });
@@ -282,7 +283,7 @@ router.get("/entity/:entityType/:entityId", async (req: Request, res, next: Next
     const entityFiles = await getEntityFiles(entityType, entityId);
     res.json(entityFiles);
   } catch (error: unknown) {
-    console.error("Error getting entity files:", error);
+    logger.error("Error getting entity files", { error: error instanceof Error ? error.message : String(error), householdId: req.householdId });
     next(internalError("Failed to get entity files"));
   }
 });
@@ -322,7 +323,7 @@ router.get("/meta/categories", async (req: Request, res, next: NextFunction) => 
     
     res.json(categories.map((c) => c.category));
   } catch (error: unknown) {
-    console.error("Error getting categories:", error);
+    logger.error("Error getting categories", { error: error instanceof Error ? error.message : String(error), householdId: req.householdId });
     next(internalError("Failed to get categories"));
   }
 });
@@ -369,7 +370,7 @@ router.get("/meta/tags", async (req: Request, res, next: NextFunction) => {
     
     res.json(Array.from(allTags).sort());
   } catch (error: unknown) {
-    console.error("Error getting tags:", error);
+    logger.error("Error getting tags", { error: error instanceof Error ? error.message : String(error), householdId: req.householdId });
     next(internalError("Failed to get tags"));
   }
 });
@@ -434,7 +435,7 @@ router.get("/:id", async (req: Request, res, next: NextFunction) => {
     
     res.json({ ...file, usage });
   } catch (error: unknown) {
-    console.error("Error getting file:", error);
+    logger.error("Error getting file", { error: error instanceof Error ? error.message : String(error), householdId: req.householdId });
     next(internalError("Failed to get file"));
   }
 });
@@ -508,7 +509,7 @@ router.patch("/:id", async (req: Request, res, next: NextFunction) => {
     
     res.json(updated);
   } catch (error: unknown) {
-    console.error("Error updating file:", error);
+    logger.error("Error updating file", { error: error instanceof Error ? error.message : String(error), householdId: req.householdId });
     next(internalError("Failed to update file"));
   }
 });
@@ -565,7 +566,7 @@ router.delete("/:id", async (req: Request, res, next: NextFunction) => {
     
     res.json({ success: true });
   } catch (error: unknown) {
-    console.error("Error deleting file:", error);
+    logger.error("Error deleting file", { error: error instanceof Error ? error.message : String(error), householdId: req.householdId });
     next(internalError("Failed to delete file"));
   }
 });
@@ -641,7 +642,7 @@ router.post("/:id/link", async (req: Request, res, next: NextFunction) => {
     const link = await linkFileToEntity(id, entityType, entityId, userId, note);
     res.json(link);
   } catch (error: unknown) {
-    console.error("Error linking file:", error);
+    logger.error("Error linking file", { error: error instanceof Error ? error.message : String(error), householdId: req.householdId });
     next(internalError("Failed to link file"));
   }
 });
@@ -691,7 +692,7 @@ router.delete("/:id/link/:entityType/:entityId", async (req: Request, res, next:
     await unlinkFileFromEntity(id, entityType, entityId);
     res.json({ success: true });
   } catch (error: unknown) {
-    console.error("Error unlinking file:", error);
+    logger.error("Error unlinking file", { error: error instanceof Error ? error.message : String(error), householdId: req.householdId });
     next(internalError("Failed to unlink file"));
   }
 });

@@ -6,6 +6,7 @@ import session from "express-session";
 import type { Express, RequestHandler } from "express";
 import memoize from "memoizee";
 import connectPg from "connect-pg-simple";
+import logger from "../../lib/logger";
 import { authStorage } from "./storage";
 
 const getOidcConfig = memoize(
@@ -75,7 +76,7 @@ export async function setupAuth(app: Express) {
   try {
     config = await getOidcConfig();
   } catch (oidcError) {
-    console.error("[Auth] Failed to fetch OIDC configuration:", oidcError);
+    logger.error("[Auth] Failed to fetch OIDC configuration", { error: oidcError instanceof Error ? oidcError.message : String(oidcError) });
     throw new Error("Authentication setup failed: Unable to connect to identity provider");
   }
 

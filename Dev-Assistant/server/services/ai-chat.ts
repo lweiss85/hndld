@@ -1,5 +1,6 @@
 import { generateCompletion, isDemoMode, getActiveProvider } from "./ai-provider";
 import { storage } from "../storage";
+import logger from "../lib/logger";
 
 interface ChatMessage {
   role: "user" | "assistant";
@@ -267,7 +268,7 @@ CRITICAL GUIDELINES:
     });
     return { response };
   } catch (error) {
-    console.error("AI chat error:", error);
+    logger.error("AI chat error", { error: error instanceof Error ? error.message : String(error) });
     return { response: "I'm having trouble connecting right now. Please try again in a moment." };
   }
 }

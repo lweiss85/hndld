@@ -6,6 +6,7 @@
  */
 
 import crypto from "crypto";
+import logger from "../lib/logger";
 
 const ALGORITHM = "aes-256-gcm";
 const IV_LENGTH = 16;
@@ -16,7 +17,7 @@ const KEY_LENGTH = 32;
 function getEncryptionKey(): string {
   const key = process.env.VAULT_ENCRYPTION_KEY;
   if (!key) {
-    console.warn("VAULT_ENCRYPTION_KEY not set - vault items will not be encrypted at rest!");
+    logger.warn("VAULT_ENCRYPTION_KEY not set - vault items will not be encrypted at rest!");
     return "";
   }
   return key;
@@ -88,7 +89,7 @@ export function decryptVaultValue(encryptedValue: string): string {
     
     return decrypted;
   } catch (error) {
-    console.error("Failed to decrypt vault value:", error);
+    logger.error("Failed to decrypt vault value", { error: error instanceof Error ? error.message : String(error) });
     return encryptedValue;
   }
 }

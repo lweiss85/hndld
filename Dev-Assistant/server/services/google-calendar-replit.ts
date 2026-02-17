@@ -14,6 +14,7 @@
 import { google } from 'googleapis';
 import { storage } from "../storage";
 import type { InsertCalendarEvent } from "@shared/schema";
+import logger from "../lib/logger";
 
 interface ConnectionSettings {
   settings: {
@@ -89,7 +90,7 @@ export async function listCalendars() {
     const response = await calendar.calendarList.list();
     return response.data.items || [];
   } catch (error) {
-    console.error("Error listing calendars:", error);
+    logger.error("Error listing calendars", { error: error instanceof Error ? error.message : String(error) });
     return [];
   }
 }
@@ -156,19 +157,19 @@ export async function syncCalendarEventsFromReplit(householdId: string) {
           }
         }
       } catch (calError) {
-        console.error(`Error syncing calendar ${cal.id}:`, calError);
+        logger.error("Error syncing calendar", { calendarId: cal.id, householdId, error: calError instanceof Error ? calError.message : String(calError) });
       }
     }
 
     // Clean up events that no longer exist in Google Calendar
     const deletedCount = await storage.deleteCalendarEventsNotIn(householdId, syncedProviderIds);
     if (deletedCount > 0) {
-      console.log(`Deleted ${deletedCount} stale calendar events for household ${householdId}`);
+      logger.info("Deleted stale calendar events", { deletedCount, householdId });
     }
 
     return { synced: totalSynced, deleted: deletedCount, success: true };
   } catch (error) {
-    console.error("Error syncing calendar events:", error);
+    logger.error("Error syncing calendar events", { householdId, error: error instanceof Error ? error.message : String(error) });
     return { synced: 0, deleted: 0, success: false, error: (error as Error).message };
   }
 }

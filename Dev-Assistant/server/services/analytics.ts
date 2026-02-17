@@ -2,6 +2,7 @@ import { db } from "../db";
 import { analyticsEvents, tasks, approvals, requests, spendingItems, updates } from "@shared/schema";
 import { eq, and, gte, lte, sql, count, desc } from "drizzle-orm";
 import { startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, subDays, format } from "date-fns";
+import logger from "../lib/logger";
 
 export type TimePeriod = "week" | "month" | "quarter" | "year";
 
@@ -22,7 +23,7 @@ export async function trackEvent(
       metadata: metadata || {},
     });
   } catch (error) {
-    console.error("Failed to track analytics event:", error);
+    logger.error("Failed to track analytics event", { error: error instanceof Error ? error.message : String(error) });
   }
 }
 

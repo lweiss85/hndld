@@ -1,6 +1,7 @@
 import { db } from "../db";
 import { notifications, notificationSettings, type InsertNotification, type Notification, type NotificationSettings } from "@shared/schema";
 import { eq, and, desc } from "drizzle-orm";
+import logger from "../lib/logger";
 
 const DEMO_MODE = process.env.DEMO_MODE === "true" || !process.env.SMTP_HOST;
 
@@ -14,17 +15,14 @@ interface SmsProvider {
 
 class DemoEmailProvider implements EmailProvider {
   async sendEmail(to: string, subject: string, body: string): Promise<boolean> {
-    console.log(`[Demo Email] To: ${to}`);
-    console.log(`[Demo Email] Subject: ${subject}`);
-    console.log(`[Demo Email] Body: ${body.substring(0, 100)}...`);
+    logger.info("[Demo Email] Sending", { to, subject, bodyPreview: body.substring(0, 100) });
     return true;
   }
 }
 
 class DemoSmsProvider implements SmsProvider {
   async sendSms(to: string, message: string): Promise<boolean> {
-    console.log(`[Demo SMS] To: ${to}`);
-    console.log(`[Demo SMS] Message: ${message.substring(0, 100)}...`);
+    logger.info("[Demo SMS] Sending", { to, messagePreview: message.substring(0, 100) });
     return true;
   }
 }
@@ -53,7 +51,7 @@ class SmtpEmailProvider implements EmailProvider {
 
       return true;
     } catch (error) {
-      console.error("[SMTP Email] Failed to send:", error);
+      logger.error("[SMTP Email] Failed to send", { error: error instanceof Error ? error.message : String(error) });
       return false;
     }
   }
@@ -67,7 +65,7 @@ class TwilioSmsProvider implements SmsProvider {
       const fromNumber = process.env.TWILIO_FROM_NUMBER;
 
       if (!accountSid || !authToken || !fromNumber) {
-        console.warn("[Twilio SMS] Missing credentials, skipping");
+        logger.warn("[Twilio SMS] Missing credentials, skipping");
         return false;
       }
 
@@ -89,7 +87,7 @@ class TwilioSmsProvider implements SmsProvider {
 
       return response.ok;
     } catch (error) {
-      console.error("[Twilio SMS] Failed to send:", error);
+      logger.error("[Twilio SMS] Failed to send", { error: error instanceof Error ? error.message : String(error) });
       return false;
     }
   }

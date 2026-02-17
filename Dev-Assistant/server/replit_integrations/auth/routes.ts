@@ -1,4 +1,5 @@
 import type { Express, Request, Response } from "express";
+import logger from "../../lib/logger";
 import { authStorage } from "./storage";
 import { isAuthenticated } from "./replitAuth";
 
@@ -9,7 +10,7 @@ export function registerAuthRoutes(app: Express): void {
       const user = await authStorage.getUser(userId);
       res.json(user);
     } catch (error) {
-      console.error("Error fetching user:", error);
+      logger.error("Error fetching user", { error: error instanceof Error ? error.message : String(error) });
       res.status(500).json({ message: "Failed to fetch user" });
     }
   });
