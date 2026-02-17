@@ -958,6 +958,23 @@ export const addonServices = pgTable("addon_services", {
   index("addon_services_org_idx").on(table.organizationId),
 ]);
 
+// API Tokens (for Siri Shortcuts / external integrations)
+export const apiTokens = pgTable("api_tokens", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  householdId: varchar("household_id").references(() => households.id).notNull(),
+  token: varchar("token", { length: 64 }).notNull().unique(),
+  name: text("name").default("Siri Shortcut"),
+  scopes: jsonb("scopes").$type<string[]>().default(["read", "write"]),
+  lastUsedAt: timestamp("last_used_at"),
+  expiresAt: timestamp("expires_at"),
+  revokedAt: timestamp("revoked_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("api_tokens_user_idx").on(table.userId),
+  index("api_tokens_token_idx").on(table.token),
+]);
+
 // Cleaning visits tracking
 export const cleaningVisits = pgTable("cleaning_visits", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -1237,3 +1254,7 @@ export type WeeklyBrief = typeof weeklyBriefs.$inferSelect;
 export type InsertWeeklyBrief = z.infer<typeof insertWeeklyBriefSchema>;
 export type UserEngagement = typeof userEngagement.$inferSelect;
 export type InsertUserEngagement = z.infer<typeof insertUserEngagementSchema>;
+
+// API Tokens (for Siri Shortcuts / external integrations)
+export type ApiToken = typeof apiTokens.$inferSelect;
+export type InsertApiToken = typeof apiTokens.$inferInsert;

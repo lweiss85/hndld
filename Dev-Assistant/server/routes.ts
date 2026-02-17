@@ -33,6 +33,7 @@ import { registerFeatureRoutes } from "./routes/features";
 import { registerJobRoutes } from "./routes/jobs";
 import { registerInsightRoutes } from "./routes/insights";
 import { registerAskRoutes } from "./routes/ask";
+import { registerShortcutRoutes } from "./routes/shortcuts";
 
 const householdContext = householdContextMiddleware;
 
@@ -104,6 +105,7 @@ export async function registerRoutes(
   registerJobRoutes(v1);
   registerInsightRoutes(v1);
   registerAskRoutes(v1);
+  registerShortcutRoutes(v1);
 
   app.use("/api/v1", v1);
   app.use("/api", v1);

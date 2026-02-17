@@ -1,0 +1,34 @@
+{
+  "name": "How Much Have I Spent?",
+  "description": "Check your household spending this month via hndld",
+  "icon": "dollarsign.circle",
+  "color": "navy",
+  "actions": [
+    {
+      "type": "comment",
+      "text": "Replace YOUR_API_TOKEN with the token from hndld Settings > Siri Shortcuts"
+    },
+    {
+      "type": "getContentsOfURL",
+      "method": "GET",
+      "url": "{{BASE_URL}}/api/v1/shortcuts/spending",
+      "headers": {
+        "Authorization": "Bearer YOUR_API_TOKEN",
+        "Content-Type": "application/json"
+      }
+    },
+    {
+      "type": "getValueForKey",
+      "key": "spoken"
+    },
+    {
+      "type": "speakText"
+    }
+  ],
+  "setup": {
+    "variables": {
+      "BASE_URL": "Your hndld app URL",
+      "YOUR_API_TOKEN": "Your API token from Settings > Siri Shortcuts"
+    }
+  }
+}

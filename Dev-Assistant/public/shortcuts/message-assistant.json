@@ -1,0 +1,44 @@
+{
+  "name": "Message My Assistant",
+  "description": "Send a quick message or request to your household assistant via hndld",
+  "icon": "message",
+  "color": "navy",
+  "actions": [
+    {
+      "type": "comment",
+      "text": "Replace YOUR_API_TOKEN with the token from hndld Settings > Siri Shortcuts"
+    },
+    {
+      "type": "askForInput",
+      "inputType": "text",
+      "prompt": "What would you like to tell your assistant?"
+    },
+    {
+      "type": "getContentsOfURL",
+      "method": "POST",
+      "url": "{{BASE_URL}}/api/v1/shortcuts/message",
+      "headers": {
+        "Authorization": "Bearer YOUR_API_TOKEN",
+        "Content-Type": "application/json"
+      },
+      "body": {
+        "message": "{{Provided Input}}",
+        "category": "HOUSEHOLD",
+        "urgency": "MEDIUM"
+      }
+    },
+    {
+      "type": "getValueForKey",
+      "key": "spoken"
+    },
+    {
+      "type": "speakText"
+    }
+  ],
+  "setup": {
+    "variables": {
+      "BASE_URL": "Your hndld app URL",
+      "YOUR_API_TOKEN": "Your API token from Settings > Siri Shortcuts"
+    }
+  }
+}
