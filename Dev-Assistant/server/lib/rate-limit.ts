@@ -8,7 +8,7 @@ export const apiLimiter = rateLimit({
     retryAfter: "15 minutes",
   },
   standardHeaders: true,
-  legacyHeaders: false,
+  legacyHeaders: true,
   skip: (req) => req.path === "/health",
 });
 
@@ -20,7 +20,7 @@ export const authLimiter = rateLimit({
     retryAfter: "15 minutes",
   },
   standardHeaders: true,
-  legacyHeaders: false,
+  legacyHeaders: true,
   validate: { xForwardedForHeader: false },
 });
 
@@ -32,7 +32,7 @@ export const expensiveLimiter = rateLimit({
     retryAfter: "1 hour",
   },
   standardHeaders: true,
-  legacyHeaders: false,
+  legacyHeaders: true,
 });
 
 export const criticalLimiter = rateLimit({
@@ -43,5 +43,5 @@ export const criticalLimiter = rateLimit({
     retryAfter: "24 hours",
   },
   standardHeaders: true,
-  legacyHeaders: false,
+  legacyHeaders: true,
 });
