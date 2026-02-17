@@ -1428,6 +1428,65 @@ export type InsertUserEngagement = z.infer<typeof insertUserEngagementSchema>;
 export type ApiToken = typeof apiTokens.$inferSelect;
 export type InsertApiToken = typeof apiTokens.$inferInsert;
 
+// Celebration enums
+export const celebrationTypeEnum = pgEnum("celebration_type", ["ANNIVERSARY", "MILESTONE", "SEASONAL", "PATTERN_REMINDER"]);
+export const celebrationStatusEnum = pgEnum("celebration_status", ["ACTIVE", "SEEN", "DISMISSED", "SHARED"]);
+export const handwrittenNoteStatusEnum = pgEnum("handwritten_note_status", ["QUEUED", "APPROVED", "SENT", "DELIVERED"]);
+
+// Celebrations & Milestones
+export const celebrations = pgTable("celebrations", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  householdId: varchar("household_id").references(() => households.id).notNull(),
+  userId: varchar("user_id").notNull(),
+  type: celebrationTypeEnum("type").notNull(),
+  status: celebrationStatusEnum("status").default("ACTIVE").notNull(),
+  title: text("title").notNull(),
+  subtitle: text("subtitle"),
+  message: text("message").notNull(),
+  data: jsonb("data").$type<Record<string, unknown>>().default({}),
+  graphicUrl: text("graphic_url"),
+  shareableHtml: text("shareable_html"),
+  triggeredAt: timestamp("triggered_at").defaultNow().notNull(),
+  seenAt: timestamp("seen_at"),
+  sharedAt: timestamp("shared_at"),
+  expiresAt: timestamp("expires_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("celebrations_household_idx").on(table.householdId),
+  index("celebrations_user_idx").on(table.userId),
+  index("celebrations_type_idx").on(table.type),
+  index("celebrations_status_idx").on(table.householdId, table.status),
+]);
+
+export const handwrittenNotes = pgTable("handwritten_notes", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  householdId: varchar("household_id").references(() => households.id).notNull(),
+  userId: varchar("user_id").notNull(),
+  recipientName: text("recipient_name").notNull(),
+  recipientAddress: text("recipient_address"),
+  message: text("message").notNull(),
+  occasion: text("occasion").notNull(),
+  status: handwrittenNoteStatusEnum("status").default("QUEUED").notNull(),
+  scheduledFor: timestamp("scheduled_for"),
+  sentAt: timestamp("sent_at"),
+  deliveredAt: timestamp("delivered_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  index("handwritten_notes_household_idx").on(table.householdId),
+  index("handwritten_notes_user_idx").on(table.userId),
+  index("handwritten_notes_status_idx").on(table.status),
+]);
+
+export const insertCelebrationSchema = createInsertSchema(celebrations).omit({ id: true, createdAt: true });
+export const insertHandwrittenNoteSchema = createInsertSchema(handwrittenNotes).omit({ id: true, createdAt: true, updatedAt: true });
+
+// Celebration & Note Types
+export type Celebration = typeof celebrations.$inferSelect;
+export type InsertCelebration = z.infer<typeof insertCelebrationSchema>;
+export type HandwrittenNote = typeof handwrittenNotes.$inferSelect;
+export type InsertHandwrittenNote = z.infer<typeof insertHandwrittenNoteSchema>;
+
 // Network & Social Insert Schemas
 export const insertHouseholdConnectionSchema = createInsertSchema(householdConnections).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertVendorReviewSchema = createInsertSchema(vendorReviews).omit({ id: true, createdAt: true, updatedAt: true });

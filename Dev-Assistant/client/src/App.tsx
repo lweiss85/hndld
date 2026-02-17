@@ -51,6 +51,7 @@ const Addons = lazy(() => import("@/pages/addons"));
 const Schedule = lazy(() => import("@/pages/schedule"));
 const ManageAddons = lazy(() => import("@/pages/manage-addons"));
 const Network = lazy(() => import("@/pages/network"));
+const Celebrations = lazy(() => import("@/pages/celebrations"));
 
 function LoadingScreen() {
   return (
@@ -101,6 +102,7 @@ function ClientRouter() {
         <Route path="/schedule" component={Schedule} />
         <Route path="/insights" component={Insights} />
         <Route path="/network" component={Network} />
+        <Route path="/celebrations" component={Celebrations} />
         <Route component={NotFound} />
       </Switch>
     </Suspense>
@@ -134,6 +136,7 @@ function AssistantRouter() {
         <Route path="/pay"><Redirect to="/get-paid" /></Route>
         <Route path="/manage-addons" component={ManageAddons} />
         <Route path="/network" component={Network} />
+        <Route path="/celebrations" component={Celebrations} />
         <Route component={NotFound} />
       </Switch>
     </Suspense>
