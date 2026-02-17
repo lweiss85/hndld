@@ -1,4 +1,5 @@
-import type { Request, Response } from "express";
+import type { Request, Response, NextFunction } from "express";
+import { AppError, badRequest, forbidden, internalError, notFound, unauthorized, validationError } from "../lib/errors";
 import type { Router } from "express";
 import { storage } from "../storage";
 import logger from "../lib/logger";
@@ -48,14 +49,14 @@ export function registerFeatureRoutes(app: Router) {
    *       500:
    *         description: Server error
    */
-  app.get("/analytics/dashboard", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/analytics/dashboard", isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       const profile = await getUserProfile(userId);
       
       if (profile?.role !== "ASSISTANT") {
-        return res.status(403).json({ message: "Analytics available for assistants only" });
+        throw forbidden("Analytics available for assistants only");
       }
 
       const period = (req.query.period as "week" | "month" | "quarter" | "year") || "month";
@@ -64,7 +65,7 @@ export function registerFeatureRoutes(app: Router) {
       res.json(dashboard);
     } catch (error) {
       logger.error("Error fetching analytics", { error, userId, householdId });
-      res.status(500).json({ message: "Failed to fetch analytics" });
+      next(internalError("Failed to fetch analytics"));
     }
   });
 
@@ -93,14 +94,14 @@ export function registerFeatureRoutes(app: Router) {
    *       500:
    *         description: Server error
    */
-  app.get("/analytics/tasks-over-time", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/analytics/tasks-over-time", isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       const profile = await getUserProfile(userId);
       
       if (profile?.role !== "ASSISTANT") {
-        return res.status(403).json({ message: "Analytics available for assistants only" });
+        throw forbidden("Analytics available for assistants only");
       }
 
       const period = (req.query.period as "week" | "month" | "quarter" | "year") || "month";
@@ -109,7 +110,7 @@ export function registerFeatureRoutes(app: Router) {
       res.json(data);
     } catch (error) {
       logger.error("Error fetching tasks over time", { error, userId, householdId });
-      res.status(500).json({ message: "Failed to fetch analytics" });
+      next(internalError("Failed to fetch analytics"));
     }
   });
 
@@ -136,7 +137,7 @@ export function registerFeatureRoutes(app: Router) {
    *       500:
    *         description: Server error
    */
-  app.get("/analytics/tasks-by-category", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/analytics/tasks-by-category", isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -147,7 +148,7 @@ export function registerFeatureRoutes(app: Router) {
       res.json(data);
     } catch (error) {
       logger.error("Error fetching tasks by category", { error, userId, householdId });
-      res.status(500).json({ message: "Failed to fetch analytics" });
+      next(internalError("Failed to fetch analytics"));
     }
   });
 
@@ -168,7 +169,7 @@ export function registerFeatureRoutes(app: Router) {
    *       500:
    *         description: Server error
    */
-  app.get("/analytics/client-summary", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/analytics/client-summary", isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -178,7 +179,7 @@ export function registerFeatureRoutes(app: Router) {
       res.json(summary);
     } catch (error) {
       logger.error("Error generating client summary", { error, userId, householdId });
-      res.status(500).json({ message: "Failed to generate summary" });
+      next(internalError("Failed to generate summary"));
     }
   });
 
@@ -204,7 +205,7 @@ export function registerFeatureRoutes(app: Router) {
    *       500:
    *         description: Server error
    */
-  app.get("/analytics/stats", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/analytics/stats", isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const householdId = req.householdId!;
       const period = (req.query.period as string) || "30d";
@@ -214,7 +215,7 @@ export function registerFeatureRoutes(app: Router) {
       res.json(stats);
     } catch (error) {
       logger.error("Error fetching analytics stats", { error, householdId });
-      res.status(500).json({ message: "Failed to fetch analytics" });
+      next(internalError("Failed to fetch analytics"));
     }
   });
 
@@ -240,7 +241,7 @@ export function registerFeatureRoutes(app: Router) {
    *       500:
    *         description: Server error
    */
-  app.get("/analytics/task-breakdown", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/analytics/task-breakdown", isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const householdId = req.householdId!;
       const period = (req.query.period as string) || "30d";
@@ -250,7 +251,7 @@ export function registerFeatureRoutes(app: Router) {
       res.json(breakdown);
     } catch (error) {
       logger.error("Error fetching task breakdown", { error, householdId });
-      res.status(500).json({ message: "Failed to fetch analytics" });
+      next(internalError("Failed to fetch analytics"));
     }
   });
 
@@ -276,7 +277,7 @@ export function registerFeatureRoutes(app: Router) {
    *       500:
    *         description: Server error
    */
-  app.get("/analytics/spending-breakdown", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/analytics/spending-breakdown", isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const householdId = req.householdId!;
       const period = (req.query.period as string) || "30d";
@@ -286,7 +287,7 @@ export function registerFeatureRoutes(app: Router) {
       res.json(breakdown);
     } catch (error) {
       logger.error("Error fetching spending breakdown", { error, householdId });
-      res.status(500).json({ message: "Failed to fetch analytics" });
+      next(internalError("Failed to fetch analytics"));
     }
   });
 
@@ -312,7 +313,7 @@ export function registerFeatureRoutes(app: Router) {
    *       500:
    *         description: Server error
    */
-  app.get("/analytics/timeline", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/analytics/timeline", isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const householdId = req.householdId!;
       const period = (req.query.period as string) || "30d";
@@ -322,7 +323,7 @@ export function registerFeatureRoutes(app: Router) {
       res.json(timeline);
     } catch (error) {
       logger.error("Error fetching timeline", { error, householdId });
-      res.status(500).json({ message: "Failed to fetch analytics" });
+      next(internalError("Failed to fetch analytics"));
     }
   });
 
@@ -348,7 +349,7 @@ export function registerFeatureRoutes(app: Router) {
    *       500:
    *         description: Server error
    */
-  app.get("/analytics/performance", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/analytics/performance", isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const householdId = req.householdId!;
       const period = (req.query.period as string) || "30d";
@@ -358,7 +359,7 @@ export function registerFeatureRoutes(app: Router) {
       res.json(performance);
     } catch (error) {
       logger.error("Error fetching performance", { error, householdId });
-      res.status(500).json({ message: "Failed to fetch analytics" });
+      next(internalError("Failed to fetch analytics"));
     }
   });
 
@@ -383,7 +384,7 @@ export function registerFeatureRoutes(app: Router) {
    *       500:
    *         description: Server error
    */
-  app.get("/emergency/contacts", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/emergency/contacts", isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -393,7 +394,7 @@ export function registerFeatureRoutes(app: Router) {
       res.json(contacts);
     } catch (error) {
       logger.error("Error fetching emergency contacts", { error, userId, householdId });
-      res.status(500).json({ message: "Failed to fetch contacts" });
+      next(internalError("Failed to fetch contacts"));
     }
   });
 
@@ -422,14 +423,14 @@ export function registerFeatureRoutes(app: Router) {
    *       500:
    *         description: Server error
    */
-  app.post("/emergency/contacts", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.post("/emergency/contacts", isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       const profile = await getUserProfile(userId);
       
       if (profile?.role !== "ASSISTANT") {
-        return res.status(403).json({ message: "Only assistants can manage contacts" });
+        throw forbidden("Only assistants can manage contacts");
       }
 
       const [contact] = await db.insert(emergencyContacts)
@@ -438,7 +439,7 @@ export function registerFeatureRoutes(app: Router) {
       res.status(201).json(contact);
     } catch (error) {
       logger.error("Error creating emergency contact", { error, userId, householdId });
-      res.status(500).json({ message: "Failed to create contact" });
+      next(internalError("Failed to create contact"));
     }
   });
 
@@ -474,21 +475,21 @@ export function registerFeatureRoutes(app: Router) {
    *       500:
    *         description: Server error
    */
-  app.patch("/emergency/contacts/:id", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.patch("/emergency/contacts/:id", isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       const profile = await getUserProfile(userId);
       
       if (profile?.role !== "ASSISTANT") {
-        return res.status(403).json({ message: "Only assistants can manage contacts" });
+        throw forbidden("Only assistants can manage contacts");
       }
 
       const [existing] = await db.select().from(emergencyContacts)
         .where(eq(emergencyContacts.id, req.params.id));
       
       if (!existing || existing.householdId !== householdId) {
-        return res.status(404).json({ message: "Contact not found" });
+        throw notFound("Contact not found");
       }
 
       const [updated] = await db.update(emergencyContacts)
@@ -498,7 +499,7 @@ export function registerFeatureRoutes(app: Router) {
       res.json(updated);
     } catch (error) {
       logger.error("Error updating emergency contact", { error, userId, householdId, contactId: req.params.id });
-      res.status(500).json({ message: "Failed to update contact" });
+      next(internalError("Failed to update contact"));
     }
   });
 
@@ -528,28 +529,28 @@ export function registerFeatureRoutes(app: Router) {
    *       500:
    *         description: Server error
    */
-  app.delete("/emergency/contacts/:id", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.delete("/emergency/contacts/:id", isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       const profile = await getUserProfile(userId);
       
       if (profile?.role !== "ASSISTANT") {
-        return res.status(403).json({ message: "Only assistants can manage contacts" });
+        throw forbidden("Only assistants can manage contacts");
       }
 
       const [existing] = await db.select().from(emergencyContacts)
         .where(eq(emergencyContacts.id, req.params.id));
       
       if (!existing || existing.householdId !== householdId) {
-        return res.status(404).json({ message: "Contact not found" });
+        throw notFound("Contact not found");
       }
 
       await db.delete(emergencyContacts).where(eq(emergencyContacts.id, req.params.id));
       res.json({ success: true });
     } catch (error) {
       logger.error("Error deleting emergency contact", { error, userId, householdId, contactId: req.params.id });
-      res.status(500).json({ message: "Failed to delete contact" });
+      next(internalError("Failed to delete contact"));
     }
   });
 
@@ -570,7 +571,7 @@ export function registerFeatureRoutes(app: Router) {
    *       500:
    *         description: Server error
    */
-  app.get("/emergency/protocols", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/emergency/protocols", isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -580,7 +581,7 @@ export function registerFeatureRoutes(app: Router) {
       res.json(protocols);
     } catch (error) {
       logger.error("Error fetching protocols", { error, userId, householdId });
-      res.status(500).json({ message: "Failed to fetch protocols" });
+      next(internalError("Failed to fetch protocols"));
     }
   });
 
@@ -609,14 +610,14 @@ export function registerFeatureRoutes(app: Router) {
    *       500:
    *         description: Server error
    */
-  app.post("/emergency/protocols", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.post("/emergency/protocols", isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       const profile = await getUserProfile(userId);
       
       if (profile?.role !== "ASSISTANT") {
-        return res.status(403).json({ message: "Only assistants can manage protocols" });
+        throw forbidden("Only assistants can manage protocols");
       }
 
       const [protocol] = await db.insert(emergencyProtocols)
@@ -625,7 +626,7 @@ export function registerFeatureRoutes(app: Router) {
       res.status(201).json(protocol);
     } catch (error) {
       logger.error("Error creating protocol", { error, userId, householdId });
-      res.status(500).json({ message: "Failed to create protocol" });
+      next(internalError("Failed to create protocol"));
     }
   });
 
@@ -650,7 +651,7 @@ export function registerFeatureRoutes(app: Router) {
    *       500:
    *         description: Server error
    */
-  app.get("/conversations", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/conversations", isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -661,7 +662,7 @@ export function registerFeatureRoutes(app: Router) {
       res.json(convos.reverse());
     } catch (error) {
       logger.error("Error fetching conversations", { error, userId, householdId });
-      res.status(500).json({ message: "Failed to fetch conversations" });
+      next(internalError("Failed to fetch conversations"));
     }
   });
 
@@ -697,7 +698,7 @@ export function registerFeatureRoutes(app: Router) {
    *       500:
    *         description: Server error
    */
-  app.post("/conversations", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.post("/conversations", isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -714,7 +715,7 @@ export function registerFeatureRoutes(app: Router) {
       res.status(201).json(convo);
     } catch (error) {
       logger.error("Error creating conversation", { error, userId, householdId });
-      res.status(500).json({ message: "Failed to create conversation" });
+      next(internalError("Failed to create conversation"));
     }
   });
 
@@ -743,7 +744,7 @@ export function registerFeatureRoutes(app: Router) {
    *       500:
    *         description: Server error
    */
-  app.get("/conversations/:id/messages", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/conversations/:id/messages", isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -753,7 +754,7 @@ export function registerFeatureRoutes(app: Router) {
         .where(eq(conversations.id, conversationId));
       
       if (!convo || convo.householdId !== householdId) {
-        return res.status(404).json({ message: "Conversation not found" });
+        throw notFound("Conversation not found");
       }
 
       const msgs = await db.select().from(messages)
@@ -762,7 +763,7 @@ export function registerFeatureRoutes(app: Router) {
       res.json(msgs);
     } catch (error) {
       logger.error("Error fetching messages", { error, userId, householdId, conversationId });
-      res.status(500).json({ message: "Failed to fetch messages" });
+      next(internalError("Failed to fetch messages"));
     }
   });
 
@@ -809,7 +810,7 @@ export function registerFeatureRoutes(app: Router) {
    *       500:
    *         description: Server error
    */
-  app.post("/conversations/:id/messages", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.post("/conversations/:id/messages", isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -817,18 +818,18 @@ export function registerFeatureRoutes(app: Router) {
       const { text, attachments, isVoice, voiceTranscription } = req.body;
 
       if (!text || typeof text !== "string" || text.trim().length === 0) {
-        return res.status(400).json({ message: "Message text is required" });
+        throw badRequest("Message text is required");
       }
 
       if (text.length > 10000) {
-        return res.status(400).json({ message: "Message too long" });
+        throw badRequest("Message too long");
       }
 
       const [convo] = await db.select().from(conversations)
         .where(eq(conversations.id, conversationId));
       
       if (!convo || convo.householdId !== householdId) {
-        return res.status(404).json({ message: "Conversation not found" });
+        throw notFound("Conversation not found");
       }
 
       const [msg] = await db.insert(messages)
@@ -850,7 +851,7 @@ export function registerFeatureRoutes(app: Router) {
       res.status(201).json(msg);
     } catch (error) {
       logger.error("Error sending message", { error, userId, householdId, conversationId });
-      res.status(500).json({ message: "Failed to send message" });
+      next(internalError("Failed to send message"));
     }
   });
 
@@ -879,7 +880,7 @@ export function registerFeatureRoutes(app: Router) {
    *       500:
    *         description: Server error
    */
-  app.patch("/messages/:id/read", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.patch("/messages/:id/read", isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -889,7 +890,7 @@ export function registerFeatureRoutes(app: Router) {
         .where(eq(messages.id, messageId));
       
       if (!msg) {
-        return res.status(404).json({ message: "Message not found" });
+        throw notFound("Message not found");
       }
 
       const [convo] = await db.select().from(conversations)
@@ -899,7 +900,7 @@ export function registerFeatureRoutes(app: Router) {
         ));
       
       if (!convo) {
-        return res.status(404).json({ message: "Message not found" });
+        throw notFound("Message not found");
       }
 
       const readBy = msg.readBy || [];
@@ -913,7 +914,7 @@ export function registerFeatureRoutes(app: Router) {
       res.json({ success: true });
     } catch (error) {
       logger.error("Error marking message read", { error, userId, householdId, messageId });
-      res.status(500).json({ message: "Failed to mark as read" });
+      next(internalError("Failed to mark as read"));
     }
   });
 
@@ -983,11 +984,11 @@ export function registerFeatureRoutes(app: Router) {
    *       500:
    *         description: Server error
    */
-  app.post("/ai/parse-request", expensiveLimiter, isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.post("/ai/parse-request", expensiveLimiter, isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { text } = req.body;
       if (!text) {
-        return res.status(400).json({ message: "Text required" });
+        throw badRequest("Text required");
       }
 
       const { parseRequest } = await import("../services/ai-provider");
@@ -995,7 +996,7 @@ export function registerFeatureRoutes(app: Router) {
       res.json(parsed);
     } catch (error) {
       logger.error("Error parsing request", { error });
-      res.status(500).json({ message: "Failed to parse request" });
+      next(internalError("Failed to parse request"));
     }
   });
 
@@ -1025,7 +1026,7 @@ export function registerFeatureRoutes(app: Router) {
    *       500:
    *         description: Server error
    */
-  app.get("/ai/weekly-brief", expensiveLimiter, isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/ai/weekly-brief", expensiveLimiter, isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -1070,7 +1071,7 @@ export function registerFeatureRoutes(app: Router) {
       }
     } catch (error) {
       logger.error("Error generating brief", { error, userId, householdId });
-      res.status(500).json({ message: "Failed to generate brief" });
+      next(internalError("Failed to generate brief"));
     }
   });
 
@@ -1103,11 +1104,11 @@ export function registerFeatureRoutes(app: Router) {
    *       500:
    *         description: Server error
    */
-  app.post("/ai/transcribe", expensiveLimiter, isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.post("/ai/transcribe", expensiveLimiter, isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { audioBase64 } = req.body;
       if (!audioBase64 || typeof audioBase64 !== "string") {
-        return res.status(400).json({ message: "Audio data required" });
+        throw badRequest("Audio data required");
       }
 
       const { transcribeVoice } = await import("../services/ai-provider");
@@ -1115,7 +1116,7 @@ export function registerFeatureRoutes(app: Router) {
       res.json({ transcription });
     } catch (error) {
       logger.error("Error transcribing voice", { error });
-      res.status(500).json({ message: "Failed to transcribe voice" });
+      next(internalError("Failed to transcribe voice"));
     }
   });
 
@@ -1136,7 +1137,7 @@ export function registerFeatureRoutes(app: Router) {
    *       500:
    *         description: Server error
    */
-  app.post("/ai/smart-actions", expensiveLimiter, isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.post("/ai/smart-actions", expensiveLimiter, isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -1157,7 +1158,7 @@ export function registerFeatureRoutes(app: Router) {
       res.json({ suggestions });
     } catch (error) {
       logger.error("Error getting smart actions", { error, userId, householdId });
-      res.status(500).json({ message: "Failed to get suggestions" });
+      next(internalError("Failed to get suggestions"));
     }
   });
 
@@ -1192,13 +1193,13 @@ export function registerFeatureRoutes(app: Router) {
    *       500:
    *         description: Server error
    */
-  app.post("/ai/chat", expensiveLimiter, isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.post("/ai/chat", expensiveLimiter, isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const householdId = req.householdId!;
       const { messages } = req.body;
 
       if (!messages || !Array.isArray(messages) || messages.length === 0) {
-        return res.status(400).json({ message: "Messages array required" });
+        throw badRequest("Messages array required");
       }
 
       const { chat } = await import("../services/ai-chat");
@@ -1206,7 +1207,7 @@ export function registerFeatureRoutes(app: Router) {
       res.json(result);
     } catch (error) {
       logger.error("Error in AI chat", { error, householdId });
-      res.status(500).json({ message: "Failed to process chat" });
+      next(internalError("Failed to process chat"));
     }
   });
 
@@ -1245,14 +1246,14 @@ export function registerFeatureRoutes(app: Router) {
    *       500:
    *         description: Server error
    */
-  app.post("/ai/chat/create-request", expensiveLimiter, isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.post("/ai/chat/create-request", expensiveLimiter, isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       const { title, description, category, urgency } = req.body;
 
       if (!title) {
-        return res.status(400).json({ message: "Title is required" });
+        throw badRequest("Title is required");
       }
 
       const requestData = {
@@ -1275,7 +1276,7 @@ export function registerFeatureRoutes(app: Router) {
       });
     } catch (error) {
       logger.error("Error creating request from chat", { error, userId, householdId });
-      res.status(500).json({ message: "Failed to create request" });
+      next(internalError("Failed to create request"));
     }
   });
 
@@ -1311,13 +1312,13 @@ export function registerFeatureRoutes(app: Router) {
    *       500:
    *         description: Server error
    */
-  app.post("/ai/parse-smart", expensiveLimiter, isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.post("/ai/parse-smart", expensiveLimiter, isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const householdId = req.householdId!;
       const { text, useAI = true } = req.body;
 
       if (!text || text.length < 3) {
-        return res.status(400).json({ message: "Request text too short" });
+        throw badRequest("Request text too short");
       }
 
       const { parseNaturalLanguageRequest, quickParseRequest } = await import("../services/ai-chat");
@@ -1340,7 +1341,7 @@ export function registerFeatureRoutes(app: Router) {
       res.json({ ...result, usedAI: true });
     } catch (error) {
       logger.error("Error parsing smart request", { error, householdId });
-      res.status(500).json({ message: "Failed to parse request" });
+      next(internalError("Failed to parse request"));
     }
   });
 
@@ -1361,7 +1362,7 @@ export function registerFeatureRoutes(app: Router) {
    *       500:
    *         description: Server error
    */
-  app.get("/ai/insights", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/ai/insights", isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const householdId = req.householdId!;
       const { getProactiveInsights } = await import("../services/ai-agent");
@@ -1370,7 +1371,7 @@ export function registerFeatureRoutes(app: Router) {
       res.json({ insights });
     } catch (error) {
       logger.error("Error fetching proactive insights", { error, householdId });
-      res.status(500).json({ message: "Failed to fetch insights" });
+      next(internalError("Failed to fetch insights"));
     }
   });
 
@@ -1391,7 +1392,7 @@ export function registerFeatureRoutes(app: Router) {
    *       500:
    *         description: Server error
    */
-  app.post("/ai/insights/refresh", expensiveLimiter, isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.post("/ai/insights/refresh", expensiveLimiter, isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const householdId = req.householdId!;
       const { gatherHouseholdContext, generateProactiveInsights } = await import("../services/ai-agent");
@@ -1402,7 +1403,7 @@ export function registerFeatureRoutes(app: Router) {
       res.json({ insights, generated: insights.length });
     } catch (error) {
       logger.error("Error generating insights", { error, householdId });
-      res.status(500).json({ message: "Failed to generate insights" });
+      next(internalError("Failed to generate insights"));
     }
   });
 
@@ -1429,7 +1430,7 @@ export function registerFeatureRoutes(app: Router) {
    *       500:
    *         description: Server error
    */
-  app.post("/ai/insights/:id/dismiss", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.post("/ai/insights/:id/dismiss", isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { id } = req.params;
       const { dismissInsight } = await import("../services/ai-agent");
@@ -1438,7 +1439,7 @@ export function registerFeatureRoutes(app: Router) {
       res.json({ success: true });
     } catch (error) {
       logger.error("Error dismissing insight", { error, insightId: req.params.id });
-      res.status(500).json({ message: "Failed to dismiss insight" });
+      next(internalError("Failed to dismiss insight"));
     }
   });
 
@@ -1466,13 +1467,13 @@ export function registerFeatureRoutes(app: Router) {
    *       500:
    *         description: Server error
    */
-  app.get("/ai/estimate-duration", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/ai/estimate-duration", isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const householdId = req.householdId!;
       const { category } = req.query;
       
       if (!category) {
-        return res.status(400).json({ message: "Category required" });
+        throw badRequest("Category required");
       }
       
       const { getSmartEstimate } = await import("../services/ai-agent");
@@ -1481,7 +1482,7 @@ export function registerFeatureRoutes(app: Router) {
       res.json(estimate);
     } catch (error) {
       logger.error("Error getting estimate", { error, householdId });
-      res.status(500).json({ message: "Failed to get estimate" });
+      next(internalError("Failed to get estimate"));
     }
   });
 
@@ -1524,22 +1525,20 @@ export function registerFeatureRoutes(app: Router) {
    *       500:
    *         description: Server error
    */
-  app.post("/ai/learn/task-complete", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.post("/ai/learn/task-complete", isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const householdId = req.householdId!;
       const { taskId, category, estimatedMinutes, createdAt, completedAt } = req.body;
       
       if (!taskId || !category || !createdAt || !completedAt) {
-        return res.status(400).json({ 
-          message: "Missing required fields: taskId, category, createdAt, and completedAt are required" 
-        });
+        throw badRequest("Missing required fields: taskId, category, createdAt, and completedAt are required");
       }
       
       const parsedCreatedAt = new Date(createdAt);
       const parsedCompletedAt = new Date(completedAt);
       
       if (isNaN(parsedCreatedAt.getTime()) || isNaN(parsedCompletedAt.getTime())) {
-        return res.status(400).json({ message: "Invalid date format for createdAt or completedAt" });
+        throw badRequest("Invalid date format for createdAt or completedAt");
       }
       
       const { recordTaskCompletion } = await import("../services/ai-agent");
@@ -1556,7 +1555,7 @@ export function registerFeatureRoutes(app: Router) {
       res.json({ success: true });
     } catch (error) {
       logger.error("Error recording task completion", { error, householdId });
-      res.status(500).json({ message: "Failed to record completion" });
+      next(internalError("Failed to record completion"));
     }
   });
 }

@@ -1,4 +1,5 @@
-import type { Request, Response } from "express";
+import type { Request, Response, NextFunction } from "express";
+import { AppError, badRequest, forbidden, internalError, notFound, unauthorized, validationError } from "../lib/errors";
 import type { Router } from "express";
 import express from "express";
 import { storage } from "../storage";
@@ -49,13 +50,13 @@ export function registerAdminOpsRoutes(app: Router) {
    *       500:
    *         description: Failed to export data
    */
-  app.get("/admin/export", isAuthenticated, householdContext, requirePermission("CAN_ADMIN_EXPORTS"), async (req: Request, res: Response) => {
+  app.get("/admin/export", isAuthenticated, householdContext, requirePermission("CAN_ADMIN_EXPORTS"), async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const profile = await getUserProfile(userId);
       
       if (profile?.role !== "ASSISTANT") {
-        return res.status(403).json({ message: "Only assistants can export data" });
+        throw forbidden("Only assistants can export data");
       }
 
       const data = await exportAllData();
@@ -65,7 +66,7 @@ export function registerAdminOpsRoutes(app: Router) {
       });
     } catch (error) {
       logger.error("Error exporting data", { error, userId });
-      res.status(500).json({ message: "Failed to export data" });
+      next(internalError("Failed to export data"));
     }
   });
 
@@ -88,13 +89,13 @@ export function registerAdminOpsRoutes(app: Router) {
    *       500:
    *         description: Failed to trigger sync
    */
-  app.post("/admin/sync-calendars", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.post("/admin/sync-calendars", isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const profile = await getUserProfile(userId);
       
       if (profile?.role !== "ASSISTANT") {
-        return res.status(403).json({ message: "Only assistants can trigger sync" });
+        throw forbidden("Only assistants can trigger sync");
       }
 
       const jobId = await enqueueJob(JOB_NAMES.CALENDAR_SYNC, { immediate: true });
@@ -105,7 +106,7 @@ export function registerAdminOpsRoutes(app: Router) {
       });
     } catch (error: any) {
       logger.error("Error triggering sync", { error, userId });
-      res.status(500).json({ message: "Failed to trigger sync" });
+      next(internalError("Failed to trigger sync"));
     }
   });
 
@@ -128,13 +129,13 @@ export function registerAdminOpsRoutes(app: Router) {
    *       500:
    *         description: Failed to create backup
    */
-  app.post("/admin/backup", criticalLimiter, isAuthenticated, householdContext, requirePermission("CAN_MANAGE_BACKUPS"), async (req: Request, res: Response) => {
+  app.post("/admin/backup", criticalLimiter, isAuthenticated, householdContext, requirePermission("CAN_MANAGE_BACKUPS"), async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const profile = await getUserProfile(userId);
       
       if (profile?.role !== "ASSISTANT") {
-        return res.status(403).json({ message: "Only assistants can create backups" });
+        throw forbidden("Only assistants can create backups");
       }
 
       const backupPath = await createBackupZip(false);
@@ -147,7 +148,7 @@ export function registerAdminOpsRoutes(app: Router) {
       });
     } catch (error) {
       logger.error("Error creating backup", { error, userId });
-      res.status(500).json({ message: "Failed to create backup" });
+      next(internalError("Failed to create backup"));
     }
   });
 
@@ -170,20 +171,20 @@ export function registerAdminOpsRoutes(app: Router) {
    *       500:
    *         description: Failed to list backups
    */
-  app.get("/admin/backups", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_BACKUPS"), async (req: Request, res: Response) => {
+  app.get("/admin/backups", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_BACKUPS"), async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const profile = await getUserProfile(userId);
       
       if (profile?.role !== "ASSISTANT") {
-        return res.status(403).json({ message: "Only assistants can view backups" });
+        throw forbidden("Only assistants can view backups");
       }
 
       const backups = listBackups();
       res.json(backups);
     } catch (error) {
       logger.error("Error listing backups", { error, userId });
-      res.status(500).json({ message: "Failed to list backups" });
+      next(internalError("Failed to list backups"));
     }
   });
 
@@ -219,18 +220,18 @@ export function registerAdminOpsRoutes(app: Router) {
    *       500:
    *         description: Failed to download backup
    */
-  app.get("/admin/backups/:filename/download", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_BACKUPS"), async (req: Request, res: Response) => {
+  app.get("/admin/backups/:filename/download", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_BACKUPS"), async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const profile = await getUserProfile(userId);
       
       if (profile?.role !== "ASSISTANT") {
-        return res.status(403).json({ message: "Only assistants can download backups" });
+        throw forbidden("Only assistants can download backups");
       }
 
       const filepath = getBackupPath(req.params.filename);
       if (!filepath) {
-        return res.status(404).json({ message: "Backup not found" });
+        throw notFound("Backup not found");
       }
 
       res.setHeader("Content-Type", "application/zip");
@@ -238,7 +239,7 @@ export function registerAdminOpsRoutes(app: Router) {
       createReadStream(filepath).pipe(res);
     } catch (error) {
       logger.error("Error downloading backup", { error, userId, filename: req.params.filename });
-      res.status(500).json({ message: "Failed to download backup" });
+      next(internalError("Failed to download backup"));
     }
   });
 
@@ -269,24 +270,24 @@ export function registerAdminOpsRoutes(app: Router) {
    *       500:
    *         description: Failed to delete backup
    */
-  app.delete("/admin/backups/:filename", criticalLimiter, isAuthenticated, householdContext, requirePermission("CAN_MANAGE_BACKUPS"), async (req: Request, res: Response) => {
+  app.delete("/admin/backups/:filename", criticalLimiter, isAuthenticated, householdContext, requirePermission("CAN_MANAGE_BACKUPS"), async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const profile = await getUserProfile(userId);
       
       if (profile?.role !== "ASSISTANT") {
-        return res.status(403).json({ message: "Only assistants can delete backups" });
+        throw forbidden("Only assistants can delete backups");
       }
 
       const success = deleteBackup(req.params.filename);
       if (!success) {
-        return res.status(404).json({ message: "Backup not found" });
+        throw notFound("Backup not found");
       }
 
       res.json({ message: "Backup deleted successfully" });
     } catch (error) {
       logger.error("Error deleting backup", { error, userId, filename: req.params.filename });
-      res.status(500).json({ message: "Failed to delete backup" });
+      next(internalError("Failed to delete backup"));
     }
   });
 
@@ -307,7 +308,7 @@ export function registerAdminOpsRoutes(app: Router) {
    *       500:
    *         description: Failed to migrate vault encryption
    */
-  app.post("/admin/migrate-vault-encryption", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_SETTINGS"), async (req: Request, res: Response) => {
+  app.post("/admin/migrate-vault-encryption", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_SETTINGS"), async (req: Request, res: Response, next: NextFunction) => {
     try {
       const householdId = req.householdId!;
       const accessItems = await storage.getAccessItems(householdId);
@@ -341,7 +342,7 @@ export function registerAdminOpsRoutes(app: Router) {
       });
     } catch (error) {
       logger.error("Error migrating vault encryption", { error, householdId });
-      res.status(500).json({ message: "Failed to migrate vault encryption" });
+      next(internalError("Failed to migrate vault encryption"));
     }
   });
 
@@ -364,20 +365,20 @@ export function registerAdminOpsRoutes(app: Router) {
    *       500:
    *         description: Failed to get backup settings
    */
-  app.get("/admin/backup-settings", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/admin/backup-settings", isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const profile = await getUserProfile(userId);
       
       if (profile?.role !== "ASSISTANT") {
-        return res.status(403).json({ message: "Only assistants can view backup settings" });
+        throw forbidden("Only assistants can view backup settings");
       }
 
       const settings = getBackupSettings();
       res.json(settings);
     } catch (error) {
       logger.error("Error getting backup settings", { error, userId });
-      res.status(500).json({ message: "Failed to get backup settings" });
+      next(internalError("Failed to get backup settings"));
     }
   });
 
@@ -406,13 +407,13 @@ export function registerAdminOpsRoutes(app: Router) {
    *       500:
    *         description: Failed to update backup settings
    */
-  app.patch("/admin/backup-settings", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_BACKUPS"), async (req: Request, res: Response) => {
+  app.patch("/admin/backup-settings", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_BACKUPS"), async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const profile = await getUserProfile(userId);
       
       if (profile?.role !== "ASSISTANT") {
-        return res.status(403).json({ message: "Only assistants can update backup settings" });
+        throw forbidden("Only assistants can update backup settings");
       }
 
       const settings = saveBackupSettings(req.body);
@@ -421,7 +422,7 @@ export function registerAdminOpsRoutes(app: Router) {
       res.json(settings);
     } catch (error) {
       logger.error("Error updating backup settings", { error, userId });
-      res.status(500).json({ message: "Failed to update backup settings" });
+      next(internalError("Failed to update backup settings"));
     }
   });
 
@@ -446,19 +447,19 @@ export function registerAdminOpsRoutes(app: Router) {
    *       500:
    *         description: Failed to get organization
    */
-  app.get("/organizations/mine", isAuthenticated, async (req: Request, res: Response) => {
+  app.get("/organizations/mine", isAuthenticated, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const org = await storage.getOrganizationByOwner(userId);
       
       if (!org) {
-        return res.status(404).json({ message: "No organization found" });
+        throw notFound("No organization found");
       }
       
       res.json(org);
     } catch (error) {
       logger.error("Error getting organization", { error, userId });
-      res.status(500).json({ message: "Failed to get organization" });
+      next(internalError("Failed to get organization"));
     }
   });
 
@@ -477,14 +478,14 @@ export function registerAdminOpsRoutes(app: Router) {
    *       500:
    *         description: Failed to get organizations
    */
-  app.get("/organizations", isAuthenticated, async (req: Request, res: Response) => {
+  app.get("/organizations", isAuthenticated, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const orgs = await storage.getOrganizationsByOwner(userId);
       res.json(orgs);
     } catch (error) {
       logger.error("Error getting organizations", { error, userId });
-      res.status(500).json({ message: "Failed to get organizations" });
+      next(internalError("Failed to get organizations"));
     }
   });
 
@@ -514,24 +515,24 @@ export function registerAdminOpsRoutes(app: Router) {
    *       500:
    *         description: Failed to get organization
    */
-  app.get("/organizations/:id", isAuthenticated, async (req: Request, res: Response) => {
+  app.get("/organizations/:id", isAuthenticated, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const org = await storage.getOrganization(req.params.id);
       
       if (!org) {
-        return res.status(404).json({ message: "Organization not found" });
+        throw notFound("Organization not found");
       }
       
       // Only owner can view their organization details
       if (org.ownerId !== userId) {
-        return res.status(403).json({ message: "Access denied" });
+        throw forbidden("Access denied");
       }
       
       res.json(org);
     } catch (error) {
       logger.error("Error getting organization", { error, userId, organizationId: req.params.id });
-      res.status(500).json({ message: "Failed to get organization" });
+      next(internalError("Failed to get organization"));
     }
   });
 
@@ -560,14 +561,14 @@ export function registerAdminOpsRoutes(app: Router) {
    *       500:
    *         description: Failed to create organization
    */
-  app.post("/organizations", isAuthenticated, async (req: Request, res: Response) => {
+  app.post("/organizations", isAuthenticated, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const profile = await getUserProfile(userId);
       
       // Only assistants can create organizations
       if (profile?.role !== "ASSISTANT") {
-        return res.status(403).json({ message: "Only assistants can create organizations" });
+        throw forbidden("Only assistants can create organizations");
       }
 
       const validatedData = insertOrganizationSchema.parse({
@@ -580,9 +581,9 @@ export function registerAdminOpsRoutes(app: Router) {
     } catch (error) {
       logger.error("Error creating organization", { error, userId });
       if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: "Invalid data", errors: error.errors });
+        return next(validationError("Invalid data", error.errors));
       }
-      res.status(500).json({ message: "Failed to create organization" });
+      next(internalError("Failed to create organization"));
     }
   });
 
@@ -618,25 +619,25 @@ export function registerAdminOpsRoutes(app: Router) {
    *       500:
    *         description: Failed to update organization
    */
-  app.patch("/organizations/:id", isAuthenticated, async (req: Request, res: Response) => {
+  app.patch("/organizations/:id", isAuthenticated, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const org = await storage.getOrganization(req.params.id);
       
       if (!org) {
-        return res.status(404).json({ message: "Organization not found" });
+        throw notFound("Organization not found");
       }
       
       // Only owner can update their organization
       if (org.ownerId !== userId) {
-        return res.status(403).json({ message: "Access denied" });
+        throw forbidden("Access denied");
       }
 
       const updatedOrg = await storage.updateOrganization(req.params.id, req.body);
       res.json(updatedOrg);
     } catch (error) {
       logger.error("Error updating organization", { error, userId, organizationId: req.params.id });
-      res.status(500).json({ message: "Failed to update organization" });
+      next(internalError("Failed to update organization"));
     }
   });
 
@@ -666,25 +667,25 @@ export function registerAdminOpsRoutes(app: Router) {
    *       500:
    *         description: Failed to get organization households
    */
-  app.get("/organizations/:id/households", isAuthenticated, async (req: Request, res: Response) => {
+  app.get("/organizations/:id/households", isAuthenticated, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const org = await storage.getOrganization(req.params.id);
       
       if (!org) {
-        return res.status(404).json({ message: "Organization not found" });
+        throw notFound("Organization not found");
       }
       
       // Only owner can view households in their organization
       if (org.ownerId !== userId) {
-        return res.status(403).json({ message: "Access denied" });
+        throw forbidden("Access denied");
       }
 
       const householdsData = await storage.getHouseholdsByOrganization(req.params.id);
       res.json(householdsData);
     } catch (error) {
       logger.error("Error getting organization households", { error, userId, organizationId: req.params.id });
-      res.status(500).json({ message: "Failed to get organization households" });
+      next(internalError("Failed to get organization households"));
     }
   });
 
@@ -722,23 +723,23 @@ export function registerAdminOpsRoutes(app: Router) {
    *       500:
    *         description: Failed to create household
    */
-  app.post("/organizations/:id/households", isAuthenticated, async (req: Request, res: Response) => {
+  app.post("/organizations/:id/households", isAuthenticated, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const profile = await getUserProfile(userId);
       
       if (profile?.role !== "ASSISTANT") {
-        return res.status(403).json({ message: "Only assistants can create households" });
+        throw forbidden("Only assistants can create households");
       }
 
       const org = await storage.getOrganization(req.params.id);
       
       if (!org) {
-        return res.status(404).json({ message: "Organization not found" });
+        throw notFound("Organization not found");
       }
       
       if (org.ownerId !== userId) {
-        return res.status(403).json({ message: "Access denied" });
+        throw forbidden("Access denied");
       }
 
       const validatedData = insertHouseholdSchema.parse({
@@ -751,9 +752,9 @@ export function registerAdminOpsRoutes(app: Router) {
     } catch (error) {
       logger.error("Error creating household", { error, userId, organizationId: req.params.id });
       if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: "Invalid data", errors: error.errors });
+        return next(validationError("Invalid data", error.errors));
       }
-      res.status(500).json({ message: "Failed to create household" });
+      next(internalError("Failed to create household"));
     }
   });
 
@@ -790,13 +791,13 @@ export function registerAdminOpsRoutes(app: Router) {
    *       500:
    *         description: Failed to link household to organization
    */
-  app.patch("/households/:id/organization", isAuthenticated, async (req: Request, res: Response) => {
+  app.patch("/households/:id/organization", isAuthenticated, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const profile = await getUserProfile(userId);
       
       if (profile?.role !== "ASSISTANT") {
-        return res.status(403).json({ message: "Only assistants can link households" });
+        throw forbidden("Only assistants can link households");
       }
 
       const { organizationId } = req.body;
@@ -804,7 +805,7 @@ export function registerAdminOpsRoutes(app: Router) {
       if (organizationId) {
         const org = await storage.getOrganization(organizationId);
         if (!org || org.ownerId !== userId) {
-          return res.status(403).json({ message: "Invalid organization" });
+          throw forbidden("Invalid organization");
         }
       }
 
@@ -812,7 +813,7 @@ export function registerAdminOpsRoutes(app: Router) {
       res.json(household);
     } catch (error) {
       logger.error("Error linking household", { error, userId, householdId: req.params.id });
-      res.status(500).json({ message: "Failed to link household to organization" });
+      next(internalError("Failed to link household to organization"));
     }
   });
 
@@ -854,7 +855,7 @@ export function registerAdminOpsRoutes(app: Router) {
    *       500:
    *         description: Failed to fetch subscription
    */
-  app.get("/billing/subscription", isAuthenticated, async (req: Request, res: Response) => {
+  app.get("/billing/subscription", isAuthenticated, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const profile = await getUserProfile(userId);
@@ -873,7 +874,7 @@ export function registerAdminOpsRoutes(app: Router) {
       res.json(subscription);
     } catch (error) {
       logger.error("Error fetching subscription", { error, userId });
-      res.status(500).json({ message: "Failed to fetch subscription" });
+      next(internalError("Failed to fetch subscription"));
     }
   });
 
@@ -910,17 +911,17 @@ export function registerAdminOpsRoutes(app: Router) {
    *       500:
    *         description: Failed to create checkout session
    */
-  app.post("/billing/checkout", isAuthenticated, async (req: Request, res: Response) => {
+  app.post("/billing/checkout", isAuthenticated, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const profile = await getUserProfile(userId);
       
       if (profile?.role !== "ASSISTANT") {
-        return res.status(403).json({ message: "Only assistants can manage billing" });
+        throw forbidden("Only assistants can manage billing");
       }
 
       if (!profile?.organizationId) {
-        return res.status(400).json({ message: "Organization required for billing" });
+        throw badRequest("Organization required for billing");
       }
 
       const { planId, successUrl, cancelUrl } = req.body;
@@ -936,7 +937,7 @@ export function registerAdminOpsRoutes(app: Router) {
       res.json(session);
     } catch (error) {
       logger.error("Error creating checkout", { error, userId });
-      res.status(500).json({ message: "Failed to create checkout session" });
+      next(internalError("Failed to create checkout session"));
     }
   });
 
@@ -967,17 +968,17 @@ export function registerAdminOpsRoutes(app: Router) {
    *       500:
    *         description: Failed to create billing portal
    */
-  app.post("/billing/portal", isAuthenticated, async (req: Request, res: Response) => {
+  app.post("/billing/portal", isAuthenticated, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const profile = await getUserProfile(userId);
       
       if (profile?.role !== "ASSISTANT") {
-        return res.status(403).json({ message: "Only assistants can manage billing" });
+        throw forbidden("Only assistants can manage billing");
       }
 
       if (!profile?.organizationId) {
-        return res.status(400).json({ message: "Organization required" });
+        throw badRequest("Organization required");
       }
 
       const { createBillingPortalSession } = await import("../services/billing");
@@ -989,7 +990,7 @@ export function registerAdminOpsRoutes(app: Router) {
       res.json(session);
     } catch (error) {
       logger.error("Error creating portal session", { error, userId });
-      res.status(500).json({ message: "Failed to create billing portal" });
+      next(internalError("Failed to create billing portal"));
     }
   });
 
@@ -1008,7 +1009,7 @@ export function registerAdminOpsRoutes(app: Router) {
    *       500:
    *         description: Failed to fetch invoices
    */
-  app.get("/billing/invoices", isAuthenticated, async (req: Request, res: Response) => {
+  app.get("/billing/invoices", isAuthenticated, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const profile = await getUserProfile(userId);
@@ -1022,7 +1023,7 @@ export function registerAdminOpsRoutes(app: Router) {
       res.json(invoiceList);
     } catch (error) {
       logger.error("Error fetching invoices", { error, userId });
-      res.status(500).json({ message: "Failed to fetch invoices" });
+      next(internalError("Failed to fetch invoices"));
     }
   });
 
@@ -1045,20 +1046,20 @@ export function registerAdminOpsRoutes(app: Router) {
    *       500:
    *         description: Webhook handler failed
    */
-  app.post("/billing/webhooks", express.raw({ type: "application/json" }), async (req, res) => {
+  app.post("/billing/webhooks", express.raw({ type: "application/json" }), async (req: Request, res: Response, next: NextFunction) => {
     try {
       const signature = req.headers["stripe-signature"] as string;
       const { handleStripeWebhook } = await import("../services/billing");
       const result = await handleStripeWebhook(req.body, signature);
       
       if (result.isServerError) {
-        return res.status(500).json({ message: result.error, received: false });
+        throw internalError(result.error || "Webhook processing failed");
       }
       
       res.json(result);
     } catch (error) {
       logger.error("Webhook error", { error });
-      res.status(500).json({ message: "Webhook handler failed" });
+      next(internalError("Webhook handler failed"));
     }
   });
 }

@@ -1,4 +1,4 @@
-import type { Request, Response } from "express";
+import type { Request, Response, NextFunction } from "express";
 import type { Router } from "express";
 import { storage } from "../storage";
 import logger from "../lib/logger";
@@ -9,6 +9,7 @@ import { wsManager } from "../services/websocket";
 import { serviceScopeMiddleware, getServiceTypeFilter } from "../middleware/serviceScope";
 import { z } from "zod";
 import { cache, CacheKeys, CacheTTL } from "../lib/cache";
+import { forbidden, notFound, badRequest, internalError, validationError } from "../lib/errors";
 
 const householdContext = householdContextMiddleware;
 
@@ -62,7 +63,7 @@ export function registerApprovalsRoutes(app: Router) {
    *       500:
    *         description: Internal server error
    */
-  app.get("/approvals", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/approvals", isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -94,7 +95,7 @@ export function registerApprovalsRoutes(app: Router) {
       res.json(approvalsWithComments);
     } catch (error) {
       logger.error("Error fetching approvals", { error, householdId, userId });
-      res.status(500).json({ message: "Failed to fetch approvals" });
+      next(internalError("Failed to fetch approvals"));
     }
   });
   
@@ -138,7 +139,7 @@ export function registerApprovalsRoutes(app: Router) {
    *       500:
    *         description: Internal server error
    */
-  app.post("/approvals", isAuthenticated, householdContext, requirePermission("CAN_EDIT_TASKS"), async (req: Request, res: Response) => {
+  app.post("/approvals", isAuthenticated, householdContext, requirePermission("CAN_EDIT_TASKS"), async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -154,7 +155,7 @@ export function registerApprovalsRoutes(app: Router) {
       res.status(201).json(approval);
     } catch (error) {
       logger.error("Error creating approval", { error, householdId, userId });
-      res.status(500).json({ message: "Failed to create approval" });
+      next(internalError("Failed to create approval"));
     }
   });
   
@@ -207,7 +208,7 @@ export function registerApprovalsRoutes(app: Router) {
    *       500:
    *         description: Internal server error
    */
-  app.patch("/approvals/:id", isAuthenticated, householdContext, requirePermission("CAN_APPROVE"), async (req: Request, res: Response) => {
+  app.patch("/approvals/:id", isAuthenticated, householdContext, requirePermission("CAN_APPROVE"), async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -216,7 +217,7 @@ export function registerApprovalsRoutes(app: Router) {
       if (userRole === "STAFF") {
         const existingApproval = await storage.getApproval(householdId, req.params.id);
         if (!existingApproval) {
-          return res.status(404).json({ message: "Approval not found" });
+          throw notFound("Approval not found");
         }
         
         let hasAccess = existingApproval.createdBy === userId;
@@ -227,13 +228,13 @@ export function registerApprovalsRoutes(app: Router) {
         }
         
         if (!hasAccess) {
-          return res.status(403).json({ message: "You can only update approvals you created or related to your assigned tasks" });
+          throw forbidden("You can only update approvals you created or related to your assigned tasks");
         }
       }
       
       const approval = await storage.updateApproval(householdId, req.params.id, req.body);
       if (!approval) {
-        return res.status(404).json({ message: "Approval not found" });
+        throw notFound("Approval not found");
       }
       
       wsManager.broadcast("approval:updated", { id: approval.id, status: approval.status }, householdId, userId);
@@ -241,7 +242,7 @@ export function registerApprovalsRoutes(app: Router) {
       res.json(approval);
     } catch (error) {
       logger.error("Error updating approval", { error, householdId, userId });
-      res.status(500).json({ message: "Failed to update approval" });
+      next(internalError("Failed to update approval"));
     }
   });
   
@@ -327,7 +328,7 @@ export function registerApprovalsRoutes(app: Router) {
    *       500:
    *         description: Internal server error
    */
-  app.get("/updates", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/updates", isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -371,7 +372,7 @@ export function registerApprovalsRoutes(app: Router) {
       }
     } catch (error) {
       logger.error("Error fetching updates", { error, householdId, userId });
-      res.status(500).json({ message: "Failed to fetch updates" });
+      next(internalError("Failed to fetch updates"));
     }
   });
   
@@ -415,7 +416,7 @@ export function registerApprovalsRoutes(app: Router) {
    *       500:
    *         description: Internal server error
    */
-  app.post("/updates", isAuthenticated, householdContext, requirePermission("CAN_CREATE_UPDATE"), async (req: Request, res: Response) => {
+  app.post("/updates", isAuthenticated, householdContext, requirePermission("CAN_CREATE_UPDATE"), async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -431,7 +432,7 @@ export function registerApprovalsRoutes(app: Router) {
       res.status(201).json(update);
     } catch (error) {
       logger.error("Error creating update", { error, householdId, userId });
-      res.status(500).json({ message: "Failed to create update" });
+      next(internalError("Failed to create update"));
     }
   });
   
@@ -487,7 +488,7 @@ export function registerApprovalsRoutes(app: Router) {
    *       500:
    *         description: Internal server error
    */
-  app.post("/updates/:id/reactions", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.post("/updates/:id/reactions", isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -495,7 +496,7 @@ export function registerApprovalsRoutes(app: Router) {
       
       const update = await storage.getUpdate(householdId, req.params.id);
       if (!update) {
-        return res.status(404).json({ message: "Update not found" });
+        throw notFound("Update not found");
       }
       
       const reactions = (update.reactions as Record<string, string[]>) || {};
@@ -515,7 +516,7 @@ export function registerApprovalsRoutes(app: Router) {
       res.json(updatedUpdate);
     } catch (error) {
       logger.error("Error updating reactions", { error, householdId, userId });
-      res.status(500).json({ message: "Failed to update reactions" });
+      next(internalError("Failed to update reactions"));
     }
   });
   
@@ -550,7 +551,7 @@ export function registerApprovalsRoutes(app: Router) {
    *       500:
    *         description: Internal server error
    */
-  app.get("/requests", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/requests", isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -558,7 +559,7 @@ export function registerApprovalsRoutes(app: Router) {
       res.json(requests);
     } catch (error) {
       logger.error("Error fetching requests", { error, householdId, userId });
-      res.status(500).json({ message: "Failed to fetch requests" });
+      next(internalError("Failed to fetch requests"));
     }
   });
   
@@ -610,7 +611,7 @@ export function registerApprovalsRoutes(app: Router) {
    *       500:
    *         description: Internal server error
    */
-  app.post("/requests", isAuthenticated, householdContext, requirePermission("CAN_CREATE_REQUESTS"), async (req: Request, res: Response) => {
+  app.post("/requests", isAuthenticated, householdContext, requirePermission("CAN_CREATE_REQUESTS"), async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -630,7 +631,7 @@ export function registerApprovalsRoutes(app: Router) {
       res.status(201).json(request);
     } catch (error) {
       logger.error("Error creating request", { error, householdId, userId });
-      res.status(500).json({ message: "Failed to create request" });
+      next(internalError("Failed to create request"));
     }
   });
 
@@ -681,19 +682,19 @@ export function registerApprovalsRoutes(app: Router) {
    *       500:
    *         description: Internal server error
    */
-  app.patch("/requests/:id", isAuthenticated, householdContext, requirePermission("CAN_UPDATE_REQUEST"), async (req: Request, res: Response) => {
+  app.patch("/requests/:id", isAuthenticated, householdContext, requirePermission("CAN_UPDATE_REQUEST"), async (req: Request, res: Response, next: NextFunction) => {
     try {
       const householdId = req.householdId!;
       const userId = req.user!.claims.sub;
       const updated = await storage.updateRequest(householdId, req.params.id, req.body);
       if (!updated) {
-        return res.status(404).json({ message: "Request not found" });
+        throw notFound("Request not found");
       }
       wsManager.broadcast("request:updated", { id: updated.id }, householdId, userId);
       res.json(updated);
     } catch (error) {
       logger.error("Error updating request", { error, householdId, userId });
-      res.status(500).json({ message: "Failed to update request" });
+      next(internalError("Failed to update request"));
     }
   });
   
@@ -748,7 +749,7 @@ export function registerApprovalsRoutes(app: Router) {
    *       500:
    *         description: Internal server error
    */
-  app.post("/comments", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.post("/comments", isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       
@@ -760,7 +761,7 @@ export function registerApprovalsRoutes(app: Router) {
       res.status(201).json(comment);
     } catch (error) {
       logger.error("Error creating comment", { error, userId });
-      res.status(500).json({ message: "Failed to create comment" });
+      next(internalError("Failed to create comment"));
     }
   });
   
@@ -795,7 +796,7 @@ export function registerApprovalsRoutes(app: Router) {
    *       500:
    *         description: Internal server error
    */
-  app.get("/vendors", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/vendors", isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -807,7 +808,7 @@ export function registerApprovalsRoutes(app: Router) {
       res.json(vendors);
     } catch (error) {
       logger.error("Error fetching vendors", { error, householdId, userId });
-      res.status(500).json({ message: "Failed to fetch vendors" });
+      next(internalError("Failed to fetch vendors"));
     }
   });
   
@@ -846,7 +847,7 @@ export function registerApprovalsRoutes(app: Router) {
    *       500:
    *         description: Internal server error
    */
-  app.post("/vendors", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.post("/vendors", isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -860,7 +861,7 @@ export function registerApprovalsRoutes(app: Router) {
       res.status(201).json(vendor);
     } catch (error) {
       logger.error("Error creating vendor", { error, householdId, userId });
-      res.status(500).json({ message: "Failed to create vendor" });
+      next(internalError("Failed to create vendor"));
     }
   });
 
@@ -921,7 +922,7 @@ export function registerApprovalsRoutes(app: Router) {
    *         description: Internal server error
    */
   // Reactions API
-  app.get("/reactions", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/reactions", isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -956,7 +957,7 @@ export function registerApprovalsRoutes(app: Router) {
       res.json({ reactions: reactionCounts, userReactions });
     } catch (error) {
       logger.error("Error fetching reactions", { error, userId, householdId });
-      res.status(500).json({ message: "Failed to fetch reactions" });
+      next(internalError("Failed to fetch reactions"));
     }
   });
   
@@ -1041,7 +1042,7 @@ export function registerApprovalsRoutes(app: Router) {
    *       500:
    *         description: Internal server error
    */
-  app.post("/reactions", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.post("/reactions", isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -1056,7 +1057,7 @@ export function registerApprovalsRoutes(app: Router) {
       
       const parseResult = reactionValidation.safeParse(req.body);
       if (!parseResult.success) {
-        return res.status(400).json({ message: "Invalid request body", errors: parseResult.error.errors });
+        throw validationError("Invalid request body", parseResult.error.errors);
       }
       
       const { entityType, entityId, reactionType, note } = parseResult.data;
@@ -1079,7 +1080,7 @@ export function registerApprovalsRoutes(app: Router) {
       }
       
       if (!entity) {
-        return res.status(404).json({ message: "Entity not found" });
+        throw notFound("Entity not found");
       }
       
       // Check if user already has this exact reaction (toggle off)
@@ -1115,7 +1116,7 @@ export function registerApprovalsRoutes(app: Router) {
       res.json({ action: existing ? "updated" : "created", reaction });
     } catch (error) {
       logger.error("Error creating/updating reaction", { error, userId, householdId });
-      res.status(500).json({ message: "Failed to save reaction" });
+      next(internalError("Failed to save reaction"));
     }
   });
 }

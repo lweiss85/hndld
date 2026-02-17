@@ -8,6 +8,7 @@
 import { Request, Response, NextFunction } from "express";
 import { db } from "../db";
 import { eq, and } from "drizzle-orm";
+import { forbidden, internalError } from "../lib/errors";
 import { householdServiceMemberships } from "@shared/schema";
 
 export interface ServiceScopedRequest extends Request {
@@ -61,9 +62,11 @@ export async function serviceScopeMiddleware(
     }
 
     next();
-  } catch (error) {
-    console.error("Error in service scope middleware:", error);
-    next();
+  } catch (error: any) {
+    if (error.name === "AppError") {
+      return next(error);
+    }
+    next(internalError("Error in service scope middleware"));
   }
 }
 
@@ -81,11 +84,9 @@ export function getServiceTypeFilter(req: ServiceScopedRequest) {
  * Middleware that requires a specific service type
  */
 export function requireServiceType(serviceType: "CLEANING" | "PA") {
-  return (req: ServiceScopedRequest, res: Response, next: NextFunction) => {
+  return (req: ServiceScopedRequest, _res: Response, next: NextFunction) => {
     if (!req.serviceTypes?.includes(serviceType)) {
-      return res.status(403).json({ 
-        error: `Access denied. This feature requires ${serviceType} service access.` 
-      });
+      throw forbidden(`Access denied. This feature requires ${serviceType} service access.`);
     }
     next();
   };

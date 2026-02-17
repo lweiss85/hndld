@@ -2,6 +2,7 @@ import type { Request, Response, NextFunction } from "express";
 import { db } from "../db";
 import { eq, and } from "drizzle-orm";
 import { userProfiles, households } from "@shared/schema";
+import { unauthorized, forbidden, notFound, badRequest, conflict, internalError } from "../lib/errors";
 
 const BOOTSTRAP_ALLOWLIST = [
   "/api/auth",
@@ -29,7 +30,7 @@ export async function householdContextMiddleware(
     }
 
     if (!(req.user as any)?.claims?.sub) {
-      return res.status(401).json({ error: "authentication_required" });
+      throw unauthorized("Authentication required");
     }
 
     const userId = (req.user as any).claims.sub;
@@ -44,10 +45,7 @@ export async function householdContextMiddleware(
       .where(eq(userProfiles.userId, userId));
 
     if (allProfiles.length === 0) {
-      return res.status(400).json({ 
-        error: "no_household",
-        message: "User has no household memberships. Please complete onboarding."
-      });
+      throw badRequest("User has no household memberships. Please complete onboarding.", { error: "no_household" });
     }
 
     if (!householdId) {
@@ -58,13 +56,9 @@ export async function householdContextMiddleware(
       } else if (profileWithDefault) {
         householdId = profileWithDefault.householdId!;
       } else {
-        return res.status(409).json({ 
+        throw conflict("User belongs to multiple households. Please specify X-Household-Id header.", {
           error: "household_selection_required",
-          message: "User belongs to multiple households. Please specify X-Household-Id header.",
-          households: allProfiles.map(p => ({
-            householdId: p.householdId,
-            role: p.role
-          }))
+          households: allProfiles.map(p => ({ householdId: p.householdId, role: p.role })),
         });
       }
     }
@@ -72,10 +66,7 @@ export async function householdContextMiddleware(
     const memberProfile = allProfiles.find(p => p.householdId === householdId);
     
     if (!memberProfile) {
-      return res.status(403).json({ 
-        error: "access_denied",
-        message: "User is not a member of this household"
-      });
+      throw forbidden("User is not a member of this household");
     }
 
     const household = await db.select()
@@ -84,10 +75,7 @@ export async function householdContextMiddleware(
       .limit(1);
 
     if (!household.length) {
-      return res.status(404).json({ 
-        error: "household_not_found",
-        message: "The specified household does not exist"
-      });
+      throw notFound("The specified household does not exist");
     }
 
     req.householdId = householdId;
@@ -96,8 +84,10 @@ export async function householdContextMiddleware(
     req.userProfile = memberProfile;
 
     next();
-  } catch (error) {
-    console.error("Household context middleware error:", error);
-    res.status(500).json({ error: "Failed to determine household context" });
+  } catch (error: any) {
+    if (error.name === "AppError") {
+      return next(error);
+    }
+    next(internalError("Failed to determine household context"));
   }
 }

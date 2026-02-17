@@ -1,4 +1,4 @@
-import type { Request, Response } from "express";
+import type { Request, Response, NextFunction } from "express";
 import type { Router } from "express";
 import { storage } from "../storage";
 import logger from "../lib/logger";
@@ -12,6 +12,7 @@ import { calculateNextOccurrence } from "./helpers";
 import { z } from "zod";
 import { format } from "date-fns";
 import { cache, CacheKeys, CacheTTL } from "../lib/cache";
+import { forbidden, notFound, badRequest, internalError } from "../lib/errors";
 
 const householdContext = householdContextMiddleware;
 
@@ -79,7 +80,7 @@ export function registerTaskRoutes(app: Router) {
    *             schema:
    *               $ref: '#/components/schemas/Error'
    */
-  app.get("/tasks", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/tasks", isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -117,7 +118,7 @@ export function registerTaskRoutes(app: Router) {
       }
     } catch (error) {
       logger.error("Error fetching tasks", { error, householdId, userId });
-      res.status(500).json({ message: "Failed to fetch tasks" });
+      next(internalError("Failed to fetch tasks"));
     }
   });
   
@@ -179,7 +180,7 @@ export function registerTaskRoutes(app: Router) {
    *             schema:
    *               $ref: '#/components/schemas/Error'
    */
-  app.post("/tasks", isAuthenticated, householdContext, requirePermission("CAN_EDIT_TASKS"), async (req: Request, res: Response) => {
+  app.post("/tasks", isAuthenticated, householdContext, requirePermission("CAN_EDIT_TASKS"), async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -216,7 +217,7 @@ export function registerTaskRoutes(app: Router) {
       res.status(201).json(task);
     } catch (error) {
       logger.error("Error creating task", { error, householdId, userId });
-      res.status(500).json({ message: "Failed to create task" });
+      next(internalError("Failed to create task"));
     }
   });
   
@@ -292,7 +293,7 @@ export function registerTaskRoutes(app: Router) {
    *             schema:
    *               $ref: '#/components/schemas/Error'
    */
-  app.patch("/tasks/:id", isAuthenticated, householdContext, requirePermission("CAN_EDIT_TASKS"), async (req: Request, res: Response) => {
+  app.patch("/tasks/:id", isAuthenticated, householdContext, requirePermission("CAN_EDIT_TASKS"), async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -302,10 +303,10 @@ export function registerTaskRoutes(app: Router) {
         const allTasks = await storage.getTasks(householdId);
         const existingTask = allTasks.find(t => t.id === req.params.id);
         if (!existingTask || existingTask.assignedTo !== userId) {
-          return res.status(403).json({ message: "You can only update tasks assigned to you" });
+          throw forbidden("You can only update tasks assigned to you");
         }
         if (existingTask.serviceType !== "CLEANING") {
-          return res.status(403).json({ message: "Staff can only modify cleaning tasks" });
+          throw forbidden("Staff can only modify cleaning tasks");
         }
       }
       
@@ -316,7 +317,7 @@ export function registerTaskRoutes(app: Router) {
       
       const task = await storage.updateTask(householdId, req.params.id, updateData);
       if (!task) {
-        return res.status(404).json({ message: "Task not found" });
+        throw notFound("Task not found");
       }
       
       wsManager.broadcast("task:updated", { id: task.id, title: task.title }, householdId, userId);
@@ -324,7 +325,7 @@ export function registerTaskRoutes(app: Router) {
       res.json(task);
     } catch (error) {
       logger.error("Error updating task", { error, householdId, userId });
-      res.status(500).json({ message: "Failed to update task" });
+      next(internalError("Failed to update task"));
     }
   });
   
@@ -367,19 +368,19 @@ export function registerTaskRoutes(app: Router) {
    *             schema:
    *               $ref: '#/components/schemas/Error'
    */
-  app.delete("/tasks/:id", isAuthenticated, householdContext, requirePermission("CAN_EDIT_TASKS"), async (req: Request, res: Response) => {
+  app.delete("/tasks/:id", isAuthenticated, householdContext, requirePermission("CAN_EDIT_TASKS"), async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       const userRole = req.householdRole;
       
       if (userRole === "STAFF") {
-        return res.status(403).json({ message: "Staff cannot delete tasks" });
+        throw forbidden("Staff cannot delete tasks");
       }
       
       const deleted = await storage.deleteTask(householdId, req.params.id);
       if (!deleted) {
-        return res.status(404).json({ message: "Task not found" });
+        throw notFound("Task not found");
       }
       
       wsManager.broadcast("task:deleted", { id: req.params.id }, householdId, userId);
@@ -387,7 +388,7 @@ export function registerTaskRoutes(app: Router) {
       res.status(204).send();
     } catch (error) {
       logger.error("Error deleting task", { error, householdId, userId });
-      res.status(500).json({ message: "Failed to delete task" });
+      next(internalError("Failed to delete task"));
     }
   });
 
@@ -442,7 +443,7 @@ export function registerTaskRoutes(app: Router) {
    *             schema:
    *               $ref: '#/components/schemas/Error'
    */
-  app.post("/tasks/:id/complete", isAuthenticated, householdContext, requirePermission("CAN_EDIT_TASKS"), async (req: Request, res: Response) => {
+  app.post("/tasks/:id/complete", isAuthenticated, householdContext, requirePermission("CAN_EDIT_TASKS"), async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -454,15 +455,15 @@ export function registerTaskRoutes(app: Router) {
       const task = allTasks.find(t => t.id === taskId);
       
       if (!task) {
-        return res.status(404).json({ message: "Task not found" });
+        throw notFound("Task not found");
       }
       
       if (userRole === "STAFF") {
         if (task.assignedTo !== userId) {
-          return res.status(403).json({ message: "You can only complete tasks assigned to you" });
+          throw forbidden("You can only complete tasks assigned to you");
         }
         if (task.serviceType !== "CLEANING") {
-          return res.status(403).json({ message: "Staff can only complete cleaning tasks" });
+          throw forbidden("Staff can only complete cleaning tasks");
         }
       }
       
@@ -512,7 +513,7 @@ export function registerTaskRoutes(app: Router) {
       res.json({ completedTask: { ...task, status: "DONE" } });
     } catch (error) {
       logger.error("Error completing task", { error, householdId, userId, taskId });
-      res.status(500).json({ message: "Failed to complete task" });
+      next(internalError("Failed to complete task"));
     }
   });
 
@@ -582,7 +583,7 @@ export function registerTaskRoutes(app: Router) {
    *             schema:
    *               $ref: '#/components/schemas/Error'
    */
-  app.post("/tasks/:id/cancel", isAuthenticated, householdContext, requirePermission("CAN_EDIT_TASKS"), async (req: Request, res: Response) => {
+  app.post("/tasks/:id/cancel", isAuthenticated, householdContext, requirePermission("CAN_EDIT_TASKS"), async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -595,27 +596,27 @@ export function registerTaskRoutes(app: Router) {
       
       const parseResult = cancelSchema.safeParse(req.body);
       if (!parseResult.success) {
-        return res.status(400).json({ message: "Invalid request body" });
+        throw badRequest("Invalid request body");
       }
       
       const { reason } = parseResult.data;
       
       const task = await storage.getTask(householdId, taskId);
       if (!task) {
-        return res.status(404).json({ message: "Task not found" });
+        throw notFound("Task not found");
       }
       
       if (userRole === "STAFF") {
         if (task.assignedTo !== userId) {
-          return res.status(403).json({ message: "You can only cancel tasks assigned to you" });
+          throw forbidden("You can only cancel tasks assigned to you");
         }
         if (task.serviceType !== "CLEANING") {
-          return res.status(403).json({ message: "Staff can only cancel cleaning tasks" });
+          throw forbidden("Staff can only cancel cleaning tasks");
         }
       }
       
       if (task.status === "DONE" || task.status === "CANCELLED") {
-        return res.status(400).json({ message: "Cannot cancel a task that is already done or cancelled" });
+        throw badRequest("Cannot cancel a task that is already done or cancelled");
       }
       
       const updatedTask = await storage.updateTask(householdId, taskId, {
@@ -664,7 +665,7 @@ export function registerTaskRoutes(app: Router) {
       });
     } catch (error) {
       logger.error("Error cancelling task", { error, householdId, userId, taskId });
-      res.status(500).json({ message: "Failed to cancel task" });
+      next(internalError("Failed to cancel task"));
     }
   });
 
@@ -711,7 +712,7 @@ export function registerTaskRoutes(app: Router) {
    *             schema:
    *               $ref: '#/components/schemas/Error'
    */
-  app.post("/tasks/:taskId/checklist", isAuthenticated, householdContext, requirePermission("CAN_EDIT_TASKS"), async (req: Request, res: Response) => {
+  app.post("/tasks/:taskId/checklist", isAuthenticated, householdContext, requirePermission("CAN_EDIT_TASKS"), async (req: Request, res: Response, next: NextFunction) => {
     try {
       const item = await storage.createTaskChecklistItem({
         taskId: req.params.taskId,
@@ -721,7 +722,7 @@ export function registerTaskRoutes(app: Router) {
       res.status(201).json(item);
     } catch (error) {
       logger.error("Error creating checklist item", { error, taskId: req.params.taskId });
-      res.status(500).json({ message: "Failed to create checklist item" });
+      next(internalError("Failed to create checklist item"));
     }
   });
 
@@ -779,18 +780,18 @@ export function registerTaskRoutes(app: Router) {
    *             schema:
    *               $ref: '#/components/schemas/Error'
    */
-  app.patch("/tasks/:taskId/checklist/:id", isAuthenticated, householdContext, requirePermission("CAN_EDIT_TASKS"), async (req: Request, res: Response) => {
+  app.patch("/tasks/:taskId/checklist/:id", isAuthenticated, householdContext, requirePermission("CAN_EDIT_TASKS"), async (req: Request, res: Response, next: NextFunction) => {
     try {
       const householdId = req.householdId!;
       const { taskId, id } = req.params;
       const item = await storage.updateTaskChecklistItem(householdId, taskId, id, req.body);
       if (!item) {
-        return res.status(404).json({ message: "Checklist item not found" });
+        throw notFound("Checklist item not found");
       }
       res.json(item);
     } catch (error) {
       logger.error("Error updating checklist item", { error, householdId, taskId, id });
-      res.status(500).json({ message: "Failed to update checklist item" });
+      next(internalError("Failed to update checklist item"));
     }
   });
 
@@ -821,7 +822,7 @@ export function registerTaskRoutes(app: Router) {
    *             schema:
    *               $ref: '#/components/schemas/Error'
    */
-  app.get("/task-templates", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/task-templates", isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -833,7 +834,7 @@ export function registerTaskRoutes(app: Router) {
       res.json(templates);
     } catch (error) {
       logger.error("Error fetching task templates", { error, householdId, userId });
-      res.status(500).json({ message: "Failed to fetch task templates" });
+      next(internalError("Failed to fetch task templates"));
     }
   });
 
@@ -890,7 +891,7 @@ export function registerTaskRoutes(app: Router) {
    *             schema:
    *               $ref: '#/components/schemas/Error'
    */
-  app.post("/task-templates", isAuthenticated, householdContext, requirePermission("CAN_EDIT_TASKS"), async (req: Request, res: Response) => {
+  app.post("/task-templates", isAuthenticated, householdContext, requirePermission("CAN_EDIT_TASKS"), async (req: Request, res: Response, next: NextFunction) => {
     try {
       const householdId = req.householdId!;
       const template = await storage.createTaskTemplate({
@@ -901,7 +902,7 @@ export function registerTaskRoutes(app: Router) {
       res.status(201).json(template);
     } catch (error) {
       logger.error("Error creating task template", { error, householdId });
-      res.status(500).json({ message: "Failed to create task template" });
+      next(internalError("Failed to create task template"));
     }
   });
 
@@ -961,18 +962,18 @@ export function registerTaskRoutes(app: Router) {
    *             schema:
    *               $ref: '#/components/schemas/Error'
    */
-  app.patch("/task-templates/:id", isAuthenticated, householdContext, requirePermission("CAN_EDIT_TASKS"), async (req: Request, res: Response) => {
+  app.patch("/task-templates/:id", isAuthenticated, householdContext, requirePermission("CAN_EDIT_TASKS"), async (req: Request, res: Response, next: NextFunction) => {
     try {
       const householdId = req.householdId!;
       const template = await storage.updateTaskTemplate(householdId, req.params.id, req.body);
       if (!template) {
-        return res.status(404).json({ message: "Template not found" });
+        throw notFound("Template not found");
       }
       cache.invalidate(CacheKeys.taskTemplates(householdId));
       res.json(template);
     } catch (error) {
       logger.error("Error updating task template", { error, householdId });
-      res.status(500).json({ message: "Failed to update task template" });
+      next(internalError("Failed to update task template"));
     }
   });
 
@@ -1009,18 +1010,18 @@ export function registerTaskRoutes(app: Router) {
    *             schema:
    *               $ref: '#/components/schemas/Error'
    */
-  app.delete("/task-templates/:id", isAuthenticated, householdContext, requirePermission("CAN_EDIT_TASKS"), async (req: Request, res: Response) => {
+  app.delete("/task-templates/:id", isAuthenticated, householdContext, requirePermission("CAN_EDIT_TASKS"), async (req: Request, res: Response, next: NextFunction) => {
     try {
       const householdId = req.householdId!;
       const deleted = await storage.deleteTaskTemplate(householdId, req.params.id);
       if (!deleted) {
-        return res.status(404).json({ message: "Template not found" });
+        throw notFound("Template not found");
       }
       cache.invalidate(CacheKeys.taskTemplates(householdId));
       res.status(204).send();
     } catch (error) {
       logger.error("Error deleting task template", { error, householdId });
-      res.status(500).json({ message: "Failed to delete task template" });
+      next(internalError("Failed to delete task template"));
     }
   });
 }

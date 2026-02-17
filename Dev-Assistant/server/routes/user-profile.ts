@@ -1,4 +1,4 @@
-import type { Request, Response } from "express";
+import type { Request, Response, NextFunction } from "express";
 import type { Router } from "express";
 import { storage } from "../storage";
 import logger from "../lib/logger";
@@ -7,6 +7,7 @@ import { householdContextMiddleware } from "../middleware/householdContext";
 import { getImpactMetrics } from "../services/analytics";
 import { seedDemoData } from "./helpers";
 import { cache, CacheKeys, CacheTTL } from "../lib/cache";
+import { badRequest, forbidden, internalError } from "../lib/errors";
 
 const householdContext = householdContextMiddleware;
 
@@ -36,7 +37,7 @@ export async function registerUserProfileRoutes(app: Router): Promise<void> {
    *       500:
    *         description: Internal server error
    */
-  app.get("/user-profile", isAuthenticated, async (req: Request, res: Response) => {
+  app.get("/user-profile", isAuthenticated, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const profile = await cache.getOrSet(
@@ -53,7 +54,7 @@ export async function registerUserProfileRoutes(app: Router): Promise<void> {
       res.json(profile);
     } catch (error) {
       logger.error("Error fetching user profile", { error, userId });
-      res.status(500).json({ message: "Failed to fetch user profile" });
+      next(internalError("Failed to fetch user profile"));
     }
   });
   
@@ -91,19 +92,19 @@ export async function registerUserProfileRoutes(app: Router): Promise<void> {
    *       500:
    *         description: Internal server error
    */
-  app.post("/user/role", isAuthenticated, async (req: Request, res: Response) => {
+  app.post("/user/role", isAuthenticated, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const { role } = req.body;
       
       if (!role || !["ASSISTANT", "CLIENT"].includes(role)) {
-        return res.status(400).json({ message: "Invalid role" });
+        throw badRequest("Invalid role");
       }
       
       // Check if user already has a profile
       const existingProfile = await storage.getUserProfile(userId);
       if (existingProfile) {
-        return res.status(400).json({ message: "Role already set" });
+        throw badRequest("Role already set");
       }
       
       // Create household and profile with selected role
@@ -127,7 +128,7 @@ export async function registerUserProfileRoutes(app: Router): Promise<void> {
       res.status(201).json(profile);
     } catch (error) {
       logger.error("Error setting user role", { error, userId });
-      res.status(500).json({ message: "Failed to set role" });
+      next(internalError("Failed to set role"));
     }
   });
   
@@ -173,7 +174,7 @@ export async function registerUserProfileRoutes(app: Router): Promise<void> {
    *       500:
    *         description: Internal server error
    */
-  app.get("/dashboard", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/dashboard", isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -205,7 +206,7 @@ export async function registerUserProfileRoutes(app: Router): Promise<void> {
       res.json({ tasks, approvals, events, spending, impact });
     } catch (error) {
       logger.error("Error fetching dashboard", { error, householdId, userId });
-      res.status(500).json({ message: "Failed to fetch dashboard" });
+      next(internalError("Failed to fetch dashboard"));
     }
   });
   
@@ -240,7 +241,7 @@ export async function registerUserProfileRoutes(app: Router): Promise<void> {
    *       500:
    *         description: Internal server error
    */
-  app.get("/today", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/today", isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -258,7 +259,7 @@ export async function registerUserProfileRoutes(app: Router): Promise<void> {
       res.json({ tasks, events });
     } catch (error) {
       logger.error("Error fetching today data", { error, householdId, userId });
-      res.status(500).json({ message: "Failed to fetch today data" });
+      next(internalError("Failed to fetch today data"));
     }
   });
   
@@ -301,7 +302,7 @@ export async function registerUserProfileRoutes(app: Router): Promise<void> {
    *       500:
    *         description: Internal server error
    */
-  app.get("/services/mine", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/services/mine", isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -340,7 +341,7 @@ export async function registerUserProfileRoutes(app: Router): Promise<void> {
       });
     } catch (error) {
       logger.error("Error fetching service memberships", { error, householdId, userId });
-      res.status(500).json({ message: "Failed to fetch service memberships" });
+      next(internalError("Failed to fetch service memberships"));
     }
   });
   
@@ -387,14 +388,14 @@ export async function registerUserProfileRoutes(app: Router): Promise<void> {
    *       500:
    *         description: Internal server error
    */
-  app.post("/services/set-default", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.post("/services/set-default", isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       const { serviceType } = req.body;
       
       if (!serviceType || !["CLEANING", "PA"].includes(serviceType)) {
-        return res.status(400).json({ message: "Invalid service type" });
+        throw badRequest("Invalid service type");
       }
       
       // Verify user has this service membership
@@ -402,7 +403,7 @@ export async function registerUserProfileRoutes(app: Router): Promise<void> {
       const hasMembership = memberships.some(m => m.serviceType === serviceType);
       
       if (!hasMembership) {
-        return res.status(403).json({ message: "You do not have access to this service" });
+        throw forbidden("You do not have access to this service");
       }
       
       // Update user profile with default service type
@@ -414,7 +415,7 @@ export async function registerUserProfileRoutes(app: Router): Promise<void> {
       res.json({ success: true, defaultServiceType: serviceType });
     } catch (error) {
       logger.error("Error setting default service", { error, householdId, userId });
-      res.status(500).json({ message: "Failed to set default service" });
+      next(internalError("Failed to set default service"));
     }
   });
 }

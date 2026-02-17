@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router, NextFunction } from "express";
 import { db } from "../db";
 import { householdInvites, userProfiles, households } from "@shared/schema";
 import { eq, and, sql } from "drizzle-orm";
@@ -6,6 +6,7 @@ import crypto from "crypto";
 import { isAuthenticated } from "../replit_integrations/auth";
 import { householdContextMiddleware } from "../middleware/householdContext";
 import { requirePermission } from "../middleware/requirePermission";
+import { badRequest, notFound, internalError } from "../lib/errors";
 
 const router = Router();
 const householdContext = householdContextMiddleware;
@@ -38,7 +39,7 @@ const householdContext = householdContextMiddleware;
  *       500:
  *         description: Internal server error
  */
-router.get("/invites", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_SETTINGS"), async (req: any, res) => {
+router.get("/invites", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_SETTINGS"), async (req: any, res, next: NextFunction) => {
   try {
     const householdId = req.householdId!;
     
@@ -50,7 +51,7 @@ router.get("/invites", isAuthenticated, householdContext, requirePermission("CAN
     res.json(invites);
   } catch (error) {
     console.error("Error fetching invites:", error);
-    res.status(500).json({ error: "Failed to fetch invites" });
+    next(internalError("Failed to fetch invites"));
   }
 });
 
@@ -104,14 +105,14 @@ router.get("/invites", isAuthenticated, householdContext, requirePermission("CAN
  *       500:
  *         description: Internal server error
  */
-router.post("/invites", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_SETTINGS"), async (req: any, res) => {
+router.post("/invites", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_SETTINGS"), async (req: any, res, next: NextFunction) => {
   try {
     const userId = req.user.claims.sub;
     const householdId = req.householdId!;
     
     const { email, role } = req.body;
     if (!email) {
-      return res.status(400).json({ error: "Email is required" });
+      throw badRequest("Email is required");
     }
     
     const token = crypto.randomBytes(32).toString("hex");
@@ -138,7 +139,7 @@ router.post("/invites", isAuthenticated, householdContext, requirePermission("CA
     res.status(201).json({ ...invite, inviteLink });
   } catch (error) {
     console.error("Error creating invite:", error);
-    res.status(500).json({ error: "Failed to create invite" });
+    next(internalError("Failed to create invite"));
   }
 });
 
@@ -180,7 +181,7 @@ router.post("/invites", isAuthenticated, householdContext, requirePermission("CA
  *       500:
  *         description: Internal server error
  */
-router.post("/invites/:token/accept", isAuthenticated, async (req: any, res) => {
+router.post("/invites/:token/accept", isAuthenticated, async (req: any, res, next: NextFunction) => {
   try {
     const { token } = req.params;
     const userId = req.user.claims.sub;
@@ -197,13 +198,13 @@ router.post("/invites/:token/accept", isAuthenticated, async (req: any, res) => 
       .limit(1);
     
     if (!invites[0]) {
-      return res.status(404).json({ error: "Invalid or expired invite" });
+      throw notFound("Invalid or expired invite");
     }
     
     const invite = invites[0];
     
     if (invite.createdBy === userId) {
-      return res.status(400).json({ error: "You cannot accept your own invite" });
+      throw badRequest("You cannot accept your own invite");
     }
     
     if (new Date(invite.expiresAt) < new Date()) {
@@ -211,7 +212,7 @@ router.post("/invites/:token/accept", isAuthenticated, async (req: any, res) => 
         .update(householdInvites)
         .set({ status: "EXPIRED" })
         .where(eq(householdInvites.id, invite.id));
-      return res.status(400).json({ error: "Invite has expired" });
+      throw badRequest("Invite has expired");
     }
     
     const existingProfiles = await db
@@ -221,7 +222,7 @@ router.post("/invites/:token/accept", isAuthenticated, async (req: any, res) => 
     
     const alreadyInHousehold = existingProfiles.some(p => p.householdId === invite.householdId);
     if (alreadyInHousehold) {
-      return res.status(400).json({ error: "You are already a member of this household" });
+      throw badRequest("You are already a member of this household");
     }
     
     await db.insert(userProfiles).values({
@@ -242,7 +243,7 @@ router.post("/invites/:token/accept", isAuthenticated, async (req: any, res) => 
     res.json({ success: true, householdId: invite.householdId });
   } catch (error) {
     console.error("Error accepting invite:", error);
-    res.status(500).json({ error: "Failed to accept invite" });
+    next(internalError("Failed to accept invite"));
   }
 });
 
@@ -285,7 +286,7 @@ router.post("/invites/:token/accept", isAuthenticated, async (req: any, res) => 
  *       500:
  *         description: Internal server error
  */
-router.get("/invites/:token/info", async (req, res) => {
+router.get("/invites/:token/info", async (req, res, next: NextFunction) => {
   try {
     const { token } = req.params;
     
@@ -300,17 +301,17 @@ router.get("/invites/:token/info", async (req, res) => {
       .limit(1);
     
     if (!invites[0]) {
-      return res.status(404).json({ error: "Invite not found" });
+      throw notFound("Invite not found");
     }
     
     const { invite, household } = invites[0];
     
     if (invite.status !== "PENDING") {
-      return res.status(400).json({ error: `Invite is ${invite.status.toLowerCase()}` });
+      throw badRequest(`Invite is ${invite.status.toLowerCase()}`);
     }
     
     if (new Date(invite.expiresAt) < new Date()) {
-      return res.status(400).json({ error: "Invite has expired" });
+      throw badRequest("Invite has expired");
     }
     
     res.json({
@@ -321,7 +322,7 @@ router.get("/invites/:token/info", async (req, res) => {
     });
   } catch (error) {
     console.error("Error getting invite info:", error);
-    res.status(500).json({ error: "Failed to get invite info" });
+    next(internalError("Failed to get invite info"));
   }
 });
 
@@ -353,7 +354,7 @@ router.get("/invites/:token/info", async (req, res) => {
  *       500:
  *         description: Internal server error
  */
-router.delete("/invites/:id", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_SETTINGS"), async (req: any, res) => {
+router.delete("/invites/:id", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_SETTINGS"), async (req: any, res, next: NextFunction) => {
   try {
     const householdId = req.householdId!;
     const { id } = req.params;
@@ -369,7 +370,7 @@ router.delete("/invites/:id", isAuthenticated, householdContext, requirePermissi
     res.status(204).send();
   } catch (error) {
     console.error("Error revoking invite:", error);
-    res.status(500).json({ error: "Failed to revoke invite" });
+    next(internalError("Failed to revoke invite"));
   }
 });
 

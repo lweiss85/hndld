@@ -10,6 +10,7 @@ import {
 import { db } from "../db";
 import { weeklyBriefs, userProfiles } from "@shared/schema";
 import { eq, and, desc } from "drizzle-orm";
+import { unauthorized, forbidden, badRequest, notFound } from "../lib/errors";
 
 const router = Router();
 
@@ -18,7 +19,7 @@ async function verifyHouseholdAccess(req: any, res: Response, next: NextFunction
   const userId = req.user?.claims?.sub;
 
   if (!userId) {
-    return res.status(401).json({ error: "Unauthorized" });
+    throw unauthorized("Unauthorized");
   }
 
   const profile = await db
@@ -33,7 +34,7 @@ async function verifyHouseholdAccess(req: any, res: Response, next: NextFunction
     .limit(1);
 
   if (!profile[0]) {
-    return res.status(403).json({ error: "Access denied to this household" });
+    throw forbidden("Access denied to this household");
   }
 
   req.userProfile = profile[0];
@@ -307,7 +308,7 @@ router.post(
 
       const validation = feedbackSchema.safeParse(req.body);
       if (!validation.success) {
-        return res.status(400).json({ error: validation.error.errors });
+        throw badRequest("Invalid feedback data", validation.error.errors);
       }
 
       const { rating, feedbackText } = validation.data;
@@ -324,7 +325,7 @@ router.post(
         .limit(1);
 
       if (!brief[0]) {
-        return res.status(404).json({ error: "Brief not found" });
+        throw notFound("Brief not found");
       }
 
       await submitBriefFeedback(briefId, rating, feedbackText);
@@ -413,7 +414,7 @@ router.post(
 
       const validation = engagementSchema.safeParse(req.body);
       if (!validation.success) {
-        return res.status(400).json({ error: validation.error.errors });
+        throw badRequest("Invalid engagement data", validation.error.errors);
       }
 
       const { entityType, entityId, action, metadata } = validation.data;

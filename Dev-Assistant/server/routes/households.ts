@@ -1,5 +1,6 @@
-import { Router } from "express";
+import { Router, NextFunction } from "express";
 import { storage } from "../storage";
+import { forbidden, internalError } from "../lib/errors";
 
 const router = Router();
 
@@ -38,7 +39,7 @@ const router = Router();
  *       500:
  *         description: Internal server error
  */
-router.get("/mine", async (req: any, res) => {
+router.get("/mine", async (req: any, res, next: NextFunction) => {
   try {
     const userId = req.user.claims.sub;
     
@@ -53,7 +54,7 @@ router.get("/mine", async (req: any, res) => {
     })));
   } catch (error) {
     console.error("Error fetching user households:", error);
-    res.status(500).json({ error: "Failed to fetch households" });
+    next(internalError("Failed to fetch households"));
   }
 });
 
@@ -98,7 +99,7 @@ router.get("/mine", async (req: any, res) => {
  *       500:
  *         description: Internal server error
  */
-router.post("/set-default", async (req: any, res) => {
+router.post("/set-default", async (req: any, res, next: NextFunction) => {
   try {
     const { householdId } = req.body;
     const userId = req.user.claims.sub;
@@ -107,7 +108,7 @@ router.post("/set-default", async (req: any, res) => {
     const hasAccess = userHouseholds.some(h => h.id === householdId);
     
     if (!hasAccess) {
-      return res.status(403).json({ error: "Access denied to this household" });
+      throw forbidden("Access denied to this household");
     }
     
     await storage.setDefaultHousehold(userId, householdId);
@@ -115,7 +116,7 @@ router.post("/set-default", async (req: any, res) => {
     res.json({ success: true, defaultHouseholdId: householdId });
   } catch (error) {
     console.error("Error setting default household:", error);
-    res.status(500).json({ error: "Failed to set default household" });
+    next(internalError("Failed to set default household"));
   }
 });
 

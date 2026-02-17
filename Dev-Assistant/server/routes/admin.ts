@@ -1,5 +1,6 @@
-import type { Request, Response } from "express";
+import type { Request, Response, NextFunction } from "express";
 import type { Router } from "express";
+import { AppError, badRequest, forbidden, internalError, notFound, unauthorized } from "../lib/errors";
 import { storage } from "../storage";
 import logger from "../lib/logger";
 import { isAuthenticated } from "../replit_integrations/auth";
@@ -70,14 +71,14 @@ export function registerAdminRoutes(app: Router) {
    *       500:
    *         description: Failed to fetch audit logs
    */
-  app.get("/audit-logs", isAuthenticated, householdContext, requirePermission("CAN_VIEW_AUDIT_LOG"), async (req: Request, res: Response) => {
+  app.get("/audit-logs", isAuthenticated, householdContext, requirePermission("CAN_VIEW_AUDIT_LOG"), async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       const profile = await getUserProfile(userId);
       
       if (profile?.role !== "ASSISTANT") {
-        return res.status(403).json({ message: "Only assistants can view audit logs" });
+        throw forbidden("Only assistants can view audit logs");
       }
       
       const { entityType, startDate, endDate, limit, offset } = req.query;
@@ -94,7 +95,7 @@ export function registerAdminRoutes(app: Router) {
       res.json(logs);
     } catch (error) {
       logger.error("Error fetching audit logs", { error, userId, householdId });
-      res.status(500).json({ message: "Failed to fetch audit logs" });
+      next(internalError("Failed to fetch audit logs"));
     }
   });
 
@@ -121,14 +122,14 @@ export function registerAdminRoutes(app: Router) {
    *       500:
    *         description: Failed to fetch vault settings
    */
-  app.get("/vault/settings", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/vault/settings", isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       const profile = await getUserProfile(userId);
       
       if (profile?.role !== "ASSISTANT") {
-        return res.status(403).json({ message: "Only assistants can manage vault settings" });
+        throw forbidden("Only assistants can manage vault settings");
       }
       
       const settings = await storage.getVaultSettings(householdId);
@@ -140,7 +141,7 @@ export function registerAdminRoutes(app: Router) {
       });
     } catch (error) {
       logger.error("Error fetching vault settings", { error, userId, householdId });
-      res.status(500).json({ message: "Failed to fetch vault settings" });
+      next(internalError("Failed to fetch vault settings"));
     }
   });
 
@@ -176,19 +177,19 @@ export function registerAdminRoutes(app: Router) {
    *       500:
    *         description: Failed to set vault PIN
    */
-  app.post("/vault/set-pin", authLimiter, isAuthenticated, householdContext, requirePermission("CAN_EDIT_VAULT"), async (req: Request, res: Response) => {
+  app.post("/vault/set-pin", authLimiter, isAuthenticated, householdContext, requirePermission("CAN_EDIT_VAULT"), async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       const profile = await getUserProfile(userId);
       
       if (profile?.role !== "ASSISTANT") {
-        return res.status(403).json({ message: "Only assistants can set vault PIN" });
+        throw forbidden("Only assistants can set vault PIN");
       }
       
       const { pin } = req.body;
       if (!pin || pin.length < 4) {
-        return res.status(400).json({ message: "PIN must be at least 4 characters" });
+        throw badRequest("PIN must be at least 4 characters");
       }
       
       const bcrypt = await import("bcrypt");
@@ -207,7 +208,7 @@ export function registerAdminRoutes(app: Router) {
       res.json({ success: true });
     } catch (error) {
       logger.error("Error setting vault PIN", { error, userId, householdId });
-      res.status(500).json({ message: "Failed to set vault PIN" });
+      next(internalError("Failed to set vault PIN"));
     }
   });
 
@@ -242,19 +243,19 @@ export function registerAdminRoutes(app: Router) {
    *       500:
    *         description: Failed to verify PIN
    */
-  app.post("/vault/verify-pin", authLimiter, isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.post("/vault/verify-pin", authLimiter, isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       
       const { pin } = req.body;
       if (!pin) {
-        return res.status(400).json({ message: "PIN required" });
+        throw badRequest("PIN required");
       }
       
       const settings = await storage.getVaultSettings(householdId);
       if (!settings?.pinHash) {
-        return res.status(400).json({ message: "No PIN set" });
+        throw badRequest("No PIN set");
       }
       
       const bcrypt = await import("bcrypt");
@@ -269,7 +270,7 @@ export function registerAdminRoutes(app: Router) {
       });
       
       if (!valid) {
-        return res.status(401).json({ message: "Invalid PIN" });
+        throw unauthorized("Invalid PIN");
       }
       
       const expiresAt = Date.now() + (settings.autoLockMinutes || 5) * 60 * 1000;
@@ -283,7 +284,7 @@ export function registerAdminRoutes(app: Router) {
       });
     } catch (error) {
       logger.error("Error verifying vault PIN", { error, userId, householdId });
-      res.status(500).json({ message: "Failed to verify PIN" });
+      next(internalError("Failed to verify PIN"));
     }
   });
 
@@ -314,14 +315,14 @@ export function registerAdminRoutes(app: Router) {
    *       500:
    *         description: Failed to generate handoff packet
    */
-  app.get("/handoff", isAuthenticated, householdContext, requirePermission("CAN_ADMIN_EXPORTS"), async (req: Request, res: Response) => {
+  app.get("/handoff", isAuthenticated, householdContext, requirePermission("CAN_ADMIN_EXPORTS"), async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       
       const profile = await getUserProfile(userId);
       if (profile?.role !== "ASSISTANT") {
-        return res.status(403).json({ message: "Only assistants can generate handoff packets" });
+        throw forbidden("Only assistants can generate handoff packets");
       }
       
       const { generateHandoffPacket, generateHandoffHTML } = await import("../services/handoff");
@@ -342,7 +343,7 @@ export function registerAdminRoutes(app: Router) {
       res.send(html);
     } catch (error) {
       logger.error("Error generating handoff packet", { error, userId, householdId });
-      res.status(500).json({ message: "Failed to generate handoff packet" });
+      next(internalError("Failed to generate handoff packet"));
     }
   });
   
@@ -365,14 +366,14 @@ export function registerAdminRoutes(app: Router) {
    *       500:
    *         description: Failed to generate handoff data
    */
-  app.get("/handoff/data", isAuthenticated, householdContext, requirePermission("CAN_ADMIN_EXPORTS"), async (req: Request, res: Response) => {
+  app.get("/handoff/data", isAuthenticated, householdContext, requirePermission("CAN_ADMIN_EXPORTS"), async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       
       const profile = await getUserProfile(userId);
       if (profile?.role !== "ASSISTANT") {
-        return res.status(403).json({ message: "Only assistants can access handoff data" });
+        throw forbidden("Only assistants can access handoff data");
       }
       
       const { generateHandoffPacket } = await import("../services/handoff");
@@ -381,7 +382,7 @@ export function registerAdminRoutes(app: Router) {
       res.json(data);
     } catch (error) {
       logger.error("Error generating handoff data", { error, userId, householdId });
-      res.status(500).json({ message: "Failed to generate handoff data" });
+      next(internalError("Failed to generate handoff data"));
     }
   });
 
@@ -404,14 +405,14 @@ export function registerAdminRoutes(app: Router) {
    *       500:
    *         description: Failed to generate moment tasks
    */
-  app.get("/moments/generate", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/moments/generate", isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       
       const profile = await getUserProfile(userId);
       if (profile?.role !== "ASSISTANT") {
-        return res.status(403).json({ message: "Only assistants can generate moment tasks" });
+        throw forbidden("Only assistants can generate moment tasks");
       }
       
       const tasksCreated = await generateMomentsTasks(householdId);
@@ -424,7 +425,7 @@ export function registerAdminRoutes(app: Router) {
       });
     } catch (error) {
       logger.error("Error generating moment tasks", { error, userId, householdId });
-      res.status(500).json({ message: "Failed to generate moment tasks" });
+      next(internalError("Failed to generate moment tasks"));
     }
   });
 
@@ -449,7 +450,7 @@ export function registerAdminRoutes(app: Router) {
    *       500:
    *         description: Failed to fetch notifications
    */
-  app.get("/notifications", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/notifications", isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -457,7 +458,7 @@ export function registerAdminRoutes(app: Router) {
       res.json(notificationsList);
     } catch (error) {
       logger.error("Error fetching notifications", { error, userId, householdId });
-      res.status(500).json({ message: "Failed to fetch notifications" });
+      next(internalError("Failed to fetch notifications"));
     }
   });
 
@@ -485,7 +486,7 @@ export function registerAdminRoutes(app: Router) {
    *       500:
    *         description: Failed to fetch unread count
    */
-  app.get("/notifications/unread-count", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/notifications/unread-count", isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -493,7 +494,7 @@ export function registerAdminRoutes(app: Router) {
       res.json({ count });
     } catch (error) {
       logger.error("Error fetching unread count", { error, userId, householdId });
-      res.status(500).json({ message: "Failed to fetch unread count" });
+      next(internalError("Failed to fetch unread count"));
     }
   });
 
@@ -520,13 +521,13 @@ export function registerAdminRoutes(app: Router) {
    *       500:
    *         description: Failed to mark notification read
    */
-  app.patch("/notifications/:id/read", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.patch("/notifications/:id/read", isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       await markNotificationRead(req.params.id);
       res.json({ success: true });
     } catch (error) {
       logger.error("Error marking notification read", { error, notificationId: req.params.id });
-      res.status(500).json({ message: "Failed to mark notification read" });
+      next(internalError("Failed to mark notification read"));
     }
   });
 
@@ -547,7 +548,7 @@ export function registerAdminRoutes(app: Router) {
    *       500:
    *         description: Failed to mark all notifications read
    */
-  app.post("/notifications/mark-all-read", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.post("/notifications/mark-all-read", isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -555,7 +556,7 @@ export function registerAdminRoutes(app: Router) {
       res.json({ success: true });
     } catch (error) {
       logger.error("Error marking all notifications read", { error, userId, householdId });
-      res.status(500).json({ message: "Failed to mark all notifications read" });
+      next(internalError("Failed to mark all notifications read"));
     }
   });
 
@@ -576,14 +577,14 @@ export function registerAdminRoutes(app: Router) {
    *       500:
    *         description: Failed to fetch notification settings
    */
-  app.get("/notification-settings", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/notification-settings", isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const settings = await getNotificationSettings(userId);
       res.json(settings || {});
     } catch (error) {
       logger.error("Error fetching notification settings", { error, userId });
-      res.status(500).json({ message: "Failed to fetch notification settings" });
+      next(internalError("Failed to fetch notification settings"));
     }
   });
 
@@ -610,7 +611,7 @@ export function registerAdminRoutes(app: Router) {
    *       500:
    *         description: Failed to update notification settings
    */
-  app.patch("/notification-settings", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.patch("/notification-settings", isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -618,7 +619,7 @@ export function registerAdminRoutes(app: Router) {
       res.json(settings);
     } catch (error) {
       logger.error("Error updating notification settings", { error, userId, householdId });
-      res.status(500).json({ message: "Failed to update notification settings" });
+      next(internalError("Failed to update notification settings"));
     }
   });
 
@@ -643,14 +644,14 @@ export function registerAdminRoutes(app: Router) {
    *       500:
    *         description: Failed to fetch suggestions
    */
-  app.get("/suggestions", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/suggestions", isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const householdId = req.householdId!;
       const suggestions = await getSmartSuggestions(householdId);
       res.json(suggestions);
     } catch (error) {
       logger.error("Error fetching suggestions", { error, householdId });
-      res.status(500).json({ message: "Failed to fetch suggestions" });
+      next(internalError("Failed to fetch suggestions"));
     }
   });
 
@@ -725,14 +726,14 @@ export function registerAdminRoutes(app: Router) {
    *       500:
    *         description: Failed to save subscription
    */
-  app.post("/push/subscribe", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.post("/push/subscribe", isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       const { endpoint, keys, userAgent } = req.body;
 
       if (!endpoint || !keys?.p256dh || !keys?.auth) {
-        return res.status(400).json({ message: "Invalid subscription data" });
+        throw badRequest("Invalid subscription data");
       }
 
       await savePushSubscription({
@@ -747,7 +748,7 @@ export function registerAdminRoutes(app: Router) {
       res.json({ success: true });
     } catch (error) {
       logger.error("Error saving push subscription", { error, userId, householdId });
-      res.status(500).json({ message: "Failed to save subscription" });
+      next(internalError("Failed to save subscription"));
     }
   });
 
@@ -778,20 +779,20 @@ export function registerAdminRoutes(app: Router) {
    *       500:
    *         description: Failed to remove subscription
    */
-  app.post("/push/unsubscribe", isAuthenticated, async (req: Request, res: Response) => {
+  app.post("/push/unsubscribe", isAuthenticated, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const { endpoint } = req.body;
 
       if (!endpoint) {
-        return res.status(400).json({ message: "Endpoint required" });
+        throw badRequest("Endpoint required");
       }
 
       await removePushSubscription(userId, endpoint);
       res.json({ success: true });
     } catch (error) {
       logger.error("Error removing push subscription", { error, userId });
-      res.status(500).json({ message: "Failed to remove subscription" });
+      next(internalError("Failed to remove subscription"));
     }
   });
 
@@ -810,7 +811,7 @@ export function registerAdminRoutes(app: Router) {
    *       500:
    *         description: Failed to fetch subscriptions
    */
-  app.get("/push/subscriptions", isAuthenticated, async (req: Request, res: Response) => {
+  app.get("/push/subscriptions", isAuthenticated, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const subscriptions = await getUserSubscriptions(userId);
@@ -821,7 +822,7 @@ export function registerAdminRoutes(app: Router) {
       })));
     } catch (error) {
       logger.error("Error fetching subscriptions", { error, userId });
-      res.status(500).json({ message: "Failed to fetch subscriptions" });
+      next(internalError("Failed to fetch subscriptions"));
     }
   });
 
@@ -879,7 +880,7 @@ export function registerAdminRoutes(app: Router) {
    *       500:
    *         description: Failed to search
    */
-  app.get("/search", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/search", isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -941,7 +942,7 @@ export function registerAdminRoutes(app: Router) {
       res.json(results);
     } catch (error) {
       logger.error("Error searching", { error, userId, householdId });
-      res.status(500).json({ message: "Failed to search" });
+      next(internalError("Failed to search"));
     }
   });
 }

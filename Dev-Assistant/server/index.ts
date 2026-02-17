@@ -131,8 +131,10 @@ app.use((req, res, next) => {
         message: err.message,
         requestId,
       };
-      if (err.details && process.env.NODE_ENV !== "production") {
-        body.details = err.details;
+      if (err.details) {
+        if (err.status < 500 || process.env.NODE_ENV !== "production") {
+          body.details = err.details;
+        }
       }
       return res.status(err.status).json(body);
     }

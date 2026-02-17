@@ -1,8 +1,9 @@
-import type { Request, Response, Router } from "express";
+import type { Request, Response, NextFunction, Router } from "express";
 import { isAuthenticated } from "../replit_integrations/auth";
 import { householdContextMiddleware } from "../middleware/householdContext";
 import logger from "../lib/logger";
 import { getJobCounts, enqueueJob, JOB_NAMES } from "../lib/queue";
+import { forbidden, badRequest, internalError } from "../lib/errors";
 
 const householdContext = householdContextMiddleware;
 
@@ -16,13 +17,13 @@ export function registerJobRoutes(app: Router) {
     "/admin/jobs",
     isAuthenticated,
     householdContext,
-    async (req: Request, res: Response) => {
+    async (req: Request, res: Response, next: NextFunction) => {
       try {
         const userId = req.user!.claims.sub;
         const profile = await getUserProfile(userId);
 
         if (profile?.role !== "ASSISTANT") {
-          return res.status(403).json({ message: "Access denied" });
+          throw forbidden("Access denied");
         }
 
         const counts = await getJobCounts();
@@ -33,7 +34,7 @@ export function registerJobRoutes(app: Router) {
         });
       } catch (error: any) {
         logger.error("Error fetching job dashboard", { error: error.message });
-        res.status(500).json({ message: "Failed to fetch job data" });
+        next(internalError("Failed to fetch job data"));
       }
     }
   );
@@ -42,20 +43,20 @@ export function registerJobRoutes(app: Router) {
     "/admin/jobs/:jobName/trigger",
     isAuthenticated,
     householdContext,
-    async (req: Request, res: Response) => {
+    async (req: Request, res: Response, next: NextFunction) => {
       try {
         const userId = req.user!.claims.sub;
         const profile = await getUserProfile(userId);
 
         if (profile?.role !== "ASSISTANT") {
-          return res.status(403).json({ message: "Access denied" });
+          throw forbidden("Access denied");
         }
 
         const { jobName } = req.params;
         const validNames = Object.values(JOB_NAMES) as string[];
 
         if (!validNames.includes(jobName)) {
-          return res.status(400).json({ message: `Invalid job name: ${jobName}` });
+          throw badRequest(`Invalid job name: ${jobName}`);
         }
 
         const jobId = await enqueueJob(jobName, {
@@ -72,7 +73,7 @@ export function registerJobRoutes(app: Router) {
         });
       } catch (error: any) {
         logger.error("Error triggering job", { error: error.message });
-        res.status(500).json({ message: "Failed to trigger job" });
+        next(internalError("Failed to trigger job"));
       }
     }
   );

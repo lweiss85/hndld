@@ -1,4 +1,5 @@
-import type { Request, Response } from "express";
+import type { Request, Response, NextFunction } from "express";
+import { AppError, badRequest, forbidden, internalError, notFound, unauthorized, validationError } from "../lib/errors";
 import type { Router } from "express";
 import { storage } from "../storage";
 import logger from "../lib/logger";
@@ -61,7 +62,7 @@ export function registerHouseholdConciergeRoutes(app: Router) {
    *       500:
    *         description: Internal server error
    */
-  app.get("/onboarding/status", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/onboarding/status", isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -74,7 +75,7 @@ export function registerHouseholdConciergeRoutes(app: Router) {
       });
     } catch (error) {
       logger.error("Error fetching onboarding status", { error, userId, householdId });
-      res.status(500).json({ message: "Failed to fetch onboarding status" });
+      next(internalError("Failed to fetch onboarding status"));
     }
   });
 
@@ -126,14 +127,14 @@ export function registerHouseholdConciergeRoutes(app: Router) {
    *       500:
    *         description: Internal server error
    */
-  app.post("/onboarding/complete-phase", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.post("/onboarding/complete-phase", isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       
       const profile = await getUserProfile(userId);
       if (profile?.role !== "ASSISTANT") {
-        return res.status(403).json({ message: "Only assistants can complete onboarding phases" });
+        throw forbidden("Only assistants can complete onboarding phases");
       }
       
       const phaseSchema = z.object({
@@ -142,7 +143,7 @@ export function registerHouseholdConciergeRoutes(app: Router) {
       
       const parseResult = phaseSchema.safeParse(req.body);
       if (!parseResult.success) {
-        return res.status(400).json({ message: "Invalid phase. Must be 1, 2, or 3" });
+        throw badRequest("Invalid phase. Must be 1, 2, or 3");
       }
       
       const { phase } = parseResult.data;
@@ -162,7 +163,7 @@ export function registerHouseholdConciergeRoutes(app: Router) {
       });
     } catch (error) {
       logger.error("Error completing onboarding phase", { error, userId, householdId });
-      res.status(500).json({ message: "Failed to complete onboarding phase" });
+      next(internalError("Failed to complete onboarding phase"));
     }
   });
 
@@ -200,7 +201,7 @@ export function registerHouseholdConciergeRoutes(app: Router) {
    *       500:
    *         description: Internal server error
    */
-  app.post("/onboarding/settings", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.post("/onboarding/settings", isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const householdId = req.householdId!;
       const settings = req.body;
@@ -214,7 +215,7 @@ export function registerHouseholdConciergeRoutes(app: Router) {
       res.json({ success: true });
     } catch (error) {
       logger.error("Error saving onboarding settings", { error, householdId });
-      res.status(500).json({ error: "Failed to save settings" });
+      next(internalError("Failed to save settings"));
     }
   });
 
@@ -264,7 +265,7 @@ export function registerHouseholdConciergeRoutes(app: Router) {
    *       500:
    *         description: Internal server error
    */
-  app.post("/onboarding/save-step", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.post("/onboarding/save-step", isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { step, data } = req.body;
       const householdId = req.householdId!;
@@ -338,13 +339,13 @@ export function registerHouseholdConciergeRoutes(app: Router) {
           break;
           
         default:
-          return res.status(400).json({ error: `Unknown step: ${step}` });
+          throw badRequest(`Unknown step: ${step}`);
       }
       
       res.json({ success: true });
     } catch (error) {
       logger.error("Error saving onboarding step", { error, householdId });
-      res.status(500).json({ error: "Failed to save step data" });
+      next(internalError("Failed to save step data"));
     }
   });
 
@@ -375,7 +376,7 @@ export function registerHouseholdConciergeRoutes(app: Router) {
    *         description: Internal server error
    */
   // Get current household (for service type detection)
-  app.get("/household", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/household", isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const householdId = req.householdId!;
       const household = await cache.getOrSet(
@@ -392,13 +393,13 @@ export function registerHouseholdConciergeRoutes(app: Router) {
       );
       
       if (!household) {
-        return res.status(404).json({ message: "Household not found" });
+        throw notFound("Household not found");
       }
       
       res.json(household);
     } catch (error) {
       logger.error("Error fetching household", { error, householdId });
-      res.status(500).json({ message: "Failed to fetch household" });
+      next(internalError("Failed to fetch household"));
     }
   });
 
@@ -428,7 +429,7 @@ export function registerHouseholdConciergeRoutes(app: Router) {
    *         description: Internal server error
    */
   // Household Settings Endpoints
-  app.get("/household/settings", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/household/settings", isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -446,7 +447,7 @@ export function registerHouseholdConciergeRoutes(app: Router) {
       res.json(settings);
     } catch (error) {
       logger.error("Error fetching household settings", { error, userId, householdId });
-      res.status(500).json({ message: "Failed to fetch household settings" });
+      next(internalError("Failed to fetch household settings"));
     }
   });
 
@@ -484,14 +485,14 @@ export function registerHouseholdConciergeRoutes(app: Router) {
    *       500:
    *         description: Internal server error
    */
-  app.put("/household/settings", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.put("/household/settings", isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       
       const profile = await getUserProfile(userId);
       if (profile?.role !== "ASSISTANT") {
-        return res.status(403).json({ message: "Only assistants can update household settings" });
+        throw forbidden("Only assistants can update household settings");
       }
       
       const settings = await storage.upsertHouseholdSettings(householdId, req.body);
@@ -499,7 +500,7 @@ export function registerHouseholdConciergeRoutes(app: Router) {
       res.json(settings);
     } catch (error) {
       logger.error("Error updating household settings", { error, userId, householdId });
-      res.status(500).json({ message: "Failed to update household settings" });
+      next(internalError("Failed to update household settings"));
     }
   });
 
@@ -531,7 +532,7 @@ export function registerHouseholdConciergeRoutes(app: Router) {
    *         description: Internal server error
    */
   // Household Locations Endpoints
-  app.get("/household/locations", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/household/locations", isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -543,7 +544,7 @@ export function registerHouseholdConciergeRoutes(app: Router) {
       res.json(locations);
     } catch (error) {
       logger.error("Error fetching household locations", { error, userId, householdId });
-      res.status(500).json({ message: "Failed to fetch household locations" });
+      next(internalError("Failed to fetch household locations"));
     }
   });
 
@@ -581,14 +582,14 @@ export function registerHouseholdConciergeRoutes(app: Router) {
    *       500:
    *         description: Internal server error
    */
-  app.post("/household/locations", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.post("/household/locations", isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       
       const profile = await getUserProfile(userId);
       if (profile?.role !== "ASSISTANT") {
-        return res.status(403).json({ message: "Only assistants can create locations" });
+        throw forbidden("Only assistants can create locations");
       }
       
       const location = await storage.createHouseholdLocation({
@@ -600,7 +601,7 @@ export function registerHouseholdConciergeRoutes(app: Router) {
       res.status(201).json(location);
     } catch (error) {
       logger.error("Error creating household location", { error, userId, householdId });
-      res.status(500).json({ message: "Failed to create household location" });
+      next(internalError("Failed to create household location"));
     }
   });
 
@@ -646,25 +647,25 @@ export function registerHouseholdConciergeRoutes(app: Router) {
    *       500:
    *         description: Internal server error
    */
-  app.put("/household/locations/:id", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.put("/household/locations/:id", isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       
       const profile = await getUserProfile(userId);
       if (profile?.role !== "ASSISTANT") {
-        return res.status(403).json({ message: "Only assistants can update locations" });
+        throw forbidden("Only assistants can update locations");
       }
       
       const location = await storage.updateHouseholdLocation(householdId, req.params.id, req.body);
       if (!location) {
-        return res.status(404).json({ message: "Location not found" });
+        throw notFound("Location not found");
       }
       cache.invalidate(CacheKeys.householdLocations(householdId));
       res.json(location);
     } catch (error) {
       logger.error("Error updating household location", { error, userId, householdId });
-      res.status(500).json({ message: "Failed to update household location" });
+      next(internalError("Failed to update household location"));
     }
   });
 
@@ -698,19 +699,19 @@ export function registerHouseholdConciergeRoutes(app: Router) {
    *       500:
    *         description: Internal server error
    */
-  app.delete("/household/locations/:id", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_SETTINGS"), async (req: Request, res: Response) => {
+  app.delete("/household/locations/:id", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_SETTINGS"), async (req: Request, res: Response, next: NextFunction) => {
     try {
       const householdId = req.householdId!;
       
       const deleted = await storage.deleteHouseholdLocation(householdId, req.params.id);
       if (!deleted) {
-        return res.status(404).json({ message: "Location not found" });
+        throw notFound("Location not found");
       }
       cache.invalidate(CacheKeys.householdLocations(householdId));
       res.status(204).send();
     } catch (error) {
       logger.error("Error deleting household location", { error, householdId });
-      res.status(500).json({ message: "Failed to delete household location" });
+      next(internalError("Failed to delete household location"));
     }
   });
 
@@ -742,7 +743,7 @@ export function registerHouseholdConciergeRoutes(app: Router) {
    *         description: Internal server error
    */
   // People Endpoints
-  app.get("/people", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/people", isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -754,7 +755,7 @@ export function registerHouseholdConciergeRoutes(app: Router) {
       res.json(people);
     } catch (error) {
       logger.error("Error fetching people", { error, userId, householdId });
-      res.status(500).json({ message: "Failed to fetch people" });
+      next(internalError("Failed to fetch people"));
     }
   });
 
@@ -792,14 +793,14 @@ export function registerHouseholdConciergeRoutes(app: Router) {
    *       500:
    *         description: Internal server error
    */
-  app.post("/people", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.post("/people", isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       
       const profile = await getUserProfile(userId);
       if (profile?.role !== "ASSISTANT") {
-        return res.status(403).json({ message: "Only assistants can create people" });
+        throw forbidden("Only assistants can create people");
       }
       
       const person = await storage.createPerson({
@@ -811,7 +812,7 @@ export function registerHouseholdConciergeRoutes(app: Router) {
       res.status(201).json(person);
     } catch (error) {
       logger.error("Error creating person", { error, userId, householdId });
-      res.status(500).json({ message: "Failed to create person" });
+      next(internalError("Failed to create person"));
     }
   });
 
@@ -857,25 +858,25 @@ export function registerHouseholdConciergeRoutes(app: Router) {
    *       500:
    *         description: Internal server error
    */
-  app.put("/people/:id", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.put("/people/:id", isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       
       const profile = await getUserProfile(userId);
       if (profile?.role !== "ASSISTANT") {
-        return res.status(403).json({ message: "Only assistants can update people" });
+        throw forbidden("Only assistants can update people");
       }
       
       const person = await storage.updatePerson(householdId, req.params.id, req.body);
       if (!person) {
-        return res.status(404).json({ message: "Person not found" });
+        throw notFound("Person not found");
       }
       cache.invalidate(CacheKeys.householdPeople(householdId));
       res.json(person);
     } catch (error) {
       logger.error("Error updating person", { error, userId, householdId });
-      res.status(500).json({ message: "Failed to update person" });
+      next(internalError("Failed to update person"));
     }
   });
 
@@ -909,19 +910,19 @@ export function registerHouseholdConciergeRoutes(app: Router) {
    *       500:
    *         description: Internal server error
    */
-  app.delete("/people/:id", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_SETTINGS"), async (req: Request, res: Response) => {
+  app.delete("/people/:id", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_SETTINGS"), async (req: Request, res: Response, next: NextFunction) => {
     try {
       const householdId = req.householdId!;
       
       const deleted = await storage.deletePerson(householdId, req.params.id);
       if (!deleted) {
-        return res.status(404).json({ message: "Person not found" });
+        throw notFound("Person not found");
       }
       cache.invalidate(CacheKeys.householdPeople(householdId));
       res.status(204).send();
     } catch (error) {
       logger.error("Error deleting person", { error, householdId });
-      res.status(500).json({ message: "Failed to delete person" });
+      next(internalError("Failed to delete person"));
     }
   });
 
@@ -953,7 +954,7 @@ export function registerHouseholdConciergeRoutes(app: Router) {
    *         description: Internal server error
    */
   // Preferences Endpoints
-  app.get("/preferences", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/preferences", isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -965,7 +966,7 @@ export function registerHouseholdConciergeRoutes(app: Router) {
       res.json(preferences);
     } catch (error) {
       logger.error("Error fetching preferences", { error, userId, householdId });
-      res.status(500).json({ message: "Failed to fetch preferences" });
+      next(internalError("Failed to fetch preferences"));
     }
   });
 
@@ -1003,14 +1004,14 @@ export function registerHouseholdConciergeRoutes(app: Router) {
    *       500:
    *         description: Internal server error
    */
-  app.post("/preferences", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.post("/preferences", isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       
       const profile = await getUserProfile(userId);
       if (profile?.role !== "ASSISTANT") {
-        return res.status(403).json({ message: "Only assistants can create preferences" });
+        throw forbidden("Only assistants can create preferences");
       }
       
       const preference = await storage.createPreference({
@@ -1023,7 +1024,7 @@ export function registerHouseholdConciergeRoutes(app: Router) {
       res.status(201).json(preference);
     } catch (error) {
       logger.error("Error creating preference", { error, userId, householdId });
-      res.status(500).json({ message: "Failed to create preference" });
+      next(internalError("Failed to create preference"));
     }
   });
 
@@ -1069,25 +1070,25 @@ export function registerHouseholdConciergeRoutes(app: Router) {
    *       500:
    *         description: Internal server error
    */
-  app.put("/preferences/:id", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.put("/preferences/:id", isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       
       const profile = await getUserProfile(userId);
       if (profile?.role !== "ASSISTANT") {
-        return res.status(403).json({ message: "Only assistants can update preferences" });
+        throw forbidden("Only assistants can update preferences");
       }
       
       const preference = await storage.updatePreference(householdId, req.params.id, req.body);
       if (!preference) {
-        return res.status(404).json({ message: "Preference not found" });
+        throw notFound("Preference not found");
       }
       cache.invalidate(CacheKeys.householdPreferences(householdId));
       res.json(preference);
     } catch (error) {
       logger.error("Error updating preference", { error, userId, householdId });
-      res.status(500).json({ message: "Failed to update preference" });
+      next(internalError("Failed to update preference"));
     }
   });
 
@@ -1121,19 +1122,19 @@ export function registerHouseholdConciergeRoutes(app: Router) {
    *       500:
    *         description: Internal server error
    */
-  app.delete("/preferences/:id", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_SETTINGS"), async (req: Request, res: Response) => {
+  app.delete("/preferences/:id", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_SETTINGS"), async (req: Request, res: Response, next: NextFunction) => {
     try {
       const householdId = req.householdId!;
       
       const deleted = await storage.deletePreference(householdId, req.params.id);
       if (!deleted) {
-        return res.status(404).json({ message: "Preference not found" });
+        throw notFound("Preference not found");
       }
       cache.invalidate(CacheKeys.householdPreferences(householdId));
       res.status(204).send();
     } catch (error) {
       logger.error("Error deleting preference", { error, householdId });
-      res.status(500).json({ message: "Failed to delete preference" });
+      next(internalError("Failed to delete preference"));
     }
   });
 
@@ -1165,7 +1166,7 @@ export function registerHouseholdConciergeRoutes(app: Router) {
    *         description: Internal server error
    */
   // Important Dates Endpoints
-  app.get("/important-dates", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/important-dates", isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -1177,7 +1178,7 @@ export function registerHouseholdConciergeRoutes(app: Router) {
       res.json(importantDates);
     } catch (error) {
       logger.error("Error fetching important dates", { error, userId, householdId });
-      res.status(500).json({ message: "Failed to fetch important dates" });
+      next(internalError("Failed to fetch important dates"));
     }
   });
 
@@ -1215,14 +1216,14 @@ export function registerHouseholdConciergeRoutes(app: Router) {
    *       500:
    *         description: Internal server error
    */
-  app.post("/important-dates", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.post("/important-dates", isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       
       const profile = await getUserProfile(userId);
       if (profile?.role !== "ASSISTANT") {
-        return res.status(403).json({ message: "Only assistants can create important dates" });
+        throw forbidden("Only assistants can create important dates");
       }
       
       const importantDate = await storage.createImportantDate({
@@ -1234,7 +1235,7 @@ export function registerHouseholdConciergeRoutes(app: Router) {
       res.status(201).json(importantDate);
     } catch (error) {
       logger.error("Error creating important date", { error, userId, householdId });
-      res.status(500).json({ message: "Failed to create important date" });
+      next(internalError("Failed to create important date"));
     }
   });
 
@@ -1280,25 +1281,25 @@ export function registerHouseholdConciergeRoutes(app: Router) {
    *       500:
    *         description: Internal server error
    */
-  app.put("/important-dates/:id", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.put("/important-dates/:id", isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       
       const profile = await getUserProfile(userId);
       if (profile?.role !== "ASSISTANT") {
-        return res.status(403).json({ message: "Only assistants can update important dates" });
+        throw forbidden("Only assistants can update important dates");
       }
       
       const importantDate = await storage.updateImportantDate(householdId, req.params.id, req.body);
       if (!importantDate) {
-        return res.status(404).json({ message: "Important date not found" });
+        throw notFound("Important date not found");
       }
       cache.invalidate(CacheKeys.householdImportantDates(householdId));
       res.json(importantDate);
     } catch (error) {
       logger.error("Error updating important date", { error, userId, householdId });
-      res.status(500).json({ message: "Failed to update important date" });
+      next(internalError("Failed to update important date"));
     }
   });
 
@@ -1332,19 +1333,19 @@ export function registerHouseholdConciergeRoutes(app: Router) {
    *       500:
    *         description: Internal server error
    */
-  app.delete("/important-dates/:id", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_SETTINGS"), async (req: Request, res: Response) => {
+  app.delete("/important-dates/:id", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_SETTINGS"), async (req: Request, res: Response, next: NextFunction) => {
     try {
       const householdId = req.householdId!;
       
       const deleted = await storage.deleteImportantDate(householdId, req.params.id);
       if (!deleted) {
-        return res.status(404).json({ message: "Important date not found" });
+        throw notFound("Important date not found");
       }
       cache.invalidate(CacheKeys.householdImportantDates(householdId));
       res.status(204).send();
     } catch (error) {
       logger.error("Error deleting important date", { error, householdId });
-      res.status(500).json({ message: "Failed to delete important date" });
+      next(internalError("Failed to delete important date"));
     }
   });
 
@@ -1376,7 +1377,7 @@ export function registerHouseholdConciergeRoutes(app: Router) {
    *         description: Internal server error
    */
   // Access Items Endpoints
-  app.get("/access-items", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/access-items", isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -1404,7 +1405,7 @@ export function registerHouseholdConciergeRoutes(app: Router) {
       }
     } catch (error) {
       logger.error("Error fetching access items", { error, userId, householdId });
-      res.status(500).json({ message: "Failed to fetch access items" });
+      next(internalError("Failed to fetch access items"));
     }
   });
 
@@ -1442,14 +1443,14 @@ export function registerHouseholdConciergeRoutes(app: Router) {
    *       500:
    *         description: Internal server error
    */
-  app.post("/access-items", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.post("/access-items", isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       
       const profile = await getUserProfile(userId);
       if (profile?.role !== "ASSISTANT") {
-        return res.status(403).json({ message: "Only assistants can create access items" });
+        throw forbidden("Only assistants can create access items");
       }
       
       const data = req.body;
@@ -1470,7 +1471,7 @@ export function registerHouseholdConciergeRoutes(app: Router) {
       });
     } catch (error) {
       logger.error("Error creating access item", { error, userId, householdId });
-      res.status(500).json({ message: "Failed to create access item" });
+      next(internalError("Failed to create access item"));
     }
   });
 
@@ -1516,7 +1517,7 @@ export function registerHouseholdConciergeRoutes(app: Router) {
    *       500:
    *         description: Internal server error
    */
-  app.put("/access-items/:id", isAuthenticated, householdContext, requirePermission("CAN_EDIT_VAULT"), async (req: Request, res: Response) => {
+  app.put("/access-items/:id", isAuthenticated, householdContext, requirePermission("CAN_EDIT_VAULT"), async (req: Request, res: Response, next: NextFunction) => {
     try {
       const householdId = req.householdId!;
       const data = req.body;
@@ -1531,7 +1532,7 @@ export function registerHouseholdConciergeRoutes(app: Router) {
       
       const accessItem = await storage.updateAccessItem(householdId, req.params.id, data);
       if (!accessItem) {
-        return res.status(404).json({ message: "Access item not found" });
+        throw notFound("Access item not found");
       }
       res.json({
         ...accessItem,
@@ -1539,7 +1540,7 @@ export function registerHouseholdConciergeRoutes(app: Router) {
       });
     } catch (error) {
       logger.error("Error updating access item", { error, householdId });
-      res.status(500).json({ message: "Failed to update access item" });
+      next(internalError("Failed to update access item"));
     }
   });
 
@@ -1573,18 +1574,18 @@ export function registerHouseholdConciergeRoutes(app: Router) {
    *       500:
    *         description: Internal server error
    */
-  app.delete("/access-items/:id", isAuthenticated, householdContext, requirePermission("CAN_EDIT_VAULT"), async (req: Request, res: Response) => {
+  app.delete("/access-items/:id", isAuthenticated, householdContext, requirePermission("CAN_EDIT_VAULT"), async (req: Request, res: Response, next: NextFunction) => {
     try {
       const householdId = req.householdId!;
       
       const deleted = await storage.deleteAccessItem(householdId, req.params.id);
       if (!deleted) {
-        return res.status(404).json({ message: "Access item not found" });
+        throw notFound("Access item not found");
       }
       res.status(204).send();
     } catch (error) {
       logger.error("Error deleting access item", { error, householdId });
-      res.status(500).json({ message: "Failed to delete access items" });
+      next(internalError("Failed to delete access items"));
     }
   });
 
@@ -1626,7 +1627,7 @@ export function registerHouseholdConciergeRoutes(app: Router) {
    *       500:
    *         description: Internal server error
    */
-  app.post("/access-items/:id/reveal", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.post("/access-items/:id/reveal", isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { id } = req.params;
       const userId = req.user!.claims.sub;
@@ -1635,16 +1636,16 @@ export function registerHouseholdConciergeRoutes(app: Router) {
       
       const item = await storage.getAccessItem(householdId, id);
       if (!item) {
-        return res.status(404).json({ error: "Item not found" });
+        throw notFound("Item not found");
       }
       
       if (userRole === "STAFF") {
         const grant = await storage.getAccessItemGrantForUser(id, userId, householdId);
         if (!grant || (grant.expiresAt && new Date(grant.expiresAt) < new Date())) {
-          return res.status(403).json({ error: "No active grant for this item" });
+          throw forbidden("No active grant for this item");
         }
       } else if (userRole !== "ASSISTANT") {
-        return res.status(403).json({ error: "Access denied" });
+        throw forbidden("Access denied");
       }
       
       const decryptedValue = item.isEncrypted 
@@ -1654,7 +1655,7 @@ export function registerHouseholdConciergeRoutes(app: Router) {
       res.json({ value: decryptedValue });
     } catch (error) {
       logger.error("Error revealing access item", { error, userId, householdId });
-      res.status(500).json({ error: "Failed to reveal item" });
+      next(internalError("Failed to reveal item"));
     }
   });
 
@@ -1696,21 +1697,21 @@ export function registerHouseholdConciergeRoutes(app: Router) {
    *         description: Internal server error
    */
   // Access Item Grants (for STAFF access management)
-  app.get("/access-items/:id/grants", isAuthenticated, householdContext, requirePermission("CAN_EDIT_VAULT"), async (req: Request, res: Response) => {
+  app.get("/access-items/:id/grants", isAuthenticated, householdContext, requirePermission("CAN_EDIT_VAULT"), async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { id } = req.params;
       const householdId = req.householdId!;
       
       const item = await storage.getAccessItem(householdId, id);
       if (!item) {
-        return res.status(404).json({ error: "Item not found" });
+        throw notFound("Item not found");
       }
       
       const grants = await storage.getAccessItemGrants(id);
       res.json(grants);
     } catch (error) {
       logger.error("Error fetching access item grants", { error, householdId });
-      res.status(500).json({ error: "Failed to fetch grants" });
+      next(internalError("Failed to fetch grants"));
     }
   });
 
@@ -1765,7 +1766,7 @@ export function registerHouseholdConciergeRoutes(app: Router) {
    *       500:
    *         description: Internal server error
    */
-  app.post("/access-items/:id/grants", isAuthenticated, householdContext, requirePermission("CAN_EDIT_VAULT"), async (req: Request, res: Response) => {
+  app.post("/access-items/:id/grants", isAuthenticated, householdContext, requirePermission("CAN_EDIT_VAULT"), async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { id } = req.params;
       const { userId: grantUserId, expiresAt } = req.body;
@@ -1774,7 +1775,7 @@ export function registerHouseholdConciergeRoutes(app: Router) {
       
       const item = await storage.getAccessItem(householdId, id);
       if (!item) {
-        return res.status(404).json({ error: "Item not found" });
+        throw notFound("Item not found");
       }
       
       const grant = await storage.createAccessItemGrant({
@@ -1788,7 +1789,7 @@ export function registerHouseholdConciergeRoutes(app: Router) {
       res.status(201).json(grant);
     } catch (error) {
       logger.error("Error creating access item grant", { error, householdId });
-      res.status(500).json({ error: "Failed to create grant" });
+      next(internalError("Failed to create grant"));
     }
   });
 
@@ -1828,18 +1829,18 @@ export function registerHouseholdConciergeRoutes(app: Router) {
    *       500:
    *         description: Internal server error
    */
-  app.delete("/access-items/:id/grants/:grantId", isAuthenticated, householdContext, requirePermission("CAN_EDIT_VAULT"), async (req: Request, res: Response) => {
+  app.delete("/access-items/:id/grants/:grantId", isAuthenticated, householdContext, requirePermission("CAN_EDIT_VAULT"), async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { grantId } = req.params;
       
       const deleted = await storage.deleteAccessItemGrant(grantId);
       if (!deleted) {
-        return res.status(404).json({ error: "Grant not found" });
+        throw notFound("Grant not found");
       }
       res.status(204).send();
     } catch (error) {
       logger.error("Error deleting access item grant", { error, grantId });
-      res.status(500).json({ error: "Failed to delete grant" });
+      next(internalError("Failed to delete grant"));
     }
   });
 
@@ -1871,7 +1872,7 @@ export function registerHouseholdConciergeRoutes(app: Router) {
    *         description: Internal server error
    */
   // Quick Request Templates Endpoints
-  app.get("/quick-request-templates", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/quick-request-templates", isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -1879,7 +1880,7 @@ export function registerHouseholdConciergeRoutes(app: Router) {
       res.json(templates.filter(t => t.isActive));
     } catch (error) {
       logger.error("Error fetching quick request templates", { error, userId, householdId });
-      res.status(500).json({ message: "Failed to fetch quick request templates" });
+      next(internalError("Failed to fetch quick request templates"));
     }
   });
 
@@ -1912,21 +1913,21 @@ export function registerHouseholdConciergeRoutes(app: Router) {
    *       500:
    *         description: Internal server error
    */
-  app.get("/quick-request-templates/all", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/quick-request-templates/all", isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       const profile = await getUserProfile(userId);
       
       if (profile?.role !== "ASSISTANT") {
-        return res.status(403).json({ message: "Only assistants can view all templates" });
+        throw forbidden("Only assistants can view all templates");
       }
       
       const templates = await storage.getQuickRequestTemplates(householdId);
       res.json(templates);
     } catch (error) {
       logger.error("Error fetching all quick request templates", { error, userId, householdId });
-      res.status(500).json({ message: "Failed to fetch quick request templates" });
+      next(internalError("Failed to fetch quick request templates"));
     }
   });
 
@@ -1966,14 +1967,14 @@ export function registerHouseholdConciergeRoutes(app: Router) {
    *       500:
    *         description: Internal server error
    */
-  app.post("/quick-request-templates", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.post("/quick-request-templates", isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       const profile = await getUserProfile(userId);
       
       if (profile?.role !== "ASSISTANT") {
-        return res.status(403).json({ message: "Only assistants can create templates" });
+        throw forbidden("Only assistants can create templates");
       }
       
       const validatedData = insertQuickRequestTemplateSchema.parse({
@@ -1985,10 +1986,10 @@ export function registerHouseholdConciergeRoutes(app: Router) {
       res.status(201).json(template);
     } catch (error) {
       if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: "Invalid request data", errors: error.errors });
+        return next(validationError("Invalid request data", error.errors));
       }
       logger.error("Error creating quick request template", { error, userId, householdId });
-      res.status(500).json({ message: "Failed to create quick request template" });
+      next(internalError("Failed to create quick request template"));
     }
   });
 
@@ -2036,14 +2037,14 @@ export function registerHouseholdConciergeRoutes(app: Router) {
    *       500:
    *         description: Internal server error
    */
-  app.patch("/quick-request-templates/:id", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.patch("/quick-request-templates/:id", isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       const profile = await getUserProfile(userId);
       
       if (profile?.role !== "ASSISTANT") {
-        return res.status(403).json({ message: "Only assistants can update templates" });
+        throw forbidden("Only assistants can update templates");
       }
       
       const updateSchema = insertQuickRequestTemplateSchema.partial().omit({ householdId: true });
@@ -2051,15 +2052,15 @@ export function registerHouseholdConciergeRoutes(app: Router) {
       
       const template = await storage.updateQuickRequestTemplate(householdId, req.params.id, validatedData);
       if (!template) {
-        return res.status(404).json({ message: "Template not found" });
+        throw notFound("Template not found");
       }
       res.json(template);
     } catch (error) {
       if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: "Invalid request data", errors: error.errors });
+        return next(validationError("Invalid request data", error.errors));
       }
       logger.error("Error updating quick request template", { error, userId, householdId });
-      res.status(500).json({ message: "Failed to update quick request template" });
+      next(internalError("Failed to update quick request template"));
     }
   });
 
@@ -2093,24 +2094,24 @@ export function registerHouseholdConciergeRoutes(app: Router) {
    *       500:
    *         description: Internal server error
    */
-  app.delete("/quick-request-templates/:id", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.delete("/quick-request-templates/:id", isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       const profile = await getUserProfile(userId);
       
       if (profile?.role !== "ASSISTANT") {
-        return res.status(403).json({ message: "Only assistants can delete templates" });
+        throw forbidden("Only assistants can delete templates");
       }
       
       const deleted = await storage.deleteQuickRequestTemplate(householdId, req.params.id);
       if (!deleted) {
-        return res.status(404).json({ message: "Template not found" });
+        throw notFound("Template not found");
       }
       res.status(204).send();
     } catch (error) {
       logger.error("Error deleting quick request template", { error, userId, householdId });
-      res.status(500).json({ message: "Failed to delete quick request template" });
+      next(internalError("Failed to delete quick request template"));
     }
   });
 
@@ -2142,7 +2143,7 @@ export function registerHouseholdConciergeRoutes(app: Router) {
    *         description: Internal server error
    */
   // Playbooks (SOP Templates) Endpoints
-  app.get("/playbooks", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/playbooks", isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -2150,7 +2151,7 @@ export function registerHouseholdConciergeRoutes(app: Router) {
       res.json(playbooksList);
     } catch (error) {
       logger.error("Error fetching playbooks", { error, userId, householdId });
-      res.status(500).json({ message: "Failed to fetch playbooks" });
+      next(internalError("Failed to fetch playbooks"));
     }
   });
 
@@ -2187,20 +2188,20 @@ export function registerHouseholdConciergeRoutes(app: Router) {
    *       500:
    *         description: Internal server error
    */
-  app.get("/playbooks/:id", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/playbooks/:id", isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       const playbook = await storage.getPlaybook(householdId, req.params.id);
       if (!playbook) {
-        return res.status(404).json({ message: "Playbook not found" });
+        throw notFound("Playbook not found");
       }
       
       const steps = await storage.getPlaybookSteps(playbook.id);
       res.json({ ...playbook, steps });
     } catch (error) {
       logger.error("Error fetching playbook", { error, userId, householdId });
-      res.status(500).json({ message: "Failed to fetch playbook" });
+      next(internalError("Failed to fetch playbook"));
     }
   });
 
@@ -2252,14 +2253,14 @@ export function registerHouseholdConciergeRoutes(app: Router) {
    *       500:
    *         description: Internal server error
    */
-  app.post("/playbooks", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_PLAYBOOKS"), async (req: Request, res: Response) => {
+  app.post("/playbooks", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_PLAYBOOKS"), async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       const profile = await getUserProfile(userId);
       
       if (profile?.role !== "ASSISTANT") {
-        return res.status(403).json({ message: "Only assistants can create playbooks" });
+        throw forbidden("Only assistants can create playbooks");
       }
       
       const { steps, ...playbookData } = req.body;
@@ -2286,10 +2287,10 @@ export function registerHouseholdConciergeRoutes(app: Router) {
       res.status(201).json({ ...playbook, steps: createdSteps });
     } catch (error) {
       if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: "Invalid request data", errors: error.errors });
+        return next(validationError("Invalid request data", error.errors));
       }
       logger.error("Error creating playbook", { error, userId, householdId });
-      res.status(500).json({ message: "Failed to create playbook" });
+      next(internalError("Failed to create playbook"));
     }
   });
 
@@ -2349,19 +2350,19 @@ export function registerHouseholdConciergeRoutes(app: Router) {
    *       500:
    *         description: Internal server error
    */
-  app.patch("/playbooks/:id", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_PLAYBOOKS"), async (req: Request, res: Response) => {
+  app.patch("/playbooks/:id", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_PLAYBOOKS"), async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       const profile = await getUserProfile(userId);
       
       if (profile?.role !== "ASSISTANT") {
-        return res.status(403).json({ message: "Only assistants can update playbooks" });
+        throw forbidden("Only assistants can update playbooks");
       }
       
       const existing = await storage.getPlaybook(householdId, req.params.id);
       if (!existing) {
-        return res.status(404).json({ message: "Playbook not found" });
+        throw notFound("Playbook not found");
       }
       
       const { steps, ...playbookData } = req.body;
@@ -2390,10 +2391,10 @@ export function registerHouseholdConciergeRoutes(app: Router) {
       res.json({ ...playbook, steps: updatedSteps });
     } catch (error) {
       if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: "Invalid request data", errors: error.errors });
+        return next(validationError("Invalid request data", error.errors));
       }
       logger.error("Error updating playbook", { error, userId, householdId });
-      res.status(500).json({ message: "Failed to update playbook" });
+      next(internalError("Failed to update playbook"));
     }
   });
 
@@ -2427,24 +2428,24 @@ export function registerHouseholdConciergeRoutes(app: Router) {
    *       500:
    *         description: Internal server error
    */
-  app.delete("/playbooks/:id", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_PLAYBOOKS"), async (req: Request, res: Response) => {
+  app.delete("/playbooks/:id", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_PLAYBOOKS"), async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       const profile = await getUserProfile(userId);
       
       if (profile?.role !== "ASSISTANT") {
-        return res.status(403).json({ message: "Only assistants can delete playbooks" });
+        throw forbidden("Only assistants can delete playbooks");
       }
       
       const deleted = await storage.deletePlaybook(householdId, req.params.id);
       if (!deleted) {
-        return res.status(404).json({ message: "Playbook not found" });
+        throw notFound("Playbook not found");
       }
       res.status(204).send();
     } catch (error) {
       logger.error("Error deleting playbook", { error, userId, householdId });
-      res.status(500).json({ message: "Failed to delete playbook" });
+      next(internalError("Failed to delete playbook"));
     }
   });
 }

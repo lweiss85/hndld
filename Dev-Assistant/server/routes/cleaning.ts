@@ -1,10 +1,11 @@
-import type { Request, Response } from "express";
+import type { Request, Response, NextFunction } from "express";
 import type { Router } from "express";
 import { storage } from "../storage";
 import logger from "../lib/logger";
 import { isAuthenticated } from "../replit_integrations/auth";
 import { householdContextMiddleware } from "../middleware/householdContext";
 import { cache, CacheKeys, CacheTTL } from "../lib/cache";
+import { forbidden, notFound, badRequest, internalError } from "../lib/errors";
 
 const householdContext = householdContextMiddleware;
 
@@ -30,7 +31,7 @@ export async function registerCleaningRoutes(app: Router): Promise<void> {
    *       500:
    *         description: Server error
    */
-  app.get("/addon-services", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/addon-services", isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const householdId = req.householdId!;
       const addons = await cache.getOrSet(
@@ -41,7 +42,7 @@ export async function registerCleaningRoutes(app: Router): Promise<void> {
       res.json(addons);
     } catch (error) {
       logger.error("Error fetching addon services", { error, householdId });
-      res.status(500).json({ message: "Failed to fetch addon services" });
+      next(internalError("Failed to fetch addon services"));
     }
   });
 
@@ -86,24 +87,24 @@ export async function registerCleaningRoutes(app: Router): Promise<void> {
    *       500:
    *         description: Server error
    */
-  app.post("/addon-services", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.post("/addon-services", isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const householdId = req.householdId!;
       const userProfile = req.userProfile;
       
       if (userProfile?.role !== "ASSISTANT") {
-        return res.status(403).json({ message: "Only assistants can manage add-on services" });
+        throw forbidden("Only assistants can manage add-on services");
       }
       
       const { name, description, priceInCents, estimatedMinutes, category, sortOrder } = req.body;
       
       if (!name || priceInCents === undefined) {
-        return res.status(400).json({ message: "Name and price are required" });
+        throw badRequest("Name and price are required");
       }
       
       const parsedPrice = parseInt(priceInCents, 10);
       if (isNaN(parsedPrice) || parsedPrice < 0) {
-        return res.status(400).json({ message: "Price must be a valid positive number" });
+        throw badRequest("Price must be a valid positive number");
       }
       
       const addon = await storage.createAddonService({
@@ -121,7 +122,7 @@ export async function registerCleaningRoutes(app: Router): Promise<void> {
       res.status(201).json(addon);
     } catch (error) {
       logger.error("Error creating addon service", { error, householdId });
-      res.status(500).json({ message: "Failed to create addon service" });
+      next(internalError("Failed to create addon service"));
     }
   });
 
@@ -174,19 +175,19 @@ export async function registerCleaningRoutes(app: Router): Promise<void> {
    *       500:
    *         description: Server error
    */
-  app.patch("/addon-services/:id", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.patch("/addon-services/:id", isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { id } = req.params;
       const userProfile = req.userProfile;
       const householdId = req.householdId!;
       
       if (userProfile?.role !== "ASSISTANT") {
-        return res.status(403).json({ message: "Only assistants can manage add-on services" });
+        throw forbidden("Only assistants can manage add-on services");
       }
       
       const existing = await storage.getAddonServiceById(id);
       if (!existing || existing.householdId !== householdId) {
-        return res.status(404).json({ message: "Add-on service not found" });
+        throw notFound("Add-on service not found");
       }
       
       const { name, description, priceInCents, estimatedMinutes, category, sortOrder, isActive } = req.body;
@@ -194,7 +195,7 @@ export async function registerCleaningRoutes(app: Router): Promise<void> {
       if (priceInCents !== undefined) {
         const parsedPrice = parseInt(priceInCents, 10);
         if (isNaN(parsedPrice) || parsedPrice < 0) {
-          return res.status(400).json({ message: "Price must be a valid positive number" });
+          throw badRequest("Price must be a valid positive number");
         }
       }
       
@@ -212,7 +213,7 @@ export async function registerCleaningRoutes(app: Router): Promise<void> {
       res.json(addon);
     } catch (error) {
       logger.error("Error updating addon service", { error, householdId, id });
-      res.status(500).json({ message: "Failed to update addon service" });
+      next(internalError("Failed to update addon service"));
     }
   });
 
@@ -242,19 +243,19 @@ export async function registerCleaningRoutes(app: Router): Promise<void> {
    *       500:
    *         description: Server error
    */
-  app.delete("/addon-services/:id", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.delete("/addon-services/:id", isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { id } = req.params;
       const userProfile = req.userProfile;
       const householdId = req.householdId!;
       
       if (userProfile?.role !== "ASSISTANT") {
-        return res.status(403).json({ message: "Only assistants can manage add-on services" });
+        throw forbidden("Only assistants can manage add-on services");
       }
       
       const existing = await storage.getAddonServiceById(id);
       if (!existing || existing.householdId !== householdId) {
-        return res.status(404).json({ message: "Add-on service not found" });
+        throw notFound("Add-on service not found");
       }
       
       await storage.deleteAddonService(id);
@@ -262,7 +263,7 @@ export async function registerCleaningRoutes(app: Router): Promise<void> {
       res.json({ success: true });
     } catch (error) {
       logger.error("Error deleting addon service", { error, householdId, id });
-      res.status(500).json({ message: "Failed to delete addon service" });
+      next(internalError("Failed to delete addon service"));
     }
   });
 
@@ -283,14 +284,14 @@ export async function registerCleaningRoutes(app: Router): Promise<void> {
    *       500:
    *         description: Server error
    */
-  app.get("/cleaning/next", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/cleaning/next", isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const householdId = req.householdId!;
       const visit = await storage.getNextCleaningVisit(householdId);
       res.json(visit || null);
     } catch (error) {
       logger.error("Error fetching next cleaning", { error, householdId });
-      res.status(500).json({ message: "Failed to fetch next cleaning" });
+      next(internalError("Failed to fetch next cleaning"));
     }
   });
 
@@ -311,14 +312,14 @@ export async function registerCleaningRoutes(app: Router): Promise<void> {
    *       500:
    *         description: Server error
    */
-  app.get("/cleaning/visits", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/cleaning/visits", isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const householdId = req.householdId!;
       const visits = await storage.getCleaningVisits(householdId);
       res.json(visits);
     } catch (error) {
       logger.error("Error fetching cleaning visits", { error, householdId });
-      res.status(500).json({ message: "Failed to fetch cleaning visits" });
+      next(internalError("Failed to fetch cleaning visits"));
     }
   });
 
@@ -345,7 +346,7 @@ export async function registerCleaningRoutes(app: Router): Promise<void> {
    *       500:
    *         description: Server error
    */
-  app.post("/cleaning/visits", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.post("/cleaning/visits", isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const householdId = req.householdId!;
       const visit = await storage.createCleaningVisit({
@@ -355,7 +356,7 @@ export async function registerCleaningRoutes(app: Router): Promise<void> {
       res.status(201).json(visit);
     } catch (error) {
       logger.error("Error creating cleaning visit", { error, householdId });
-      res.status(500).json({ message: "Failed to create cleaning visit" });
+      next(internalError("Failed to create cleaning visit"));
     }
   });
 
@@ -389,17 +390,17 @@ export async function registerCleaningRoutes(app: Router): Promise<void> {
    *       500:
    *         description: Server error
    */
-  app.patch("/cleaning/visits/:id", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.patch("/cleaning/visits/:id", isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { id } = req.params;
       const visit = await storage.updateCleaningVisit(id, req.body);
       if (!visit) {
-        return res.status(404).json({ message: "Cleaning visit not found" });
+        throw notFound("Cleaning visit not found");
       }
       res.json(visit);
     } catch (error) {
       logger.error("Error updating cleaning visit", { error, id });
-      res.status(500).json({ message: "Failed to update cleaning visit" });
+      next(internalError("Failed to update cleaning visit"));
     }
   });
 }

@@ -1,4 +1,4 @@
-import type { Request, Response } from "express";
+import type { Request, Response, NextFunction } from "express";
 import type { Router } from "express";
 import { storage } from "../storage";
 import logger from "../lib/logger";
@@ -7,6 +7,7 @@ import { expensiveLimiter } from "../lib/rate-limit";
 import { householdContextMiddleware } from "../middleware/householdContext";
 import * as googleCalendar from "../services/google-calendar";
 import { google } from "googleapis";
+import { badRequest, notFound, internalError } from "../lib/errors";
 
 const householdContext = householdContextMiddleware;
 
@@ -39,12 +40,12 @@ export function registerGoogleCalendarRoutes(app: Router) {
    *       500:
    *         description: Internal server error
    */
-  app.get("/google/auth", isAuthenticated, async (req: Request, res: Response) => {
+  app.get("/google/auth", isAuthenticated, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.headers["x-household-id"];
       if (!householdId) {
-        return res.status(400).json({ error: "No household context" });
+        throw badRequest("No household context");
       }
       const crypto = await import("crypto");
       const nonce = crypto.randomBytes(16).toString("hex");
@@ -54,7 +55,7 @@ export function registerGoogleCalendarRoutes(app: Router) {
       res.json({ authUrl });
     } catch (error) {
       logger.error("Error generating auth URL", { error, userId });
-      res.status(500).json({ error: "Failed to generate auth URL" });
+      next(internalError("Failed to generate auth URL"));
     }
   });
 
@@ -157,12 +158,12 @@ export function registerGoogleCalendarRoutes(app: Router) {
    *       500:
    *         description: Internal server error
    */
-  app.get("/google/calendars", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/google/calendars", isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const householdId = req.householdId!;
       const connection = await googleCalendar.getConnection(householdId);
       if (!connection) {
-        return res.status(404).json({ error: "No calendar connection" });
+        throw notFound("No calendar connection");
       }
       const calendars = await googleCalendar.listCalendars(connection.id);
       const selections = await googleCalendar.getSelectedCalendars(connection.id);
@@ -178,7 +179,7 @@ export function registerGoogleCalendarRoutes(app: Router) {
       });
     } catch (error) {
       logger.error("Error listing calendars", { error, householdId });
-      res.status(500).json({ error: "Failed to list calendars" });
+      next(internalError("Failed to list calendars"));
     }
   });
 
@@ -222,13 +223,13 @@ export function registerGoogleCalendarRoutes(app: Router) {
    *       500:
    *         description: Internal server error
    */
-  app.post("/google/calendars/select", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.post("/google/calendars/select", isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const householdId = req.householdId!;
       const { calendarIds } = req.body;
       const connection = await googleCalendar.getConnection(householdId);
       if (!connection) {
-        return res.status(404).json({ error: "No calendar connection" });
+        throw notFound("No calendar connection");
       }
       const calendars = await googleCalendar.listCalendars(connection.id);
       for (const calendarId of calendarIds) {
@@ -245,7 +246,7 @@ export function registerGoogleCalendarRoutes(app: Router) {
       res.json({ success: true });
     } catch (error) {
       logger.error("Error selecting calendars", { error, householdId });
-      res.status(500).json({ error: "Failed to select calendars" });
+      next(internalError("Failed to select calendars"));
     }
   });
 
@@ -273,14 +274,14 @@ export function registerGoogleCalendarRoutes(app: Router) {
    *       500:
    *         description: Internal server error
    */
-  app.post("/google/sync", expensiveLimiter, isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.post("/google/sync", expensiveLimiter, isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const householdId = req.householdId!;
       const result = await googleCalendar.syncCalendarEvents(householdId);
       res.json(result);
     } catch (error) {
       logger.error("Error syncing calendar", { error, householdId });
-      res.status(500).json({ error: "Failed to sync calendar" });
+      next(internalError("Failed to sync calendar"));
     }
   });
 
@@ -302,14 +303,14 @@ export function registerGoogleCalendarRoutes(app: Router) {
    *       500:
    *         description: Internal server error
    */
-  app.delete("/google/disconnect", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.delete("/google/disconnect", isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const householdId = req.householdId!;
       await googleCalendar.disconnectCalendar(householdId);
       res.status(204).send();
     } catch (error) {
       logger.error("Error disconnecting calendar", { error, householdId });
-      res.status(500).json({ error: "Failed to disconnect" });
+      next(internalError("Failed to disconnect"));
     }
   });
 }

@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router, NextFunction } from "express";
 import multer from "multer";
 import { db } from "../db";
 import { files, fileLinks } from "@shared/schema";
@@ -13,6 +13,7 @@ import {
   trackFileView,
   updateFileMetadata,
 } from "../services/storage-provider";
+import { badRequest, notFound, internalError } from "../lib/errors";
 
 const router = Router();
 
@@ -91,10 +92,10 @@ const upload = multer({
  *       500:
  *         description: Upload failed
  */
-router.post("/upload", upload.single("file"), async (req: any, res) => {
+router.post("/upload", upload.single("file"), async (req: any, res, next: NextFunction) => {
   try {
     if (!req.file) {
-      return res.status(400).json({ error: "No file provided" });
+      throw badRequest("No file provided");
     }
     
     const { category = "OTHER", tags, description, linkTo } = req.body;
@@ -139,7 +140,7 @@ router.post("/upload", upload.single("file"), async (req: any, res) => {
     res.json(file);
   } catch (error: any) {
     console.error("Upload error:", error);
-    res.status(500).json({ error: error.message || "Upload failed" });
+    next(internalError(error.message || "Upload failed"));
   }
 });
 
@@ -210,7 +211,7 @@ router.post("/upload", upload.single("file"), async (req: any, res) => {
  *       500:
  *         description: Internal server error
  */
-router.get("/", async (req: any, res) => {
+router.get("/", async (req: any, res, next: NextFunction) => {
   try {
     const householdId = req.householdId;
     const {
@@ -238,7 +239,7 @@ router.get("/", async (req: any, res) => {
     res.json(result);
   } catch (error: any) {
     console.error("Error listing files:", error);
-    res.status(500).json({ error: "Failed to list files" });
+    next(internalError("Failed to list files"));
   }
 });
 
@@ -275,14 +276,14 @@ router.get("/", async (req: any, res) => {
  *       500:
  *         description: Internal server error
  */
-router.get("/entity/:entityType/:entityId", async (req: any, res) => {
+router.get("/entity/:entityType/:entityId", async (req: any, res, next: NextFunction) => {
   try {
     const { entityType, entityId } = req.params;
     const entityFiles = await getEntityFiles(entityType, entityId);
     res.json(entityFiles);
   } catch (error: any) {
     console.error("Error getting entity files:", error);
-    res.status(500).json({ error: "Failed to get entity files" });
+    next(internalError("Failed to get entity files"));
   }
 });
 
@@ -310,7 +311,7 @@ router.get("/entity/:entityType/:entityId", async (req: any, res) => {
  *       500:
  *         description: Internal server error
  */
-router.get("/meta/categories", async (req: any, res) => {
+router.get("/meta/categories", async (req: any, res, next: NextFunction) => {
   try {
     const householdId = req.householdId;
     
@@ -322,7 +323,7 @@ router.get("/meta/categories", async (req: any, res) => {
     res.json(categories.map((c) => c.category));
   } catch (error: any) {
     console.error("Error getting categories:", error);
-    res.status(500).json({ error: "Failed to get categories" });
+    next(internalError("Failed to get categories"));
   }
 });
 
@@ -350,7 +351,7 @@ router.get("/meta/categories", async (req: any, res) => {
  *       500:
  *         description: Internal server error
  */
-router.get("/meta/tags", async (req: any, res) => {
+router.get("/meta/tags", async (req: any, res, next: NextFunction) => {
   try {
     const householdId = req.householdId;
     
@@ -369,7 +370,7 @@ router.get("/meta/tags", async (req: any, res) => {
     res.json(Array.from(allTags).sort());
   } catch (error: any) {
     console.error("Error getting tags:", error);
-    res.status(500).json({ error: "Failed to get tags" });
+    next(internalError("Failed to get tags"));
   }
 });
 
@@ -407,7 +408,7 @@ router.get("/meta/tags", async (req: any, res) => {
  *       500:
  *         description: Internal server error
  */
-router.get("/:id", async (req: any, res) => {
+router.get("/:id", async (req: any, res, next: NextFunction) => {
   try {
     const { id } = req.params;
     const householdId = req.householdId;
@@ -425,7 +426,7 @@ router.get("/:id", async (req: any, res) => {
       .limit(1);
     
     if (!file) {
-      return res.status(404).json({ error: "File not found" });
+      throw notFound("File not found");
     }
     
     await trackFileView(id);
@@ -434,7 +435,7 @@ router.get("/:id", async (req: any, res) => {
     res.json({ ...file, usage });
   } catch (error: any) {
     console.error("Error getting file:", error);
-    res.status(500).json({ error: "Failed to get file" });
+    next(internalError("Failed to get file"));
   }
 });
 
@@ -481,7 +482,7 @@ router.get("/:id", async (req: any, res) => {
  *       500:
  *         description: Internal server error
  */
-router.patch("/:id", async (req: any, res) => {
+router.patch("/:id", async (req: any, res, next: NextFunction) => {
   try {
     const { id } = req.params;
     const householdId = req.householdId;
@@ -494,7 +495,7 @@ router.patch("/:id", async (req: any, res) => {
       .limit(1);
     
     if (!file) {
-      return res.status(404).json({ error: "File not found" });
+      throw notFound("File not found");
     }
     
     await updateFileMetadata(id, { category, tags, description });
@@ -508,7 +509,7 @@ router.patch("/:id", async (req: any, res) => {
     res.json(updated);
   } catch (error: any) {
     console.error("Error updating file:", error);
-    res.status(500).json({ error: "Failed to update file" });
+    next(internalError("Failed to update file"));
   }
 });
 
@@ -544,7 +545,7 @@ router.patch("/:id", async (req: any, res) => {
  *       500:
  *         description: Internal server error
  */
-router.delete("/:id", async (req: any, res) => {
+router.delete("/:id", async (req: any, res, next: NextFunction) => {
   try {
     const { id } = req.params;
     const householdId = req.householdId;
@@ -556,7 +557,7 @@ router.delete("/:id", async (req: any, res) => {
       .limit(1);
     
     if (!file) {
-      return res.status(404).json({ error: "File not found" });
+      throw notFound("File not found");
     }
     
     await db.update(files).set({ deletedAt: new Date() }).where(eq(files.id, id));
@@ -565,7 +566,7 @@ router.delete("/:id", async (req: any, res) => {
     res.json({ success: true });
   } catch (error: any) {
     console.error("Error deleting file:", error);
-    res.status(500).json({ error: "Failed to delete file" });
+    next(internalError("Failed to delete file"));
   }
 });
 
@@ -614,7 +615,7 @@ router.delete("/:id", async (req: any, res) => {
  *       500:
  *         description: Internal server error
  */
-router.post("/:id/link", async (req: any, res) => {
+router.post("/:id/link", async (req: any, res, next: NextFunction) => {
   try {
     const { id } = req.params;
     const { entityType, entityId, note } = req.body;
@@ -634,14 +635,14 @@ router.post("/:id/link", async (req: any, res) => {
       .limit(1);
     
     if (!file) {
-      return res.status(404).json({ error: "File not found" });
+      throw notFound("File not found");
     }
     
     const link = await linkFileToEntity(id, entityType, entityId, userId, note);
     res.json(link);
   } catch (error: any) {
     console.error("Error linking file:", error);
-    res.status(500).json({ error: "Failed to link file" });
+    next(internalError("Failed to link file"));
   }
 });
 
@@ -684,14 +685,14 @@ router.post("/:id/link", async (req: any, res) => {
  *       500:
  *         description: Internal server error
  */
-router.delete("/:id/link/:entityType/:entityId", async (req: any, res) => {
+router.delete("/:id/link/:entityType/:entityId", async (req: any, res, next: NextFunction) => {
   try {
     const { id, entityType, entityId } = req.params;
     await unlinkFileFromEntity(id, entityType, entityId);
     res.json({ success: true });
   } catch (error: any) {
     console.error("Error unlinking file:", error);
-    res.status(500).json({ error: "Failed to unlink file" });
+    next(internalError("Failed to unlink file"));
   }
 });
 

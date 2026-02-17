@@ -1,4 +1,4 @@
-import type { Request, Response } from "express";
+import type { Request, Response, NextFunction } from "express";
 import type { Router } from "express";
 import { storage } from "../storage";
 import logger from "../lib/logger";
@@ -12,6 +12,7 @@ import { spendingItems, userProfiles, files, fileLinks, households } from "@shar
 import { escapeHtml } from "../lib/escape-html";
 import { getStorageProvider } from "../services/storage-provider";
 import { cache, CacheKeys, CacheTTL } from "../lib/cache";
+import { forbidden, notFound, badRequest, internalError } from "../lib/errors";
 
 const householdContext = householdContextMiddleware;
 
@@ -83,7 +84,7 @@ export function registerSpendingRoutes(app: Router) {
    *       500:
    *         description: Internal server error
    */
-  app.get("/spending", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/spending", isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -118,7 +119,7 @@ export function registerSpendingRoutes(app: Router) {
       }
     } catch (error) {
       logger.error("Error fetching spending", { error, householdId, userId });
-      res.status(500).json({ message: "Failed to fetch spending" });
+      next(internalError("Failed to fetch spending"));
     }
   });
   
@@ -170,7 +171,7 @@ export function registerSpendingRoutes(app: Router) {
    *       500:
    *         description: Internal server error
    */
-  app.post("/spending", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.post("/spending", isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -186,7 +187,7 @@ export function registerSpendingRoutes(app: Router) {
       res.status(201).json(item);
     } catch (error) {
       logger.error("Error creating spending item", { error, householdId, userId });
-      res.status(500).json({ message: "Failed to create spending item" });
+      next(internalError("Failed to create spending item"));
     }
   });
 
@@ -255,7 +256,7 @@ export function registerSpendingRoutes(app: Router) {
    *       500:
    *         description: Internal server error
    */
-  app.patch("/spending/:id/status", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.patch("/spending/:id/status", isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { id } = req.params;
       const { status } = req.body;
@@ -266,13 +267,13 @@ export function registerSpendingRoutes(app: Router) {
       // Validate status transition
       const validStatuses = ["DRAFT", "NEEDS_APPROVAL", "APPROVED", "PAYMENT_SENT", "RECONCILED"];
       if (!validStatuses.includes(status)) {
-        return res.status(400).json({ message: "Invalid status" });
+        throw badRequest("Invalid status");
       }
       
       // Get current item
       const item = await storage.getSpendingItem(householdId, id);
       if (!item) {
-        return res.status(404).json({ message: "Spending item not found" });
+        throw notFound("Spending item not found");
       }
       
       // Permission checks based on status transition
@@ -282,13 +283,13 @@ export function registerSpendingRoutes(app: Router) {
       const isClient = userRole === "CLIENT";
       
       if (status === "NEEDS_APPROVAL" && !isAssistant) {
-        return res.status(403).json({ message: "Only assistants can request reimbursement" });
+        throw forbidden("Only assistants can request reimbursement");
       }
       if (status === "PAYMENT_SENT" && !isClient) {
-        return res.status(403).json({ message: "Only clients can mark as paid" });
+        throw forbidden("Only clients can mark as paid");
       }
       if (status === "RECONCILED" && !isAssistant) {
-        return res.status(403).json({ message: "Only assistants can reconcile payments" });
+        throw forbidden("Only assistants can reconcile payments");
       }
       
       // Update the item
@@ -300,7 +301,7 @@ export function registerSpendingRoutes(app: Router) {
         const validPaymentMethods = ["VENMO", "ZELLE", "CASH_APP", "PAYPAL"];
         if (paymentMethodUsed) {
           if (!validPaymentMethods.includes(paymentMethodUsed)) {
-            return res.status(400).json({ message: `Invalid payment method. Must be one of: ${validPaymentMethods.join(", ")}` });
+            throw badRequest(`Invalid payment method. Must be one of: ${validPaymentMethods.join(", ")}`);
           }
           updateData.paymentMethodUsed = paymentMethodUsed;
         }
@@ -334,7 +335,7 @@ export function registerSpendingRoutes(app: Router) {
       res.json(updated);
     } catch (error) {
       logger.error("Error updating spending status", { error, householdId, userId, id });
-      res.status(500).json({ message: "Failed to update spending status" });
+      next(internalError("Failed to update spending status"));
     }
   });
 
@@ -390,7 +391,7 @@ export function registerSpendingRoutes(app: Router) {
    *       500:
    *         description: Internal server error
    */
-  app.get("/org/payment-profile", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_SETTINGS"), async (req: Request, res: Response) => {
+  app.get("/org/payment-profile", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_SETTINGS"), async (req: Request, res: Response, next: NextFunction) => {
     try {
       const householdId = req.householdId!;
       
@@ -401,7 +402,7 @@ export function registerSpendingRoutes(app: Router) {
         CacheTTL.MEDIUM
       );
       if (!household?.organizationId) {
-        return res.status(404).json({ message: "Household is not linked to an organization. Create an organization first." });
+        throw notFound("Household is not linked to an organization. Create an organization first.");
       }
       
       // Get or create payment profile with defaults
@@ -417,7 +418,7 @@ export function registerSpendingRoutes(app: Router) {
       res.json(profile);
     } catch (error) {
       logger.error("Error fetching org payment profile", { error, householdId });
-      res.status(500).json({ message: "Failed to fetch payment profile" });
+      next(internalError("Failed to fetch payment profile"));
     }
   });
 
@@ -480,7 +481,7 @@ export function registerSpendingRoutes(app: Router) {
    *       500:
    *         description: Internal server error
    */
-  app.put("/org/payment-profile", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_SETTINGS"), async (req: Request, res: Response) => {
+  app.put("/org/payment-profile", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_SETTINGS"), async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -492,7 +493,7 @@ export function registerSpendingRoutes(app: Router) {
         CacheTTL.MEDIUM
       );
       if (!household?.organizationId) {
-        return res.status(404).json({ message: "Household is not linked to an organization. Create an organization first." });
+        throw notFound("Household is not linked to an organization. Create an organization first.");
       }
       
       const { venmoUsername, zelleRecipient, cashAppCashtag, paypalMeHandle, defaultPaymentMethod, payNoteTemplate } = req.body;
@@ -502,13 +503,13 @@ export function registerSpendingRoutes(app: Router) {
       if (venmoUsername) {
         cleanVenmo = venmoUsername.replace(/^@/, '').trim();
         if (!/^[a-zA-Z0-9_-]{1,50}$/.test(cleanVenmo)) {
-          return res.status(400).json({ message: "Invalid Venmo username. Use letters, numbers, underscores, or dashes." });
+          throw badRequest("Invalid Venmo username. Use letters, numbers, underscores, or dashes.");
         }
       }
       
       // Basic Zelle validation (email or phone)
       if (zelleRecipient && zelleRecipient.length > 100) {
-        return res.status(400).json({ message: "Zelle recipient too long" });
+        throw badRequest("Zelle recipient too long");
       }
       
       // Validate Cash App cashtag (strip $ and validate)
@@ -516,7 +517,7 @@ export function registerSpendingRoutes(app: Router) {
       if (cashAppCashtag) {
         cleanCashApp = cashAppCashtag.replace(/^\$/, '').trim();
         if (!/^[a-zA-Z][a-zA-Z0-9_]{0,19}$/.test(cleanCashApp)) {
-          return res.status(400).json({ message: "Invalid Cash App cashtag. Must start with a letter, 1-20 chars." });
+          throw badRequest("Invalid Cash App cashtag. Must start with a letter, 1-20 chars.");
         }
       }
       
@@ -525,13 +526,13 @@ export function registerSpendingRoutes(app: Router) {
       if (paypalMeHandle) {
         cleanPayPal = paypalMeHandle.trim();
         if (!/^[a-zA-Z0-9]{1,50}$/.test(cleanPayPal)) {
-          return res.status(400).json({ message: "Invalid PayPal.me handle. Use letters and numbers only." });
+          throw badRequest("Invalid PayPal.me handle. Use letters and numbers only.");
         }
       }
       
       // Template length limit
       if (payNoteTemplate && payNoteTemplate.length > 500) {
-        return res.status(400).json({ message: "Pay note template too long (max 500 chars)" });
+        throw badRequest("Pay note template too long (max 500 chars)");
       }
       
       const profile = await storage.upsertOrganizationPaymentProfile(household.organizationId, {
@@ -559,7 +560,7 @@ export function registerSpendingRoutes(app: Router) {
       res.json(profile);
     } catch (error) {
       logger.error("Error updating org payment profile", { error, userId, householdId });
-      res.status(500).json({ message: "Failed to update payment profile" });
+      next(internalError("Failed to update payment profile"));
     }
   });
 
@@ -601,7 +602,7 @@ export function registerSpendingRoutes(app: Router) {
    *       500:
    *         description: Internal server error
    */
-  app.get("/household/payment-settings", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/household/payment-settings", isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const householdId = req.householdId!;
       
@@ -633,7 +634,7 @@ export function registerSpendingRoutes(app: Router) {
       });
     } catch (error) {
       logger.error("Error fetching household payment settings", { error, householdId });
-      res.status(500).json({ message: "Failed to fetch payment settings" });
+      next(internalError("Failed to fetch payment settings"));
     }
   });
 
@@ -690,7 +691,7 @@ export function registerSpendingRoutes(app: Router) {
    *       500:
    *         description: Internal server error
    */
-  app.put("/household/payment-settings", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_SETTINGS"), async (req: Request, res: Response) => {
+  app.put("/household/payment-settings", isAuthenticated, householdContext, requirePermission("CAN_MANAGE_SETTINGS"), async (req: Request, res: Response, next: NextFunction) => {
     try {
       const householdId = req.householdId!;
       const { useOrgDefaults, venmoUsername, zelleRecipient, cashAppCashtag, paypalMeHandle, defaultPaymentMethod, payNoteTemplate } = req.body;
@@ -700,7 +701,7 @@ export function registerSpendingRoutes(app: Router) {
       if (venmoUsername) {
         cleanVenmo = venmoUsername.replace(/^@/, '').trim();
         if (!/^[a-zA-Z0-9_-]{1,50}$/.test(cleanVenmo)) {
-          return res.status(400).json({ message: "Invalid Venmo username" });
+          throw badRequest("Invalid Venmo username");
         }
       }
       
@@ -709,7 +710,7 @@ export function registerSpendingRoutes(app: Router) {
       if (cashAppCashtag) {
         cleanCashApp = cashAppCashtag.replace(/^\$/, '').trim();
         if (!/^[a-zA-Z][a-zA-Z0-9_]{0,19}$/.test(cleanCashApp)) {
-          return res.status(400).json({ message: "Invalid Cash App cashtag" });
+          throw badRequest("Invalid Cash App cashtag");
         }
       }
       
@@ -718,7 +719,7 @@ export function registerSpendingRoutes(app: Router) {
       if (paypalMeHandle) {
         cleanPayPal = paypalMeHandle.trim();
         if (!/^[a-zA-Z0-9]{1,50}$/.test(cleanPayPal)) {
-          return res.status(400).json({ message: "Invalid PayPal.me handle" });
+          throw badRequest("Invalid PayPal.me handle");
         }
       }
       
@@ -748,7 +749,7 @@ export function registerSpendingRoutes(app: Router) {
       res.json(override);
     } catch (error) {
       logger.error("Error updating household payment settings", { error, householdId });
-      res.status(500).json({ message: "Failed to update payment settings" });
+      next(internalError("Failed to update payment settings"));
     }
   });
 
@@ -849,14 +850,14 @@ export function registerSpendingRoutes(app: Router) {
    *       500:
    *         description: Internal server error
    */
-  app.get("/spending/:id/pay-options", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/spending/:id/pay-options", isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const householdId = req.householdId!;
       
       // Get spending item
       const spending = await storage.getSpendingItem(householdId, req.params.id);
       if (!spending) {
-        return res.status(404).json({ message: "Spending item not found" });
+        throw notFound("Spending item not found");
       }
       
       // Resolve effective payment profile
@@ -971,7 +972,7 @@ export function registerSpendingRoutes(app: Router) {
       });
     } catch (error) {
       logger.error("Error fetching pay options", { error, householdId });
-      res.status(500).json({ message: "Failed to fetch pay options" });
+      next(internalError("Failed to fetch pay options"));
     }
   });
 
@@ -1021,7 +1022,7 @@ export function registerSpendingRoutes(app: Router) {
    *       500:
    *         description: Internal server error
    */
-  app.get("/pay-options", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/pay-options", isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const householdId = req.householdId!;
       
@@ -1083,7 +1084,7 @@ export function registerSpendingRoutes(app: Router) {
       });
     } catch (error) {
       logger.error("Error fetching pay options", { error, householdId });
-      res.status(500).json({ message: "Failed to fetch pay options" });
+      next(internalError("Failed to fetch pay options"));
     }
   });
   
@@ -1154,14 +1155,14 @@ export function registerSpendingRoutes(app: Router) {
    *       500:
    *         description: Internal server error
    */
-  app.post("/invoices/send", isAuthenticated, householdContext, requirePermission("CAN_EDIT_TASKS"), async (req: Request, res: Response) => {
+  app.post("/invoices/send", isAuthenticated, householdContext, requirePermission("CAN_EDIT_TASKS"), async (req: Request, res: Response, next: NextFunction) => {
     try {
       const householdId = req.householdId!;
       const userId = req.user!.claims.sub;
       const { title, amount, note, dueDate } = req.body;
 
       if (!title || !amount) {
-        return res.status(400).json({ message: "Title and amount are required" });
+        throw badRequest("Title and amount are required");
       }
 
       // Get household for display name
@@ -1330,7 +1331,7 @@ export function registerSpendingRoutes(app: Router) {
       });
     } catch (error) {
       logger.error("Error sending invoice", { error, householdId, userId });
-      res.status(500).json({ message: "Failed to send invoice" });
+      next(internalError("Failed to send invoice"));
     }
   });
 
@@ -1388,7 +1389,7 @@ export function registerSpendingRoutes(app: Router) {
    *       500:
    *         description: Internal server error
    */
-  app.get("/invoices/pending", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/invoices/pending", isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const householdId = req.householdId!;
       const serviceType = req.query.serviceType as string | undefined;
@@ -1436,7 +1437,7 @@ export function registerSpendingRoutes(app: Router) {
       });
     } catch (error) {
       logger.error("Error fetching pending invoices", { error, householdId });
-      res.status(500).json({ message: "Failed to fetch pending invoices" });
+      next(internalError("Failed to fetch pending invoices"));
     }
   });
 
@@ -1471,7 +1472,7 @@ export function registerSpendingRoutes(app: Router) {
    *       500:
    *         description: Internal server error
    */
-  app.get("/invoices", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/invoices", isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const householdId = req.householdId!;
 
@@ -1489,7 +1490,7 @@ export function registerSpendingRoutes(app: Router) {
       res.json(invoicesList);
     } catch (error) {
       logger.error("Error fetching invoices", { error, householdId });
-      res.status(500).json({ message: "Failed to fetch invoices" });
+      next(internalError("Failed to fetch invoices"));
     }
   });
 }

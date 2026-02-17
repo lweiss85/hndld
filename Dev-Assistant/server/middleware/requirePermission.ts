@@ -1,13 +1,11 @@
 import type { Request, Response, NextFunction } from "express";
 import { Permission, hasPermission } from "../lib/permissions";
+import { unauthorized, forbidden } from "../lib/errors";
 
 export function requirePermission(...permissions: Permission[]) {
-  return (req: Request, res: Response, next: NextFunction) => {
+  return (req: Request, _res: Response, next: NextFunction) => {
     if (!req.userProfile || !req.householdRole) {
-      return res.status(401).json({ 
-        error: "authentication_required",
-        message: "User profile not available"
-      });
+      throw unauthorized("User profile not available");
     }
 
     const role = req.householdRole;
@@ -17,12 +15,7 @@ export function requirePermission(...permissions: Permission[]) {
     );
 
     if (!hasAllPermissions) {
-      return res.status(403).json({ 
-        error: "permission_denied",
-        message: `Missing required permissions: ${permissions.join(", ")}`,
-        required: permissions,
-        role: role
-      });
+      throw forbidden(`Missing required permissions: ${permissions.join(", ")}`);
     }
 
     next();
@@ -30,12 +23,9 @@ export function requirePermission(...permissions: Permission[]) {
 }
 
 export function requireAnyPermission(...permissions: Permission[]) {
-  return (req: Request, res: Response, next: NextFunction) => {
+  return (req: Request, _res: Response, next: NextFunction) => {
     if (!req.userProfile || !req.householdRole) {
-      return res.status(401).json({ 
-        error: "authentication_required",
-        message: "User profile not available"
-      });
+      throw unauthorized("User profile not available");
     }
 
     const role = req.householdRole;
@@ -45,12 +35,7 @@ export function requireAnyPermission(...permissions: Permission[]) {
     );
 
     if (!hasAnyPermission) {
-      return res.status(403).json({ 
-        error: "permission_denied",
-        message: `Missing required permissions (need at least one): ${permissions.join(", ")}`,
-        required: permissions,
-        role: role
-      });
+      throw forbidden(`Missing required permissions (need at least one): ${permissions.join(", ")}`);
     }
 
     next();

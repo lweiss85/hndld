@@ -1,10 +1,11 @@
-import type { Request, Response } from "express";
+import type { Request, Response, NextFunction } from "express";
 import type { Router } from "express";
 import { storage } from "../storage";
 import logger from "../lib/logger";
 import { isAuthenticated } from "../replit_integrations/auth";
 import { householdContextMiddleware } from "../middleware/householdContext";
 import * as googleCalendarReplit from "../services/google-calendar-replit";
+import { notFound, internalError } from "../lib/errors";
 
 const householdContext = householdContextMiddleware;
 
@@ -37,7 +38,7 @@ export function registerCalendarRoutes(app: Router) {
    *       500:
    *         description: Failed to fetch calendar events
    */
-  app.get("/calendar-events", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.get("/calendar-events", isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -45,7 +46,7 @@ export function registerCalendarRoutes(app: Router) {
       res.json(events);
     } catch (error) {
       logger.error("Error fetching calendar events", { error, userId, householdId });
-      res.status(500).json({ message: "Failed to fetch calendar events" });
+      next(internalError("Failed to fetch calendar events"));
     }
   });
   
@@ -84,7 +85,7 @@ export function registerCalendarRoutes(app: Router) {
    *       500:
    *         description: Failed to sync calendar
    */
-  app.post("/calendar/sync", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.post("/calendar/sync", isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
@@ -105,7 +106,7 @@ export function registerCalendarRoutes(app: Router) {
       }
     } catch (error) {
       logger.error("Error syncing calendar", { error, userId, householdId });
-      res.status(500).json({ message: "Failed to sync calendar" });
+      next(internalError("Failed to sync calendar"));
     }
   });
   
@@ -184,14 +185,14 @@ export function registerCalendarRoutes(app: Router) {
    *       500:
    *         description: Failed to create task from event
    */
-  app.post("/calendar-events/:id/create-task", isAuthenticated, householdContext, async (req: Request, res: Response) => {
+  app.post("/calendar-events/:id/create-task", isAuthenticated, householdContext, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.claims.sub;
       const householdId = req.householdId!;
       
       const event = await storage.getCalendarEvent(householdId, req.params.id);
       if (!event) {
-        return res.status(404).json({ message: "Event not found" });
+        throw notFound("Event not found");
       }
       
       const task = await storage.createTask({
@@ -209,7 +210,7 @@ export function registerCalendarRoutes(app: Router) {
       res.status(201).json(task);
     } catch (error) {
       logger.error("Error creating task from event", { error, userId, householdId });
-      res.status(500).json({ message: "Failed to create task from event" });
+      next(internalError("Failed to create task from event"));
     }
   });
 }
