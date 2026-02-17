@@ -43,7 +43,7 @@ Preferred communication style: Simple, everyday language.
 - **Runtime**: Node.js with Express.js server in TypeScript
 - **API Design**: RESTful endpoints under `/api/v1/*` prefix with URL-based versioning. Rate limiting via apiLimiter, authLimiter. Accept-Version header support via apiVersion middleware
 - **OpenAPI Documentation**: Swagger UI at `/api/docs`, JSON spec at `/api/docs/spec.json`. 155 documented endpoints across 43 tags using swagger-jsdoc and swagger-ui-express. JSDoc @openapi annotations on all route handlers in `server/routes/*.ts`. Component schemas defined in `server/lib/swagger.ts`
-- **Route Organization**: 15 domain-specific route modules in `server/routes/` (tasks, approvals, spending, calendar, household-concierge, admin, admin-ops, features, cleaning, user-profile, google-calendar, files, weekly-brief, ask, shortcuts)
+- **Route Organization**: 16 domain-specific route modules in `server/routes/` (tasks, approvals, spending, calendar, household-concierge, admin, admin-ops, features, cleaning, user-profile, google-calendar, files, weekly-brief, ask, shortcuts, network)
 - **Caching**: In-memory cache (`server/lib/cache.ts`) with TTL-based expiration, pattern-based invalidation, and cache stats. Cached: household settings/preferences/locations/people/dates (5min), addon services/task templates (1hr), user profiles (5min), payment profiles (5min). Write-through invalidation on all mutation routes. Cache-Control middleware at `server/middleware/cacheControl.ts` sets appropriate HTTP headers
 - **Build System**: esbuild for server bundling, Vite for client bundling
 - **Development**: Hot module replacement via Vite middleware in development mode
@@ -70,7 +70,8 @@ Preferred communication style: Simple, everyday language.
 - **Personalized Weekly Briefs** (server/services/weekly-brief.ts): AI-powered personalized briefings that learn user preferences through engagement tracking. Scheduled delivery Sunday 8am and 6pm via cron jobs. Tracks user engagement with tasks, events, and approvals to personalize content. API routes at `/api/h/:householdId/weekly-brief/*` with feedback collection for continuous improvement
 - **Emergency Protocols**: Emergency contacts and protocols management with household-scoped authorization
 - **Google Calendar Integration** (server/services/google-calendar-replit.ts): Replit connector-based Google Calendar sync with Skylight Calendar support via Google Calendar bridge
-- **Database Tables**: subscriptions, payment_methods, invoices, analytics_events, emergency_contacts, emergency_protocols, conversations, messages, ai_settings, weekly_briefs, user_engagement
+- **Trusted Network** (server/routes/network.ts): Cross-household social features enabling vendor sharing, verified reviews, referrals, group buying, and emergency coverage. Requires household connections (trust network) before data sharing. Tables: household_connections, vendor_reviews, vendor_shares, referrals, group_buy_requests, group_buy_offers, group_buy_participants, backup_providers, emergency_coverage_requests. Frontend at `/network` with 4 tabs (Network, Referrals, Group Deals, Coverage). Vendor detail dialog enhanced with Review, Share, Backup, and Refer actions
+- **Database Tables**: subscriptions, payment_methods, invoices, analytics_events, emergency_contacts, emergency_protocols, conversations, messages, ai_settings, weekly_briefs, user_engagement, household_connections, vendor_reviews, vendor_shares, referrals, group_buy_requests, group_buy_offers, group_buy_participants, backup_providers, emergency_coverage_requests
 
 ### Calendar Integration (Skylight + Google Calendar)
 - **Architecture**: Uses Replit's Google Calendar connector for OAuth management

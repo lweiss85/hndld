@@ -19,12 +19,17 @@ import {
   Mail,
   User,
   Building,
-  Search
+  Search,
+  Star,
+  Share2,
+  Users,
+  Shield,
 } from "lucide-react";
 import type { Vendor, InsertVendor } from "@shared/schema";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { PageTransition, StaggeredList } from "@/components/juice";
+import { cn } from "@/lib/utils";
 
 const VENDOR_CATEGORIES = [
   "Plumber",
@@ -50,11 +55,82 @@ function VendorsSkeleton() {
   );
 }
 
+function StarRating({ rating, onRate, interactive = false }: { rating: number; onRate?: (r: number) => void; interactive?: boolean }) {
+  return (
+    <div className="flex gap-0.5">
+      {[1, 2, 3, 4, 5].map((star) => (
+        <button
+          key={star}
+          type="button"
+          disabled={!interactive}
+          onClick={() => onRate?.(star)}
+          className={cn(
+            "transition-colors",
+            interactive ? "cursor-pointer hover:text-amber-400" : "cursor-default"
+          )}
+        >
+          <Star
+            className={cn(
+              "h-4 w-4",
+              star <= rating ? "fill-amber-400 text-amber-400" : "text-muted-foreground/30"
+            )}
+          />
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function NetworkReviews({ vendorId }: { vendorId: string }) {
+  const { data: reviews, isLoading } = useQuery<any[]>({
+    queryKey: [`/api/v1/network/vendor-reviews/${vendorId}`],
+    enabled: !!vendorId,
+  });
+
+  if (isLoading) return <Skeleton className="h-16" />;
+  if (!reviews || reviews.length === 0) return null;
+
+  const avgRating = reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length;
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <h4 className="text-sm font-medium flex items-center gap-1.5">
+          <Users className="h-4 w-4 text-muted-foreground" />
+          Network Reviews
+        </h4>
+        <div className="flex items-center gap-1.5">
+          <StarRating rating={Math.round(avgRating)} />
+          <span className="text-sm text-muted-foreground">({reviews.length})</span>
+        </div>
+      </div>
+      {reviews.map((review) => (
+        <div key={review.id} className="p-3 rounded-lg bg-muted/50">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-sm font-medium">
+              {review.isFromYourHousehold ? "You" : review.reviewerName}
+            </span>
+            <StarRating rating={review.rating} />
+          </div>
+          {review.reviewText && (
+            <p className="text-sm text-muted-foreground">{review.reviewText}</p>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function Vendors() {
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [selectedVendor, setSelectedVendor] = useState<Vendor | null>(null);
+  const [showReviewDialog, setShowReviewDialog] = useState(false);
+  const [showShareDialog, setShowShareDialog] = useState(false);
+  const [showBackupDialog, setShowBackupDialog] = useState(false);
+  const [reviewRating, setReviewRating] = useState(0);
+  const [reviewText, setReviewText] = useState("");
   const [newVendor, setNewVendor] = useState<Partial<InsertVendor>>({
     name: "",
     phone: "",
@@ -66,6 +142,12 @@ export default function Vendors() {
   const { data: vendors, isLoading } = useQuery<Vendor[]>({
     queryKey: ["/api/vendors"],
   });
+
+  const { data: connections } = useQuery<any[]>({
+    queryKey: ["/api/v1/network/connections"],
+  });
+
+  const acceptedConnections = connections?.filter((c) => c.status === "ACCEPTED") || [];
 
   const createVendorMutation = useMutation({
     mutationFn: async (data: Partial<InsertVendor>) => {
@@ -85,6 +167,65 @@ export default function Vendors() {
         title: "Vendor added",
         description: "Your vendor has been saved",
       });
+    },
+  });
+
+  const reviewMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest("POST", "/api/v1/network/vendor-reviews", {
+        vendorId: selectedVendor?.id,
+        rating: reviewRating,
+        reviewText: reviewText || undefined,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/v1/network/vendor-reviews/${selectedVendor?.id}`] });
+      setShowReviewDialog(false);
+      setReviewRating(0);
+      setReviewText("");
+      toast({ title: "Review added", description: "Your review is now visible to your network" });
+    },
+  });
+
+  const shareMutation = useMutation({
+    mutationFn: async (toHouseholdId: string) => {
+      return apiRequest("POST", "/api/v1/network/vendor-shares", {
+        vendorId: selectedVendor?.id,
+        toHouseholdId,
+      });
+    },
+    onSuccess: () => {
+      setShowShareDialog(false);
+      toast({ title: "Vendor shared", description: "The connected household can now see this vendor" });
+    },
+    onError: () => {
+      toast({ title: "Could not share", description: "Make sure you're connected to this household", variant: "destructive" });
+    },
+  });
+
+  const referMutation = useMutation({
+    mutationFn: async (toHouseholdId: string) => {
+      return apiRequest("POST", "/api/v1/network/referrals", {
+        vendorId: selectedVendor?.id,
+        toHouseholdId,
+        message: `Recommending ${selectedVendor?.name}`,
+      });
+    },
+    onSuccess: () => {
+      toast({ title: "Referral sent", description: "They'll receive your vendor recommendation" });
+    },
+  });
+
+  const backupMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest("POST", "/api/v1/network/backup-providers", {
+        vendorId: selectedVendor?.id,
+        serviceCategory: selectedVendor?.category || "Other",
+      });
+    },
+    onSuccess: () => {
+      setShowBackupDialog(false);
+      toast({ title: "Backup provider added", description: "This vendor is now available for emergency coverage in your network" });
     },
   });
 
@@ -252,7 +393,7 @@ export default function Vendors() {
       </Dialog>
 
       <Dialog open={!!selectedVendor} onOpenChange={() => setSelectedVendor(null)}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{selectedVendor?.name}</DialogTitle>
           </DialogHeader>
@@ -289,8 +430,142 @@ export default function Vendors() {
                   <p className="text-sm text-muted-foreground">{selectedVendor.notes}</p>
                 </div>
               )}
+
+              <NetworkReviews vendorId={selectedVendor.id} />
+
+              <div className="border-t pt-4 space-y-2">
+                <h4 className="text-sm font-medium text-muted-foreground">Actions</h4>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full"
+                    onClick={() => {
+                      setShowReviewDialog(true);
+                    }}
+                  >
+                    <Star className="h-4 w-4 mr-1" />
+                    Review
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full"
+                    onClick={() => setShowShareDialog(true)}
+                    disabled={acceptedConnections.length === 0}
+                  >
+                    <Share2 className="h-4 w-4 mr-1" />
+                    Share
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full"
+                    onClick={() => setShowBackupDialog(true)}
+                  >
+                    <Shield className="h-4 w-4 mr-1" />
+                    Backup
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full"
+                    onClick={() => {
+                      if (acceptedConnections.length > 0) {
+                        referMutation.mutate(acceptedConnections[0].otherHouseholdId);
+                      }
+                    }}
+                    disabled={acceptedConnections.length === 0}
+                  >
+                    <Users className="h-4 w-4 mr-1" />
+                    Refer
+                  </Button>
+                </div>
+                {acceptedConnections.length === 0 && (
+                  <p className="text-xs text-muted-foreground text-center">
+                    Connect with other households to share & refer vendors
+                  </p>
+                )}
+              </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showReviewDialog} onOpenChange={setShowReviewDialog}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Review {selectedVendor?.name}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="flex flex-col items-center gap-2">
+              <p className="text-sm text-muted-foreground">Your rating</p>
+              <StarRating rating={reviewRating} onRate={setReviewRating} interactive />
+            </div>
+            <Textarea
+              placeholder="Share your experience (optional)"
+              value={reviewText}
+              onChange={(e) => setReviewText(e.target.value)}
+              rows={3}
+            />
+          </div>
+          <DialogFooter>
+            <Button
+              onClick={() => reviewMutation.mutate()}
+              disabled={reviewRating === 0 || reviewMutation.isPending}
+              className="w-full"
+            >
+              Submit Review
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showShareDialog} onOpenChange={setShowShareDialog}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Share {selectedVendor?.name}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2">
+            <p className="text-sm text-muted-foreground">
+              Choose a connected household to share this vendor with
+            </p>
+            {acceptedConnections.map((conn) => (
+              <Button
+                key={conn.id}
+                variant="outline"
+                className="w-full justify-between"
+                onClick={() => shareMutation.mutate(conn.otherHouseholdId)}
+                disabled={shareMutation.isPending}
+              >
+                <span>{conn.otherHouseholdName}</span>
+                <Share2 className="h-4 w-4" />
+              </Button>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showBackupDialog} onOpenChange={setShowBackupDialog}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Add as Backup Provider</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Make <strong>{selectedVendor?.name}</strong> available as a backup provider for your connected households in case of emergencies.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button
+              onClick={() => backupMutation.mutate()}
+              disabled={backupMutation.isPending}
+              className="w-full"
+            >
+              <Shield className="h-4 w-4 mr-1" />
+              Add to Backup Pool
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

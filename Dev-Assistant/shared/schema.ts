@@ -1042,6 +1042,175 @@ export const userEngagement = pgTable("user_engagement", {
   index("user_engagement_entity_idx").on(table.entityType, table.entityId),
 ]);
 
+// ===== Network & Social Features =====
+
+// Household Connection Status
+export const connectionStatusEnum = pgEnum("connection_status", ["PENDING", "ACCEPTED", "BLOCKED"]);
+export const referralStatusEnum = pgEnum("referral_status", ["SENT", "ACCEPTED", "DECLINED"]);
+export const groupBuyStatusEnum = pgEnum("group_buy_status", ["OPEN", "MATCHED", "CLOSED"]);
+export const emergencyCoverageStatusEnum = pgEnum("emergency_coverage_status", ["OPEN", "FULFILLED", "EXPIRED"]);
+
+// Household Connections (trust network between households)
+export const householdConnections = pgTable("household_connections", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  requesterHouseholdId: varchar("requester_household_id").references(() => households.id).notNull(),
+  targetHouseholdId: varchar("target_household_id").references(() => households.id).notNull(),
+  status: connectionStatusEnum("status").default("PENDING").notNull(),
+  requestedByUserId: varchar("requested_by_user_id").notNull(),
+  respondedByUserId: varchar("responded_by_user_id"),
+  message: text("message"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("household_connections_requester_idx").on(table.requesterHouseholdId),
+  index("household_connections_target_idx").on(table.targetHouseholdId),
+  index("household_connections_status_idx").on(table.status),
+  unique("household_connections_pair_unique").on(table.requesterHouseholdId, table.targetHouseholdId),
+]);
+
+// Vendor Reviews (ratings from connected households)
+export const vendorReviews = pgTable("vendor_reviews", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  vendorId: varchar("vendor_id").references(() => vendors.id).notNull(),
+  householdId: varchar("household_id").references(() => households.id).notNull(),
+  userId: varchar("user_id").notNull(),
+  rating: integer("rating").notNull(),
+  reviewText: text("review_text"),
+  isPublicToNetwork: boolean("is_public_to_network").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("vendor_reviews_vendor_idx").on(table.vendorId),
+  index("vendor_reviews_household_idx").on(table.householdId),
+]);
+
+// Vendor Shares (share a vendor with connected households)
+export const vendorShares = pgTable("vendor_shares", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  vendorId: varchar("vendor_id").references(() => vendors.id).notNull(),
+  fromHouseholdId: varchar("from_household_id").references(() => households.id).notNull(),
+  toHouseholdId: varchar("to_household_id").references(() => households.id).notNull(),
+  sharedByUserId: varchar("shared_by_user_id").notNull(),
+  message: text("message"),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("vendor_shares_from_idx").on(table.fromHouseholdId),
+  index("vendor_shares_to_idx").on(table.toHouseholdId),
+  index("vendor_shares_vendor_idx").on(table.vendorId),
+]);
+
+// Referrals (refer a vendor to a connected household)
+export const referrals = pgTable("referrals", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  vendorId: varchar("vendor_id").references(() => vendors.id).notNull(),
+  fromHouseholdId: varchar("from_household_id").references(() => households.id).notNull(),
+  toHouseholdId: varchar("to_household_id").references(() => households.id).notNull(),
+  referredByUserId: varchar("referred_by_user_id").notNull(),
+  status: referralStatusEnum("status").default("SENT").notNull(),
+  message: text("message"),
+  respondedAt: timestamp("responded_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("referrals_from_idx").on(table.fromHouseholdId),
+  index("referrals_to_idx").on(table.toHouseholdId),
+  index("referrals_vendor_idx").on(table.vendorId),
+  index("referrals_status_idx").on(table.status),
+]);
+
+// Group Buy Requests (households looking for group deals)
+export const groupBuyRequests = pgTable("group_buy_requests", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  householdId: varchar("household_id").references(() => households.id).notNull(),
+  createdByUserId: varchar("created_by_user_id").notNull(),
+  serviceCategory: text("service_category").notNull(),
+  description: text("description"),
+  location: text("location"),
+  desiredWindow: text("desired_window"),
+  status: groupBuyStatusEnum("status").default("OPEN").notNull(),
+  matchedOfferId: varchar("matched_offer_id"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("group_buy_requests_household_idx").on(table.householdId),
+  index("group_buy_requests_category_idx").on(table.serviceCategory),
+  index("group_buy_requests_status_idx").on(table.status),
+  index("group_buy_requests_location_idx").on(table.location),
+]);
+
+// Group Buy Offers (vendor deals for multiple households)
+export const groupBuyOffers = pgTable("group_buy_offers", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  vendorId: varchar("vendor_id").references(() => vendors.id),
+  vendorName: text("vendor_name").notNull(),
+  serviceCategory: text("service_category").notNull(),
+  description: text("description").notNull(),
+  discountPercent: integer("discount_percent").notNull(),
+  minHouseholds: integer("min_households").default(2).notNull(),
+  maxHouseholds: integer("max_households"),
+  currentHouseholds: integer("current_households").default(0).notNull(),
+  location: text("location"),
+  expiresAt: timestamp("expires_at"),
+  createdByHouseholdId: varchar("created_by_household_id").references(() => households.id).notNull(),
+  createdByUserId: varchar("created_by_user_id").notNull(),
+  status: groupBuyStatusEnum("status").default("OPEN").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("group_buy_offers_category_idx").on(table.serviceCategory),
+  index("group_buy_offers_status_idx").on(table.status),
+  index("group_buy_offers_location_idx").on(table.location),
+]);
+
+// Group Buy Participants (households that joined a group buy)
+export const groupBuyParticipants = pgTable("group_buy_participants", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  offerId: varchar("offer_id").references(() => groupBuyOffers.id).notNull(),
+  householdId: varchar("household_id").references(() => households.id).notNull(),
+  joinedByUserId: varchar("joined_by_user_id").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("group_buy_participants_offer_idx").on(table.offerId),
+  unique("group_buy_participants_unique").on(table.offerId, table.householdId),
+]);
+
+// Backup Providers (verified providers from connected households)
+export const backupProviders = pgTable("backup_providers", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  vendorId: varchar("vendor_id").references(() => vendors.id).notNull(),
+  householdId: varchar("household_id").references(() => households.id).notNull(),
+  serviceCategory: text("service_category").notNull(),
+  isAvailable: boolean("is_available").default(true).notNull(),
+  contactName: text("contact_name"),
+  contactPhone: text("contact_phone"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("backup_providers_household_idx").on(table.householdId),
+  index("backup_providers_category_idx").on(table.serviceCategory),
+  index("backup_providers_available_idx").on(table.isAvailable),
+]);
+
+// Emergency Coverage Requests
+export const emergencyCoverageRequests = pgTable("emergency_coverage_requests", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  householdId: varchar("household_id").references(() => households.id).notNull(),
+  createdByUserId: varchar("created_by_user_id").notNull(),
+  serviceCategory: text("service_category").notNull(),
+  originalVendorId: varchar("original_vendor_id").references(() => vendors.id),
+  reason: text("reason"),
+  neededBy: timestamp("needed_by"),
+  status: emergencyCoverageStatusEnum("status").default("OPEN").notNull(),
+  fulfilledByProviderId: varchar("fulfilled_by_provider_id").references(() => backupProviders.id),
+  fulfilledAt: timestamp("fulfilled_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("emergency_coverage_household_idx").on(table.householdId),
+  index("emergency_coverage_status_idx").on(table.status),
+  index("emergency_coverage_category_idx").on(table.serviceCategory),
+]);
+
 // Insert schemas
 export const insertAddonServiceSchema = createInsertSchema(addonServices).omit({ id: true, createdAt: true });
 export const insertCleaningVisitSchema = createInsertSchema(cleaningVisits).omit({ id: true, createdAt: true, updatedAt: true });
@@ -1258,3 +1427,34 @@ export type InsertUserEngagement = z.infer<typeof insertUserEngagementSchema>;
 // API Tokens (for Siri Shortcuts / external integrations)
 export type ApiToken = typeof apiTokens.$inferSelect;
 export type InsertApiToken = typeof apiTokens.$inferInsert;
+
+// Network & Social Insert Schemas
+export const insertHouseholdConnectionSchema = createInsertSchema(householdConnections).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertVendorReviewSchema = createInsertSchema(vendorReviews).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertVendorShareSchema = createInsertSchema(vendorShares).omit({ id: true, createdAt: true });
+export const insertReferralSchema = createInsertSchema(referrals).omit({ id: true, createdAt: true });
+export const insertGroupBuyRequestSchema = createInsertSchema(groupBuyRequests).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertGroupBuyOfferSchema = createInsertSchema(groupBuyOffers).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertGroupBuyParticipantSchema = createInsertSchema(groupBuyParticipants).omit({ id: true, createdAt: true });
+export const insertBackupProviderSchema = createInsertSchema(backupProviders).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertEmergencyCoverageRequestSchema = createInsertSchema(emergencyCoverageRequests).omit({ id: true, createdAt: true, updatedAt: true });
+
+// Network & Social Types
+export type HouseholdConnection = typeof householdConnections.$inferSelect;
+export type InsertHouseholdConnection = z.infer<typeof insertHouseholdConnectionSchema>;
+export type VendorReview = typeof vendorReviews.$inferSelect;
+export type InsertVendorReview = z.infer<typeof insertVendorReviewSchema>;
+export type VendorShare = typeof vendorShares.$inferSelect;
+export type InsertVendorShare = z.infer<typeof insertVendorShareSchema>;
+export type Referral = typeof referrals.$inferSelect;
+export type InsertReferral = z.infer<typeof insertReferralSchema>;
+export type GroupBuyRequest = typeof groupBuyRequests.$inferSelect;
+export type InsertGroupBuyRequest = z.infer<typeof insertGroupBuyRequestSchema>;
+export type GroupBuyOffer = typeof groupBuyOffers.$inferSelect;
+export type InsertGroupBuyOffer = z.infer<typeof insertGroupBuyOfferSchema>;
+export type GroupBuyParticipant = typeof groupBuyParticipants.$inferSelect;
+export type InsertGroupBuyParticipant = z.infer<typeof insertGroupBuyParticipantSchema>;
+export type BackupProvider = typeof backupProviders.$inferSelect;
+export type InsertBackupProvider = z.infer<typeof insertBackupProviderSchema>;
+export type EmergencyCoverageRequest = typeof emergencyCoverageRequests.$inferSelect;
+export type InsertEmergencyCoverageRequest = z.infer<typeof insertEmergencyCoverageRequestSchema>;
