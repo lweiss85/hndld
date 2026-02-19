@@ -1,0 +1,470 @@
+Implement comprehensive home inventory and warranty tracking system.
+
+## Database Schema
+
+Add to shared/schema.ts:
+
+export const inventoryCategoryEnum = pgEnum("inventory_category", [
+  "APPLIANCE", "ELECTRONICS", "FURNITURE", "HVAC", "PLUMBING",
+  "ELECTRICAL", "OUTDOOR", "VEHICLE", "OTHER"
+]);
+
+export const inventoryItems = pgTable("inventory_items", {
+  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  householdId: varchar("household_id").references(() => households.id).notNull(),
+  name: varchar("name", { length: 200 }).notNull(),
+  category: inventoryCategoryEnum("category").notNull(),
+  location: varchar("location", { length: 100 }), // "Kitchen", "Master Bedroom", etc.
+  
+  // Product details
+  brand: varchar("brand", { length: 100 }),
+  model: varchar("model", { length: 100 }),
+  serialNumber: varchar("serial_number", { length: 100 }),
+  color: varchar("color", { length: 50 }),
+  
+  // Purchase info
+  purchaseDate: date("purchase_date"),
+  purchasePrice: integer("purchase_price"), // In cents
+  purchaseLocation: varchar("purchase_location", { length: 200 }),
+  receiptFileId: varchar("receipt_file_id").references(() => files.id),
+  
+  // Warranty
+  warrantyExpires: date("warranty_expires"),
+  warrantyType: varchar("warranty_type", { length: 50 }), // "Manufacturer", "Extended", "Store"
+  warrantyProvider: varchar("warranty_provider", { length: 100 }),
+  warrantyFileId: varchar("warranty_file_id").references(() => files.id),
+  warrantyNotes: text("warranty_notes"),
+  
+  // Maintenance
+  lastServiceDate: date("last_service_date"),
+  nextServiceDue: date("next_service_due"),
+  serviceIntervalDays: integer("service_interval_days"),
+  
+  // Documentation
+  manualUrl: text("manual_url"),
+  manualFileId: varchar("manual_file_id").references(() => files.id),
+  notes: text("notes"),
+  
+  // Photos
+  photoUrls: jsonb("photo_urls").$type<string[]>(),
+  
+  // Insurance
+  insuredValue: integer("insured_value"), // In cents
+  insuranceCategory: varchar("insurance_category", { length: 50 }),
+  
+  // Status
+  isActive: boolean("is_active").default(true).notNull(),
+  disposedAt: timestamp("disposed_at"),
+  disposalReason: varchar("disposal_reason", { length: 200 }),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  createdBy: varchar("created_by").notNull(),
+}, (table) => ({
+  householdIdx: index("inventory_household_idx").on(table.householdId),
+  categoryIdx: index("inventory_category_idx").on(table.householdId, table.category),
+  warrantyIdx: index("inventory_warranty_idx").on(table.householdId, table.warrantyExpires),
+  locationIdx: index("inventory_location_idx").on(table.householdId, table.location),
+}));
+
+export const inventoryServiceHistory = pgTable("inventory_service_history", {
+  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  itemId: varchar("item_id").references(() => inventoryItems.id).notNull(),
+  householdId: varchar("household_id").references(() => households.id).notNull(),
+  serviceDate: date("service_date").notNull(),
+  serviceType: varchar("service_type", { length: 100 }).notNull(), // "Repair", "Maintenance", "Inspection"
+  description: text("description"),
+  vendorId: varchar("vendor_id").references(() => vendors.id),
+  cost: integer("cost"), // In cents
+  receiptFileId: varchar("receipt_file_id").references(() => files.id),
+  notes: text("notes"),
+  performedBy: varchar("performed_by", { length: 100 }), // If not a tracked vendor
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  itemIdx: index("service_item_idx").on(table.itemId),
+  dateIdx: index("service_date_idx").on(table.householdId, table.serviceDate),
+}));
+
+## Server Implementation
+
+Create server/routes/inventory.ts:
+
+import { Router, Request, Response } from "express";
+import { db } from "../db";
+import { inventoryItems, inventoryServiceHistory, vendors } from "@shared/schema";
+import { eq, and, desc, gte, lte, sql, isNull, or, ilike } from "drizzle-orm";
+import { isAuthenticated } from "../replit_integrations/auth";
+import { householdContextMiddleware } from "../middleware/householdContext";
+import { addDays, differenceInDays } from "date-fns";
+import logger from "../lib/logger";
+
+const router = Router();
+
+// Get all inventory items
+router.get(
+  "/inventory",
+  isAuthenticated,
+  householdContextMiddleware,
+  async (req: Request, res: Response) => {
+    try {
+      const householdId = req.householdId!;
+      const { category, location, search, includeDisposed } = req.query;
+
+      let query = db.select().from(inventoryItems)
+        .where(eq(inventoryItems.householdId, householdId));
+
+      if (!includeDisposed) {
+        query = query.where(eq(inventoryItems.isActive, true));
+      }
+
+      if (category) {
+        query = query.where(eq(inventoryItems.category, category as string));
+      }
+
+      if (location) {
+        query = query.where(eq(inventoryItems.location, location as string));
+      }
+
+      if (search) {
+        query = query.where(or(
+          ilike(inventoryItems.name, `%${search}%`),
+          ilike(inventoryItems.brand, `%${search}%`),
+          ilike(inventoryItems.model, `%${search}%`)
+        ));
+      }
+
+      const items = await query.orderBy(desc(inventoryItems.updatedAt));
+
+      res.json({ items });
+    } catch (error) {
+      logger.error("Failed to fetch inventory", {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      res.status(500).json({ error: "Failed to fetch inventory" });
+    }
+  }
+);
+
+// Get single item with service history
+router.get(
+  "/inventory/:id",
+  isAuthenticated,
+  householdContextMiddleware,
+  async (req: Request, res: Response) => {
+    try {
+      const householdId = req.householdId!;
+      const { id } = req.params;
+
+      const [item] = await db.select().from(inventoryItems)
+        .where(and(
+          eq(inventoryItems.id, id),
+          eq(inventoryItems.householdId, householdId)
+        )).limit(1);
+
+      if (!item) {
+        return res.status(404).json({ error: "Item not found" });
+      }
+
+      const serviceHistory = await db.select({
+        service: inventoryServiceHistory,
+        vendor: vendors,
+      })
+        .from(inventoryServiceHistory)
+        .leftJoin(vendors, eq(inventoryServiceHistory.vendorId, vendors.id))
+        .where(eq(inventoryServiceHistory.itemId, id))
+        .orderBy(desc(inventoryServiceHistory.serviceDate));
+
+      res.json({ item, serviceHistory });
+    } catch (error) {
+      logger.error("Failed to fetch inventory item", {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      res.status(500).json({ error: "Failed to fetch item" });
+    }
+  }
+);
+
+// Create inventory item
+router.post(
+  "/inventory",
+  isAuthenticated,
+  householdContextMiddleware,
+  async (req: Request, res: Response) => {
+    try {
+      const householdId = req.householdId!;
+      const userId = req.user!.claims.sub;
+
+      const [item] = await db.insert(inventoryItems).values({
+        ...req.body,
+        householdId,
+        createdBy: userId,
+      }).returning();
+
+      logger.info("Inventory item created", { itemId: item.id, householdId });
+
+      res.status(201).json({ item });
+    } catch (error) {
+      logger.error("Failed to create inventory item", {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      res.status(500).json({ error: "Failed to create item" });
+    }
+  }
+);
+
+// Update inventory item
+router.patch(
+  "/inventory/:id",
+  isAuthenticated,
+  householdContextMiddleware,
+  async (req: Request, res: Response) => {
+    try {
+      const householdId = req.householdId!;
+      const { id } = req.params;
+
+      const [item] = await db.update(inventoryItems)
+        .set({ ...req.body, updatedAt: new Date() })
+        .where(and(
+          eq(inventoryItems.id, id),
+          eq(inventoryItems.householdId, householdId)
+        ))
+        .returning();
+
+      if (!item) {
+        return res.status(404).json({ error: "Item not found" });
+      }
+
+      res.json({ item });
+    } catch (error) {
+      logger.error("Failed to update inventory item", {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      res.status(500).json({ error: "Failed to update item" });
+    }
+  }
+);
+
+// Add service record
+router.post(
+  "/inventory/:id/service",
+  isAuthenticated,
+  householdContextMiddleware,
+  async (req: Request, res: Response) => {
+    try {
+      const householdId = req.householdId!;
+      const { id } = req.params;
+
+      // Verify item exists
+      const [item] = await db.select().from(inventoryItems)
+        .where(and(
+          eq(inventoryItems.id, id),
+          eq(inventoryItems.householdId, householdId)
+        )).limit(1);
+
+      if (!item) {
+        return res.status(404).json({ error: "Item not found" });
+      }
+
+      const [service] = await db.insert(inventoryServiceHistory).values({
+        ...req.body,
+        itemId: id,
+        householdId,
+      }).returning();
+
+      // Update last service date on item
+      await db.update(inventoryItems)
+        .set({
+          lastServiceDate: req.body.serviceDate,
+          nextServiceDue: item.serviceIntervalDays
+            ? addDays(new Date(req.body.serviceDate), item.serviceIntervalDays)
+            : null,
+          updatedAt: new Date(),
+        })
+        .where(eq(inventoryItems.id, id));
+
+      res.status(201).json({ service });
+    } catch (error) {
+      logger.error("Failed to add service record", {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      res.status(500).json({ error: "Failed to add service record" });
+    }
+  }
+);
+
+// Get warranty alerts
+router.get(
+  "/inventory/alerts/warranties",
+  isAuthenticated,
+  householdContextMiddleware,
+  async (req: Request, res: Response) => {
+    try {
+      const householdId = req.householdId!;
+      const thirtyDaysFromNow = addDays(new Date(), 30);
+      const ninetyDaysFromNow = addDays(new Date(), 90);
+
+      const [expiringSoon, expiredRecently] = await Promise.all([
+        // Expiring within 90 days
+        db.select().from(inventoryItems)
+          .where(and(
+            eq(inventoryItems.householdId, householdId),
+            eq(inventoryItems.isActive, true),
+            gte(inventoryItems.warrantyExpires, new Date()),
+            lte(inventoryItems.warrantyExpires, ninetyDaysFromNow)
+          ))
+          .orderBy(inventoryItems.warrantyExpires),
+        // Expired within last 30 days (might still be actionable)
+        db.select().from(inventoryItems)
+          .where(and(
+            eq(inventoryItems.householdId, householdId),
+            eq(inventoryItems.isActive, true),
+            lte(inventoryItems.warrantyExpires, new Date()),
+            gte(inventoryItems.warrantyExpires, addDays(new Date(), -30))
+          ))
+          .orderBy(desc(inventoryItems.warrantyExpires)),
+      ]);
+
+      res.json({
+        expiringSoon: expiringSoon.map(item => ({
+          ...item,
+          daysUntilExpiry: differenceInDays(new Date(item.warrantyExpires!), new Date()),
+        })),
+        expiredRecently,
+      });
+    } catch (error) {
+      logger.error("Failed to fetch warranty alerts", {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      res.status(500).json({ error: "Failed to fetch alerts" });
+    }
+  }
+);
+
+// Get maintenance alerts
+router.get(
+  "/inventory/alerts/maintenance",
+  isAuthenticated,
+  householdContextMiddleware,
+  async (req: Request, res: Response) => {
+    try {
+      const householdId = req.householdId!;
+      const thirtyDaysFromNow = addDays(new Date(), 30);
+
+      const dueSoon = await db.select().from(inventoryItems)
+        .where(and(
+          eq(inventoryItems.householdId, householdId),
+          eq(inventoryItems.isActive, true),
+          lte(inventoryItems.nextServiceDue, thirtyDaysFromNow)
+        ))
+        .orderBy(inventoryItems.nextServiceDue);
+
+      res.json({
+        dueSoon: dueSoon.map(item => ({
+          ...item,
+          daysUntilDue: differenceInDays(new Date(item.nextServiceDue!), new Date()),
+          isOverdue: new Date(item.nextServiceDue!) < new Date(),
+        })),
+      });
+    } catch (error) {
+      logger.error("Failed to fetch maintenance alerts", {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      res.status(500).json({ error: "Failed to fetch alerts" });
+    }
+  }
+);
+
+// Get insurance summary
+router.get(
+  "/inventory/insurance-summary",
+  isAuthenticated,
+  householdContextMiddleware,
+  async (req: Request, res: Response) => {
+    try {
+      const householdId = req.householdId!;
+
+      const items = await db.select({
+        category: inventoryItems.category,
+        totalValue: sql<number>`sum(${inventoryItems.insuredValue})`,
+        count: sql<number>`count(*)`,
+      })
+        .from(inventoryItems)
+        .where(and(
+          eq(inventoryItems.householdId, householdId),
+          eq(inventoryItems.isActive, true)
+        ))
+        .groupBy(inventoryItems.category);
+
+      const totalValue = items.reduce((sum, cat) => sum + (cat.totalValue || 0), 0);
+
+      res.json({
+        byCategory: items,
+        totalInsuredValue: totalValue,
+      });
+    } catch (error) {
+      logger.error("Failed to fetch insurance summary", {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      res.status(500).json({ error: "Failed to fetch summary" });
+    }
+  }
+);
+
+// Get locations (for dropdown)
+router.get(
+  "/inventory/locations",
+  isAuthenticated,
+  householdContextMiddleware,
+  async (req: Request, res: Response) => {
+    try {
+      const householdId = req.householdId!;
+
+      const locations = await db.selectDistinct({ location: inventoryItems.location })
+        .from(inventoryItems)
+        .where(and(
+          eq(inventoryItems.householdId, householdId),
+          sql`${inventoryItems.location} IS NOT NULL`
+        ));
+
+      res.json({ locations: locations.map(l => l.location).filter(Boolean) });
+    } catch (error) {
+      logger.error("Failed to fetch locations", {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      res.status(500).json({ error: "Failed to fetch locations" });
+    }
+  }
+);
+
+export function registerInventoryRoutes(app: Router) {
+  app.use(router);
+}
+
+## Client Pages
+
+Create client/src/pages/inventory.tsx:
+- Grid/list view of all items with photos
+- Filter by category, location
+- Search by name/brand/model
+- Sort by purchase date, warranty expiry, value
+- Quick actions: edit, add service, view history
+
+Create client/src/pages/inventory-item.tsx:
+- Full item details
+- Photo gallery
+- Warranty status with countdown
+- Service history timeline
+- Quick links to manual, receipt, warranty docs
+- "Schedule service" button
+- "Mark as disposed" action
+
+Create client/src/pages/inventory-alerts.tsx:
+- Warranty expiration alerts
+- Maintenance due alerts
+- Insurance summary for claims
+
+Create client/src/components/inventory/add-item-dialog.tsx:
+- Step-by-step form
+- Barcode/QR scanner option (future)
+- Photo upload
+- Auto-lookup by model number (future)

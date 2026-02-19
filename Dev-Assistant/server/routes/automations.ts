@@ -1,19 +1,25 @@
 import { Router, Request, Response } from "express";
 import { db } from "../db";
-import { automations, automationRuns } from "@shared/schema";
+import { automations, automationRuns, type Automation, type InsertAutomation } from "@shared/schema";
 import { eq, and, desc } from "drizzle-orm";
 import { processTrigger, AUTOMATION_TEMPLATES } from "../services/automation-engine";
 import { isAuthenticated } from "../replit_integrations/auth";
 import { householdContextMiddleware } from "../middleware/householdContext";
 import logger from "../lib/logger";
 
-export function registerAutomationRoutes(parent: any) {
+interface AutomationAction {
+  type: string;
+  config: Record<string, unknown>;
+  order?: number;
+}
+
+export function registerAutomationRoutes(parent: Router) {
   const router = Router();
   parent.use("/automations", router);
 
   router.get("/", isAuthenticated, householdContextMiddleware, async (req: Request, res: Response) => {
     try {
-      const householdId = (req as any).householdId;
+      const householdId = (req as any).householdId as string;
       if (!householdId) return res.status(400).json({ error: "Household context required" });
 
       const result = await db.select().from(automations)
@@ -21,7 +27,7 @@ export function registerAutomationRoutes(parent: any) {
         .orderBy(desc(automations.createdAt));
 
       res.json(result);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error("Failed to list automations", { error });
       res.status(500).json({ error: "Failed to list automations" });
     }
@@ -33,7 +39,7 @@ export function registerAutomationRoutes(parent: any) {
 
   router.get("/:id", isAuthenticated, householdContextMiddleware, async (req: Request, res: Response) => {
     try {
-      const householdId = (req as any).householdId;
+      const householdId = (req as any).householdId as string;
       if (!householdId) return res.status(400).json({ error: "Household context required" });
 
       const [automation] = await db.select().from(automations)
@@ -45,7 +51,7 @@ export function registerAutomationRoutes(parent: any) {
 
       if (!automation) return res.status(404).json({ error: "Automation not found" });
       res.json(automation);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error("Failed to get automation", { error });
       res.status(500).json({ error: "Failed to get automation" });
     }
@@ -53,7 +59,7 @@ export function registerAutomationRoutes(parent: any) {
 
   router.post("/", isAuthenticated, householdContextMiddleware, async (req: Request, res: Response) => {
     try {
-      const householdId = (req as any).householdId;
+      const householdId = (req as any).householdId as string;
       const userId = (req as any).userId || (req.user as any)?.id;
       if (!householdId) return res.status(400).json({ error: "Household context required" });
 
@@ -62,6 +68,12 @@ export function registerAutomationRoutes(parent: any) {
       if (!name || !trigger || !triggerConfig || !actions || !Array.isArray(actions) || actions.length === 0) {
         return res.status(400).json({ error: "Name, trigger, triggerConfig, and at least one action are required" });
       }
+
+      const typedActions = actions.map((a: AutomationAction, i: number) => ({
+        type: a.type,
+        config: a.config,
+        order: a.order ?? i + 1,
+      }));
 
       const [automation] = await db.insert(automations).values({
         householdId,
@@ -73,12 +85,12 @@ export function registerAutomationRoutes(parent: any) {
         trigger,
         triggerConfig,
         conditions: conditions || null,
-        actions: actions.map((a: any, i: number) => ({ ...a, order: a.order ?? i + 1 })),
+        actions: typedActions as any,
         createdBy: userId || "system",
       }).returning();
 
       res.status(201).json(automation);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error("Failed to create automation", { error });
       res.status(500).json({ error: "Failed to create automation" });
     }
@@ -86,12 +98,12 @@ export function registerAutomationRoutes(parent: any) {
 
   router.put("/:id", isAuthenticated, householdContextMiddleware, async (req: Request, res: Response) => {
     try {
-      const householdId = (req as any).householdId;
+      const householdId = (req as any).householdId as string;
       if (!householdId) return res.status(400).json({ error: "Household context required" });
 
       const { name, description, icon, color, trigger, triggerConfig, conditions, actions, isEnabled, propertyId } = req.body;
 
-      const updates: any = { updatedAt: new Date() };
+      const updates: Partial<Automation> = { updatedAt: new Date() };
       if (name !== undefined) updates.name = name;
       if (description !== undefined) updates.description = description;
       if (icon !== undefined) updates.icon = icon;
@@ -113,7 +125,7 @@ export function registerAutomationRoutes(parent: any) {
 
       if (!updated) return res.status(404).json({ error: "Automation not found" });
       res.json(updated);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error("Failed to update automation", { error });
       res.status(500).json({ error: "Failed to update automation" });
     }
@@ -121,7 +133,7 @@ export function registerAutomationRoutes(parent: any) {
 
   router.delete("/:id", isAuthenticated, householdContextMiddleware, async (req: Request, res: Response) => {
     try {
-      const householdId = (req as any).householdId;
+      const householdId = (req as any).householdId as string;
       if (!householdId) return res.status(400).json({ error: "Household context required" });
 
       const [deleted] = await db.delete(automations)
@@ -133,7 +145,7 @@ export function registerAutomationRoutes(parent: any) {
 
       if (!deleted) return res.status(404).json({ error: "Automation not found" });
       res.json({ success: true });
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error("Failed to delete automation", { error });
       res.status(500).json({ error: "Failed to delete automation" });
     }
@@ -141,7 +153,7 @@ export function registerAutomationRoutes(parent: any) {
 
   router.get("/:id/runs", isAuthenticated, householdContextMiddleware, async (req: Request, res: Response) => {
     try {
-      const householdId = (req as any).householdId;
+      const householdId = (req as any).householdId as string;
       if (!householdId) return res.status(400).json({ error: "Household context required" });
 
       const [automation] = await db.select().from(automations)
@@ -160,7 +172,7 @@ export function registerAutomationRoutes(parent: any) {
         .limit(limit);
 
       res.json(runs);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error("Failed to get automation runs", { error });
       res.status(500).json({ error: "Failed to get automation runs" });
     }
@@ -168,7 +180,7 @@ export function registerAutomationRoutes(parent: any) {
 
   router.post("/:id/test", isAuthenticated, householdContextMiddleware, async (req: Request, res: Response) => {
     try {
-      const householdId = (req as any).householdId;
+      const householdId = (req as any).householdId as string;
       if (!householdId) return res.status(400).json({ error: "Household context required" });
 
       const [automation] = await db.select().from(automations)
@@ -206,7 +218,7 @@ export function registerAutomationRoutes(parent: any) {
         .limit(1);
 
       res.json({ success: true, run: latestRun || null });
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error("Failed to test automation", { error });
       res.status(500).json({ error: "Failed to test automation" });
     }
@@ -214,7 +226,7 @@ export function registerAutomationRoutes(parent: any) {
 
   router.post("/:id/pause", isAuthenticated, householdContextMiddleware, async (req: Request, res: Response) => {
     try {
-      const householdId = (req as any).householdId;
+      const householdId = (req as any).householdId as string;
       if (!householdId) return res.status(400).json({ error: "Household context required" });
 
       const { until } = req.body;
@@ -234,7 +246,7 @@ export function registerAutomationRoutes(parent: any) {
 
       if (!updated) return res.status(404).json({ error: "Automation not found" });
       res.json(updated);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error("Failed to pause automation", { error });
       res.status(500).json({ error: "Failed to pause automation" });
     }
@@ -242,7 +254,7 @@ export function registerAutomationRoutes(parent: any) {
 
   router.post("/:id/resume", isAuthenticated, householdContextMiddleware, async (req: Request, res: Response) => {
     try {
-      const householdId = (req as any).householdId;
+      const householdId = (req as any).householdId as string;
       if (!householdId) return res.status(400).json({ error: "Household context required" });
 
       const [updated] = await db.update(automations)
@@ -259,7 +271,7 @@ export function registerAutomationRoutes(parent: any) {
 
       if (!updated) return res.status(404).json({ error: "Automation not found" });
       res.json(updated);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error("Failed to resume automation", { error });
       res.status(500).json({ error: "Failed to resume automation" });
     }

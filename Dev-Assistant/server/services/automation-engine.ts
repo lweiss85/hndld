@@ -10,7 +10,35 @@ interface TriggerEvent {
   type: string;
   householdId: string;
   propertyId?: string;
-  data: Record<string, any>;
+  data: Record<string, unknown>;
+}
+
+interface AutomationConditions {
+  userIds?: string[];
+  vendorIds?: string[];
+  taskCategories?: string[];
+  minAmount?: number;
+  maxAmount?: number;
+}
+
+interface ActionConfig {
+  type: string;
+  config: Record<string, unknown>;
+  order: number;
+}
+
+interface ActionResult {
+  success: boolean;
+  result?: Record<string, unknown>;
+  error?: string;
+}
+
+interface ActionExecutionRecord {
+  type: string;
+  status: "SUCCESS" | "FAILED";
+  result?: Record<string, unknown>;
+  error?: string;
+  executedAt: string;
 }
 
 export async function processTrigger(event: TriggerEvent): Promise<void> {
@@ -32,13 +60,13 @@ export async function processTrigger(event: TriggerEvent): Promise<void> {
         continue;
       }
 
-      if (!matchesConditions(automation.conditions, event.data)) {
+      if (!matchesConditions(automation.conditions as AutomationConditions | null, event.data)) {
         continue;
       }
 
       await executeAutomation(automation, event);
     }
-  } catch (error) {
+  } catch (error: unknown) {
     logger.error("Automation trigger processing failed", {
       event,
       error: error instanceof Error ? error.message : String(error),
@@ -46,22 +74,22 @@ export async function processTrigger(event: TriggerEvent): Promise<void> {
   }
 }
 
-function matchesConditions(conditions: any, data: Record<string, any>): boolean {
+function matchesConditions(conditions: AutomationConditions | null | undefined, data: Record<string, unknown>): boolean {
   if (!conditions) return true;
 
-  if (conditions.userIds?.length && !conditions.userIds.includes(data.userId)) {
+  if (conditions.userIds?.length && !conditions.userIds.includes(data.userId as string)) {
     return false;
   }
-  if (conditions.vendorIds?.length && !conditions.vendorIds.includes(data.vendorId)) {
+  if (conditions.vendorIds?.length && !conditions.vendorIds.includes(data.vendorId as string)) {
     return false;
   }
-  if (conditions.taskCategories?.length && data.category && !conditions.taskCategories.includes(data.category)) {
+  if (conditions.taskCategories?.length && data.category && !conditions.taskCategories.includes(data.category as string)) {
     return false;
   }
-  if (conditions.minAmount !== undefined && data.amount < conditions.minAmount) {
+  if (conditions.minAmount !== undefined && (data.amount as number) < conditions.minAmount) {
     return false;
   }
-  if (conditions.maxAmount !== undefined && data.amount > conditions.maxAmount) {
+  if (conditions.maxAmount !== undefined && (data.amount as number) > conditions.maxAmount) {
     return false;
   }
 
@@ -70,7 +98,7 @@ function matchesConditions(conditions: any, data: Record<string, any>): boolean 
 
 async function executeAutomation(automation: typeof automations.$inferSelect, event: TriggerEvent): Promise<void> {
   const runId = crypto.randomUUID();
-  const actionsExecuted: any[] = [];
+  const actionsExecuted: ActionExecutionRecord[] = [];
   let status = "RUNNING";
   let error: string | undefined;
 
@@ -84,7 +112,7 @@ async function executeAutomation(automation: typeof automations.$inferSelect, ev
       actionsExecuted: [],
     });
 
-    const actions = [...(automation.actions || [])].sort((a, b) => a.order - b.order);
+    const actions = [...((automation.actions || []) as ActionConfig[])].sort((a, b) => a.order - b.order);
 
     for (const action of actions) {
       const actionResult = await executeAction(action, event, automation);
@@ -133,7 +161,7 @@ async function executeAutomation(automation: typeof automations.$inferSelect, ev
       status,
       actionsCount: actionsExecuted.length,
     });
-  } catch (err) {
+  } catch (err: unknown) {
     logger.error("Automation execution failed", {
       automationId: automation.id,
       runId,
@@ -151,47 +179,48 @@ async function executeAutomation(automation: typeof automations.$inferSelect, ev
 }
 
 async function executeAction(
-  action: { type: string; config: Record<string, any> },
+  action: ActionConfig,
   event: TriggerEvent,
   automation: typeof automations.$inferSelect
-): Promise<{ success: boolean; result?: any; error?: string }> {
+): Promise<ActionResult> {
+  const config = action.config as Record<string, any>;
   try {
     switch (action.type) {
       case "SEND_NOTIFICATION": {
-        const userId = action.config.userId || event.data.userId;
+        const userId = config.userId || event.data.userId;
         if (!userId) return { success: false, error: "No userId for notification" };
-        const title = interpolate(action.config.title || "Automation Alert", event.data);
-        const body = interpolate(action.config.body || "", event.data);
-        await sendPushNotification(userId, title, body);
+        const title = interpolate(config.title || "Automation Alert", event.data);
+        const body = interpolate(config.body || "", event.data);
+        await sendPushNotification(userId as string, title, body);
         return { success: true, result: { userId, title } };
       }
 
       case "CREATE_TASK": {
         const [newTask] = await db.insert(tasks).values({
           householdId: automation.householdId,
-          title: interpolate(action.config.title || "Auto-created task", event.data),
-          description: interpolate(action.config.description || "", event.data),
+          title: interpolate(config.title || "Auto-created task", event.data),
+          description: interpolate(config.description || "", event.data),
           status: "INBOX",
-          urgency: action.config.priority || "MEDIUM",
+          urgency: config.priority || "MEDIUM",
           createdBy: automation.createdBy,
         }).returning();
         return { success: true, result: { taskId: newTask?.id } };
       }
 
       case "COMPLETE_TASK": {
-        const taskId = action.config.taskId || event.data.taskId;
+        const taskId = config.taskId || event.data.taskId;
         if (!taskId) return { success: false, error: "No taskId to complete" };
         await db.update(tasks)
           .set({ status: "DONE", updatedAt: new Date() })
-          .where(eq(tasks.id, taskId));
+          .where(eq(tasks.id, taskId as string));
         return { success: true, result: { taskId } };
       }
 
       case "CREATE_APPROVAL": {
         const [newApproval] = await db.insert(approvals).values({
           householdId: automation.householdId,
-          title: interpolate(action.config.title || "Auto-created approval", event.data),
-          details: interpolate(action.config.description || "", event.data),
+          title: interpolate(config.title || "Auto-created approval", event.data),
+          details: interpolate(config.description || "", event.data),
           status: "PENDING",
           createdBy: automation.createdBy,
         }).returning();
@@ -199,19 +228,19 @@ async function executeAction(
       }
 
       case "AUTO_APPROVE": {
-        const aId = action.config.approvalId || event.data.approvalId;
+        const aId = config.approvalId || event.data.approvalId;
         if (!aId) return { success: false, error: "No approvalId to approve" };
         await db.update(approvals)
           .set({ status: "APPROVED", updatedAt: new Date() })
-          .where(eq(approvals.id, aId));
+          .where(eq(approvals.id, aId as string));
         return { success: true, result: { approvalId: aId } };
       }
 
       case "LOCK_DOOR":
       case "UNLOCK_DOOR": {
-        const lockId = action.config.lockId || event.data.lockId;
+        const lockId = config.lockId || event.data.lockId;
         if (!lockId) return { success: false, error: "No lockId specified" };
-        const [lock] = await db.select().from(smartLocks).where(eq(smartLocks.id, lockId)).limit(1);
+        const [lock] = await db.select().from(smartLocks).where(eq(smartLocks.id, lockId as string)).limit(1);
         if (!lock) return { success: false, error: `Lock ${lockId} not found` };
         const provider = getProvider(lock.provider);
         const cmd = { lockId: lock.id, externalId: lock.externalId || "", accessToken: lock.accessToken || "" };
@@ -226,21 +255,21 @@ async function executeAction(
       case "ADD_TO_CALENDAR": {
         const [newEvent] = await db.insert(calendarEvents).values({
           householdId: automation.householdId,
-          title: interpolate(action.config.title || "Auto-created event", event.data),
-          startAt: action.config.startTime ? new Date(action.config.startTime) : new Date(),
-          endAt: action.config.endTime ? new Date(action.config.endTime) : new Date(Date.now() + 3600000),
+          title: interpolate(config.title || "Auto-created event", event.data),
+          startAt: config.startTime ? new Date(config.startTime as string) : new Date(),
+          endAt: config.endTime ? new Date(config.endTime as string) : new Date(Date.now() + 3600000),
         }).returning();
         return { success: true, result: { eventId: newEvent?.id } };
       }
 
       case "TRIGGER_WEBHOOK": {
-        const url = action.config.url;
+        const url = config.url as string;
         if (!url) return { success: false, error: "No webhook URL specified" };
         const response = await fetch(url, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            ...(action.config.headers || {}),
+            ...((config.headers || {}) as Record<string, string>),
           },
           body: JSON.stringify({
             event,
@@ -254,7 +283,7 @@ async function executeAction(
       case "LOG_EVENT": {
         logger.info("Automation LOG_EVENT action", {
           automationId: automation.id,
-          message: interpolate(action.config.message || "", event.data),
+          message: interpolate(config.message || "", event.data),
           data: event.data,
         });
         return { success: true };
@@ -262,24 +291,24 @@ async function executeAction(
 
       case "SEND_EMAIL": {
         logger.info("Automation SEND_EMAIL action (stub)", {
-          to: action.config.to,
-          subject: interpolate(action.config.subject || "", event.data),
+          to: config.to,
+          subject: interpolate(config.subject || "", event.data),
         });
         return { success: true, result: { stub: true } };
       }
 
       case "SEND_SMS": {
         logger.info("Automation SEND_SMS action (stub)", {
-          to: action.config.to,
-          message: interpolate(action.config.message || "", event.data),
+          to: config.to,
+          message: interpolate(config.message || "", event.data),
         });
         return { success: true, result: { stub: true } };
       }
 
       case "UPDATE_BUDGET": {
         logger.info("Automation UPDATE_BUDGET action (stub)", {
-          budgetId: action.config.budgetId,
-          adjustment: action.config.adjustment,
+          budgetId: config.budgetId,
+          adjustment: config.adjustment,
         });
         return { success: true, result: { stub: true } };
       }
@@ -287,12 +316,12 @@ async function executeAction(
       default:
         return { success: false, error: `Unknown action type: ${action.type}` };
     }
-  } catch (error) {
+  } catch (error: unknown) {
     return { success: false, error: error instanceof Error ? error.message : String(error) };
   }
 }
 
-function interpolate(template: string, data: Record<string, any>): string {
+function interpolate(template: string, data: Record<string, unknown>): string {
   if (!template) return "";
   return template.replace(/\{\{(\w+)\}\}/g, (_, key) => {
     const val = data[key];

@@ -1,13 +1,15 @@
-import { Router, Request, Response } from "express";
+import { Router, Request, Response, NextFunction } from "express";
 import { db } from "../../db";
 import {
   serviceProviders, providerStaff, providerClients, providerSchedule,
   vendors, households,
+  type InsertServiceProvider, type ProviderClient, type ProviderStaff as ProviderStaffType,
+  type ProviderScheduleItem,
 } from "@shared/schema";
 import { eq, and, desc, sql, gte, lte, count, asc } from "drizzle-orm";
 import { isAuthenticated } from "../../replit_integrations/auth";
 import logger from "../../lib/logger";
-import { z } from "zod";
+import { z, ZodError } from "zod";
 
 function getUserId(req: Request): string | null {
   return (req as any).user?.id || (req as any).userId || null;
@@ -19,7 +21,7 @@ async function getProviderForUser(userId: string) {
   return provider || null;
 }
 
-function requireProvider(req: Request, res: Response, next: any) {
+function requireProvider(req: Request, res: Response, next: NextFunction) {
   const userId = getUserId(req);
   if (!userId) return res.status(401).json({ error: "Not authenticated" });
   getProviderForUser(userId).then(provider => {
@@ -33,7 +35,15 @@ function requireProvider(req: Request, res: Response, next: any) {
   });
 }
 
-export function registerProviderRoutes(parent: any) {
+function isZodError(err: unknown): err is ZodError {
+  return err instanceof ZodError || (err !== null && typeof err === "object" && (err as any).name === "ZodError");
+}
+
+function isDbConstraintError(err: unknown): boolean {
+  return err !== null && typeof err === "object" && (err as any).code === "23505";
+}
+
+export function registerProviderRoutes(parent: Router) {
   const router = Router();
   parent.use("/provider", router);
 
@@ -79,8 +89,8 @@ export function registerProviderRoutes(parent: any) {
       });
 
       res.status(201).json(provider);
-    } catch (err: any) {
-      if (err?.name === "ZodError") return res.status(400).json({ error: "Validation failed", details: err.errors });
+    } catch (err: unknown) {
+      if (isZodError(err)) return res.status(400).json({ error: "Validation failed", details: err.errors });
       logger.error("Provider registration failed", { error: err });
       res.status(500).json({ error: "Registration failed" });
     }
@@ -89,22 +99,22 @@ export function registerProviderRoutes(parent: any) {
   router.get("/me", isAuthenticated, requireProvider, async (req: Request, res: Response) => {
     try {
       res.json((req as any).provider);
-    } catch (err) {
+    } catch (err: unknown) {
       res.status(500).json({ error: "Failed to fetch provider" });
     }
   });
 
   router.patch("/me", isAuthenticated, requireProvider, async (req: Request, res: Response) => {
     try {
-      const providerId = (req as any).providerId;
-      const allowedFields = [
+      const providerId = (req as any).providerId as string;
+      const allowedFields: (keyof InsertServiceProvider)[] = [
         "businessName", "description", "phone", "website", "address", "city", "state",
         "postalCode", "serviceRadius", "businessLicense", "insuranceProvider",
         "insurancePolicyNumber", "insuranceExpires", "bondAmount", "settings"
       ];
-      const updates: any = {};
+      const updates: Partial<InsertServiceProvider> = {};
       for (const field of allowedFields) {
-        if (req.body[field] !== undefined) updates[field] = req.body[field];
+        if (req.body[field] !== undefined) (updates as Record<string, unknown>)[field] = req.body[field];
       }
       updates.updatedAt = new Date();
 
@@ -114,7 +124,7 @@ export function registerProviderRoutes(parent: any) {
         .returning();
 
       res.json(updated);
-    } catch (err) {
+    } catch (err: unknown) {
       logger.error("Provider update failed", { error: err });
       res.status(500).json({ error: "Update failed" });
     }
@@ -122,7 +132,7 @@ export function registerProviderRoutes(parent: any) {
 
   router.get("/dashboard", isAuthenticated, requireProvider, async (req: Request, res: Response) => {
     try {
-      const providerId = (req as any).providerId;
+      const providerId = (req as any).providerId as string;
 
       const [clientStats] = await db.select({
         total: count(),
@@ -159,7 +169,7 @@ export function registerProviderRoutes(parent: any) {
         upcoming: upcomingSchedule,
         provider: (req as any).provider,
       });
-    } catch (err) {
+    } catch (err: unknown) {
       logger.error("Dashboard fetch failed", { error: err });
       res.status(500).json({ error: "Dashboard failed" });
     }
@@ -167,19 +177,19 @@ export function registerProviderRoutes(parent: any) {
 
   router.get("/clients", isAuthenticated, requireProvider, async (req: Request, res: Response) => {
     try {
-      const providerId = (req as any).providerId;
+      const providerId = (req as any).providerId as string;
       const clients = await db.select().from(providerClients)
         .where(eq(providerClients.providerId, providerId))
         .orderBy(desc(providerClients.createdAt));
       res.json(clients);
-    } catch (err) {
+    } catch (err: unknown) {
       res.status(500).json({ error: "Failed to fetch clients" });
     }
   });
 
   router.post("/clients", isAuthenticated, requireProvider, async (req: Request, res: Response) => {
     try {
-      const providerId = (req as any).providerId;
+      const providerId = (req as any).providerId as string;
       const schema = z.object({
         householdId: z.string().min(1),
         startDate: z.string().min(1),
@@ -221,9 +231,9 @@ export function registerProviderRoutes(parent: any) {
         .where(eq(serviceProviders.id, providerId));
 
       res.status(201).json(client);
-    } catch (err: any) {
-      if (err?.name === "ZodError") return res.status(400).json({ error: "Validation failed", details: err.errors });
-      if (err?.code === "23505") return res.status(409).json({ error: "Client relationship already exists" });
+    } catch (err: unknown) {
+      if (isZodError(err)) return res.status(400).json({ error: "Validation failed", details: err.errors });
+      if (isDbConstraintError(err)) return res.status(409).json({ error: "Client relationship already exists" });
       logger.error("Client creation failed", { error: err });
       res.status(500).json({ error: "Failed to create client" });
     }
@@ -231,7 +241,7 @@ export function registerProviderRoutes(parent: any) {
 
   router.get("/clients/:id", isAuthenticated, requireProvider, async (req: Request, res: Response) => {
     try {
-      const providerId = (req as any).providerId;
+      const providerId = (req as any).providerId as string;
       const [client] = await db.select().from(providerClients)
         .where(and(eq(providerClients.id, req.params.id), eq(providerClients.providerId, providerId)));
       if (!client) return res.status(404).json({ error: "Client not found" });
@@ -242,19 +252,19 @@ export function registerProviderRoutes(parent: any) {
         .limit(20);
 
       res.json({ client, schedule });
-    } catch (err) {
+    } catch (err: unknown) {
       res.status(500).json({ error: "Failed to fetch client" });
     }
   });
 
   router.patch("/clients/:id", isAuthenticated, requireProvider, async (req: Request, res: Response) => {
     try {
-      const providerId = (req as any).providerId;
-      const allowedFields = ["status", "serviceFrequency", "preferredDay", "preferredTime",
+      const providerId = (req as any).providerId as string;
+      const allowedFields: (keyof ProviderClient)[] = ["status", "serviceFrequency", "preferredDay", "preferredTime",
         "baseRateCents", "estimatedHours", "assignedStaffId", "clientNotes", "accessInstructions", "endDate"];
-      const updates: any = {};
+      const updates: Partial<ProviderClient> = {};
       for (const field of allowedFields) {
-        if (req.body[field] !== undefined) updates[field] = req.body[field];
+        if (req.body[field] !== undefined) (updates as Record<string, unknown>)[field] = req.body[field];
       }
       updates.updatedAt = new Date();
 
@@ -265,26 +275,26 @@ export function registerProviderRoutes(parent: any) {
 
       if (!updated) return res.status(404).json({ error: "Client not found" });
       res.json(updated);
-    } catch (err) {
+    } catch (err: unknown) {
       res.status(500).json({ error: "Failed to update client" });
     }
   });
 
   router.get("/staff", isAuthenticated, requireProvider, async (req: Request, res: Response) => {
     try {
-      const providerId = (req as any).providerId;
+      const providerId = (req as any).providerId as string;
       const staff = await db.select().from(providerStaff)
         .where(eq(providerStaff.providerId, providerId))
         .orderBy(desc(providerStaff.createdAt));
       res.json(staff);
-    } catch (err) {
+    } catch (err: unknown) {
       res.status(500).json({ error: "Failed to fetch staff" });
     }
   });
 
   router.post("/staff", isAuthenticated, requireProvider, async (req: Request, res: Response) => {
     try {
-      const providerId = (req as any).providerId;
+      const providerId = (req as any).providerId as string;
       const schema = z.object({
         firstName: z.string().min(1).max(50),
         lastName: z.string().min(1).max(50),
@@ -302,8 +312,8 @@ export function registerProviderRoutes(parent: any) {
       }).returning();
 
       res.status(201).json(member);
-    } catch (err: any) {
-      if (err?.name === "ZodError") return res.status(400).json({ error: "Validation failed", details: err.errors });
+    } catch (err: unknown) {
+      if (isZodError(err)) return res.status(400).json({ error: "Validation failed", details: err.errors });
       logger.error("Staff creation failed", { error: err });
       res.status(500).json({ error: "Failed to create staff" });
     }
@@ -311,11 +321,11 @@ export function registerProviderRoutes(parent: any) {
 
   router.patch("/staff/:id", isAuthenticated, requireProvider, async (req: Request, res: Response) => {
     try {
-      const providerId = (req as any).providerId;
-      const allowedFields = ["firstName", "lastName", "email", "phone", "role", "hourlyRate", "isActive", "permissions"];
-      const updates: any = {};
+      const providerId = (req as any).providerId as string;
+      const allowedFields: (keyof ProviderStaffType)[] = ["firstName", "lastName", "email", "phone", "role", "hourlyRate", "isActive", "permissions"];
+      const updates: Partial<ProviderStaffType> = {};
       for (const field of allowedFields) {
-        if (req.body[field] !== undefined) updates[field] = req.body[field];
+        if (req.body[field] !== undefined) (updates as Record<string, unknown>)[field] = req.body[field];
       }
 
       const [updated] = await db.update(providerStaff)
@@ -325,14 +335,14 @@ export function registerProviderRoutes(parent: any) {
 
       if (!updated) return res.status(404).json({ error: "Staff member not found" });
       res.json(updated);
-    } catch (err) {
+    } catch (err: unknown) {
       res.status(500).json({ error: "Failed to update staff" });
     }
   });
 
   router.delete("/staff/:id", isAuthenticated, requireProvider, async (req: Request, res: Response) => {
     try {
-      const providerId = (req as any).providerId;
+      const providerId = (req as any).providerId as string;
       const [deleted] = await db.update(providerStaff)
         .set({ isActive: false })
         .where(and(eq(providerStaff.id, req.params.id), eq(providerStaff.providerId, providerId)))
@@ -340,14 +350,14 @@ export function registerProviderRoutes(parent: any) {
 
       if (!deleted) return res.status(404).json({ error: "Staff member not found" });
       res.json({ message: "Staff member deactivated" });
-    } catch (err) {
+    } catch (err: unknown) {
       res.status(500).json({ error: "Failed to deactivate staff" });
     }
   });
 
   router.get("/schedule", isAuthenticated, requireProvider, async (req: Request, res: Response) => {
     try {
-      const providerId = (req as any).providerId;
+      const providerId = (req as any).providerId as string;
       const { startDate, endDate, staffId, status } = req.query;
 
       let conditions = [eq(providerSchedule.providerId, providerId)];
@@ -361,14 +371,14 @@ export function registerProviderRoutes(parent: any) {
         .orderBy(asc(providerSchedule.scheduledDate));
 
       res.json(schedule);
-    } catch (err) {
+    } catch (err: unknown) {
       res.status(500).json({ error: "Failed to fetch schedule" });
     }
   });
 
   router.post("/schedule", isAuthenticated, requireProvider, async (req: Request, res: Response) => {
     try {
-      const providerId = (req as any).providerId;
+      const providerId = (req as any).providerId as string;
       const schema = z.object({
         providerClientId: z.string().min(1),
         staffId: z.string().optional(),
@@ -390,8 +400,8 @@ export function registerProviderRoutes(parent: any) {
       }).returning();
 
       res.status(201).json(entry);
-    } catch (err: any) {
-      if (err?.name === "ZodError") return res.status(400).json({ error: "Validation failed", details: err.errors });
+    } catch (err: unknown) {
+      if (isZodError(err)) return res.status(400).json({ error: "Validation failed", details: err.errors });
       logger.error("Schedule creation failed", { error: err });
       res.status(500).json({ error: "Failed to create schedule entry" });
     }
@@ -399,12 +409,12 @@ export function registerProviderRoutes(parent: any) {
 
   router.patch("/schedule/:id", isAuthenticated, requireProvider, async (req: Request, res: Response) => {
     try {
-      const providerId = (req as any).providerId;
-      const allowedFields = ["staffId", "scheduledDate", "scheduledTime", "estimatedDuration",
+      const providerId = (req as any).providerId as string;
+      const allowedFields: (keyof ProviderScheduleItem)[] = ["staffId", "scheduledDate", "scheduledTime", "estimatedDuration",
         "status", "arrivedAt", "completedAt", "providerNotes", "clientNotes"];
-      const updates: any = {};
+      const updates: Partial<ProviderScheduleItem> = {};
       for (const field of allowedFields) {
-        if (req.body[field] !== undefined) updates[field] = req.body[field];
+        if (req.body[field] !== undefined) (updates as Record<string, unknown>)[field] = req.body[field];
       }
 
       const [updated] = await db.update(providerSchedule)
@@ -414,14 +424,14 @@ export function registerProviderRoutes(parent: any) {
 
       if (!updated) return res.status(404).json({ error: "Schedule entry not found" });
       res.json(updated);
-    } catch (err) {
+    } catch (err: unknown) {
       res.status(500).json({ error: "Failed to update schedule" });
     }
   });
 
   router.delete("/schedule/:id", isAuthenticated, requireProvider, async (req: Request, res: Response) => {
     try {
-      const providerId = (req as any).providerId;
+      const providerId = (req as any).providerId as string;
       const [updated] = await db.update(providerSchedule)
         .set({ status: "CANCELLED" })
         .where(and(eq(providerSchedule.id, req.params.id), eq(providerSchedule.providerId, providerId)))
@@ -429,14 +439,14 @@ export function registerProviderRoutes(parent: any) {
 
       if (!updated) return res.status(404).json({ error: "Schedule entry not found" });
       res.json({ message: "Schedule entry cancelled" });
-    } catch (err) {
+    } catch (err: unknown) {
       res.status(500).json({ error: "Failed to cancel schedule entry" });
     }
   });
 
   router.get("/invoices", isAuthenticated, requireProvider, async (req: Request, res: Response) => {
     try {
-      const providerId = (req as any).providerId;
+      const providerId = (req as any).providerId as string;
 
       const completedVisits = await db.select({
         id: providerSchedule.id,
@@ -467,7 +477,7 @@ export function registerProviderRoutes(parent: any) {
       });
 
       res.json(invoiceData);
-    } catch (err) {
+    } catch (err: unknown) {
       res.status(500).json({ error: "Failed to fetch invoice data" });
     }
   });
@@ -478,7 +488,7 @@ export function registerProviderRoutes(parent: any) {
         leads: [],
         message: "Marketplace leads coming soon. Complete your profile and get verified to appear in the provider directory.",
       });
-    } catch (err) {
+    } catch (err: unknown) {
       res.status(500).json({ error: "Failed to fetch leads" });
     }
   });
