@@ -1,0 +1,79 @@
+Implement document and contract expiry tracking with alerts.
+
+## Database Schema
+
+Add to shared/schema.ts:
+
+export const documentTypeEnum = pgEnum("document_type", [
+  "INSURANCE_HOME", "INSURANCE_AUTO", "INSURANCE_UMBRELLA", "INSURANCE_OTHER",
+  "WARRANTY", "CONTRACT", "LICENSE", "REGISTRATION", "CERTIFICATE", "OTHER"
+]);
+
+export const trackedDocuments = pgTable("tracked_documents", {
+  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  householdId: varchar("household_id").references(() => households.id).notNull(),
+  name: varchar("name", { length: 200 }).notNull(),
+  type: documentTypeEnum("type").notNull(),
+  description: text("description"),
+  
+  // Provider/Issuer
+  provider: varchar("provider", { length: 200 }), // Insurance company, contractor, etc.
+  policyNumber: varchar("policy_number", { length: 100 }),
+  
+  // Dates
+  effectiveDate: date("effective_date"),
+  expirationDate: date("expiration_date"),
+  renewalDate: date("renewal_date"),
+  
+  // Cost
+  annualCost: integer("annual_cost"), // In cents
+  paymentFrequency: varchar("payment_frequency", { length: 20 }), // monthly, quarterly, annual
+  
+  // Coverage (for insurance)
+  coverageAmount: integer("coverage_amount"),
+  deductible: integer("deductible"),
+  
+  // Files
+  documentFileId: varchar("document_file_id").references(() => files.id),
+  
+  // Alerts
+  alertDaysBefore: integer("alert_days_before").default(30),
+  alertSent: boolean("alert_sent").default(false),
+  
+  // Auto-renewal
+  autoRenews: boolean("auto_renews").default(false),
+  
+  // Contact
+  contactName: varchar("contact_name", { length: 100 }),
+  contactPhone: varchar("contact_phone", { length: 20 }),
+  contactEmail: varchar("contact_email", { length: 100 }),
+  
+  notes: text("notes"),
+  isActive: boolean("is_active").default(true).notNull(),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  createdBy: varchar("created_by").notNull(),
+}, (table) => ({
+  householdIdx: index("documents_household_idx").on(table.householdId),
+  typeIdx: index("documents_type_idx").on(table.householdId, table.type),
+  expiryIdx: index("documents_expiry_idx").on(table.householdId, table.expirationDate),
+}));
+
+## Server Implementation
+
+Create server/routes/documents.ts with:
+- CRUD for tracked documents
+- GET /documents/expiring - documents expiring within X days
+- GET /documents/summary - overview by type
+- Background job to send expiry alerts
+
+## Client Page
+
+Create client/src/pages/documents.tsx:
+- List view grouped by type
+- Expiration countdown badges
+- Calendar view of expiration dates
+- Add/edit document form
+- File attachment support
+- Alert settings per document
