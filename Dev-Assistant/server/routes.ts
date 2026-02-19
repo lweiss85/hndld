@@ -37,6 +37,7 @@ import { registerShortcutRoutes } from "./routes/shortcuts";
 import { registerNetworkRoutes } from "./routes/network";
 import { registerCelebrationRoutes } from "./routes/celebrations";
 import { registerTwoFactorRoutes } from "./routes/two-factor";
+import { registerDataExportRoutes } from "./routes/data-export";
 
 const householdContext = householdContextMiddleware;
 
@@ -112,6 +113,7 @@ export async function registerRoutes(
   registerNetworkRoutes(v1);
   registerCelebrationRoutes(v1);
   registerTwoFactorRoutes(v1);
+  registerDataExportRoutes(v1);
 
   app.use("/api/v1", v1);
   app.use("/api", v1);

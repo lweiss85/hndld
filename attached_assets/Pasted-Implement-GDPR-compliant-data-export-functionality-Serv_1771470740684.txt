@@ -1,0 +1,169 @@
+Implement GDPR-compliant data export functionality.
+
+## Server Implementation
+
+Create server/routes/data-export.ts:
+
+import { Router, Request, Response } from "express";
+import { db } from "../db";
+import {
+  userProfiles, tasks, approvals, spendingItems, calendarEvents,
+  requests, messages, notifications, vendors, people, preferences,
+  cleaningVisits, files, importantDates, householdLocations,
+  learnedPreferences, celebrations, twoFactorSecrets,
+} from "@shared/schema";
+import { eq, and } from "drizzle-orm";
+import { isAuthenticated } from "../replit_integrations/auth";
+import { householdContextMiddleware } from "../middleware/householdContext";
+import logger from "../lib/logger";
+import archiver from "archiver";
+
+const router = Router();
+
+router.get(
+  "/user/export",
+  isAuthenticated,
+  householdContextMiddleware,
+  async (req: Request, res: Response) => {
+    try {
+      const userId = req.user!.claims.sub;
+      const householdId = req.householdId!;
+
+      logger.info("Data export requested", { userId, householdId });
+
+      // Collect all user data
+      const [
+        profile,
+        userTasks,
+        userApprovals,
+        userSpending,
+        userEvents,
+        userRequests,
+        userMessages,
+        userNotifications,
+        householdVendors,
+        householdPeople,
+        householdPrefs,
+        householdVisits,
+        householdFiles,
+        householdDates,
+        householdLocations,
+        householdLearned,
+        userCelebrations,
+      ] = await Promise.all([
+        db.select().from(userProfiles).where(eq(userProfiles.userId, userId)),
+        db.select().from(tasks).where(eq(tasks.householdId, householdId)),
+        db.select().from(approvals).where(eq(approvals.householdId, householdId)),
+        db.select().from(spendingItems).where(eq(spendingItems.householdId, householdId)),
+        db.select().from(calendarEvents).where(eq(calendarEvents.householdId, householdId)),
+        db.select().from(requests).where(eq(requests.householdId, householdId)),
+        db.select().from(messages).where(eq(messages.householdId, householdId)),
+        db.select().from(notifications).where(eq(notifications.userId, userId)),
+        db.select().from(vendors).where(eq(vendors.householdId, householdId)),
+        db.select().from(people).where(eq(people.householdId, householdId)),
+        db.select().from(preferences).where(eq(preferences.householdId, householdId)),
+        db.select().from(cleaningVisits).where(eq(cleaningVisits.householdId, householdId)),
+        db.select({
+          id: files.id,
+          name: files.name,
+          mimeType: files.mimeType,
+          size: files.size,
+          category: files.category,
+          uploadedAt: files.uploadedAt,
+        }).from(files).where(eq(files.householdId, householdId)),
+        db.select().from(importantDates).where(eq(importantDates.householdId, householdId)),
+        db.select().from(householdLocations).where(eq(householdLocations.householdId, householdId)),
+        db.select().from(learnedPreferences).where(eq(learnedPreferences.householdId, householdId)),
+        db.select().from(celebrations).where(eq(celebrations.userId, userId)),
+      ]);
+
+      const exportData = {
+        exportedAt: new Date().toISOString(),
+        userId,
+        householdId,
+        profile: profile[0] || null,
+        tasks: userTasks,
+        approvals: userApprovals,
+        spending: userSpending,
+        calendarEvents: userEvents,
+        requests: userRequests,
+        messages: userMessages,
+        notifications: userNotifications,
+        vendors: householdVendors,
+        people: householdPeople,
+        preferences: householdPrefs,
+        cleaningVisits: householdVisits,
+        files: householdFiles, // Metadata only, not actual files
+        importantDates: householdDates,
+        locations: householdLocations,
+        learnedPreferences: householdLearned,
+        celebrations: userCelebrations,
+      };
+
+      // Return as JSON
+      res.setHeader("Content-Type", "application/json");
+      res.setHeader("Content-Disposition", `attachment; filename="hndld-export-${userId}-${Date.now()}.json"`);
+      res.json(exportData);
+
+      logger.info("Data export completed", { userId, householdId });
+    } catch (error) {
+      logger.error("Data export failed", {
+        error: error instanceof Error ? error.message : String(error),
+        userId: req.user?.claims.sub,
+      });
+      res.status(500).json({ error: "Failed to export data" });
+    }
+  }
+);
+
+// Export summary (what will be included)
+router.get("/user/export/preview", isAuthenticated, householdContextMiddleware, async (req: Request, res: Response) => {
+  try {
+    const householdId = req.householdId!;
+    const userId = req.user!.claims.sub;
+
+    const counts = await Promise.all([
+      db.select({ count: sql<number>`count(*)` }).from(tasks).where(eq(tasks.householdId, householdId)),
+      db.select({ count: sql<number>`count(*)` }).from(approvals).where(eq(approvals.householdId, householdId)),
+      db.select({ count: sql<number>`count(*)` }).from(spendingItems).where(eq(spendingItems.householdId, householdId)),
+      db.select({ count: sql<number>`count(*)` }).from(calendarEvents).where(eq(calendarEvents.householdId, householdId)),
+      db.select({ count: sql<number>`count(*)` }).from(messages).where(eq(messages.householdId, householdId)),
+      db.select({ count: sql<number>`count(*)` }).from(vendors).where(eq(vendors.householdId, householdId)),
+      db.select({ count: sql<number>`count(*)` }).from(files).where(eq(files.householdId, householdId)),
+    ]);
+
+    res.json({
+      preview: {
+        tasks: counts[0][0]?.count || 0,
+        approvals: counts[1][0]?.count || 0,
+        spendingItems: counts[2][0]?.count || 0,
+        calendarEvents: counts[3][0]?.count || 0,
+        messages: counts[4][0]?.count || 0,
+        vendors: counts[5][0]?.count || 0,
+        files: counts[6][0]?.count || 0,
+      },
+      note: "File contents are not included in export. Only metadata is exported.",
+    });
+  } catch (error) {
+    logger.error("Export preview failed", { error: error instanceof Error ? error.message : String(error) });
+    res.status(500).json({ error: "Failed to generate preview" });
+  }
+});
+
+export function registerDataExportRoutes(app: Router) {
+  app.use(router);
+}
+
+## Client Component
+
+Add to settings page:
+- "Export My Data" section
+- Preview of what will be exported
+- Download button
+- Explanation of GDPR rights
+
+## Register Routes
+
+In server/routes.ts, add:
+import { registerDataExportRoutes } from "./routes/data-export";
+registerDataExportRoutes(v1);

@@ -13,6 +13,8 @@ import {
   KeyRound,
   ArrowLeft,
   Loader2,
+  FileDown,
+  Database,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -30,6 +32,11 @@ interface SetupResponse {
   backupCodes: string[];
 }
 
+interface ExportPreview {
+  preview: Record<string, number>;
+  note: string;
+}
+
 export default function SecuritySettingsPage() {
   const queryClient = useQueryClient();
   const [, navigate] = useLocation();
@@ -41,9 +48,14 @@ export default function SecuritySettingsPage() {
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [showDisable, setShowDisable] = useState(false);
   const [codesDownloaded, setCodesDownloaded] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   const { data: status, isLoading } = useQuery<TwoFactorStatus>({
     queryKey: ["/api/v1/2fa/status"],
+  });
+
+  const { data: exportPreview } = useQuery<ExportPreview>({
+    queryKey: ["/api/v1/user/export/preview"],
   });
 
   const setupMutation = useMutation({
@@ -153,7 +165,7 @@ export default function SecuritySettingsPage() {
           </div>
           <div>
             <h1 className="text-xl font-bold tracking-tight">Security</h1>
-            <p className="text-xs text-muted-foreground">Two-factor authentication</p>
+            <p className="text-xs text-muted-foreground">Account security & privacy</p>
           </div>
         </div>
       </div>
@@ -397,6 +409,63 @@ export default function SecuritySettingsPage() {
             </Button>
           </div>
         )}
+
+        <div className="rounded-2xl border border-border/50 bg-card p-5 space-y-4">
+          <div className="flex items-center gap-3 mb-1">
+            <Database className="h-5 w-5 text-muted-foreground" />
+            <div>
+              <h2 className="font-semibold">Export My Data</h2>
+              <p className="text-xs text-muted-foreground">Download a copy of all your data</p>
+            </div>
+          </div>
+
+          <p className="text-sm text-foreground/70">
+            Under data protection regulations, you have the right to request a copy of your personal data.
+            Your export will include your profile, tasks, approvals, spending, calendar events, messages,
+            preferences, and more. File contents are not included — only metadata.
+          </p>
+
+          {exportPreview && (
+            <div className="grid grid-cols-2 gap-2 text-sm">
+              {Object.entries(exportPreview.preview).map(([key, count]) => (
+                <div key={key} className="flex items-center justify-between px-3 py-2 rounded-lg bg-muted/50">
+                  <span className="text-muted-foreground capitalize">{key.replace(/([A-Z])/g, " $1").trim()}</span>
+                  <span className="font-medium">{count}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <Button
+            onClick={async () => {
+              setExporting(true);
+              try {
+                const res = await fetch("/api/v1/user/export", { credentials: "include" });
+                if (!res.ok) throw new Error("Export failed");
+                const blob = await res.blob();
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = `hndld-export-${Date.now()}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+              } catch {
+              } finally {
+                setExporting(false);
+              }
+            }}
+            disabled={exporting}
+            variant="outline"
+            className="w-full"
+          >
+            {exporting ? (
+              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+            ) : (
+              <FileDown className="h-4 w-4 mr-2" />
+            )}
+            {exporting ? "Preparing Export..." : "Download My Data"}
+          </Button>
+        </div>
 
         <div className="rounded-2xl border border-border/50 bg-card p-5 space-y-3">
           <h3 className="font-semibold text-sm">Supported authenticator apps</h3>
