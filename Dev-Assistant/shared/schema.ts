@@ -1487,6 +1487,31 @@ export type InsertCelebration = z.infer<typeof insertCelebrationSchema>;
 export type HandwrittenNote = typeof handwrittenNotes.$inferSelect;
 export type InsertHandwrittenNote = z.infer<typeof insertHandwrittenNoteSchema>;
 
+// Two-Factor Authentication
+export const twoFactorSecrets = pgTable("two_factor_secrets", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().unique(),
+  secret: varchar("secret", { length: 500 }).notNull(),
+  isEnabled: boolean("is_enabled").default(false).notNull(),
+  backupCodes: jsonb("backup_codes").$type<string[]>(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  index("two_factor_user_idx").on(table.userId),
+]);
+
+export const twoFactorAttempts = pgTable("two_factor_attempts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  success: boolean("success").notNull(),
+  ipAddress: varchar("ip_address", { length: 45 }),
+  userAgent: text("user_agent"),
+  attemptedAt: timestamp("attempted_at").defaultNow().notNull(),
+});
+
+export type TwoFactorSecret = typeof twoFactorSecrets.$inferSelect;
+export type TwoFactorAttempt = typeof twoFactorAttempts.$inferSelect;
+
 // Network & Social Insert Schemas
 export const insertHouseholdConnectionSchema = createInsertSchema(householdConnections).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertVendorReviewSchema = createInsertSchema(vendorReviews).omit({ id: true, createdAt: true, updatedAt: true });

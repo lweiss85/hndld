@@ -1,0 +1,250 @@
+Implement Two-Factor Authentication (2FA) for enhanced security.
+
+## Database Schema
+
+Add to shared/schema.ts:
+
+export const twoFactorSecrets = pgTable("two_factor_secrets", {
+  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: varchar("user_id").notNull().unique(),
+  secret: varchar("secret", { length: 500 }).notNull(), // Encrypted
+  isEnabled: boolean("is_enabled").default(false).notNull(),
+  backupCodes: jsonb("backup_codes").$type<string[]>(), // Hashed codes
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => ({
+  userIdx: index("two_factor_user_idx").on(table.userId),
+}));
+
+export const twoFactorAttempts = pgTable("two_factor_attempts", {
+  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: varchar("user_id").notNull(),
+  success: boolean("success").notNull(),
+  ipAddress: varchar("ip_address", { length: 45 }),
+  userAgent: text("user_agent"),
+  attemptedAt: timestamp("attempted_at").defaultNow().notNull(),
+});
+
+## Server Implementation
+
+Create server/routes/two-factor.ts:
+
+import { Router, Request, Response } from "express";
+import { authenticator } from "otplib";
+import QRCode from "qrcode";
+import crypto from "crypto";
+import bcrypt from "bcrypt";
+import { db } from "../db";
+import { twoFactorSecrets, twoFactorAttempts } from "@shared/schema";
+import { eq } from "drizzle-orm";
+import { isAuthenticated } from "../replit_integrations/auth";
+import { encryptVaultValue, decryptVaultValue } from "../services/vault-encryption";
+import logger from "../lib/logger";
+
+const router = Router();
+
+// Generate 2FA setup
+router.post("/2fa/setup", isAuthenticated, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.claims.sub;
+    
+    // Check if already enabled
+    const existing = await db.select().from(twoFactorSecrets)
+      .where(eq(twoFactorSecrets.userId, userId)).limit(1);
+    
+    if (existing[0]?.isEnabled) {
+      return res.status(400).json({ error: "2FA is already enabled" });
+    }
+    
+    // Generate secret
+    const secret = authenticator.generateSecret();
+    const encryptedSecret = encryptVaultValue(secret);
+    
+    // Generate backup codes
+    const backupCodes = Array.from({ length: 10 }, () => 
+      crypto.randomBytes(4).toString("hex").toUpperCase()
+    );
+    const hashedBackupCodes = await Promise.all(
+      backupCodes.map(code => bcrypt.hash(code, 10))
+    );
+    
+    // Store (but not enabled yet)
+    await db.insert(twoFactorSecrets).values({
+      userId,
+      secret: encryptedSecret,
+      isEnabled: false,
+      backupCodes: hashedBackupCodes,
+    }).onConflictDoUpdate({
+      target: twoFactorSecrets.userId,
+      set: { secret: encryptedSecret, backupCodes: hashedBackupCodes, updatedAt: new Date() }
+    });
+    
+    // Generate QR code
+    const otpauth = authenticator.keyuri(userId, "hndld", secret);
+    const qrCodeUrl = await QRCode.toDataURL(otpauth);
+    
+    res.json({
+      qrCode: qrCodeUrl,
+      secret, // Show once for manual entry
+      backupCodes, // Show once for user to save
+    });
+  } catch (error) {
+    logger.error("2FA setup failed", { error: error instanceof Error ? error.message : String(error) });
+    res.status(500).json({ error: "Failed to setup 2FA" });
+  }
+});
+
+// Verify and enable 2FA
+router.post("/2fa/verify", isAuthenticated, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.claims.sub;
+    const { code } = req.body;
+    
+    const [record] = await db.select().from(twoFactorSecrets)
+      .where(eq(twoFactorSecrets.userId, userId)).limit(1);
+    
+    if (!record) {
+      return res.status(400).json({ error: "2FA not setup. Please setup first." });
+    }
+    
+    const secret = decryptVaultValue(record.secret);
+    const isValid = authenticator.verify({ token: code, secret });
+    
+    // Log attempt
+    await db.insert(twoFactorAttempts).values({
+      userId,
+      success: isValid,
+      ipAddress: req.ip,
+      userAgent: req.headers["user-agent"],
+    });
+    
+    if (!isValid) {
+      return res.status(400).json({ error: "Invalid code. Please try again." });
+    }
+    
+    // Enable 2FA
+    await db.update(twoFactorSecrets)
+      .set({ isEnabled: true, updatedAt: new Date() })
+      .where(eq(twoFactorSecrets.userId, userId));
+    
+    res.json({ success: true, message: "2FA enabled successfully" });
+  } catch (error) {
+    logger.error("2FA verification failed", { error: error instanceof Error ? error.message : String(error) });
+    res.status(500).json({ error: "Verification failed" });
+  }
+});
+
+// Disable 2FA
+router.post("/2fa/disable", isAuthenticated, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.claims.sub;
+    const { code, password } = req.body;
+    
+    // Verify code first
+    const [record] = await db.select().from(twoFactorSecrets)
+      .where(eq(twoFactorSecrets.userId, userId)).limit(1);
+    
+    if (!record?.isEnabled) {
+      return res.status(400).json({ error: "2FA is not enabled" });
+    }
+    
+    const secret = decryptVaultValue(record.secret);
+    const isValid = authenticator.verify({ token: code, secret });
+    
+    if (!isValid) {
+      return res.status(400).json({ error: "Invalid code" });
+    }
+    
+    await db.delete(twoFactorSecrets).where(eq(twoFactorSecrets.userId, userId));
+    
+    res.json({ success: true, message: "2FA disabled" });
+  } catch (error) {
+    logger.error("2FA disable failed", { error: error instanceof Error ? error.message : String(error) });
+    res.status(500).json({ error: "Failed to disable 2FA" });
+  }
+});
+
+// Check 2FA status
+router.get("/2fa/status", isAuthenticated, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.claims.sub;
+    
+    const [record] = await db.select({ isEnabled: twoFactorSecrets.isEnabled })
+      .from(twoFactorSecrets)
+      .where(eq(twoFactorSecrets.userId, userId)).limit(1);
+    
+    res.json({ enabled: record?.isEnabled ?? false });
+  } catch (error) {
+    logger.error("2FA status check failed", { error: error instanceof Error ? error.message : String(error) });
+    res.status(500).json({ error: "Failed to check 2FA status" });
+  }
+});
+
+// Validate 2FA code (used during login)
+router.post("/2fa/validate", async (req: Request, res: Response) => {
+  try {
+    const { userId, code } = req.body;
+    
+    const [record] = await db.select().from(twoFactorSecrets)
+      .where(eq(twoFactorSecrets.userId, userId)).limit(1);
+    
+    if (!record?.isEnabled) {
+      return res.json({ valid: true, required: false });
+    }
+    
+    const secret = decryptVaultValue(record.secret);
+    let isValid = authenticator.verify({ token: code, secret });
+    
+    // Check backup codes if TOTP fails
+    if (!isValid && record.backupCodes) {
+      for (let i = 0; i < record.backupCodes.length; i++) {
+        const match = await bcrypt.compare(code, record.backupCodes[i]);
+        if (match) {
+          isValid = true;
+          // Remove used backup code
+          const updatedCodes = [...record.backupCodes];
+          updatedCodes.splice(i, 1);
+          await db.update(twoFactorSecrets)
+            .set({ backupCodes: updatedCodes, updatedAt: new Date() })
+            .where(eq(twoFactorSecrets.userId, userId));
+          break;
+        }
+      }
+    }
+    
+    // Log attempt
+    await db.insert(twoFactorAttempts).values({
+      userId,
+      success: isValid,
+      ipAddress: req.ip,
+      userAgent: req.headers["user-agent"],
+    });
+    
+    res.json({ valid: isValid, required: true });
+  } catch (error) {
+    logger.error("2FA validation failed", { error: error instanceof Error ? error.message : String(error) });
+    res.status(500).json({ error: "Validation failed" });
+  }
+});
+
+export function registerTwoFactorRoutes(app: Router) {
+  app.use(router);
+}
+
+## Install Dependencies
+
+npm install otplib qrcode @types/qrcode
+
+## Client Page
+
+Create client/src/pages/security-settings.tsx with:
+- 2FA setup flow with QR code display
+- Backup codes display (one-time view)
+- Enable/disable toggle
+- "Download backup codes" button
+
+## Register Routes
+
+In server/routes.ts, add:
+import { registerTwoFactorRoutes } from "./routes/two-factor";
+registerTwoFactorRoutes(v1);
