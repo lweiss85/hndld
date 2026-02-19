@@ -1,0 +1,135 @@
+Implement annual financial reports for tax preparation.
+
+## Server Implementation
+
+Create server/routes/reports.ts:
+
+import { Router, Request, Response } from "express";
+import { db } from "../db";
+import { spendingItems, vendors, cleaningVisits, inventoryServiceHistory } from "@shared/schema";
+import { eq, and, gte, lte, sql, desc } from "drizzle-orm";
+import { startOfYear, endOfYear, format } from "date-fns";
+import PDFDocument from "pdfkit";
+import logger from "../lib/logger";
+
+const router = Router();
+
+router.get(
+  "/reports/annual/:year",
+  isAuthenticated,
+  householdContextMiddleware,
+  async (req: Request, res: Response) => {
+    try {
+      const householdId = req.householdId!;
+      const year = parseInt(req.params.year);
+      const startDate = startOfYear(new Date(year, 0, 1));
+      const endDate = endOfYear(new Date(year, 0, 1));
+
+      // Spending by category
+      const spendingByCategory = await db.select({
+        category: spendingItems.category,
+        total: sql<number>`sum(${spendingItems.amountInCents})`,
+        count: sql<number>`count(*)`,
+      })
+        .from(spendingItems)
+        .where(and(
+          eq(spendingItems.householdId, householdId),
+          gte(spendingItems.date, startDate),
+          lte(spendingItems.date, endDate)
+        ))
+        .groupBy(spendingItems.category)
+        .orderBy(desc(sql`sum(${spendingItems.amountInCents})`));
+
+      // Spending by vendor (for 1099 prep)
+      const spendingByVendor = await db.select({
+        vendorId: spendingItems.vendorId,
+        vendorName: vendors.name,
+        vendorEmail: vendors.email,
+        vendorPhone: vendors.phone,
+        total: sql<number>`sum(${spendingItems.amountInCents})`,
+        count: sql<number>`count(*)`,
+      })
+        .from(spendingItems)
+        .leftJoin(vendors, eq(spendingItems.vendorId, vendors.id))
+        .where(and(
+          eq(spendingItems.householdId, householdId),
+          gte(spendingItems.date, startDate),
+          lte(spendingItems.date, endDate)
+        ))
+        .groupBy(spendingItems.vendorId, vendors.name, vendors.email, vendors.phone)
+        .orderBy(desc(sql`sum(${spendingItems.amountInCents})`));
+
+      // Monthly trend
+      const monthlySpending = await db.select({
+        month: sql<string>`to_char(${spendingItems.date}, 'YYYY-MM')`,
+        total: sql<number>`sum(${spendingItems.amountInCents})`,
+      })
+        .from(spendingItems)
+        .where(and(
+          eq(spendingItems.householdId, householdId),
+          gte(spendingItems.date, startDate),
+          lte(spendingItems.date, endDate)
+        ))
+        .groupBy(sql`to_char(${spendingItems.date}, 'YYYY-MM')`)
+        .orderBy(sql`to_char(${spendingItems.date}, 'YYYY-MM')`);
+
+      // Potentially deductible (home office, home improvement)
+      const deductibleCategories = ["HOME_IMPROVEMENT", "HOME_OFFICE", "INSURANCE"];
+      const potentiallyDeductible = spendingByCategory.filter(
+        c => deductibleCategories.includes(c.category)
+      );
+
+      // Total
+      const totalSpending = spendingByCategory.reduce((sum, cat) => sum + (cat.total || 0), 0);
+
+      res.json({
+        year,
+        summary: {
+          totalSpending,
+          categoryCount: spendingByCategory.length,
+          vendorCount: spendingByVendor.length,
+          transactionCount: spendingByCategory.reduce((sum, cat) => sum + (cat.count || 0), 0),
+        },
+        byCategory: spendingByCategory,
+        byVendor: spendingByVendor.filter(v => v.total && v.total >= 60000), // $600+ for 1099
+        monthlyTrend: monthlySpending,
+        potentiallyDeductible,
+      });
+    } catch (error) {
+      logger.error("Annual report generation failed", {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      res.status(500).json({ error: "Failed to generate report" });
+    }
+  }
+);
+
+// PDF export
+router.get(
+  "/reports/annual/:year/pdf",
+  isAuthenticated,
+  householdContextMiddleware,
+  async (req: Request, res: Response) => {
+    // Generate PDF using pdfkit
+    // Include all the data from above in a nicely formatted PDF
+  }
+);
+
+export function registerReportRoutes(app: Router) {
+  app.use(router);
+}
+
+## Install Dependencies
+
+npm install pdfkit @types/pdfkit
+
+## Client Page
+
+Create client/src/pages/reports.tsx:
+- Year selector
+- Summary cards (total spending, top categories)
+- Charts (monthly trend, category breakdown)
+- Vendor list for 1099 prep
+- Potentially deductible expenses highlighted
+- "Download PDF" button
+- "Export to CSV" button
