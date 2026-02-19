@@ -13,7 +13,7 @@ import { setupSwagger } from "./lib/swagger";
 import { apiCacheHeaders } from "./middleware/cacheControl";
 import { cache } from "./lib/cache";
 import { getPoolStats } from "./db";
-import { startScheduledBackups, startAccountDeletionScheduler, startDocumentExpiryAlerts } from "./services/scheduler";
+import { startScheduledBackups, startAccountDeletionScheduler, startDocumentExpiryAlerts, startBudgetAlertScheduler } from "./services/scheduler";
 import { runMomentsAutomation } from "./routes/helpers";
 import householdRoutes from "./routes/households";
 import inviteRoutes from "./routes/invites";
@@ -41,6 +41,7 @@ import { registerDataExportRoutes } from "./routes/data-export";
 import { registerAccountDeletionRoutes } from "./routes/account-deletion";
 import { registerFeedbackRoutes } from "./routes/feedback";
 import { registerDocumentRoutes } from "./routes/documents";
+import { registerBudgetRoutes } from "./routes/budgets";
 
 const householdContext = householdContextMiddleware;
 
@@ -120,6 +121,7 @@ export async function registerRoutes(
   registerAccountDeletionRoutes(v1);
   registerFeedbackRoutes(v1);
   registerDocumentRoutes(v1);
+  registerBudgetRoutes(v1);
 
   app.use("/api/v1", v1);
   app.use("/api", v1);
@@ -131,6 +133,7 @@ export async function registerRoutes(
   startScheduledBackups();
   startAccountDeletionScheduler();
   startDocumentExpiryAlerts();
+  startBudgetAlertScheduler();
 
   metrics.startDailyLog();
 

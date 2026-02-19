@@ -5,6 +5,7 @@ import { runProactiveAgent } from "./ai-agent";
 import { runWeeklyBriefScheduler } from "./weekly-brief";
 import { processScheduledDeletions } from "../routes/account-deletion";
 import { processDocumentExpiryAlerts } from "../routes/documents";
+import { processBudgetAlerts } from "../routes/budgets";
 import { db } from "../db";
 import { calendarConnections } from "@shared/schema";
 import logger from "../lib/logger";
@@ -17,6 +18,7 @@ let weeklyBriefMorningJob: ReturnType<typeof cron.schedule> | null = null;
 let weeklyBriefEveningJob: ReturnType<typeof cron.schedule> | null = null;
 let accountDeletionJob: ReturnType<typeof cron.schedule> | null = null;
 let documentExpiryJob: ReturnType<typeof cron.schedule> | null = null;
+let budgetAlertJob: ReturnType<typeof cron.schedule> | null = null;
 
 export function startScheduledBackups(): void {
   const settings = getBackupSettings();
@@ -298,6 +300,31 @@ export function stopDocumentExpiryAlerts(): void {
   }
 }
 
+export function startBudgetAlertScheduler(): void {
+  if (budgetAlertJob) {
+    budgetAlertJob.stop();
+  }
+
+  budgetAlertJob = cron.schedule("0 8 * * *", async () => {
+    try {
+      logger.info("[Scheduler] Processing budget threshold alerts");
+      await processBudgetAlerts();
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      logger.error("[Scheduler] Budget alert processing failed", { error: message });
+    }
+  });
+
+  logger.info("[Scheduler] Budget alerts scheduled (daily at 8am)");
+}
+
+export function stopBudgetAlertScheduler(): void {
+  if (budgetAlertJob) {
+    budgetAlertJob.stop();
+    budgetAlertJob = null;
+  }
+}
+
 export function startAllSchedulers(): void {
   startScheduledBackups();
   startCalendarSync();
@@ -305,4 +332,5 @@ export function startAllSchedulers(): void {
   startWeeklyBriefScheduler();
   startAccountDeletionScheduler();
   startDocumentExpiryAlerts();
+  startBudgetAlertScheduler();
 }

@@ -55,6 +55,7 @@ const Celebrations = lazy(() => import("@/pages/celebrations"));
 const SecuritySettings = lazy(() => import("@/pages/security-settings"));
 const MyFeedback = lazy(() => import("@/pages/my-feedback"));
 const Documents = lazy(() => import("@/pages/documents"));
+const Budgets = lazy(() => import("@/pages/budgets"));
 
 function LoadingScreen() {
   return (
@@ -109,6 +110,7 @@ function ClientRouter() {
         <Route path="/security" component={SecuritySettings} />
         <Route path="/my-feedback" component={MyFeedback} />
         <Route path="/documents" component={Documents} />
+        <Route path="/budgets" component={Budgets} />
         <Route component={NotFound} />
       </Switch>
     </Suspense>
@@ -146,6 +148,7 @@ function AssistantRouter() {
         <Route path="/security" component={SecuritySettings} />
         <Route path="/my-feedback" component={MyFeedback} />
         <Route path="/documents" component={Documents} />
+        <Route path="/budgets" component={Budgets} />
         <Route component={NotFound} />
       </Switch>
     </Suspense>

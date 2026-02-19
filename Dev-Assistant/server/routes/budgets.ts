@@ -163,7 +163,7 @@ router.post(
       const householdId = (req as any).householdId;
       const { category, budgetAmountCents, period, startDate, endDate, alertThreshold, notes } = req.body;
 
-      if (!category || !budgetAmountCents || !period || !startDate) {
+      if (!category || budgetAmountCents == null || budgetAmountCents === "" || !period || !startDate) {
         return res.status(400).json({ error: "category, budgetAmountCents, period, and startDate are required" });
       }
 
