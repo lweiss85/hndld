@@ -1839,3 +1839,34 @@ export const lockAccessLog = pgTable("lock_access_log", {
 export type SmartLock = typeof smartLocks.$inferSelect;
 export type LockAccessCode = typeof lockAccessCodes.$inferSelect;
 export type LockAccessLogEntry = typeof lockAccessLog.$inferSelect;
+
+export const oauthClients = pgTable("oauth_clients", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  clientId: varchar("client_id", { length: 100 }).notNull().unique(),
+  clientSecret: text("client_secret").notNull(),
+  name: varchar("name", { length: 100 }).notNull(),
+  redirectUris: jsonb("redirect_uris").$type<string[]>().notNull(),
+  scopes: jsonb("scopes").$type<string[]>().default(["default"]),
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("oauth_clients_client_id_idx").on(table.clientId),
+]);
+
+export const oauthAuthorizationCodes = pgTable("oauth_authorization_codes", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  code: varchar("code", { length: 100 }).notNull().unique(),
+  clientId: varchar("client_id").notNull(),
+  userId: varchar("user_id").notNull(),
+  householdId: varchar("household_id").notNull(),
+  redirectUri: text("redirect_uri").notNull(),
+  scope: varchar("scope", { length: 255 }),
+  expiresAt: timestamp("expires_at").notNull(),
+  usedAt: timestamp("used_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("oauth_auth_codes_code_idx").on(table.code),
+]);
+
+export type OAuthClient = typeof oauthClients.$inferSelect;
+export type OAuthAuthorizationCode = typeof oauthAuthorizationCodes.$inferSelect;
