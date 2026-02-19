@@ -1,0 +1,54 @@
+Implement budget tracking against actual spending.
+
+## Database Schema
+
+Add to shared/schema.ts:
+
+export const budgets = pgTable("budgets", {
+  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  householdId: varchar("household_id").references(() => households.id).notNull(),
+  category: varchar("category", { length: 50 }).notNull(), // Matches spending categories
+  budgetAmountCents: integer("budget_amount_cents").notNull(),
+  period: varchar("period", { length: 20 }).notNull(), // "monthly", "quarterly", "annual"
+  startDate: date("start_date").notNull(),
+  endDate: date("end_date"),
+  alertThreshold: integer("alert_threshold").default(80), // Alert at 80% spent
+  isActive: boolean("is_active").default(true).notNull(),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => ({
+  householdIdx: index("budgets_household_idx").on(table.householdId),
+  categoryIdx: index("budgets_category_idx").on(table.householdId, table.category),
+}));
+
+export const budgetAlerts = pgTable("budget_alerts", {
+  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  budgetId: varchar("budget_id").references(() => budgets.id).notNull(),
+  householdId: varchar("household_id").notNull(),
+  thresholdPercent: integer("threshold_percent").notNull(),
+  actualPercent: integer("actual_percent").notNull(),
+  sentAt: timestamp("sent_at").defaultNow().notNull(),
+  acknowledged: boolean("acknowledged").default(false),
+});
+
+## Server Implementation
+
+Create server/routes/budgets.ts with:
+- CRUD for budgets
+- GET /budgets/status - all budgets with actual vs budget
+- GET /budgets/:category/history - historical spending vs budget
+- Background job to check thresholds and send alerts
+
+## Client Pages
+
+Create client/src/pages/budgets.tsx:
+- Budget cards showing progress bars
+- Color coding: green (<70%), yellow (70-90%), red (>90%)
+- Quick edit budget amounts
+- Historical comparison charts
+- "Add budget" for new categories
+
+Enhance spending page with budget context:
+- Show budget remaining in category headers
+- Alert badges when over budget

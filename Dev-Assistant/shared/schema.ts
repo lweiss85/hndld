@@ -1,5 +1,5 @@
 import { sql, relations } from "drizzle-orm";
-import { pgTable, text, varchar, timestamp, integer, boolean, jsonb, pgEnum, index, unique } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, timestamp, integer, boolean, jsonb, pgEnum, index, unique, date } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -1648,3 +1648,34 @@ export const trackedDocuments = pgTable("tracked_documents", {
 ]);
 
 export type TrackedDocument = typeof trackedDocuments.$inferSelect;
+
+export const budgets = pgTable("budgets", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  householdId: varchar("household_id").references(() => households.id).notNull(),
+  category: varchar("category", { length: 50 }).notNull(),
+  budgetAmountCents: integer("budget_amount_cents").notNull(),
+  period: varchar("period", { length: 20 }).notNull(),
+  startDate: date("start_date").notNull(),
+  endDate: date("end_date"),
+  alertThreshold: integer("alert_threshold").default(80),
+  isActive: boolean("is_active").default(true).notNull(),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  index("budgets_household_idx").on(table.householdId),
+  index("budgets_category_idx").on(table.householdId, table.category),
+]);
+
+export const budgetAlerts = pgTable("budget_alerts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  budgetId: varchar("budget_id").references(() => budgets.id).notNull(),
+  householdId: varchar("household_id").notNull(),
+  thresholdPercent: integer("threshold_percent").notNull(),
+  actualPercent: integer("actual_percent").notNull(),
+  sentAt: timestamp("sent_at").defaultNow().notNull(),
+  acknowledged: boolean("acknowledged").default(false),
+});
+
+export type Budget = typeof budgets.$inferSelect;
+export type BudgetAlert = typeof budgetAlerts.$inferSelect;
