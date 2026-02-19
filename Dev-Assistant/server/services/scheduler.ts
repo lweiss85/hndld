@@ -3,6 +3,7 @@ import { createBackupZip, cleanupOldBackups, getBackupSettings } from "./backup"
 import { syncCalendarEvents } from "./google-calendar";
 import { runProactiveAgent } from "./ai-agent";
 import { runWeeklyBriefScheduler } from "./weekly-brief";
+import { processScheduledDeletions } from "../routes/account-deletion";
 import { db } from "../db";
 import { calendarConnections } from "@shared/schema";
 import logger from "../lib/logger";
@@ -13,6 +14,7 @@ let proactiveAgentJob: ReturnType<typeof cron.schedule> | null = null;
 let eveningAgentJob: ReturnType<typeof cron.schedule> | null = null;
 let weeklyBriefMorningJob: ReturnType<typeof cron.schedule> | null = null;
 let weeklyBriefEveningJob: ReturnType<typeof cron.schedule> | null = null;
+let accountDeletionJob: ReturnType<typeof cron.schedule> | null = null;
 
 export function startScheduledBackups(): void {
   const settings = getBackupSettings();
@@ -245,9 +247,34 @@ export function stopWeeklyBriefScheduler(): void {
   logger.info("[Scheduler] Weekly brief scheduler stopped");
 }
 
+export function startAccountDeletionScheduler(): void {
+  if (accountDeletionJob) return;
+
+  accountDeletionJob = cron.schedule("0 2 * * *", async () => {
+    logger.info("[Scheduler] Processing scheduled account deletions...");
+    try {
+      await processScheduledDeletions();
+      logger.info("[Scheduler] Account deletion processing complete");
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Unknown error";
+      logger.error("[Scheduler] Account deletion processing failed", { error: message });
+    }
+  });
+
+  logger.info("[Scheduler] Account deletion scheduler started (daily at 2am)");
+}
+
+export function stopAccountDeletionScheduler(): void {
+  if (accountDeletionJob) {
+    accountDeletionJob.stop();
+    accountDeletionJob = null;
+  }
+}
+
 export function startAllSchedulers(): void {
   startScheduledBackups();
   startCalendarSync();
   startProactiveAgent();
   startWeeklyBriefScheduler();
+  startAccountDeletionScheduler();
 }

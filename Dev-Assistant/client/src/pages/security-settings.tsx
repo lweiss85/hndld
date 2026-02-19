@@ -15,6 +15,9 @@ import {
   Loader2,
   FileDown,
   Database,
+  Trash2,
+  AlertTriangle,
+  XCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -37,6 +40,13 @@ interface ExportPreview {
   note: string;
 }
 
+interface DeletionStatus {
+  pending: boolean;
+  scheduledDeletionAt?: string;
+  requestedAt?: string;
+  canCancel?: boolean;
+}
+
 export default function SecuritySettingsPage() {
   const queryClient = useQueryClient();
   const [, navigate] = useLocation();
@@ -49,6 +59,9 @@ export default function SecuritySettingsPage() {
   const [showDisable, setShowDisable] = useState(false);
   const [codesDownloaded, setCodesDownloaded] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [showDeleteSection, setShowDeleteSection] = useState(false);
+  const [confirmText, setConfirmText] = useState("");
+  const [deleteReason, setDeleteReason] = useState("");
 
   const { data: status, isLoading } = useQuery<TwoFactorStatus>({
     queryKey: ["/api/v1/2fa/status"],
@@ -56,6 +69,46 @@ export default function SecuritySettingsPage() {
 
   const { data: exportPreview } = useQuery<ExportPreview>({
     queryKey: ["/api/v1/user/export/preview"],
+  });
+
+  const { data: deletionStatus } = useQuery<DeletionStatus>({
+    queryKey: ["/api/v1/user/delete/status"],
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async ({ confirmText, reason }: { confirmText: string; reason: string }) => {
+      const res = await fetch("/api/v1/user/delete", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ confirmText, reason }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to request deletion");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/v1/user/delete/status"] });
+      setShowDeleteSection(false);
+      setConfirmText("");
+      setDeleteReason("");
+    },
+  });
+
+  const cancelDeletionMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch("/api/v1/user/delete/cancel", {
+        method: "POST",
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Failed to cancel");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/v1/user/delete/status"] });
+    },
   });
 
   const setupMutation = useMutation({
@@ -488,6 +541,125 @@ export default function SecuritySettingsPage() {
             </li>
           </ul>
         </div>
+
+        {deletionStatus?.pending ? (
+          <div className="rounded-2xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30 p-5 space-y-4">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
+              <div>
+                <h2 className="font-semibold text-amber-800 dark:text-amber-200">Deletion Scheduled</h2>
+                <p className="text-sm text-amber-700 dark:text-amber-300 mt-1">
+                  Your account is scheduled for permanent deletion on{" "}
+                  <span className="font-medium">
+                    {new Date(deletionStatus.scheduledDeletionAt!).toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
+                  </span>.
+                  You can cancel this request any time before then.
+                </p>
+              </div>
+            </div>
+            <Button
+              onClick={() => cancelDeletionMutation.mutate()}
+              disabled={cancelDeletionMutation.isPending}
+              className="w-full bg-amber-600 hover:bg-amber-700 text-white"
+            >
+              {cancelDeletionMutation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : (
+                <XCircle className="h-4 w-4 mr-2" />
+              )}
+              Cancel Deletion Request
+            </Button>
+          </div>
+        ) : (
+          <div className="rounded-2xl border border-red-200 dark:border-red-800 bg-card p-5 space-y-4">
+            <div className="flex items-center gap-3 mb-1">
+              <Trash2 className="h-5 w-5 text-red-500" />
+              <div>
+                <h2 className="font-semibold text-red-700 dark:text-red-400">Delete Account</h2>
+                <p className="text-xs text-muted-foreground">Permanently remove your account and data</p>
+              </div>
+            </div>
+
+            {!showDeleteSection ? (
+              <div className="space-y-3">
+                <p className="text-sm text-foreground/70">
+                  Deleting your account will permanently remove all your data after a 7-day grace period.
+                  During this time, you can cancel the request and keep your account.
+                </p>
+                <Button
+                  variant="outline"
+                  onClick={() => setShowDeleteSection(true)}
+                  className="w-full border-red-200 text-red-600 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Request Account Deletion
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-4 p-4 rounded-xl bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800">
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className="h-4 w-4 text-red-500 mt-0.5 flex-shrink-0" />
+                  <p className="text-sm text-red-700 dark:text-red-300">
+                    This will schedule your account for permanent deletion in 7 days.
+                    All your tasks, messages, files, and personal data will be removed.
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-red-700 dark:text-red-300">
+                    Why are you leaving? (optional)
+                  </label>
+                  <textarea
+                    value={deleteReason}
+                    onChange={(e) => setDeleteReason(e.target.value)}
+                    placeholder="Help us improve..."
+                    rows={2}
+                    className="w-full px-3 py-2 text-sm rounded-lg border border-red-200 dark:border-red-800 bg-background focus:outline-none focus:ring-2 focus:ring-red-500 resize-none"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-red-700 dark:text-red-300">
+                    Type <span className="font-mono bg-red-100 dark:bg-red-900 px-1.5 py-0.5 rounded">DELETE MY ACCOUNT</span> to confirm:
+                  </label>
+                  <input
+                    type="text"
+                    value={confirmText}
+                    onChange={(e) => setConfirmText(e.target.value)}
+                    placeholder="DELETE MY ACCOUNT"
+                    className="w-full px-3 py-2 text-sm font-mono rounded-lg border border-red-200 dark:border-red-800 bg-background focus:outline-none focus:ring-2 focus:ring-red-500"
+                  />
+                </div>
+
+                {deleteMutation.isError && (
+                  <p className="text-sm text-red-500">{deleteMutation.error.message}</p>
+                )}
+
+                <div className="flex gap-2">
+                  <Button
+                    variant="ghost"
+                    onClick={() => { setShowDeleteSection(false); setConfirmText(""); setDeleteReason(""); }}
+                    className="flex-1"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={() => deleteMutation.mutate({ confirmText, reason: deleteReason })}
+                    disabled={confirmText !== "DELETE MY ACCOUNT" || deleteMutation.isPending}
+                    className="flex-1 bg-red-600 hover:bg-red-700 text-white disabled:opacity-50"
+                  >
+                    {deleteMutation.isPending ? (
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    ) : (
+                      <Trash2 className="h-4 w-4 mr-2" />
+                    )}
+                    Delete My Account
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

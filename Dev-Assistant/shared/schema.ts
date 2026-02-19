@@ -1542,3 +1542,17 @@ export type BackupProvider = typeof backupProviders.$inferSelect;
 export type InsertBackupProvider = z.infer<typeof insertBackupProviderSchema>;
 export type EmergencyCoverageRequest = typeof emergencyCoverageRequests.$inferSelect;
 export type InsertEmergencyCoverageRequest = z.infer<typeof insertEmergencyCoverageRequestSchema>;
+
+export const accountDeletionRequests = pgTable("account_deletion_requests", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().unique(),
+  householdId: varchar("household_id").notNull(),
+  reason: text("reason"),
+  requestedAt: timestamp("requested_at").defaultNow().notNull(),
+  scheduledDeletionAt: timestamp("scheduled_deletion_at").notNull(),
+  cancelledAt: timestamp("cancelled_at"),
+  completedAt: timestamp("completed_at"),
+  status: varchar("status", { length: 20 }).default("PENDING").notNull(),
+});
+
+export type AccountDeletionRequest = typeof accountDeletionRequests.$inferSelect;
