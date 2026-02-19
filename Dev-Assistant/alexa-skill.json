@@ -1,0 +1,121 @@
+{
+  "interactionModel": {
+    "languageModel": {
+      "invocationName": "hndld",
+      "intents": [
+        {
+          "name": "NextCleaningIntent",
+          "samples": [
+            "when is my next cleaning",
+            "when is the cleaner coming",
+            "next cleaning appointment",
+            "when will my house be cleaned"
+          ]
+        },
+        {
+          "name": "PendingApprovalsIntent",
+          "samples": [
+            "how many approvals are pending",
+            "do I have any pending approvals",
+            "check my approvals",
+            "what needs my approval"
+          ]
+        },
+        {
+          "name": "ApproveAllIntent",
+          "samples": [
+            "approve all",
+            "approve everything",
+            "approve all pending items",
+            "approve them all"
+          ]
+        },
+        {
+          "name": "SpendingSummaryIntent",
+          "slots": [
+            {
+              "name": "period",
+              "type": "AMAZON.DATE"
+            }
+          ],
+          "samples": [
+            "how much have I spent",
+            "what's my spending",
+            "spending summary",
+            "how much did I spend {period}",
+            "what did I spend this month",
+            "show my spending for {period}"
+          ]
+        },
+        {
+          "name": "CreateTaskIntent",
+          "slots": [
+            {
+              "name": "taskTitle",
+              "type": "AMAZON.SearchQuery"
+            }
+          ],
+          "samples": [
+            "create a task",
+            "add a task",
+            "create task {taskTitle}",
+            "add task {taskTitle}",
+            "remind me to {taskTitle}",
+            "new task {taskTitle}"
+          ]
+        },
+        {
+          "name": "LockDoorIntent",
+          "slots": [
+            {
+              "name": "doorName",
+              "type": "AMAZON.Room"
+            }
+          ],
+          "samples": [
+            "lock the door",
+            "lock the {doorName}",
+            "lock {doorName} door",
+            "secure the house"
+          ]
+        },
+        {
+          "name": "UnlockDoorIntent",
+          "slots": [
+            {
+              "name": "doorName",
+              "type": "AMAZON.Room"
+            }
+          ],
+          "samples": [
+            "unlock the door",
+            "unlock the {doorName}",
+            "unlock {doorName} door",
+            "open the {doorName}"
+          ]
+        },
+        {
+          "name": "GuestAccessIntent",
+          "samples": [
+            "who has access to my home",
+            "who has guest access",
+            "list guest access",
+            "who can get into my house"
+          ]
+        },
+        {
+          "name": "AMAZON.HelpIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.StopIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.CancelIntent",
+          "samples": []
+        }
+      ]
+    }
+  }
+}
