@@ -1598,3 +1598,53 @@ export const feedbackReplies = pgTable("feedback_replies", {
 
 export type Feedback = typeof feedback.$inferSelect;
 export type FeedbackReply = typeof feedbackReplies.$inferSelect;
+
+export const documentTypeEnum = pgEnum("document_type", [
+  "INSURANCE_HOME", "INSURANCE_AUTO", "INSURANCE_UMBRELLA", "INSURANCE_OTHER",
+  "WARRANTY", "CONTRACT", "LICENSE", "REGISTRATION", "CERTIFICATE", "OTHER"
+]);
+
+export const trackedDocuments = pgTable("tracked_documents", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  householdId: varchar("household_id").references(() => households.id).notNull(),
+  name: varchar("name", { length: 200 }).notNull(),
+  type: documentTypeEnum("type").notNull(),
+  description: text("description"),
+
+  provider: varchar("provider", { length: 200 }),
+  policyNumber: varchar("policy_number", { length: 100 }),
+
+  effectiveDate: timestamp("effective_date"),
+  expirationDate: timestamp("expiration_date"),
+  renewalDate: timestamp("renewal_date"),
+
+  annualCost: integer("annual_cost"),
+  paymentFrequency: varchar("payment_frequency", { length: 20 }),
+
+  coverageAmount: integer("coverage_amount"),
+  deductible: integer("deductible"),
+
+  documentFileId: varchar("document_file_id").references(() => files.id),
+
+  alertDaysBefore: integer("alert_days_before").default(30),
+  alertSent: boolean("alert_sent").default(false),
+
+  autoRenews: boolean("auto_renews").default(false),
+
+  contactName: varchar("contact_name", { length: 100 }),
+  contactPhone: varchar("contact_phone", { length: 20 }),
+  contactEmail: varchar("contact_email", { length: 100 }),
+
+  notes: text("notes"),
+  isActive: boolean("is_active").default(true).notNull(),
+
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  createdBy: varchar("created_by").notNull(),
+}, (table) => [
+  index("documents_household_idx").on(table.householdId),
+  index("documents_type_idx").on(table.householdId, table.type),
+  index("documents_expiry_idx").on(table.householdId, table.expirationDate),
+]);
+
+export type TrackedDocument = typeof trackedDocuments.$inferSelect;

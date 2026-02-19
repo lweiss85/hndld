@@ -4,6 +4,7 @@ import { syncCalendarEvents } from "./google-calendar";
 import { runProactiveAgent } from "./ai-agent";
 import { runWeeklyBriefScheduler } from "./weekly-brief";
 import { processScheduledDeletions } from "../routes/account-deletion";
+import { processDocumentExpiryAlerts } from "../routes/documents";
 import { db } from "../db";
 import { calendarConnections } from "@shared/schema";
 import logger from "../lib/logger";
@@ -15,6 +16,7 @@ let eveningAgentJob: ReturnType<typeof cron.schedule> | null = null;
 let weeklyBriefMorningJob: ReturnType<typeof cron.schedule> | null = null;
 let weeklyBriefEveningJob: ReturnType<typeof cron.schedule> | null = null;
 let accountDeletionJob: ReturnType<typeof cron.schedule> | null = null;
+let documentExpiryJob: ReturnType<typeof cron.schedule> | null = null;
 
 export function startScheduledBackups(): void {
   const settings = getBackupSettings();
@@ -271,10 +273,36 @@ export function stopAccountDeletionScheduler(): void {
   }
 }
 
+export function startDocumentExpiryAlerts(): void {
+  if (documentExpiryJob) {
+    documentExpiryJob.stop();
+  }
+
+  documentExpiryJob = cron.schedule("0 7 * * *", async () => {
+    try {
+      logger.info("[Scheduler] Processing document expiry alerts");
+      await processDocumentExpiryAlerts();
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      logger.error("[Scheduler] Document expiry alert processing failed", { error: message });
+    }
+  });
+
+  logger.info("[Scheduler] Document expiry alerts scheduled (daily at 7am)");
+}
+
+export function stopDocumentExpiryAlerts(): void {
+  if (documentExpiryJob) {
+    documentExpiryJob.stop();
+    documentExpiryJob = null;
+  }
+}
+
 export function startAllSchedulers(): void {
   startScheduledBackups();
   startCalendarSync();
   startProactiveAgent();
   startWeeklyBriefScheduler();
   startAccountDeletionScheduler();
+  startDocumentExpiryAlerts();
 }
