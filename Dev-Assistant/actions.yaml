@@ -1,0 +1,75 @@
+actions:
+  - name: actions.intent.MAIN
+    fulfillment:
+      webhook:
+        handler: main_invocation
+
+  - name: next_cleaning
+    trainingPhrases:
+      - when is my next cleaning
+      - next cleaning appointment
+      - when is the cleaner coming
+    fulfillment:
+      webhook:
+        handler: next_cleaning
+
+  - name: pending_approvals
+    trainingPhrases:
+      - how many approvals are pending
+      - check my approvals
+      - pending approvals
+    fulfillment:
+      webhook:
+        handler: pending_approvals
+
+  - name: approve_all
+    trainingPhrases:
+      - approve all
+      - approve everything
+      - approve them all
+    fulfillment:
+      webhook:
+        handler: approve_all
+
+  - name: spending_summary
+    trainingPhrases:
+      - how much have I spent
+      - spending summary
+      - what's my spending this month
+    fulfillment:
+      webhook:
+        handler: spending_summary
+
+  - name: create_task
+    trainingPhrases:
+      - create a task
+      - add task $task_title
+      - remind me to $task_title
+    parameters:
+      - name: task_title
+        type: actions.type.FreeText
+    fulfillment:
+      webhook:
+        handler: create_task
+
+  - name: lock_door
+    trainingPhrases:
+      - lock the door
+      - lock the $door_name
+    parameters:
+      - name: door_name
+        type: actions.type.FreeText
+    fulfillment:
+      webhook:
+        handler: lock_door
+
+  - name: unlock_door
+    trainingPhrases:
+      - unlock the door
+      - unlock the $door_name
+    parameters:
+      - name: door_name
+        type: actions.type.FreeText
+    fulfillment:
+      webhook:
+        handler: unlock_door

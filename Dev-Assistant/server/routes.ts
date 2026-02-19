@@ -48,6 +48,7 @@ import { registerReportRoutes } from "./routes/reports";
 import { registerSmartLockRoutes } from "./routes/smart-locks";
 import { registerPropertyRoutes } from "./routes/properties";
 import { registerAlexaRoutes } from "./routes/alexa";
+import { registerGoogleAssistantRoutes } from "./routes/google-assistant";
 
 const householdContext = householdContextMiddleware;
 
@@ -135,6 +136,7 @@ export async function registerRoutes(
   registerPropertyRoutes(v1);
 
   registerAlexaRoutes(app);
+  registerGoogleAssistantRoutes(app);
 
   app.use("/api/v1", v1);
   app.use("/api", v1);
