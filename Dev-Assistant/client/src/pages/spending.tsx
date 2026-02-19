@@ -51,6 +51,7 @@ import { Link } from "wouter";
 import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
 import { PullToRefreshIndicator } from "@/components/pull-to-refresh";
 import { PageTransition, triggerHaptic } from "@/components/juice";
+import { ReceiptScanner } from "@/components/spending/receipt-scanner";
 
 const SPENDING_CATEGORIES = [
   "Groceries",
@@ -444,6 +445,7 @@ function AssistantSpendingView() {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showInvoiceDialog, setShowInvoiceDialog] = useState(false);
   const [showPaySheet, setShowPaySheet] = useState(false);
+  const [showReceiptScanner, setShowReceiptScanner] = useState(false);
   const [selectedExpense, setSelectedExpense] = useState<SpendingItem | null>(null);
   const [newItem, setNewItem] = useState<Partial<InsertSpendingItem>>({
     amount: undefined,
@@ -587,6 +589,15 @@ function AssistantSpendingView() {
               <Settings className="h-5 w-5" aria-hidden="true" />
             </Button>
           </Link>
+          <Button 
+            size="sm" 
+            variant="outline"
+            onClick={() => setShowReceiptScanner(true)} 
+            data-testid="button-scan-receipt"
+          >
+            <Receipt className="h-4 w-4 mr-1" aria-hidden="true" />
+            Scan
+          </Button>
           <Button 
             size="sm" 
             variant="outline"
@@ -965,6 +976,11 @@ function AssistantSpendingView() {
           queryClient.invalidateQueries({ queryKey: ["/api/spending"] });
           queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
         }}
+      />
+
+      <ReceiptScanner
+        open={showReceiptScanner}
+        onOpenChange={setShowReceiptScanner}
       />
     </div>
     </PageTransition>

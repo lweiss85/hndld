@@ -43,6 +43,7 @@ import { registerFeedbackRoutes } from "./routes/feedback";
 import { registerDocumentRoutes } from "./routes/documents";
 import { registerBudgetRoutes } from "./routes/budgets";
 import { registerGuestAccessRoutes } from "./routes/guest-access";
+import { registerReceiptRoutes } from "./routes/receipts";
 
 const householdContext = householdContextMiddleware;
 
@@ -124,6 +125,7 @@ export async function registerRoutes(
   registerDocumentRoutes(v1);
   registerBudgetRoutes(v1);
   registerGuestAccessRoutes(v1);
+  registerReceiptRoutes(v1);
 
   app.use("/api/v1", v1);
   app.use("/api", v1);
