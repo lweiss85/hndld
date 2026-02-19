@@ -63,6 +63,7 @@ const SmartLocks = lazy(() => import("@/pages/smart-locks"));
 const Properties = lazy(() => import("@/pages/properties"));
 const Automations = lazy(() => import("@/pages/automations"));
 const ProviderPortal = lazy(() => import("@/pages/provider/portal"));
+const Inventory = lazy(() => import("@/pages/inventory"));
 
 function LoadingScreen() {
   return (
@@ -123,6 +124,7 @@ function ClientRouter() {
         <Route path="/smart-locks" component={SmartLocks} />
         <Route path="/properties" component={Properties} />
         <Route path="/automations" component={Automations} />
+        <Route path="/inventory" component={Inventory} />
         <Route path="/provider" component={ProviderPortal} />
         <Route component={NotFound} />
       </Switch>
@@ -167,6 +169,7 @@ function AssistantRouter() {
         <Route path="/smart-locks" component={SmartLocks} />
         <Route path="/properties" component={Properties} />
         <Route path="/automations" component={Automations} />
+        <Route path="/inventory" component={Inventory} />
         <Route path="/provider" component={ProviderPortal} />
         <Route component={NotFound} />
       </Switch>

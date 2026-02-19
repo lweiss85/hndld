@@ -52,6 +52,7 @@ import { registerGoogleAssistantRoutes } from "./routes/google-assistant";
 import { registerOAuthRoutes } from "./routes/oauth";
 import { registerAutomationRoutes } from "./routes/automations";
 import { registerProviderRoutes } from "./routes/provider";
+import { registerInventoryRoutes } from "./routes/inventory";
 
 const householdContext = householdContextMiddleware;
 
@@ -140,6 +141,7 @@ export async function registerRoutes(
   registerOAuthRoutes(v1);
   registerAutomationRoutes(v1);
   registerProviderRoutes(v1);
+  registerInventoryRoutes(v1);
 
   registerAlexaRoutes(app);
   registerGoogleAssistantRoutes(app);

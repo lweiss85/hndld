@@ -2112,3 +2112,72 @@ export type InsertServiceProvider = typeof serviceProviders.$inferInsert;
 export type ProviderStaff = typeof providerStaff.$inferSelect;
 export type ProviderClient = typeof providerClients.$inferSelect;
 export type ProviderScheduleItem = typeof providerSchedule.$inferSelect;
+
+export const inventoryCategoryEnum = pgEnum("inventory_category", [
+  "APPLIANCE", "ELECTRONICS", "FURNITURE", "HVAC", "PLUMBING",
+  "ELECTRICAL", "OUTDOOR", "VEHICLE", "OTHER"
+]);
+
+export const inventoryItems = pgTable("inventory_items", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  householdId: varchar("household_id").references(() => households.id).notNull(),
+  name: varchar("name", { length: 200 }).notNull(),
+  category: inventoryCategoryEnum("category").notNull(),
+  location: varchar("location", { length: 100 }),
+  brand: varchar("brand", { length: 100 }),
+  model: varchar("model", { length: 100 }),
+  serialNumber: varchar("serial_number", { length: 100 }),
+  color: varchar("color", { length: 50 }),
+  purchaseDate: date("purchase_date"),
+  purchasePrice: integer("purchase_price"),
+  purchaseLocation: varchar("purchase_location", { length: 200 }),
+  receiptFileId: varchar("receipt_file_id").references(() => files.id),
+  warrantyExpires: date("warranty_expires"),
+  warrantyType: varchar("warranty_type", { length: 50 }),
+  warrantyProvider: varchar("warranty_provider", { length: 100 }),
+  warrantyFileId: varchar("warranty_file_id").references(() => files.id),
+  warrantyNotes: text("warranty_notes"),
+  lastServiceDate: date("last_service_date"),
+  nextServiceDue: date("next_service_due"),
+  serviceIntervalDays: integer("service_interval_days"),
+  manualUrl: text("manual_url"),
+  manualFileId: varchar("manual_file_id").references(() => files.id),
+  notes: text("notes"),
+  photoUrls: jsonb("photo_urls").$type<string[]>(),
+  insuredValue: integer("insured_value"),
+  insuranceCategory: varchar("insurance_category", { length: 50 }),
+  isActive: boolean("is_active").default(true).notNull(),
+  disposedAt: timestamp("disposed_at"),
+  disposalReason: varchar("disposal_reason", { length: 200 }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  createdBy: varchar("created_by").notNull(),
+}, (table) => [
+  index("inventory_household_idx").on(table.householdId),
+  index("inventory_category_idx").on(table.householdId, table.category),
+  index("inventory_warranty_idx").on(table.householdId, table.warrantyExpires),
+  index("inventory_location_idx").on(table.householdId, table.location),
+]);
+
+export const inventoryServiceHistory = pgTable("inventory_service_history", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  itemId: varchar("item_id").references(() => inventoryItems.id).notNull(),
+  householdId: varchar("household_id").references(() => households.id).notNull(),
+  serviceDate: date("service_date").notNull(),
+  serviceType: varchar("service_type", { length: 100 }).notNull(),
+  description: text("description"),
+  vendorId: varchar("vendor_id").references(() => vendors.id),
+  cost: integer("cost"),
+  receiptFileId: varchar("receipt_file_id").references(() => files.id),
+  notes: text("notes"),
+  performedBy: varchar("performed_by", { length: 100 }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("service_item_idx").on(table.itemId),
+  index("service_date_idx").on(table.householdId, table.serviceDate),
+]);
+
+export type InventoryItem = typeof inventoryItems.$inferSelect;
+export type InsertInventoryItem = typeof inventoryItems.$inferInsert;
+export type InventoryServiceRecord = typeof inventoryServiceHistory.$inferSelect;
+export type InsertInventoryServiceRecord = typeof inventoryServiceHistory.$inferInsert;

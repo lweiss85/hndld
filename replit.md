@@ -41,6 +41,7 @@ Preferred communication style: Simple, everyday language.
   - `admin-ops.ts` - Export, backup, organization management, billing
   - `features.ts` - Analytics, emergency contacts, messaging, AI assistant
   - `insights.ts` - Home Intelligence insights endpoint (GET /api/v1/insights, POST /api/v1/insights/:id/dismiss)
+  - `inventory.ts` - Home inventory CRUD, warranty/maintenance alerts, insurance summary, service history, locations
   - Existing Router-pattern modules: `households.ts`, `invites.ts`, `files.ts`, `weekly-brief.ts`
 - **Authentication**: Replit Auth integration with session-based authentication
 - **Middleware**: Household context middleware for multi-tenant scoping, permission-based access control, request ID tracking (server/middleware/requestId.ts), response time APM (server/middleware/responseTime.ts)
@@ -51,7 +52,7 @@ Preferred communication style: Simple, everyday language.
 - **Database**: PostgreSQL with Drizzle ORM
 - **Schema Location**: `shared/schema.ts` contains all table definitions with Drizzle-Zod integration for validation
 - **Multi-Tenancy**: Organizations → Households → Users hierarchy with row-level security
-- **Key Tables**: organizations, households, user_profiles, tasks, approvals, updates, requests, vendors, spending_items, calendar_events, playbooks, access_items (vault), files, messages, household_insights
+- **Key Tables**: organizations, households, user_profiles, tasks, approvals, updates, requests, vendors, spending_items, calendar_events, playbooks, access_items (vault), files, messages, household_insights, inventory_items, inventory_service_history
 - **Session Storage**: PostgreSQL-backed sessions
 
 ### Security Features
