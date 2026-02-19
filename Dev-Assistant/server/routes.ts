@@ -46,6 +46,7 @@ import { registerGuestAccessRoutes } from "./routes/guest-access";
 import { registerReceiptRoutes } from "./routes/receipts";
 import { registerReportRoutes } from "./routes/reports";
 import { registerSmartLockRoutes } from "./routes/smart-locks";
+import { registerPropertyRoutes } from "./routes/properties";
 
 const householdContext = householdContextMiddleware;
 
@@ -130,6 +131,7 @@ export async function registerRoutes(
   registerReceiptRoutes(v1);
   registerReportRoutes(v1);
   registerSmartLockRoutes(v1);
+  registerPropertyRoutes(v1);
 
   app.use("/api/v1", v1);
   app.use("/api", v1);

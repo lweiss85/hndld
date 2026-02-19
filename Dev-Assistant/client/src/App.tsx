@@ -8,6 +8,7 @@ import { ThemeProvider } from "@/lib/theme-provider";
 import { UndoToastContainer } from "@/components/premium/toast-undo";
 import { UserProvider, useUser } from "@/lib/user-context";
 import { VaultProvider } from "@/lib/vault-context";
+import { PropertyProvider } from "@/components/property-switcher";
 import { WebSocketProvider } from "@/lib/websocket-context";
 import { ConnectionStatus } from "@/components/connection-status";
 import { OfflineIndicator } from "@/components/offline-indicator";
@@ -59,6 +60,7 @@ const Budgets = lazy(() => import("@/pages/budgets"));
 const GuestAccessPage = lazy(() => import("@/pages/guest-access"));
 const Reports = lazy(() => import("@/pages/reports"));
 const SmartLocks = lazy(() => import("@/pages/smart-locks"));
+const Properties = lazy(() => import("@/pages/properties"));
 
 function LoadingScreen() {
   return (
@@ -117,6 +119,7 @@ function ClientRouter() {
         <Route path="/guest-access" component={GuestAccessPage} />
         <Route path="/reports" component={Reports} />
         <Route path="/smart-locks" component={SmartLocks} />
+        <Route path="/properties" component={Properties} />
         <Route component={NotFound} />
       </Switch>
     </Suspense>
@@ -158,6 +161,7 @@ function AssistantRouter() {
         <Route path="/guest-access" component={GuestAccessPage} />
         <Route path="/reports" component={Reports} />
         <Route path="/smart-locks" component={SmartLocks} />
+        <Route path="/properties" component={Properties} />
         <Route component={NotFound} />
       </Switch>
     </Suspense>
@@ -271,11 +275,13 @@ function AppContent() {
   return (
     <UserProvider>
       <VaultProvider>
-        <WebSocketProvider>
-          <OfflineIndicator />
-          <AuthenticatedApp />
-          <ConnectionStatus />
-        </WebSocketProvider>
+        <PropertyProvider>
+          <WebSocketProvider>
+            <OfflineIndicator />
+            <AuthenticatedApp />
+            <ConnectionStatus />
+          </WebSocketProvider>
+        </PropertyProvider>
       </VaultProvider>
     </UserProvider>
   );

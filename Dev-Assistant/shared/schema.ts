@@ -1,5 +1,5 @@
 import { sql, relations } from "drizzle-orm";
-import { pgTable, text, varchar, timestamp, integer, boolean, jsonb, pgEnum, index, unique, date, time } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, timestamp, integer, boolean, jsonb, pgEnum, index, unique, date, time, numeric } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -114,6 +114,7 @@ export const tasks = pgTable("tasks", {
   cancelledAt: timestamp("cancelled_at"),
   cancelledBy: varchar("cancelled_by"),
   cancellationReason: text("cancellation_reason"),
+  propertyId: varchar("property_id"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 }, (table) => [
@@ -238,6 +239,7 @@ export const vendors = pgTable("vendors", {
   requiresApproval: boolean("requires_approval").default(true),
   preferredTimes: text("preferred_times"),
   householdId: varchar("household_id").references(() => households.id).notNull(),
+  propertyId: varchar("property_id"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -288,6 +290,7 @@ export const calendarEvents = pgTable("calendar_events", {
   location: text("location"),
   description: text("description"),
   householdId: varchar("household_id").references(() => households.id).notNull(),
+  propertyId: varchar("property_id"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 }, (table) => [
@@ -990,6 +993,7 @@ export const cleaningVisits = pgTable("cleaning_visits", {
   afterPhotos: jsonb("after_photos").$type<string[]>().default([]),
   addonsRequested: jsonb("addons_requested").$type<string[]>().default([]),
   totalPriceInCents: integer("total_price_in_cents"),
+  propertyId: varchar("property_id"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 }, (table) => [
@@ -1637,6 +1641,7 @@ export const trackedDocuments = pgTable("tracked_documents", {
 
   notes: text("notes"),
   isActive: boolean("is_active").default(true).notNull(),
+  propertyId: varchar("property_id"),
 
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -1660,6 +1665,7 @@ export const budgets = pgTable("budgets", {
   alertThreshold: integer("alert_threshold").default(80),
   isActive: boolean("is_active").default(true).notNull(),
   notes: text("notes"),
+  propertyId: varchar("property_id"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (table) => [
@@ -1727,6 +1733,47 @@ export const guestAccess = pgTable("guest_access", {
 
 export type GuestAccess = typeof guestAccess.$inferSelect;
 
+// Multi-Property Support
+export const propertyTypeEnum = pgEnum("property_type", [
+  "PRIMARY", "VACATION", "RENTAL", "INVESTMENT", "FAMILY", "OTHER"
+]);
+
+export const properties = pgTable("properties", {
+  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  householdId: varchar("household_id").references(() => households.id).notNull(),
+  name: varchar("name", { length: 100 }).notNull(),
+  type: propertyTypeEnum("type").notNull(),
+  address: text("address"),
+  city: varchar("city", { length: 100 }),
+  state: varchar("state", { length: 50 }),
+  postalCode: varchar("postal_code", { length: 20 }),
+  country: varchar("country", { length: 50 }).default("USA"),
+  timezone: varchar("timezone", { length: 50 }).default("America/New_York"),
+  squareFootage: integer("square_footage"),
+  bedrooms: integer("bedrooms"),
+  bathrooms: numeric("bathrooms", { precision: 3, scale: 1 }),
+  yearBuilt: integer("year_built"),
+  photoUrls: jsonb("photo_urls").$type<string[]>(),
+  isActive: boolean("is_active").default(true).notNull(),
+  isPrimary: boolean("is_primary").default(false).notNull(),
+  settings: jsonb("settings").$type<{
+    defaultCleaningFrequency?: string;
+    homeWatchEnabled?: boolean;
+    seasonalShutdown?: { start: string; end: string };
+  }>(),
+  accessInstructions: text("access_instructions"),
+  alarmCode: text("alarm_code"),
+  wifiPassword: text("wifi_password"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  createdBy: varchar("created_by").notNull(),
+}, (table) => [
+  index("properties_household_idx").on(table.householdId),
+  index("properties_primary_idx").on(table.householdId, table.isPrimary),
+]);
+
+export type Property = typeof properties.$inferSelect;
+
 // Smart Lock Integration
 export const smartLockProviderEnum = pgEnum("smart_lock_provider", [
   "AUGUST", "SCHLAGE", "YALE", "LEVEL", "OTHER"
@@ -1743,6 +1790,7 @@ export const smartLocks = pgTable("smart_locks", {
   tokenExpiresAt: timestamp("token_expires_at"),
   isConnected: boolean("is_connected").default(false).notNull(),
   lastSyncAt: timestamp("last_sync_at"),
+  propertyId: varchar("property_id"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (table) => [

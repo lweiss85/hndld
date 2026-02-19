@@ -1,0 +1,315 @@
+Implement multi-property support for households with multiple homes.
+
+## Database Schema
+
+Add to shared/schema.ts:
+
+export const propertyTypeEnum = pgEnum("property_type", [
+  "PRIMARY", "VACATION", "RENTAL", "INVESTMENT", "FAMILY", "OTHER"
+]);
+
+export const properties = pgTable("properties", {
+  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  householdId: varchar("household_id").references(() => households.id).notNull(),
+  name: varchar("name", { length: 100 }).notNull(), // "Main Residence", "Lake House"
+  type: propertyTypeEnum("type").notNull(),
+  
+  // Address
+  address: text("address"),
+  city: varchar("city", { length: 100 }),
+  state: varchar("state", { length: 50 }),
+  postalCode: varchar("postal_code", { length: 20 }),
+  country: varchar("country", { length: 50 }).default("USA"),
+  
+  // Details
+  timezone: varchar("timezone", { length: 50 }).default("America/New_York"),
+  squareFootage: integer("square_footage"),
+  bedrooms: integer("bedrooms"),
+  bathrooms: numeric("bathrooms", { precision: 3, scale: 1 }),
+  yearBuilt: integer("year_built"),
+  
+  // Photos
+  photoUrls: jsonb("photo_urls").$type<string[]>(),
+  
+  // Settings
+  isActive: boolean("is_active").default(true).notNull(),
+  isPrimary: boolean("is_primary").default(false).notNull(),
+  settings: jsonb("settings").$type<{
+    defaultCleaningFrequency?: string;
+    homeWatchEnabled?: boolean;
+    seasonalShutdown?: { start: string; end: string };
+  }>(),
+  
+  // Access
+  accessInstructions: text("access_instructions"),
+  alarmCode: text("alarm_code"), // Encrypted
+  wifiPassword: text("wifi_password"), // Encrypted
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  createdBy: varchar("created_by").notNull(),
+}, (table) => ({
+  householdIdx: index("properties_household_idx").on(table.householdId),
+  primaryIdx: index("properties_primary_idx").on(table.householdId, table.isPrimary),
+}));
+
+// Update existing tables to include propertyId
+// Add propertyId to: tasks, vendors, smartLocks, calendarEvents, cleaningVisits, inventoryItems (when built)
+
+## Server Implementation
+
+Create server/routes/properties.ts:
+
+import { Router, Request, Response } from "express";
+import { db } from "../db";
+import { properties, tasks, vendors, smartLocks, calendarEvents } from "@shared/schema";
+import { eq, and, desc, count } from "drizzle-orm";
+import { isAuthenticated } from "../replit_integrations/auth";
+import { householdContextMiddleware } from "../middleware/householdContext";
+import { encryptVaultValue, decryptVaultValue } from "../services/vault-encryption";
+import logger from "../lib/logger";
+
+const router = Router();
+
+// Get all properties
+router.get(
+  "/properties",
+  isAuthenticated,
+  householdContextMiddleware,
+  async (req: Request, res: Response) => {
+    try {
+      const householdId = req.householdId!;
+
+      const householdProperties = await db.select().from(properties)
+        .where(eq(properties.householdId, householdId))
+        .orderBy(desc(properties.isPrimary), properties.name);
+
+      // Get counts for each property
+      const propertiesWithCounts = await Promise.all(
+        householdProperties.map(async (property) => {
+          const [taskCount, vendorCount, lockCount] = await Promise.all([
+            db.select({ count: count() }).from(tasks)
+              .where(and(eq(tasks.householdId, householdId), eq(tasks.propertyId, property.id))),
+            db.select({ count: count() }).from(vendors)
+              .where(and(eq(vendors.householdId, householdId), eq(vendors.propertyId, property.id))),
+            db.select({ count: count() }).from(smartLocks)
+              .where(and(eq(smartLocks.householdId, householdId), eq(smartLocks.propertyId, property.id))),
+          ]);
+
+          return {
+            ...property,
+            counts: {
+              tasks: taskCount[0]?.count || 0,
+              vendors: vendorCount[0]?.count || 0,
+              locks: lockCount[0]?.count || 0,
+            },
+          };
+        })
+      );
+
+      res.json({ properties: propertiesWithCounts });
+    } catch (error) {
+      logger.error("Failed to fetch properties", {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      res.status(500).json({ error: "Failed to fetch properties" });
+    }
+  }
+);
+
+// Create property
+router.post(
+  "/properties",
+  isAuthenticated,
+  householdContextMiddleware,
+  async (req: Request, res: Response) => {
+    try {
+      const householdId = req.householdId!;
+      const userId = req.user!.claims.sub;
+      const { alarmCode, wifiPassword, ...rest } = req.body;
+
+      // If this is marked as primary, unset other primaries
+      if (rest.isPrimary) {
+        await db.update(properties)
+          .set({ isPrimary: false })
+          .where(eq(properties.householdId, householdId));
+      }
+
+      const [property] = await db.insert(properties).values({
+        ...rest,
+        householdId,
+        createdBy: userId,
+        alarmCode: alarmCode ? encryptVaultValue(alarmCode) : null,
+        wifiPassword: wifiPassword ? encryptVaultValue(wifiPassword) : null,
+      }).returning();
+
+      logger.info("Property created", { propertyId: property.id, householdId });
+
+      res.status(201).json({ property });
+    } catch (error) {
+      logger.error("Failed to create property", {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      res.status(500).json({ error: "Failed to create property" });
+    }
+  }
+);
+
+// Get single property with decrypted sensitive data
+router.get(
+  "/properties/:id",
+  isAuthenticated,
+  householdContextMiddleware,
+  async (req: Request, res: Response) => {
+    try {
+      const householdId = req.householdId!;
+      const { id } = req.params;
+      const includeSensitive = req.query.sensitive === "true";
+
+      const [property] = await db.select().from(properties)
+        .where(and(eq(properties.id, id), eq(properties.householdId, householdId)))
+        .limit(1);
+
+      if (!property) {
+        return res.status(404).json({ error: "Property not found" });
+      }
+
+      if (includeSensitive) {
+        return res.json({
+          property: {
+            ...property,
+            alarmCode: property.alarmCode ? decryptVaultValue(property.alarmCode) : null,
+            wifiPassword: property.wifiPassword ? decryptVaultValue(property.wifiPassword) : null,
+          },
+        });
+      }
+
+      res.json({
+        property: {
+          ...property,
+          alarmCode: property.alarmCode ? "••••••" : null,
+          wifiPassword: property.wifiPassword ? "••••••" : null,
+        },
+      });
+    } catch (error) {
+      logger.error("Failed to fetch property", {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      res.status(500).json({ error: "Failed to fetch property" });
+    }
+  }
+);
+
+// Update property
+router.patch(
+  "/properties/:id",
+  isAuthenticated,
+  householdContextMiddleware,
+  async (req: Request, res: Response) => {
+    try {
+      const householdId = req.householdId!;
+      const { id } = req.params;
+      const { alarmCode, wifiPassword, ...rest } = req.body;
+
+      // Handle primary property logic
+      if (rest.isPrimary) {
+        await db.update(properties)
+          .set({ isPrimary: false })
+          .where(and(eq(properties.householdId, householdId), neq(properties.id, id)));
+      }
+
+      const updates: any = {
+        ...rest,
+        updatedAt: new Date(),
+      };
+
+      if (alarmCode !== undefined) {
+        updates.alarmCode = alarmCode ? encryptVaultValue(alarmCode) : null;
+      }
+      if (wifiPassword !== undefined) {
+        updates.wifiPassword = wifiPassword ? encryptVaultValue(wifiPassword) : null;
+      }
+
+      const [property] = await db.update(properties)
+        .set(updates)
+        .where(and(eq(properties.id, id), eq(properties.householdId, householdId)))
+        .returning();
+
+      if (!property) {
+        return res.status(404).json({ error: "Property not found" });
+      }
+
+      res.json({ property });
+    } catch (error) {
+      logger.error("Failed to update property", {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      res.status(500).json({ error: "Failed to update property" });
+    }
+  }
+);
+
+// Delete property (soft delete - deactivate)
+router.delete(
+  "/properties/:id",
+  isAuthenticated,
+  householdContextMiddleware,
+  async (req: Request, res: Response) => {
+    try {
+      const householdId = req.householdId!;
+      const { id } = req.params;
+
+      const [property] = await db.update(properties)
+        .set({ isActive: false, updatedAt: new Date() })
+        .where(and(eq(properties.id, id), eq(properties.householdId, householdId)))
+        .returning();
+
+      if (!property) {
+        return res.status(404).json({ error: "Property not found" });
+      }
+
+      res.json({ success: true });
+    } catch (error) {
+      logger.error("Failed to delete property", {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      res.status(500).json({ error: "Failed to delete property" });
+    }
+  }
+);
+
+export function registerPropertyRoutes(app: Router) {
+  app.use(router);
+}
+
+## Migration Script
+
+Create a migration to add propertyId to existing tables:
+
+ALTER TABLE tasks ADD COLUMN property_id VARCHAR REFERENCES properties(id);
+ALTER TABLE vendors ADD COLUMN property_id VARCHAR REFERENCES properties(id);
+ALTER TABLE smart_locks ADD COLUMN property_id VARCHAR REFERENCES properties(id);
+ALTER TABLE calendar_events ADD COLUMN property_id VARCHAR REFERENCES properties(id);
+ALTER TABLE cleaning_visits ADD COLUMN property_id VARCHAR REFERENCES properties(id);
+ALTER TABLE tracked_documents ADD COLUMN property_id VARCHAR REFERENCES properties(id);
+ALTER TABLE budgets ADD COLUMN property_id VARCHAR REFERENCES properties(id);
+
+## Client Implementation
+
+1. Create client/src/pages/properties.tsx:
+   - Property cards with photos
+   - Quick stats (tasks, vendors, locks)
+   - "Add property" button
+
+2. Create client/src/components/property-switcher.tsx:
+   - Dropdown in header to switch active property
+   - "All properties" option
+   - Store selected property in localStorage/context
+
+3. Update all list pages to filter by selected property
+
+4. Create client/src/pages/property-detail.tsx:
+   - Property info and photos
+   - Access codes (with reveal toggle)
+   - Linked vendors, tasks, locks
+   - Property-specific dashboard
