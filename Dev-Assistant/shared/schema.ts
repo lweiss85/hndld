@@ -1679,3 +1679,50 @@ export const budgetAlerts = pgTable("budget_alerts", {
 
 export type Budget = typeof budgets.$inferSelect;
 export type BudgetAlert = typeof budgetAlerts.$inferSelect;
+
+export const guestAccessLevelEnum = pgEnum("guest_access_level", [
+  "VIEW_ONLY", "LIMITED", "STANDARD", "FULL"
+]);
+
+export const guestAccess = pgTable("guest_access", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  householdId: varchar("household_id").references(() => households.id).notNull(),
+  invitedBy: varchar("invited_by").notNull(),
+
+  guestEmail: varchar("guest_email", { length: 255 }).notNull(),
+  guestName: varchar("guest_name", { length: 100 }),
+  guestUserId: varchar("guest_user_id"),
+
+  accessLevel: guestAccessLevelEnum("access_level").notNull(),
+  permissions: jsonb("permissions").$type<{
+    canViewTasks: boolean;
+    canViewCalendar: boolean;
+    canViewVendors: boolean;
+    canViewFiles: boolean;
+    canSendMessages: boolean;
+    canCreateTasks: boolean;
+  }>(),
+
+  startsAt: timestamp("starts_at").notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+
+  status: varchar("status", { length: 20 }).default("PENDING").notNull(),
+  acceptedAt: timestamp("accepted_at"),
+  revokedAt: timestamp("revoked_at"),
+  revokedBy: varchar("revoked_by"),
+  revokeReason: text("revoke_reason"),
+
+  purpose: text("purpose"),
+  inviteToken: varchar("invite_token", { length: 64 }),
+
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  index("guest_household_idx").on(table.householdId),
+  index("guest_email_idx").on(table.guestEmail),
+  index("guest_status_idx").on(table.householdId, table.status),
+  index("guest_token_idx").on(table.inviteToken),
+  index("guest_expires_idx").on(table.status, table.expiresAt),
+]);
+
+export type GuestAccess = typeof guestAccess.$inferSelect;

@@ -6,6 +6,7 @@ import { runWeeklyBriefScheduler } from "./weekly-brief";
 import { processScheduledDeletions } from "../routes/account-deletion";
 import { processDocumentExpiryAlerts } from "../routes/documents";
 import { processBudgetAlerts } from "../routes/budgets";
+import { processGuestAccessExpiry } from "../routes/guest-access";
 import { db } from "../db";
 import { calendarConnections } from "@shared/schema";
 import logger from "../lib/logger";
@@ -19,6 +20,7 @@ let weeklyBriefEveningJob: ReturnType<typeof cron.schedule> | null = null;
 let accountDeletionJob: ReturnType<typeof cron.schedule> | null = null;
 let documentExpiryJob: ReturnType<typeof cron.schedule> | null = null;
 let budgetAlertJob: ReturnType<typeof cron.schedule> | null = null;
+let guestAccessExpiryJob: ReturnType<typeof cron.schedule> | null = null;
 
 export function startScheduledBackups(): void {
   const settings = getBackupSettings();
@@ -325,6 +327,31 @@ export function stopBudgetAlertScheduler(): void {
   }
 }
 
+export function startGuestAccessExpiryScheduler(): void {
+  if (guestAccessExpiryJob) {
+    guestAccessExpiryJob.stop();
+  }
+
+  guestAccessExpiryJob = cron.schedule("*/30 * * * *", async () => {
+    try {
+      logger.info("[Scheduler] Processing guest access expiry");
+      await processGuestAccessExpiry();
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      logger.error("[Scheduler] Guest access expiry processing failed", { error: message });
+    }
+  });
+
+  logger.info("[Scheduler] Guest access expiry scheduled (every 30 minutes)");
+}
+
+export function stopGuestAccessExpiryScheduler(): void {
+  if (guestAccessExpiryJob) {
+    guestAccessExpiryJob.stop();
+    guestAccessExpiryJob = null;
+  }
+}
+
 export function startAllSchedulers(): void {
   startScheduledBackups();
   startCalendarSync();
@@ -333,4 +360,5 @@ export function startAllSchedulers(): void {
   startAccountDeletionScheduler();
   startDocumentExpiryAlerts();
   startBudgetAlertScheduler();
+  startGuestAccessExpiryScheduler();
 }

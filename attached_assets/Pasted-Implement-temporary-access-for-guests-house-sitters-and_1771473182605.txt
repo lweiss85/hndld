@@ -1,0 +1,75 @@
+Implement temporary access for guests, house sitters, and temporary help.
+
+## Database Schema
+
+Add to shared/schema.ts:
+
+export const guestAccessLevelEnum = pgEnum("guest_access_level", [
+  "VIEW_ONLY", "LIMITED", "STANDARD", "FULL"
+]);
+
+export const guestAccess = pgTable("guest_access", {
+  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  householdId: varchar("household_id").references(() => households.id).notNull(),
+  invitedBy: varchar("invited_by").notNull(),
+  
+  // Guest info
+  guestEmail: varchar("guest_email", { length: 255 }).notNull(),
+  guestName: varchar("guest_name", { length: 100 }),
+  guestUserId: varchar("guest_user_id"), // Linked when they accept
+  
+  // Access settings
+  accessLevel: guestAccessLevelEnum("access_level").notNull(),
+  permissions: jsonb("permissions").$type<{
+    canViewTasks: boolean;
+    canViewCalendar: boolean;
+    canViewVendors: boolean;
+    canViewFiles: boolean;
+    canSendMessages: boolean;
+    canCreateTasks: boolean;
+  }>(),
+  
+  // Time bounds
+  startsAt: timestamp("starts_at").notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+  
+  // Status
+  status: varchar("status", { length: 20 }).default("PENDING").notNull(), // PENDING, ACTIVE, EXPIRED, REVOKED
+  acceptedAt: timestamp("accepted_at"),
+  revokedAt: timestamp("revoked_at"),
+  revokedBy: varchar("revoked_by"),
+  revokeReason: text("revoke_reason"),
+  
+  // Purpose
+  purpose: text("purpose"), // "House sitting Dec 15-22", "Contractor access"
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => ({
+  householdIdx: index("guest_household_idx").on(table.householdId),
+  emailIdx: index("guest_email_idx").on(table.guestEmail),
+  statusIdx: index("guest_status_idx").on(table.householdId, table.status),
+}));
+
+## Server Implementation
+
+Create server/routes/guest-access.ts with:
+- POST /guest-access/invite - create invitation
+- GET /guest-access - list all guest access
+- POST /guest-access/:id/revoke - revoke access
+- GET /guest-access/accept/:token - accept invitation
+- Middleware to check guest permissions
+- Background job to auto-expire access
+
+## Client Pages
+
+Create client/src/pages/guest-access.tsx:
+- Active guests list with countdown to expiry
+- Pending invitations
+- "Invite guest" form with:
+  - Email, name, purpose
+  - Date range picker
+  - Permission checkboxes
+  - Access level preset selector
+- Revoke access button
+- Activity log per guest (optional)

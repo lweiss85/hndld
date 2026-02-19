@@ -1,0 +1,71 @@
+Implement receipt scanning with automatic data extraction.
+
+## Install Dependencies
+
+npm install @google-cloud/vision
+# Or use AWS Textract: npm install @aws-sdk/client-textract
+
+## Server Implementation
+
+Create server/services/ocr.ts:
+
+import vision from "@google-cloud/vision";
+import logger from "../lib/logger";
+
+const client = new vision.ImageAnnotatorClient();
+
+interface ExtractedReceipt {
+  vendor?: string;
+  date?: string;
+  total?: number;
+  items?: Array<{ description: string; amount: number }>;
+  confidence: number;
+}
+
+export async function extractReceiptData(imageBuffer: Buffer): Promise<ExtractedReceipt> {
+  try {
+    const [result] = await client.textDetection(imageBuffer);
+    const text = result.textAnnotations?.[0]?.description || "";
+    
+    // Parse the extracted text
+    const lines = text.split("\n").map(l => l.trim()).filter(Boolean);
+    
+    // Extract vendor (usually first line)
+    const vendor = lines[0];
+    
+    // Extract date (look for date patterns)
+    const datePattern = /(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})/;
+    const dateMatch = text.match(datePattern);
+    const date = dateMatch ? dateMatch[1] : undefined;
+    
+    // Extract total (look for "total" followed by amount)
+    const totalPattern = /total[:\s]*\$?(\d+\.?\d*)/i;
+    const totalMatch = text.match(totalPattern);
+    const total = totalMatch ? parseFloat(totalMatch[1]) * 100 : undefined;
+    
+    return {
+      vendor,
+      date,
+      total,
+      confidence: result.textAnnotations ? 0.8 : 0,
+    };
+  } catch (error) {
+    logger.error("OCR extraction failed", {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    throw error;
+  }
+}
+
+Create server/routes/receipts.ts:
+- POST /receipts/scan - upload image, return extracted data
+- Allow user to confirm/edit before creating spending item
+- Store original image as file attachment
+
+## Client Component
+
+Create client/src/components/spending/receipt-scanner.tsx:
+- Camera capture or file upload
+- Preview with extracted data
+- Edit fields before confirming
+- "Add to spending" button

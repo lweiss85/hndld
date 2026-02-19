@@ -56,6 +56,7 @@ const SecuritySettings = lazy(() => import("@/pages/security-settings"));
 const MyFeedback = lazy(() => import("@/pages/my-feedback"));
 const Documents = lazy(() => import("@/pages/documents"));
 const Budgets = lazy(() => import("@/pages/budgets"));
+const GuestAccessPage = lazy(() => import("@/pages/guest-access"));
 
 function LoadingScreen() {
   return (
@@ -111,6 +112,7 @@ function ClientRouter() {
         <Route path="/my-feedback" component={MyFeedback} />
         <Route path="/documents" component={Documents} />
         <Route path="/budgets" component={Budgets} />
+        <Route path="/guest-access" component={GuestAccessPage} />
         <Route component={NotFound} />
       </Switch>
     </Suspense>
@@ -149,6 +151,7 @@ function AssistantRouter() {
         <Route path="/my-feedback" component={MyFeedback} />
         <Route path="/documents" component={Documents} />
         <Route path="/budgets" component={Budgets} />
+        <Route path="/guest-access" component={GuestAccessPage} />
         <Route component={NotFound} />
       </Switch>
     </Suspense>
