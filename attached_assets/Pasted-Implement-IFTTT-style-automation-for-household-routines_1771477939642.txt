@@ -1,0 +1,332 @@
+Implement IFTTT-style automation for household routines.
+
+## Database Schema
+
+Add to shared/schema.ts:
+
+export const automationTriggerEnum = pgEnum("automation_trigger", [
+  "SMART_LOCK_UNLOCK", "SMART_LOCK_LOCK",
+  "APPROVAL_CREATED", "APPROVAL_PENDING_HOURS", "APPROVAL_APPROVED", "APPROVAL_REJECTED",
+  "BUDGET_THRESHOLD", "BUDGET_EXCEEDED",
+  "TASK_CREATED", "TASK_COMPLETED", "TASK_OVERDUE",
+  "CLEANING_STARTED", "CLEANING_COMPLETED",
+  "SCHEDULE_TIME", "SCHEDULE_DAY",
+  "DOCUMENT_EXPIRING",
+  "SPENDING_CREATED",
+  "CALENDAR_EVENT_SOON",
+  "GUEST_ACCESS_STARTED", "GUEST_ACCESS_ENDED",
+]);
+
+export const automationActionEnum = pgEnum("automation_action", [
+  "SEND_NOTIFICATION", "SEND_EMAIL", "SEND_SMS",
+  "CREATE_TASK", "COMPLETE_TASK",
+  "CREATE_APPROVAL", "AUTO_APPROVE",
+  "LOCK_DOOR", "UNLOCK_DOOR",
+  "ADD_TO_CALENDAR",
+  "UPDATE_BUDGET",
+  "TRIGGER_WEBHOOK",
+  "LOG_EVENT",
+]);
+
+export const automations = pgTable("automations", {
+  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  householdId: varchar("household_id").references(() => households.id).notNull(),
+  propertyId: varchar("property_id").references(() => properties.id),
+  
+  name: varchar("name", { length: 100 }).notNull(),
+  description: text("description"),
+  icon: varchar("icon", { length: 50 }).default("zap"),
+  color: varchar("color", { length: 20 }).default("blue"),
+  
+  // Trigger
+  trigger: automationTriggerEnum("trigger").notNull(),
+  triggerConfig: jsonb("trigger_config").$type<{
+    lockId?: string;
+    budgetId?: string;
+    threshold?: number;
+    pendingHours?: number;
+    scheduleTime?: string; // "09:00"
+    scheduleDays?: number[]; // [1, 2, 3, 4, 5] for weekdays
+    documentDaysBefore?: number;
+    calendarMinutesBefore?: number;
+  }>().notNull(),
+  
+  // Conditions (optional filters)
+  conditions: jsonb("conditions").$type<{
+    userIds?: string[];
+    vendorIds?: string[];
+    taskCategories?: string[];
+    minAmount?: number;
+    maxAmount?: number;
+  }>(),
+  
+  // Actions
+  actions: jsonb("actions").$type<Array<{
+    type: string;
+    config: Record<string, any>;
+    order: number;
+  }>>().notNull(),
+  
+  // Status
+  isEnabled: boolean("is_enabled").default(true).notNull(),
+  isPaused: boolean("is_paused").default(false).notNull(),
+  pauseUntil: timestamp("pause_until"),
+  
+  // Stats
+  runCount: integer("run_count").default(0).notNull(),
+  lastRunAt: timestamp("last_run_at"),
+  lastRunStatus: varchar("last_run_status", { length: 20 }), // SUCCESS, FAILED, SKIPPED
+  lastRunError: text("last_run_error"),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  createdBy: varchar("created_by").notNull(),
+}, (table) => ({
+  householdIdx: index("automations_household_idx").on(table.householdId),
+  triggerIdx: index("automations_trigger_idx").on(table.trigger, table.isEnabled),
+}));
+
+export const automationRuns = pgTable("automation_runs", {
+  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  automationId: varchar("automation_id").references(() => automations.id).notNull(),
+  householdId: varchar("household_id").notNull(),
+  
+  triggeredBy: jsonb("triggered_by"), // The event that triggered this
+  status: varchar("status", { length: 20 }).notNull(), // RUNNING, SUCCESS, FAILED, SKIPPED
+  
+  actionsExecuted: jsonb("actions_executed").$type<Array<{
+    type: string;
+    status: string;
+    result?: any;
+    error?: string;
+    executedAt: string;
+  }>>(),
+  
+  error: text("error"),
+  startedAt: timestamp("started_at").defaultNow().notNull(),
+  completedAt: timestamp("completed_at"),
+});
+
+## Server Implementation
+
+Create server/services/automation-engine.ts:
+
+import { db } from "../db";
+import { automations, automationRuns } from "@shared/schema";
+import { eq, and } from "drizzle-orm";
+import logger from "../lib/logger";
+// Import action handlers
+import { sendNotification } from "./notifications";
+import { lockDoor, unlockDoor } from "./smart-locks";
+
+interface TriggerEvent {
+  type: string;
+  householdId: string;
+  propertyId?: string;
+  data: Record<string, any>;
+}
+
+export async function processTrigger(event: TriggerEvent): Promise<void> {
+  try {
+    // Find matching automations
+    const matchingAutomations = await db.select().from(automations)
+      .where(and(
+        eq(automations.householdId, event.householdId),
+        eq(automations.trigger, event.type as any),
+        eq(automations.isEnabled, true),
+        eq(automations.isPaused, false)
+      ));
+
+    for (const automation of matchingAutomations) {
+      // Check property match if specified
+      if (automation.propertyId && event.propertyId && automation.propertyId !== event.propertyId) {
+        continue;
+      }
+
+      // Check conditions
+      if (!matchesConditions(automation.conditions, event.data)) {
+        continue;
+      }
+
+      // Execute automation
+      await executeAutomation(automation, event);
+    }
+  } catch (error) {
+    logger.error("Automation trigger processing failed", {
+      event,
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+}
+
+function matchesConditions(conditions: any, data: Record<string, any>): boolean {
+  if (!conditions) return true;
+
+  if (conditions.userIds?.length && !conditions.userIds.includes(data.userId)) {
+    return false;
+  }
+  if (conditions.vendorIds?.length && !conditions.vendorIds.includes(data.vendorId)) {
+    return false;
+  }
+  if (conditions.minAmount !== undefined && data.amount < conditions.minAmount) {
+    return false;
+  }
+  if (conditions.maxAmount !== undefined && data.amount > conditions.maxAmount) {
+    return false;
+  }
+
+  return true;
+}
+
+async function executeAutomation(automation: typeof automations.$inferSelect, event: TriggerEvent): Promise<void> {
+  const runId = crypto.randomUUID();
+  const actionsExecuted: any[] = [];
+  let status = "RUNNING";
+  let error: string | undefined;
+
+  try {
+    // Create run record
+    await db.insert(automationRuns).values({
+      id: runId,
+      automationId: automation.id,
+      householdId: automation.householdId,
+      triggeredBy: event,
+      status: "RUNNING",
+      actionsExecuted: [],
+    });
+
+    // Execute each action in order
+    const actions = automation.actions.sort((a, b) => a.order - b.order);
+
+    for (const action of actions) {
+      const actionResult = await executeAction(action, event, automation);
+      actionsExecuted.push({
+        type: action.type,
+        status: actionResult.success ? "SUCCESS" : "FAILED",
+        result: actionResult.result,
+        error: actionResult.error,
+        executedAt: new Date().toISOString(),
+      });
+
+      if (!actionResult.success) {
+        error = actionResult.error;
+        status = "FAILED";
+        break;
+      }
+    }
+
+    if (status === "RUNNING") {
+      status = "SUCCESS";
+    }
+
+    // Update run record
+    await db.update(automationRuns)
+      .set({
+        status,
+        actionsExecuted,
+        error,
+        completedAt: new Date(),
+      })
+      .where(eq(automationRuns.id, runId));
+
+    // Update automation stats
+    await db.update(automations)
+      .set({
+        runCount: automation.runCount + 1,
+        lastRunAt: new Date(),
+        lastRunStatus: status,
+        lastRunError: error,
+      })
+      .where(eq(automations.id, automation.id));
+
+    logger.info("Automation executed", {
+      automationId: automation.id,
+      runId,
+      status,
+      actionsCount: actionsExecuted.length,
+    });
+  } catch (err) {
+    logger.error("Automation execution failed", {
+      automationId: automation.id,
+      runId,
+      error: err instanceof Error ? err.message : String(err),
+    });
+  }
+}
+
+async function executeAction(
+  action: { type: string; config: Record<string, any> },
+  event: TriggerEvent,
+  automation: typeof automations.$inferSelect
+): Promise<{ success: boolean; result?: any; error?: string }> {
+  try {
+    switch (action.type) {
+      case "SEND_NOTIFICATION":
+        await sendNotification({
+          userId: action.config.userId || event.data.userId,
+          householdId: automation.householdId,
+          title: interpolate(action.config.title, event.data),
+          body: interpolate(action.config.body, event.data),
+          type: action.config.notificationType || "AUTOMATION",
+        });
+        return { success: true };
+
+      case "CREATE_TASK":
+        // Create task using task service
+        return { success: true };
+
+      case "LOCK_DOOR":
+        await lockDoor(action.config.lockId);
+        return { success: true };
+
+      case "UNLOCK_DOOR":
+        await unlockDoor(action.config.lockId);
+        return { success: true };
+
+      case "TRIGGER_WEBHOOK":
+        const response = await fetch(action.config.url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ event, automation: { id: automation.id, name: automation.name } }),
+        });
+        return { success: response.ok, result: { status: response.status } };
+
+      default:
+        return { success: false, error: `Unknown action type: ${action.type}` };
+    }
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : String(error) };
+  }
+}
+
+function interpolate(template: string, data: Record<string, any>): string {
+  return template.replace(/\{\{(\w+)\}\}/g, (_, key) => data[key] || `{{${key}}}`);
+}
+
+// Export for use in other services
+export { processTrigger };
+
+## Server Routes
+
+Create server/routes/automations.ts with:
+- CRUD for automations
+- GET /automations/:id/runs - execution history
+- POST /automations/:id/test - test run
+- POST /automations/:id/pause - pause until date
+- GET /automations/templates - pre-built automation templates
+
+## Client Implementation
+
+Create client/src/pages/automations.tsx:
+- Visual automation builder
+- Trigger selector with configuration
+- Condition builder (optional)
+- Action chain builder
+- Enable/disable toggle
+- Run history with status
+
+Create client/src/components/automation-builder.tsx:
+- Step-by-step wizard
+- Visual flow diagram
+- Test mode
+- Pre-built templates

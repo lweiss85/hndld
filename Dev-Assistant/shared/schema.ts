@@ -1870,3 +1870,108 @@ export const oauthAuthorizationCodes = pgTable("oauth_authorization_codes", {
 
 export type OAuthClient = typeof oauthClients.$inferSelect;
 export type OAuthAuthorizationCode = typeof oauthAuthorizationCodes.$inferSelect;
+
+export const automationTriggerEnum = pgEnum("automation_trigger", [
+  "SMART_LOCK_UNLOCK", "SMART_LOCK_LOCK",
+  "APPROVAL_CREATED", "APPROVAL_PENDING_HOURS", "APPROVAL_APPROVED", "APPROVAL_REJECTED",
+  "BUDGET_THRESHOLD", "BUDGET_EXCEEDED",
+  "TASK_CREATED", "TASK_COMPLETED", "TASK_OVERDUE",
+  "CLEANING_STARTED", "CLEANING_COMPLETED",
+  "SCHEDULE_TIME", "SCHEDULE_DAY",
+  "DOCUMENT_EXPIRING",
+  "SPENDING_CREATED",
+  "CALENDAR_EVENT_SOON",
+  "GUEST_ACCESS_STARTED", "GUEST_ACCESS_ENDED",
+]);
+
+export const automationActionEnum = pgEnum("automation_action", [
+  "SEND_NOTIFICATION", "SEND_EMAIL", "SEND_SMS",
+  "CREATE_TASK", "COMPLETE_TASK",
+  "CREATE_APPROVAL", "AUTO_APPROVE",
+  "LOCK_DOOR", "UNLOCK_DOOR",
+  "ADD_TO_CALENDAR",
+  "UPDATE_BUDGET",
+  "TRIGGER_WEBHOOK",
+  "LOG_EVENT",
+]);
+
+export const automations = pgTable("automations", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  householdId: varchar("household_id").references(() => households.id).notNull(),
+  propertyId: varchar("property_id"),
+
+  name: varchar("name", { length: 100 }).notNull(),
+  description: text("description"),
+  icon: varchar("icon", { length: 50 }).default("zap"),
+  color: varchar("color", { length: 20 }).default("blue"),
+
+  trigger: automationTriggerEnum("trigger").notNull(),
+  triggerConfig: jsonb("trigger_config").$type<{
+    lockId?: string;
+    budgetId?: string;
+    threshold?: number;
+    pendingHours?: number;
+    scheduleTime?: string;
+    scheduleDays?: number[];
+    documentDaysBefore?: number;
+    calendarMinutesBefore?: number;
+  }>().notNull(),
+
+  conditions: jsonb("conditions").$type<{
+    userIds?: string[];
+    vendorIds?: string[];
+    taskCategories?: string[];
+    minAmount?: number;
+    maxAmount?: number;
+  }>(),
+
+  actions: jsonb("actions").$type<Array<{
+    type: string;
+    config: Record<string, any>;
+    order: number;
+  }>>().notNull(),
+
+  isEnabled: boolean("is_enabled").default(true).notNull(),
+  isPaused: boolean("is_paused").default(false).notNull(),
+  pauseUntil: timestamp("pause_until"),
+
+  runCount: integer("run_count").default(0).notNull(),
+  lastRunAt: timestamp("last_run_at"),
+  lastRunStatus: varchar("last_run_status", { length: 20 }),
+  lastRunError: text("last_run_error"),
+
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  createdBy: varchar("created_by").notNull(),
+}, (table) => [
+  index("automations_household_idx").on(table.householdId),
+  index("automations_trigger_idx").on(table.trigger, table.isEnabled),
+]);
+
+export const automationRuns = pgTable("automation_runs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  automationId: varchar("automation_id").references(() => automations.id).notNull(),
+  householdId: varchar("household_id").notNull(),
+
+  triggeredBy: jsonb("triggered_by"),
+  status: varchar("status", { length: 20 }).notNull(),
+
+  actionsExecuted: jsonb("actions_executed").$type<Array<{
+    type: string;
+    status: string;
+    result?: any;
+    error?: string;
+    executedAt: string;
+  }>>(),
+
+  error: text("error"),
+  startedAt: timestamp("started_at").defaultNow().notNull(),
+  completedAt: timestamp("completed_at"),
+}, (table) => [
+  index("automation_runs_automation_idx").on(table.automationId),
+  index("automation_runs_household_idx").on(table.householdId),
+]);
+
+export type Automation = typeof automations.$inferSelect;
+export type InsertAutomation = typeof automations.$inferInsert;
+export type AutomationRun = typeof automationRuns.$inferSelect;
