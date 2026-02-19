@@ -1975,3 +1975,140 @@ export const automationRuns = pgTable("automation_runs", {
 export type Automation = typeof automations.$inferSelect;
 export type InsertAutomation = typeof automations.$inferInsert;
 export type AutomationRun = typeof automationRuns.$inferSelect;
+
+export const serviceProviderTypeEnum = pgEnum("service_provider_type", [
+  "CLEANING_COMPANY", "PERSONAL_ASSISTANT", "HANDYMAN", "LANDSCAPER",
+  "POOL_SERVICE", "PET_CARE", "MEAL_PREP", "ORGANIZING", "OTHER"
+]);
+
+export const serviceProviders = pgTable("service_providers", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+
+  businessName: varchar("business_name", { length: 200 }).notNull(),
+  type: serviceProviderTypeEnum("type").notNull(),
+  description: text("description"),
+  logoUrl: text("logo_url"),
+
+  email: varchar("email", { length: 255 }).notNull().unique(),
+  phone: varchar("phone", { length: 20 }),
+  website: varchar("website", { length: 255 }),
+
+  address: text("address"),
+  city: varchar("city", { length: 100 }),
+  state: varchar("state", { length: 50 }),
+  postalCode: varchar("postal_code", { length: 20 }),
+  serviceRadius: integer("service_radius"),
+
+  businessLicense: varchar("business_license", { length: 100 }),
+  insuranceProvider: varchar("insurance_provider", { length: 100 }),
+  insurancePolicyNumber: varchar("insurance_policy_number", { length: 100 }),
+  insuranceExpires: date("insurance_expires"),
+  bondAmount: integer("bond_amount"),
+
+  subscriptionTier: varchar("subscription_tier", { length: 20 }).default("STARTER"),
+  subscriptionStatus: varchar("subscription_status", { length: 20 }).default("TRIAL"),
+  trialEndsAt: timestamp("trial_ends_at"),
+
+  isVerified: boolean("is_verified").default(false),
+  verifiedAt: timestamp("verified_at"),
+  backgroundCheckCompleted: boolean("background_check_completed").default(false),
+
+  totalClients: integer("total_clients").default(0),
+  averageRating: numeric("average_rating", { precision: 3, scale: 2 }),
+  totalReviews: integer("total_reviews").default(0),
+
+  settings: jsonb("settings"),
+
+  ownerId: varchar("owner_id"),
+
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  index("service_providers_email_idx").on(table.email),
+  index("service_providers_type_idx").on(table.type),
+  index("service_providers_owner_idx").on(table.ownerId),
+]);
+
+export const providerStaff = pgTable("provider_staff", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  providerId: varchar("provider_id").references(() => serviceProviders.id).notNull(),
+
+  userId: varchar("user_id"),
+
+  firstName: varchar("first_name", { length: 50 }).notNull(),
+  lastName: varchar("last_name", { length: 50 }).notNull(),
+  email: varchar("email", { length: 255 }),
+  phone: varchar("phone", { length: 20 }),
+
+  role: varchar("role", { length: 50 }).default("STAFF"),
+  permissions: jsonb("permissions"),
+
+  isActive: boolean("is_active").default(true),
+  hireDate: date("hire_date"),
+
+  hourlyRate: integer("hourly_rate"),
+
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("provider_staff_provider_idx").on(table.providerId),
+]);
+
+export const providerClients = pgTable("provider_clients", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  providerId: varchar("provider_id").references(() => serviceProviders.id).notNull(),
+  householdId: varchar("household_id").references(() => households.id).notNull(),
+
+  status: varchar("status", { length: 20 }).default("ACTIVE"),
+  startDate: date("start_date").notNull(),
+  endDate: date("end_date"),
+
+  serviceFrequency: varchar("service_frequency", { length: 50 }),
+  preferredDay: varchar("preferred_day", { length: 20 }),
+  preferredTime: time("preferred_time"),
+
+  baseRateCents: integer("base_rate_cents"),
+  estimatedHours: numeric("estimated_hours", { precision: 4, scale: 2 }),
+
+  assignedStaffId: varchar("assigned_staff_id").references(() => providerStaff.id),
+
+  clientNotes: text("client_notes"),
+  accessInstructions: text("access_instructions"),
+
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  index("provider_clients_provider_idx").on(table.providerId),
+  index("provider_clients_household_idx").on(table.householdId),
+  unique("provider_household_unique").on(table.providerId, table.householdId),
+]);
+
+export const providerSchedule = pgTable("provider_schedule", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  providerId: varchar("provider_id").references(() => serviceProviders.id).notNull(),
+  providerClientId: varchar("provider_client_id").references(() => providerClients.id).notNull(),
+  staffId: varchar("staff_id").references(() => providerStaff.id),
+
+  scheduledDate: date("scheduled_date").notNull(),
+  scheduledTime: time("scheduled_time"),
+  estimatedDuration: integer("estimated_duration"),
+
+  status: varchar("status", { length: 20 }).default("SCHEDULED"),
+
+  arrivedAt: timestamp("arrived_at"),
+  completedAt: timestamp("completed_at"),
+
+  providerNotes: text("provider_notes"),
+  clientNotes: text("client_notes"),
+
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("provider_schedule_provider_idx").on(table.providerId),
+  index("provider_schedule_date_idx").on(table.scheduledDate),
+  index("provider_schedule_staff_idx").on(table.staffId),
+]);
+
+export type ServiceProvider = typeof serviceProviders.$inferSelect;
+export type InsertServiceProvider = typeof serviceProviders.$inferInsert;
+export type ProviderStaff = typeof providerStaff.$inferSelect;
+export type ProviderClient = typeof providerClients.$inferSelect;
+export type ProviderScheduleItem = typeof providerSchedule.$inferSelect;
