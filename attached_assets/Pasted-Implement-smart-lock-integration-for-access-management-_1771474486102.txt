@@ -1,0 +1,86 @@
+Implement smart lock integration for access management.
+
+## Database Schema
+
+Add to shared/schema.ts:
+
+export const smartLockProviderEnum = pgEnum("smart_lock_provider", [
+  "AUGUST", "SCHLAGE", "YALE", "LEVEL", "OTHER"
+]);
+
+export const smartLocks = pgTable("smart_locks", {
+  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  householdId: varchar("household_id").references(() => households.id).notNull(),
+  provider: smartLockProviderEnum("provider").notNull(),
+  name: varchar("name", { length: 100 }).notNull(), // "Front Door", "Garage"
+  externalId: varchar("external_id", { length: 255 }), // Provider's lock ID
+  accessToken: text("access_token"), // Encrypted OAuth token
+  refreshToken: text("refresh_token"),
+  tokenExpiresAt: timestamp("token_expires_at"),
+  isConnected: boolean("is_connected").default(false).notNull(),
+  lastSyncAt: timestamp("last_sync_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const lockAccessCodes = pgTable("lock_access_codes", {
+  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  lockId: varchar("lock_id").references(() => smartLocks.id).notNull(),
+  householdId: varchar("household_id").notNull(),
+  name: varchar("name", { length: 100 }).notNull(), // "Cleaner", "House sitter"
+  code: varchar("code", { length: 20 }), // The actual code (encrypted)
+  externalCodeId: varchar("external_code_id"), // Provider's code ID
+  
+  // Who this is for
+  vendorId: varchar("vendor_id").references(() => vendors.id),
+  guestAccessId: varchar("guest_access_id").references(() => guestAccess.id),
+  personId: varchar("person_id").references(() => people.id),
+  
+  // Schedule
+  startsAt: timestamp("starts_at"),
+  expiresAt: timestamp("expires_at"),
+  scheduleType: varchar("schedule_type", { length: 20 }), // "ALWAYS", "SCHEDULED", "TEMPORARY"
+  scheduleDays: jsonb("schedule_days").$type<number[]>(), // 0-6 for days of week
+  scheduleStartTime: time("schedule_start_time"),
+  scheduleEndTime: time("schedule_end_time"),
+  
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const lockAccessLog = pgTable("lock_access_log", {
+  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  lockId: varchar("lock_id").references(() => smartLocks.id).notNull(),
+  householdId: varchar("household_id").notNull(),
+  action: varchar("action", { length: 20 }).notNull(), // "LOCK", "UNLOCK", "CODE_USED"
+  codeId: varchar("code_id").references(() => lockAccessCodes.id),
+  method: varchar("method", { length: 20 }), // "CODE", "APP", "AUTO", "MANUAL"
+  timestamp: timestamp("timestamp").notNull(),
+  metadata: jsonb("metadata"),
+});
+
+## Server Implementation
+
+Create server/services/smart-locks/august.ts:
+- OAuth flow for August
+- Lock/unlock commands
+- Access code management
+- Activity log sync
+
+Create server/routes/smart-locks.ts:
+- GET /smart-locks - list connected locks
+- POST /smart-locks/connect/:provider - start OAuth
+- POST /smart-locks/:id/codes - create access code
+- GET /smart-locks/:id/activity - access log
+- POST /smart-locks/:id/lock - remote lock
+- POST /smart-locks/:id/unlock - remote unlock
+
+## Client Pages
+
+Create client/src/pages/smart-locks.tsx:
+- Connected locks with status
+- "Connect lock" flow
+- Access codes management
+- Activity log
+- "Cleaner arrived" notifications setup

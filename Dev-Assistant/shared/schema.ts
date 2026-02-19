@@ -1,5 +1,5 @@
 import { sql, relations } from "drizzle-orm";
-import { pgTable, text, varchar, timestamp, integer, boolean, jsonb, pgEnum, index, unique, date } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, timestamp, integer, boolean, jsonb, pgEnum, index, unique, date, time } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -1726,3 +1726,68 @@ export const guestAccess = pgTable("guest_access", {
 ]);
 
 export type GuestAccess = typeof guestAccess.$inferSelect;
+
+// Smart Lock Integration
+export const smartLockProviderEnum = pgEnum("smart_lock_provider", [
+  "AUGUST", "SCHLAGE", "YALE", "LEVEL", "OTHER"
+]);
+
+export const smartLocks = pgTable("smart_locks", {
+  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  householdId: varchar("household_id").references(() => households.id).notNull(),
+  provider: smartLockProviderEnum("provider").notNull(),
+  name: varchar("name", { length: 100 }).notNull(),
+  externalId: varchar("external_id", { length: 255 }),
+  accessToken: text("access_token"),
+  refreshToken: text("refresh_token"),
+  tokenExpiresAt: timestamp("token_expires_at"),
+  isConnected: boolean("is_connected").default(false).notNull(),
+  lastSyncAt: timestamp("last_sync_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  index("smart_lock_household_idx").on(table.householdId),
+]);
+
+export const lockAccessCodes = pgTable("lock_access_codes", {
+  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  lockId: varchar("lock_id").references(() => smartLocks.id).notNull(),
+  householdId: varchar("household_id").references(() => households.id).notNull(),
+  name: varchar("name", { length: 100 }).notNull(),
+  code: varchar("code", { length: 20 }),
+  externalCodeId: varchar("external_code_id"),
+  vendorId: varchar("vendor_id").references(() => vendors.id),
+  guestAccessId: varchar("guest_access_id").references(() => guestAccess.id),
+  personId: varchar("person_id").references(() => people.id),
+  startsAt: timestamp("starts_at"),
+  expiresAt: timestamp("expires_at"),
+  scheduleType: varchar("schedule_type", { length: 20 }),
+  scheduleDays: jsonb("schedule_days").$type<number[]>(),
+  scheduleStartTime: time("schedule_start_time"),
+  scheduleEndTime: time("schedule_end_time"),
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  index("lock_code_lock_idx").on(table.lockId),
+  index("lock_code_household_idx").on(table.householdId),
+]);
+
+export const lockAccessLog = pgTable("lock_access_log", {
+  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  lockId: varchar("lock_id").references(() => smartLocks.id).notNull(),
+  householdId: varchar("household_id").references(() => households.id).notNull(),
+  action: varchar("action", { length: 20 }).notNull(),
+  codeId: varchar("code_id").references(() => lockAccessCodes.id),
+  method: varchar("method", { length: 20 }),
+  timestamp: timestamp("timestamp").notNull(),
+  metadata: jsonb("metadata"),
+}, (table) => [
+  index("lock_log_lock_idx").on(table.lockId),
+  index("lock_log_household_idx").on(table.householdId),
+  index("lock_log_timestamp_idx").on(table.lockId, table.timestamp),
+]);
+
+export type SmartLock = typeof smartLocks.$inferSelect;
+export type LockAccessCode = typeof lockAccessCodes.$inferSelect;
+export type LockAccessLogEntry = typeof lockAccessLog.$inferSelect;
