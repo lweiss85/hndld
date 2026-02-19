@@ -53,6 +53,7 @@ const ManageAddons = lazy(() => import("@/pages/manage-addons"));
 const Network = lazy(() => import("@/pages/network"));
 const Celebrations = lazy(() => import("@/pages/celebrations"));
 const SecuritySettings = lazy(() => import("@/pages/security-settings"));
+const MyFeedback = lazy(() => import("@/pages/my-feedback"));
 
 function LoadingScreen() {
   return (
@@ -105,6 +106,7 @@ function ClientRouter() {
         <Route path="/network" component={Network} />
         <Route path="/celebrations" component={Celebrations} />
         <Route path="/security" component={SecuritySettings} />
+        <Route path="/my-feedback" component={MyFeedback} />
         <Route component={NotFound} />
       </Switch>
     </Suspense>
@@ -140,6 +142,7 @@ function AssistantRouter() {
         <Route path="/network" component={Network} />
         <Route path="/celebrations" component={Celebrations} />
         <Route path="/security" component={SecuritySettings} />
+        <Route path="/my-feedback" component={MyFeedback} />
         <Route component={NotFound} />
       </Switch>
     </Suspense>

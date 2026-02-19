@@ -1,0 +1,259 @@
+Implement in-app feedback and support system.
+
+## Database Schema
+
+Add to shared/schema.ts:
+
+export const feedbackTypeEnum = pgEnum("feedback_type", [
+  "BUG", "FEATURE_REQUEST", "GENERAL", "COMPLAINT", "PRAISE"
+]);
+
+export const feedbackStatusEnum = pgEnum("feedback_status", [
+  "NEW", "REVIEWED", "IN_PROGRESS", "RESOLVED", "WONT_FIX"
+]);
+
+export const feedback = pgTable("feedback", {
+  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: varchar("user_id").notNull(),
+  householdId: varchar("household_id"),
+  type: feedbackTypeEnum("type").notNull(),
+  subject: varchar("subject", { length: 200 }).notNull(),
+  description: text("description").notNull(),
+  screenshotUrl: text("screenshot_url"),
+  pageUrl: varchar("page_url", { length: 500 }),
+  userAgent: text("user_agent"),
+  appVersion: varchar("app_version", { length: 20 }),
+  status: feedbackStatusEnum("status").default("NEW").notNull(),
+  adminNotes: text("admin_notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  resolvedAt: timestamp("resolved_at"),
+}, (table) => ({
+  userIdx: index("feedback_user_idx").on(table.userId),
+  statusIdx: index("feedback_status_idx").on(table.status),
+  typeIdx: index("feedback_type_idx").on(table.type),
+}));
+
+export const feedbackReplies = pgTable("feedback_replies", {
+  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  feedbackId: varchar("feedback_id").references(() => feedback.id).notNull(),
+  userId: varchar("user_id").notNull(),
+  isAdmin: boolean("is_admin").default(false).notNull(),
+  message: text("message").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+## Server Implementation
+
+Create server/routes/feedback.ts:
+
+import { Router, Request, Response } from "express";
+import { db } from "../db";
+import { feedback, feedbackReplies } from "@shared/schema";
+import { eq, desc, and } from "drizzle-orm";
+import { isAuthenticated } from "../replit_integrations/auth";
+import { householdContextMiddleware } from "../middleware/householdContext";
+import logger from "../lib/logger";
+import multer from "multer";
+import sharp from "sharp";
+import { nanoid } from "nanoid";
+import path from "path";
+import fs from "fs/promises";
+
+const router = Router();
+
+const upload = multer({
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith("image/")) {
+      cb(null, true);
+    } else {
+      cb(new Error("Only images allowed"));
+    }
+  },
+});
+
+// Submit feedback
+router.post(
+  "/feedback",
+  isAuthenticated,
+  householdContextMiddleware,
+  upload.single("screenshot"),
+  async (req: Request, res: Response) => {
+    try {
+      const userId = req.user!.claims.sub;
+      const householdId = req.householdId;
+      const { type, subject, description, pageUrl, appVersion } = req.body;
+
+      if (!type || !subject || !description) {
+        return res.status(400).json({ error: "Type, subject, and description are required" });
+      }
+
+      let screenshotUrl: string | undefined;
+
+      // Process screenshot if provided
+      if (req.file) {
+        const filename = `feedback-${nanoid()}.webp`;
+        const filepath = path.join(process.cwd(), "uploads", "feedback", filename);
+        
+        await fs.mkdir(path.dirname(filepath), { recursive: true });
+        
+        await sharp(req.file.buffer)
+          .resize(1920, 1080, { fit: "inside", withoutEnlargement: true })
+          .webp({ quality: 80 })
+          .toFile(filepath);
+        
+        screenshotUrl = `/uploads/feedback/${filename}`;
+      }
+
+      const [newFeedback] = await db.insert(feedback).values({
+        userId,
+        householdId,
+        type,
+        subject,
+        description,
+        screenshotUrl,
+        pageUrl,
+        userAgent: req.headers["user-agent"],
+        appVersion,
+        status: "NEW",
+      }).returning();
+
+      logger.info("Feedback submitted", {
+        feedbackId: newFeedback.id,
+        type,
+        userId,
+      });
+
+      // TODO: Send notification to admin/support team
+      // await notifySupport(newFeedback);
+
+      res.status(201).json({
+        success: true,
+        message: "Thank you for your feedback!",
+        feedbackId: newFeedback.id,
+      });
+    } catch (error) {
+      logger.error("Feedback submission failed", {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      res.status(500).json({ error: "Failed to submit feedback" });
+    }
+  }
+);
+
+// Get user's feedback history
+router.get(
+  "/feedback",
+  isAuthenticated,
+  async (req: Request, res: Response) => {
+    try {
+      const userId = req.user!.claims.sub;
+
+      const userFeedback = await db.select().from(feedback)
+        .where(eq(feedback.userId, userId))
+        .orderBy(desc(feedback.createdAt))
+        .limit(50);
+
+      res.json({ feedback: userFeedback });
+    } catch (error) {
+      logger.error("Failed to fetch feedback", {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      res.status(500).json({ error: "Failed to fetch feedback" });
+    }
+  }
+);
+
+// Get single feedback with replies
+router.get(
+  "/feedback/:id",
+  isAuthenticated,
+  async (req: Request, res: Response) => {
+    try {
+      const userId = req.user!.claims.sub;
+      const { id } = req.params;
+
+      const [item] = await db.select().from(feedback)
+        .where(and(eq(feedback.id, id), eq(feedback.userId, userId)))
+        .limit(1);
+
+      if (!item) {
+        return res.status(404).json({ error: "Feedback not found" });
+      }
+
+      const replies = await db.select().from(feedbackReplies)
+        .where(eq(feedbackReplies.feedbackId, id))
+        .orderBy(feedbackReplies.createdAt);
+
+      res.json({ feedback: item, replies });
+    } catch (error) {
+      logger.error("Failed to fetch feedback detail", {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      res.status(500).json({ error: "Failed to fetch feedback" });
+    }
+  }
+);
+
+// Add reply to feedback
+router.post(
+  "/feedback/:id/reply",
+  isAuthenticated,
+  async (req: Request, res: Response) => {
+    try {
+      const userId = req.user!.claims.sub;
+      const { id } = req.params;
+      const { message } = req.body;
+
+      // Verify ownership
+      const [item] = await db.select().from(feedback)
+        .where(and(eq(feedback.id, id), eq(feedback.userId, userId)))
+        .limit(1);
+
+      if (!item) {
+        return res.status(404).json({ error: "Feedback not found" });
+      }
+
+      const [reply] = await db.insert(feedbackReplies).values({
+        feedbackId: id,
+        userId,
+        isAdmin: false,
+        message,
+      }).returning();
+
+      res.status(201).json({ reply });
+    } catch (error) {
+      logger.error("Failed to add reply", {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      res.status(500).json({ error: "Failed to add reply" });
+    }
+  }
+);
+
+export function registerFeedbackRoutes(app: Router) {
+  app.use(router);
+}
+
+## Client Component
+
+Create client/src/components/feedback/feedback-dialog.tsx:
+
+- Feedback type selector (Bug, Feature Request, General, etc.)
+- Subject input
+- Description textarea
+- Screenshot capture button (using html2canvas)
+- Auto-capture current URL
+- Submit button
+- Success confirmation
+
+Add floating feedback button to main layout:
+- Fixed position bottom-right
+- Opens feedback dialog
+- Badge for unread replies
+
+Create client/src/pages/my-feedback.tsx:
+- List of submitted feedback
+- Status indicators
+- Conversation thread view

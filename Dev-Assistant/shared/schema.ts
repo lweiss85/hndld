@@ -1556,3 +1556,45 @@ export const accountDeletionRequests = pgTable("account_deletion_requests", {
 });
 
 export type AccountDeletionRequest = typeof accountDeletionRequests.$inferSelect;
+
+export const feedbackTypeEnum = pgEnum("feedback_type", [
+  "BUG", "FEATURE_REQUEST", "GENERAL", "COMPLAINT", "PRAISE"
+]);
+
+export const feedbackStatusEnum = pgEnum("feedback_status", [
+  "NEW", "REVIEWED", "IN_PROGRESS", "RESOLVED", "WONT_FIX"
+]);
+
+export const feedback = pgTable("feedback", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  householdId: varchar("household_id"),
+  type: feedbackTypeEnum("type").notNull(),
+  subject: varchar("subject", { length: 200 }).notNull(),
+  description: text("description").notNull(),
+  screenshotUrl: text("screenshot_url"),
+  pageUrl: varchar("page_url", { length: 500 }),
+  userAgent: text("user_agent"),
+  appVersion: varchar("app_version", { length: 20 }),
+  status: feedbackStatusEnum("status").default("NEW").notNull(),
+  adminNotes: text("admin_notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  resolvedAt: timestamp("resolved_at"),
+}, (table) => [
+  index("feedback_user_idx").on(table.userId),
+  index("feedback_status_idx").on(table.status),
+  index("feedback_type_idx").on(table.type),
+]);
+
+export const feedbackReplies = pgTable("feedback_replies", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  feedbackId: varchar("feedback_id").references(() => feedback.id, { onDelete: "cascade" }).notNull(),
+  userId: varchar("user_id").notNull(),
+  isAdmin: boolean("is_admin").default(false).notNull(),
+  message: text("message").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export type Feedback = typeof feedback.$inferSelect;
+export type FeedbackReply = typeof feedbackReplies.$inferSelect;

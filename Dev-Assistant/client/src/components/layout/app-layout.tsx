@@ -1,6 +1,7 @@
 import { Header } from "./header";
 import { BottomNav } from "./bottom-nav";
 import { AIChat } from "@/components/ai-chat";
+import { FeedbackButton } from "@/components/feedback/feedback-dialog";
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -22,6 +23,7 @@ export function AppLayout({ children }: AppLayoutProps) {
         {children}
       </main>
       <BottomNav />
+      <FeedbackButton />
       <AIChat />
     </div>
   );
