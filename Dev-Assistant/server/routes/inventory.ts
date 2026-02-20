@@ -369,6 +369,15 @@ router.post(
         })
         .where(eq(inventoryItems.id, id));
 
+      const { captureInventoryEvent } = await import("../services/data-capture");
+      const eventType = req.body.serviceType === "REPAIR" ? "REPAIR" : "ROUTINE_MAINTENANCE";
+      captureInventoryEvent(id, eventType, {
+        eventDate: req.body.serviceDate,
+        eventDescription: req.body.description || req.body.notes || null,
+        totalCostCents: req.body.cost ? Math.round(Number(req.body.cost) * 100) : null,
+        vendorName: req.body.provider || null,
+      }).catch(() => {});
+
       res.status(201).json({ service });
     } catch (error: unknown) {
       logger.error("Failed to add service record", {

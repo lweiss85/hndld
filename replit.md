@@ -44,7 +44,11 @@ Preferred communication style: Simple, everyday language.
   - `inventory.ts` - Home inventory CRUD, warranty/maintenance alerts, insurance summary, service history, locations
   - `data-api.ts` - External data partner API with Bearer auth, usage tracking, 6 aggregate analytics endpoints (appliance-lifespan, vendor-pricing, maintenance-costs, seasonal-demand, service-quality, home-operating-costs)
   - `data-partners-admin.ts` - Admin CRUD for data partners, usage stats, API key rotation
+  - `household-details.ts` - Household profile data (GET/POST/PATCH), data completion suggestions, consent management
+  - `service-ratings.ts` - Service quality ratings CRUD, vendor rating summaries, rating prompts
   - Existing Router-pattern modules: `households.ts`, `invites.ts`, `files.ts`, `weekly-brief.ts`
+- **Services**:
+  - `data-capture.ts` - State-to-region/climate derivation, completeness scoring, auto-capture vendor pricing from spending, auto-capture inventory events
 - **Authentication**: Replit Auth integration with session-based authentication
 - **Middleware**: Household context middleware for multi-tenant scoping, permission-based access control, request ID tracking (server/middleware/requestId.ts), response time APM (server/middleware/responseTime.ts)
 - **APM Monitoring**: Built-in metrics collector (server/lib/metrics.ts) with response time percentiles, slow DB query tracking (>100ms), Prometheus endpoint at `/api/metrics`, JSON stats at `/api/metrics/json`, daily P95 log summary at midnight

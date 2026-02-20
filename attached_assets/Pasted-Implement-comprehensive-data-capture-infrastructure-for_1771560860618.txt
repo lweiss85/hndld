@@ -1,0 +1,412 @@
+Implement comprehensive data capture infrastructure for data monetization.
+
+## Architecture Overview
+
+Create a data capture layer that:
+1. Captures rich household metadata for segmentation
+2. Records vendor pricing for market benchmarking
+3. Tracks appliance lifecycle events for reliability analysis
+4. Collects service quality metrics for vendor scoring
+5. Maintains data provenance and audit trails
+
+## 1. HOUSEHOLD DETAILS SCHEMA
+
+Add to shared/schema.ts:
+
+// Enums for household characteristics
+export const homeTypeEnum = pgEnum("home_type", [
+  "SINGLE_FAMILY", "CONDO", "TOWNHOUSE", "APARTMENT", 
+  "MULTI_FAMILY", "MOBILE_HOME", "OTHER"
+]);
+
+export const incomeBracketEnum = pgEnum("income_bracket", [
+  "UNDER_50K", "50K_100K", "100K_150K", "150K_250K", 
+  "250K_500K", "500K_1M", "1M_PLUS", "PREFER_NOT_TO_SAY"
+]);
+
+export const climateZoneEnum = pgEnum("climate_zone", [
+  "HOT_HUMID", "HOT_DRY", "MIXED_HUMID", "MIXED_DRY",
+  "COLD", "VERY_COLD", "SUBARCTIC", "MARINE"
+]);
+
+export const householdDetails = pgTable("household_details", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  householdId: varchar("household_id")
+    .references(() => households.id, { onDelete: "cascade" })
+    .notNull()
+    .unique(),
+  
+  // ===== LOCATION (for regional analytics) =====
+  city: varchar("city", { length: 100 }),
+  state: varchar("state", { length: 50 }),
+  postalCode: varchar("postal_code", { length: 20 }),
+  country: varchar("country", { length: 50 }).default("USA"),
+  
+  // Derived/computed fields for efficient querying
+  region: varchar("region", { length: 50 }), // "NORTHEAST", "SOUTHEAST", "MIDWEST", "SOUTHWEST", "WEST", "PACIFIC"
+  metroArea: varchar("metro_area", { length: 100 }), // "DFW", "NYC", "LA", etc.
+  climateZone: climateZoneEnum("climate_zone"),
+  
+  // Coordinates (for distance calculations, optional)
+  latitude: numeric("latitude", { precision: 10, scale: 7 }),
+  longitude: numeric("longitude", { precision: 10, scale: 7 }),
+  
+  // ===== HOME CHARACTERISTICS =====
+  homeType: homeTypeEnum("home_type"),
+  squareFootage: integer("square_footage"),
+  lotSizeSqFt: integer("lot_size_sq_ft"),
+  stories: integer("stories"),
+  bedrooms: integer("bedrooms"),
+  bathrooms: numeric("bathrooms", { precision: 3, scale: 1 }),
+  yearBuilt: integer("year_built"),
+  yearPurchased: integer("year_purchased"),
+  purchasePriceCents: bigint("purchase_price_cents", { mode: "number" }),
+  estimatedValueCents: bigint("estimated_value_cents", { mode: "number" }),
+  
+  // ===== HOME FEATURES =====
+  hasPool: boolean("has_pool").default(false),
+  hasHotTub: boolean("has_hot_tub").default(false),
+  hasBasement: boolean("has_basement").default(false),
+  hasGarage: boolean("has_garage").default(false),
+  garageSpaces: integer("garage_spaces"),
+  hasHoa: boolean("has_hoa").default(false),
+  hoaMonthlyFeeCents: integer("hoa_monthly_fee_cents"),
+  hasSecuritySystem: boolean("has_security_system").default(false),
+  hasSolarPanels: boolean("has_solar_panels").default(false),
+  hasSprinklerSystem: boolean("has_sprinkler_system").default(false),
+  
+  // ===== SYSTEMS (for maintenance predictions) =====
+  hvacType: varchar("hvac_type", { length: 50 }), // "CENTRAL_AC", "HEAT_PUMP", "WINDOW_UNITS", etc.
+  hvacAgeYears: integer("hvac_age_years"),
+  heatingFuel: varchar("heating_fuel", { length: 30 }), // "NATURAL_GAS", "ELECTRIC", "OIL", "PROPANE"
+  waterHeaterType: varchar("water_heater_type", { length: 30 }), // "TANK_GAS", "TANK_ELECTRIC", "TANKLESS", "HEAT_PUMP"
+  waterHeaterAgeYears: integer("water_heater_age_years"),
+  roofType: varchar("roof_type", { length: 30 }), // "ASPHALT_SHINGLE", "METAL", "TILE", "FLAT"
+  roofAgeYears: integer("roof_age_years"),
+  
+  // ===== HOUSEHOLD DEMOGRAPHICS =====
+  householdSize: integer("household_size"),
+  hasChildren: boolean("has_children").default(false),
+  childrenAges: jsonb("children_ages").$type<number[]>(),
+  hasPets: boolean("has_pets").default(false),
+  petDetails: jsonb("pet_details").$type<{
+    dogs?: number;
+    cats?: number;
+    other?: string[];
+  }>(),
+  
+  // ===== FINANCIAL (optional, for segmentation) =====
+  incomeBracket: incomeBracketEnum("income_bracket"),
+  
+  // ===== DATA QUALITY =====
+  completenessScore: integer("completeness_score"), // 0-100, calculated
+  lastVerifiedAt: timestamp("last_verified_at"),
+  dataSource: varchar("data_source", { length: 50 }).default("USER_INPUT"),
+  
+  // ===== CONSENT =====
+  consentToAnonymizedAnalytics: boolean("consent_to_anonymized_analytics").default(false),
+  consentToDataSharing: boolean("consent_to_data_sharing").default(false),
+  consentUpdatedAt: timestamp("consent_updated_at"),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  index("household_details_household_idx").on(table.householdId),
+  index("household_details_region_idx").on(table.region),
+  index("household_details_state_idx").on(table.state),
+  index("household_details_metro_idx").on(table.metroArea),
+  index("household_details_home_type_idx").on(table.homeType),
+  index("household_details_sqft_idx").on(table.squareFootage),
+  index("household_details_consent_idx").on(table.consentToAnonymizedAnalytics),
+]);
+
+## 2. VENDOR PRICING SCHEMA
+
+export const priceTypeEnum = pgEnum("price_type", [
+  "HOURLY", "FLAT_RATE", "PER_SQFT", "PER_VISIT", 
+  "PER_ROOM", "PER_UNIT", "MONTHLY_RETAINER", "CUSTOM"
+]);
+
+export const vendorPricing = pgTable("vendor_pricing", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  
+  // ===== RELATIONSHIPS =====
+  vendorId: varchar("vendor_id").references(() => vendors.id, { onDelete: "cascade" }).notNull(),
+  householdId: varchar("household_id").references(() => households.id, { onDelete: "cascade" }).notNull(),
+  
+  // ===== SERVICE CLASSIFICATION =====
+  serviceCategory: varchar("service_category", { length: 50 }).notNull(),
+  serviceSubcategory: varchar("service_subcategory", { length: 100 }),
+  serviceDescription: text("service_description"),
+  
+  // ===== PRICING =====
+  priceType: priceTypeEnum("price_type").notNull(),
+  priceAmountCents: integer("price_amount_cents").notNull(),
+  priceCurrency: varchar("price_currency", { length: 3 }).default("USD"),
+  
+  // For range pricing
+  priceMinCents: integer("price_min_cents"),
+  priceMaxCents: integer("price_max_cents"),
+  
+  // Additional costs
+  additionalFees: jsonb("additional_fees").$type<{
+    travelFee?: number;
+    materialsFee?: number;
+    emergencyPremium?: number;
+    weekendPremium?: number;
+    other?: { name: string; amount: number }[];
+  }>(),
+  
+  // ===== CONTEXT (denormalized for efficient analytics) =====
+  homeSquareFootage: integer("home_square_footage"),
+  region: varchar("region", { length: 50 }),
+  metroArea: varchar("metro_area", { length: 100 }),
+  state: varchar("state", { length: 50 }),
+  
+  // ===== VALIDITY =====
+  effectiveDate: date("effective_date").notNull(),
+  endDate: date("end_date"),
+  isCurrentRate: boolean("is_current_rate").default(true),
+  
+  // ===== VERIFICATION =====
+  isVerified: boolean("is_verified").default(false),
+  verificationSource: varchar("verification_source", { length: 50 }),
+  relatedSpendingItemId: varchar("related_spending_item_id"),
+  relatedInvoiceId: varchar("related_invoice_id"),
+  
+  // ===== QUALITY INDICATORS =====
+  confidenceScore: integer("confidence_score"), // 0-100
+  dataPoints: integer("data_points").default(1),
+  
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  createdBy: varchar("created_by"),
+}, (table) => [
+  index("vendor_pricing_vendor_idx").on(table.vendorId),
+  index("vendor_pricing_household_idx").on(table.householdId),
+  index("vendor_pricing_category_idx").on(table.serviceCategory),
+  index("vendor_pricing_region_idx").on(table.region),
+  index("vendor_pricing_state_idx").on(table.state),
+  index("vendor_pricing_metro_idx").on(table.metroArea),
+  index("vendor_pricing_current_idx").on(table.isCurrentRate),
+  index("vendor_pricing_effective_idx").on(table.effectiveDate),
+  index("vendor_pricing_category_region_idx").on(table.serviceCategory, table.region),
+]);
+
+## 3. INVENTORY/APPLIANCE EVENTS SCHEMA
+
+export const inventoryEventTypeEnum = pgEnum("inventory_event_type", [
+  "PURCHASED", "INSTALLED", "REGISTERED", 
+  "ROUTINE_MAINTENANCE", "REPAIR", "PART_REPLACED",
+  "FAILURE", "MALFUNCTION", "RECALL_NOTICE",
+  "WARRANTY_CLAIM", "WARRANTY_EXPIRED",
+  "UPGRADED", "REPLACED", "DISPOSED", "SOLD"
+]);
+
+export const failureCategoryEnum = pgEnum("failure_category", [
+  "MECHANICAL", "ELECTRICAL", "ELECTRONIC", "STRUCTURAL",
+  "WEAR_AND_TEAR", "CORROSION", "LEAK", "MOTOR_FAILURE",
+  "COMPRESSOR_FAILURE", "CONTROL_BOARD", "SENSOR_FAILURE",
+  "EXTERNAL_DAMAGE", "POWER_SURGE", "USER_ERROR", "UNKNOWN"
+]);
+
+export const inventoryEvents = pgTable("inventory_events", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  
+  // ===== RELATIONSHIPS =====
+  inventoryItemId: varchar("inventory_item_id")
+    .references(() => inventoryItems.id, { onDelete: "cascade" })
+    .notNull(),
+  householdId: varchar("household_id")
+    .references(() => households.id, { onDelete: "cascade" })
+    .notNull(),
+  
+  // ===== EVENT DETAILS =====
+  eventType: inventoryEventTypeEnum("event_type").notNull(),
+  eventDate: date("event_date").notNull(),
+  eventDescription: text("event_description"),
+  
+  // ===== COST TRACKING =====
+  totalCostCents: integer("total_cost_cents"),
+  laborCostCents: integer("labor_cost_cents"),
+  partsCostCents: integer("parts_cost_cents"),
+  taxCents: integer("tax_cents"),
+  
+  // ===== VENDOR =====
+  vendorId: varchar("vendor_id").references(() => vendors.id),
+  vendorName: varchar("vendor_name", { length: 200 }),
+  wasWarrantyService: boolean("was_warranty_service").default(false),
+  warrantyClaimNumber: varchar("warranty_claim_number", { length: 100 }),
+  
+  // ===== FAILURE DETAILS (when eventType = FAILURE/MALFUNCTION) =====
+  failureCategory: failureCategoryEnum("failure_category"),
+  failureDescription: text("failure_description"),
+  symptomsBefore: text("symptoms_before"),
+  wasUnderWarranty: boolean("was_under_warranty"),
+  warrantyCoveredAmount: integer("warranty_covered_amount_cents"),
+  rootCause: text("root_cause"),
+  wasPreventable: boolean("was_preventable"),
+  preventionNotes: text("prevention_notes"),
+  
+  // ===== REPAIR DETAILS =====
+  partsReplaced: jsonb("parts_replaced").$type<{
+    partName: string;
+    partNumber?: string;
+    costCents: number;
+    isOem: boolean;
+  }[]>(),
+  repairDurationMinutes: integer("repair_duration_minutes"),
+  repairOutcome: varchar("repair_outcome", { length: 50 }),
+  
+  // ===== DENORMALIZED ITEM DATA (for analytics without joins) =====
+  itemBrand: varchar("item_brand", { length: 100 }),
+  itemModel: varchar("item_model", { length: 100 }),
+  itemCategory: varchar("item_category", { length: 50 }),
+  itemPurchaseDate: date("item_purchase_date"),
+  itemAgeAtEventDays: integer("item_age_at_event_days"),
+  itemAgeAtEventYears: numeric("item_age_at_event_years", { precision: 5, scale: 2 }),
+  
+  // ===== DENORMALIZED HOUSEHOLD DATA (for analytics) =====
+  householdRegion: varchar("household_region", { length: 50 }),
+  householdClimateZone: varchar("household_climate_zone", { length: 30 }),
+  
+  // ===== DOCUMENTS =====
+  receiptFileId: varchar("receipt_file_id").references(() => files.id),
+  invoiceFileId: varchar("invoice_file_id").references(() => files.id),
+  warrantyClaimFileId: varchar("warranty_claim_file_id").references(() => files.id),
+  photoFileIds: jsonb("photo_file_ids").$type<string[]>(),
+  
+  source: varchar("source", { length: 50 }).default("USER_INPUT"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  createdBy: varchar("created_by"),
+}, (table) => [
+  index("inventory_events_item_idx").on(table.inventoryItemId),
+  index("inventory_events_household_idx").on(table.householdId),
+  index("inventory_events_type_idx").on(table.eventType),
+  index("inventory_events_date_idx").on(table.eventDate),
+  index("inventory_events_brand_idx").on(table.itemBrand),
+  index("inventory_events_category_idx").on(table.itemCategory),
+  index("inventory_events_failure_idx").on(table.failureCategory),
+  index("inventory_events_brand_category_idx").on(table.itemBrand, table.itemCategory, table.eventType),
+]);
+
+## 4. SERVICE QUALITY RATINGS SCHEMA
+
+export const serviceQualityRatings = pgTable("service_quality_ratings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  
+  householdId: varchar("household_id").references(() => households.id, { onDelete: "cascade" }).notNull(),
+  vendorId: varchar("vendor_id").references(() => vendors.id, { onDelete: "cascade" }).notNull(),
+  
+  // ===== SERVICE CONTEXT =====
+  serviceCategory: varchar("service_category", { length: 50 }).notNull(),
+  serviceSubcategory: varchar("service_subcategory", { length: 100 }),
+  serviceDate: date("service_date").notNull(),
+  relatedTaskId: varchar("related_task_id").references(() => tasks.id),
+  relatedSpendingItemId: varchar("related_spending_item_id"),
+  
+  // ===== RATINGS (1-5 scale) =====
+  overallRating: integer("overall_rating").notNull(),
+  qualityRating: integer("quality_rating"),
+  punctualityRating: integer("punctuality_rating"),
+  communicationRating: integer("communication_rating"),
+  professionalismRating: integer("professionalism_rating"),
+  valueForMoneyRating: integer("value_for_money_rating"),
+  
+  // ===== NPS-STYLE =====
+  wouldRecommend: boolean("would_recommend"),
+  wouldHireAgain: boolean("would_hire_again"),
+  likelihoodToRecommend: integer("likelihood_to_recommend"), // 0-10
+  
+  // ===== ISSUE TRACKING =====
+  hadIssue: boolean("had_issue").default(false),
+  issueCategory: varchar("issue_category", { length: 50 }),
+  issueDescription: text("issue_description"),
+  issueResolvedSatisfactorily: boolean("issue_resolved_satisfactorily"),
+  
+  // ===== PRICING CONTEXT =====
+  pricePaidCents: integer("price_paid_cents"),
+  
+  // ===== QUALITATIVE =====
+  positiveHighlights: jsonb("positive_highlights").$type<string[]>(),
+  areasForImprovement: jsonb("areas_for_improvement").$type<string[]>(),
+  reviewText: text("review_text"),
+  
+  // ===== DENORMALIZED =====
+  region: varchar("region", { length: 50 }),
+  metroArea: varchar("metro_area", { length: 100 }),
+  homeSquareFootage: integer("home_square_footage"),
+  
+  isPublic: boolean("is_public").default(false),
+  isAnonymous: boolean("is_anonymous").default(false),
+  ratingSource: varchar("rating_source", { length: 30 }).default("IN_APP"),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  index("quality_ratings_household_idx").on(table.householdId),
+  index("quality_ratings_vendor_idx").on(table.vendorId),
+  index("quality_ratings_category_idx").on(table.serviceCategory),
+  index("quality_ratings_region_idx").on(table.region),
+  index("quality_ratings_vendor_category_idx").on(table.vendorId, table.serviceCategory),
+]);
+
+## 5. DATA CAPTURE SERVICE
+
+Create server/services/data-capture.ts:
+
+const STATE_TO_REGION: Record<string, string> = {
+  CT: "NORTHEAST", DE: "NORTHEAST", MA: "NORTHEAST", // ... etc
+  FL: "SOUTHEAST", GA: "SOUTHEAST", // ... etc
+  IL: "MIDWEST", OH: "MIDWEST", // ... etc
+  TX: "SOUTHWEST", AZ: "SOUTHWEST", // ... etc
+  CA: "PACIFIC", WA: "PACIFIC", // ... etc
+};
+
+export function deriveRegionFromState(state: string): string | null
+export function deriveClimateZone(state: string): string | null
+export function calculateCompletenessScore(details): number
+
+export async function captureVendorPricingFromSpending(spendingItemId: string): Promise<void>
+// Auto-capture pricing when spending is recorded
+// - Find vendor, get household details
+// - Create/update vendorPricing record
+// - Denormalize region, sqft
+
+export async function captureInventoryEvent(
+  inventoryItemId: string,
+  eventType: string,
+  eventData: Partial<InventoryEvent>
+): Promise<string | null>
+// - Get item details, household details
+// - Calculate age at event
+// - Denormalize brand, model, category, region, climate
+// - Update item's lastServiceDate if applicable
+
+export async function getDataCompletionSuggestions(householdId: string): Promise<Suggestion[]>
+// Return list of missing data with priority
+
+## 6. ROUTES
+
+Create server/routes/household-details.ts:
+- GET /api/v1/household-details
+- POST /api/v1/household-details
+- PATCH /api/v1/household-details
+- GET /api/v1/household-details/suggestions
+- POST /api/v1/household-details/consent
+
+Create server/routes/service-ratings.ts:
+- POST /api/v1/service-ratings
+- GET /api/v1/service-ratings
+- GET /api/v1/service-ratings/vendor/:vendorId
+- GET /api/v1/service-ratings/prompts
+
+## 7. AUTO-CAPTURE INTEGRATION
+
+In spending routes, after creating:
+captureVendorPricingFromSpending(newItem.id).catch(() => {});
+
+In inventory routes, on service/repair:
+captureInventoryEvent(itemId, "REPAIR", eventData).catch(() => {});

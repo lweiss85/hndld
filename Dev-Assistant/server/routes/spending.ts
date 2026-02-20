@@ -183,6 +183,9 @@ export function registerSpendingRoutes(app: Router) {
       });
       
       wsManager.broadcast("spending:created", { id: item.id }, householdId, userId);
+
+      const { captureVendorPricingFromSpending } = await import("../services/data-capture");
+      captureVendorPricingFromSpending(item.id).catch(() => {});
       
       res.status(201).json(item);
     } catch (error) {

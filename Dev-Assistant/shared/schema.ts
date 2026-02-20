@@ -1,5 +1,5 @@
 import { sql, relations } from "drizzle-orm";
-import { pgTable, text, varchar, timestamp, integer, boolean, jsonb, pgEnum, index, unique, date, time, numeric } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, timestamp, integer, boolean, jsonb, pgEnum, index, unique, date, time, numeric, bigint } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -2184,107 +2184,264 @@ export type InsertInventoryServiceRecord = typeof inventoryServiceHistory.$infer
 
 export const householdDetails = pgTable("household_details", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  householdId: varchar("household_id").references(() => households.id).notNull().unique(),
+  householdId: varchar("household_id").references(() => households.id, { onDelete: "cascade" }).notNull().unique(),
+
   city: varchar("city", { length: 100 }),
   state: varchar("state", { length: 50 }),
   postalCode: varchar("postal_code", { length: 20 }),
-  region: varchar("region", { length: 50 }),
   country: varchar("country", { length: 50 }).default("USA"),
+  region: varchar("region", { length: 50 }),
+  metroArea: varchar("metro_area", { length: 100 }),
+  climateZone: varchar("climate_zone", { length: 30 }),
+  latitude: numeric("latitude", { precision: 10, scale: 7 }),
+  longitude: numeric("longitude", { precision: 10, scale: 7 }),
+
   homeType: varchar("home_type", { length: 30 }),
   squareFootage: integer("square_footage"),
+  lotSizeSqFt: integer("lot_size_sq_ft"),
+  stories: integer("stories"),
   bedrooms: integer("bedrooms"),
   bathrooms: numeric("bathrooms", { precision: 3, scale: 1 }),
   yearBuilt: integer("year_built"),
-  lotSizeAcres: numeric("lot_size_acres", { precision: 5, scale: 2 }),
+  yearPurchased: integer("year_purchased"),
+  purchasePriceCents: bigint("purchase_price_cents", { mode: "number" }),
+  estimatedValueCents: bigint("estimated_value_cents", { mode: "number" }),
+
   hasPool: boolean("has_pool").default(false),
+  hasHotTub: boolean("has_hot_tub").default(false),
+  hasBasement: boolean("has_basement").default(false),
+  hasGarage: boolean("has_garage").default(false),
+  garageSpaces: integer("garage_spaces"),
   hasHoa: boolean("has_hoa").default(false),
+  hoaMonthlyFeeCents: integer("hoa_monthly_fee_cents"),
+  hasSecuritySystem: boolean("has_security_system").default(false),
+  hasSolarPanels: boolean("has_solar_panels").default(false),
+  hasSprinklerSystem: boolean("has_sprinkler_system").default(false),
+
+  hvacType: varchar("hvac_type", { length: 50 }),
+  hvacAgeYears: integer("hvac_age_years"),
+  heatingFuel: varchar("heating_fuel", { length: 30 }),
+  waterHeaterType: varchar("water_heater_type", { length: 30 }),
+  waterHeaterAgeYears: integer("water_heater_age_years"),
+  roofType: varchar("roof_type", { length: 30 }),
+  roofAgeYears: integer("roof_age_years"),
+
   householdSize: integer("household_size"),
+  hasChildren: boolean("has_children").default(false),
+  childrenAges: jsonb("children_ages").$type<number[]>(),
   hasPets: boolean("has_pets").default(false),
-  petTypes: jsonb("pet_types").$type<string[]>(),
+  petDetails: jsonb("pet_details").$type<{
+    dogs?: number;
+    cats?: number;
+    other?: string[];
+  }>(),
+
   incomeBracket: varchar("income_bracket", { length: 30 }),
+
+  completenessScore: integer("completeness_score"),
+  lastVerifiedAt: timestamp("last_verified_at"),
+  dataSource: varchar("data_source", { length: 50 }).default("USER_INPUT"),
+
+  consentToAnonymizedAnalytics: boolean("consent_to_anonymized_analytics").default(false),
+  consentToDataSharing: boolean("consent_to_data_sharing").default(false),
+  consentUpdatedAt: timestamp("consent_updated_at"),
+
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+}, (table) => [
+  index("household_details_household_idx").on(table.householdId),
+  index("household_details_region_idx").on(table.region),
+  index("household_details_state_idx").on(table.state),
+  index("household_details_metro_idx").on(table.metroArea),
+  index("household_details_home_type_idx").on(table.homeType),
+  index("household_details_sqft_idx").on(table.squareFootage),
+  index("household_details_consent_idx").on(table.consentToAnonymizedAnalytics),
+]);
 
 export const vendorPricing = pgTable("vendor_pricing", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  vendorId: varchar("vendor_id").references(() => vendors.id).notNull(),
-  householdId: varchar("household_id").references(() => households.id).notNull(),
+
+  vendorId: varchar("vendor_id").references(() => vendors.id, { onDelete: "cascade" }).notNull(),
+  householdId: varchar("household_id").references(() => households.id, { onDelete: "cascade" }).notNull(),
+
   serviceCategory: varchar("service_category", { length: 50 }).notNull(),
-  serviceType: varchar("service_type", { length: 100 }),
+  serviceSubcategory: varchar("service_subcategory", { length: 100 }),
+  serviceDescription: text("service_description"),
+
   priceType: varchar("price_type", { length: 20 }).notNull(),
   priceAmountCents: integer("price_amount_cents").notNull(),
   priceCurrency: varchar("price_currency", { length: 3 }).default("USD"),
+  priceMinCents: integer("price_min_cents"),
+  priceMaxCents: integer("price_max_cents"),
+  additionalFees: jsonb("additional_fees").$type<{
+    travelFee?: number;
+    materialsFee?: number;
+    emergencyPremium?: number;
+    weekendPremium?: number;
+    other?: { name: string; amount: number }[];
+  }>(),
+
   homeSquareFootage: integer("home_square_footage"),
   region: varchar("region", { length: 50 }),
+  metroArea: varchar("metro_area", { length: 100 }),
+  state: varchar("state", { length: 50 }),
+
   effectiveDate: date("effective_date").notNull(),
   endDate: date("end_date"),
+  isCurrentRate: boolean("is_current_rate").default(true),
+
   isVerified: boolean("is_verified").default(false),
-  invoiceId: varchar("invoice_id"),
+  verificationSource: varchar("verification_source", { length: 50 }),
+  relatedSpendingItemId: varchar("related_spending_item_id"),
+  relatedInvoiceId: varchar("related_invoice_id"),
+
+  confidenceScore: integer("confidence_score"),
+  dataPoints: integer("data_points").default(1),
+
+  notes: text("notes"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  createdBy: varchar("created_by"),
 }, (table) => [
+  index("vendor_pricing_vendor_idx").on(table.vendorId),
+  index("vendor_pricing_household_idx").on(table.householdId),
   index("vendor_pricing_category_idx").on(table.serviceCategory),
   index("vendor_pricing_region_idx").on(table.region),
+  index("vendor_pricing_state_idx").on(table.state),
+  index("vendor_pricing_metro_idx").on(table.metroArea),
+  index("vendor_pricing_current_idx").on(table.isCurrentRate),
   index("vendor_pricing_effective_idx").on(table.effectiveDate),
+  index("vendor_pricing_category_region_idx").on(table.serviceCategory, table.region),
 ]);
 
 export const inventoryEventTypeEnum = pgEnum("inventory_event_type", [
-  "PURCHASED", "INSTALLED", "MAINTENANCE", "REPAIR",
-  "FAILURE", "REPLACEMENT", "DISPOSED", "WARRANTY_CLAIM"
+  "PURCHASED", "INSTALLED", "REGISTERED",
+  "ROUTINE_MAINTENANCE", "REPAIR", "PART_REPLACED",
+  "FAILURE", "MALFUNCTION", "RECALL_NOTICE",
+  "WARRANTY_CLAIM", "WARRANTY_EXPIRED",
+  "UPGRADED", "REPLACED", "DISPOSED", "SOLD"
 ]);
 
 export const inventoryEvents = pgTable("inventory_events", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  inventoryItemId: varchar("inventory_item_id").references(() => inventoryItems.id).notNull(),
-  householdId: varchar("household_id").references(() => households.id).notNull(),
+
+  inventoryItemId: varchar("inventory_item_id").references(() => inventoryItems.id, { onDelete: "cascade" }).notNull(),
+  householdId: varchar("household_id").references(() => households.id, { onDelete: "cascade" }).notNull(),
+
   eventType: inventoryEventTypeEnum("event_type").notNull(),
   eventDate: date("event_date").notNull(),
-  costCents: integer("cost_cents"),
+  eventDescription: text("event_description"),
+
+  totalCostCents: integer("total_cost_cents"),
   laborCostCents: integer("labor_cost_cents"),
   partsCostCents: integer("parts_cost_cents"),
+  taxCents: integer("tax_cents"),
+
   vendorId: varchar("vendor_id").references(() => vendors.id),
   vendorName: varchar("vendor_name", { length: 200 }),
-  failureReason: varchar("failure_reason", { length: 200 }),
+  wasWarrantyService: boolean("was_warranty_service").default(false),
+  warrantyClaimNumber: varchar("warranty_claim_number", { length: 100 }),
+
   failureCategory: varchar("failure_category", { length: 50 }),
+  failureDescription: text("failure_description"),
+  failureReason: varchar("failure_reason", { length: 200 }),
+  symptomsBefore: text("symptoms_before"),
   wasUnderWarranty: boolean("was_under_warranty"),
-  warrantyCovered: boolean("warranty_covered"),
-  applianceAgeYears: numeric("appliance_age_years", { precision: 5, scale: 2 }),
+  warrantyCoveredAmountCents: integer("warranty_covered_amount_cents"),
+  rootCause: text("root_cause"),
+  wasPreventable: boolean("was_preventable"),
+  preventionNotes: text("prevention_notes"),
+
+  partsReplaced: jsonb("parts_replaced").$type<{
+    partName: string;
+    partNumber?: string;
+    costCents: number;
+    isOem: boolean;
+  }[]>(),
+  repairDurationMinutes: integer("repair_duration_minutes"),
+  repairOutcome: varchar("repair_outcome", { length: 50 }),
+
   itemBrand: varchar("item_brand", { length: 100 }),
   itemModel: varchar("item_model", { length: 100 }),
   itemCategory: varchar("item_category", { length: 50 }),
+  itemPurchaseDate: date("item_purchase_date"),
+  itemAgeAtEventDays: integer("item_age_at_event_days"),
+  applianceAgeYears: numeric("appliance_age_years", { precision: 5, scale: 2 }),
+
+  householdRegion: varchar("household_region", { length: 50 }),
+  householdClimateZone: varchar("household_climate_zone", { length: 30 }),
+
+  receiptFileId: varchar("receipt_file_id").references(() => files.id),
+  invoiceFileId: varchar("invoice_file_id").references(() => files.id),
+  warrantyClaimFileId: varchar("warranty_claim_file_id").references(() => files.id),
+  photoFileIds: jsonb("photo_file_ids").$type<string[]>(),
+
+  source: varchar("source", { length: 50 }).default("USER_INPUT"),
   notes: text("notes"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  createdBy: varchar("created_by"),
 }, (table) => [
   index("inventory_events_item_idx").on(table.inventoryItemId),
+  index("inventory_events_household_idx").on(table.householdId),
   index("inventory_events_type_idx").on(table.eventType),
-  index("inventory_events_brand_idx").on(table.itemBrand, table.itemCategory),
   index("inventory_events_date_idx").on(table.eventDate),
+  index("inventory_events_brand_idx").on(table.itemBrand),
+  index("inventory_events_category_idx").on(table.itemCategory),
+  index("inventory_events_failure_idx").on(table.failureCategory),
+  index("inventory_events_brand_category_idx").on(table.itemBrand, table.itemCategory, table.eventType),
 ]);
 
 export const serviceQualityRatings = pgTable("service_quality_ratings", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  householdId: varchar("household_id").references(() => households.id).notNull(),
-  vendorId: varchar("vendor_id").references(() => vendors.id).notNull(),
+
+  householdId: varchar("household_id").references(() => households.id, { onDelete: "cascade" }).notNull(),
+  vendorId: varchar("vendor_id").references(() => vendors.id, { onDelete: "cascade" }).notNull(),
+
   serviceCategory: varchar("service_category", { length: 50 }).notNull(),
+  serviceSubcategory: varchar("service_subcategory", { length: 100 }),
   serviceDate: date("service_date").notNull(),
   relatedTaskId: varchar("related_task_id").references(() => tasks.id),
-  relatedSpendingId: varchar("related_spending_id"),
+  relatedSpendingItemId: varchar("related_spending_item_id"),
+
   overallRating: integer("overall_rating").notNull(),
   qualityRating: integer("quality_rating"),
   punctualityRating: integer("punctuality_rating"),
   communicationRating: integer("communication_rating"),
-  valueRating: integer("value_rating"),
+  professionalismRating: integer("professionalism_rating"),
+  valueForMoneyRating: integer("value_for_money_rating"),
+
   wouldRecommend: boolean("would_recommend"),
+  wouldHireAgain: boolean("would_hire_again"),
+  likelihoodToRecommend: integer("likelihood_to_recommend"),
+
   hadIssue: boolean("had_issue").default(false),
-  issueResolved: boolean("issue_resolved"),
+  issueCategory: varchar("issue_category", { length: 50 }),
+  issueDescription: text("issue_description"),
+  issueResolvedSatisfactorily: boolean("issue_resolved_satisfactorily"),
+
   pricePaidCents: integer("price_paid_cents"),
-  region: varchar("region", { length: 50 }),
+
+  positiveHighlights: jsonb("positive_highlights").$type<string[]>(),
+  areasForImprovement: jsonb("areas_for_improvement").$type<string[]>(),
   reviewText: text("review_text"),
+
+  region: varchar("region", { length: 50 }),
+  metroArea: varchar("metro_area", { length: 100 }),
+  homeSquareFootage: integer("home_square_footage"),
+
+  isPublic: boolean("is_public").default(false),
+  isAnonymous: boolean("is_anonymous").default(false),
+  ratingSource: varchar("rating_source", { length: 30 }).default("IN_APP"),
+
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (table) => [
-  index("quality_vendor_idx").on(table.vendorId),
-  index("quality_category_idx").on(table.serviceCategory),
-  index("quality_region_idx").on(table.region),
+  index("quality_ratings_household_idx").on(table.householdId),
+  index("quality_ratings_vendor_idx").on(table.vendorId),
+  index("quality_ratings_category_idx").on(table.serviceCategory),
+  index("quality_ratings_region_idx").on(table.region),
+  index("quality_ratings_vendor_category_idx").on(table.vendorId, table.serviceCategory),
 ]);
 
 export const dataPartnerTierEnum = pgEnum("data_partner_tier", [
@@ -2346,8 +2503,11 @@ export const dataApiLogs = pgTable("data_api_logs", {
 export type HouseholdDetail = typeof householdDetails.$inferSelect;
 export type InsertHouseholdDetail = typeof householdDetails.$inferInsert;
 export type VendorPricingRecord = typeof vendorPricing.$inferSelect;
+export type InsertVendorPricing = typeof vendorPricing.$inferInsert;
 export type InventoryEvent = typeof inventoryEvents.$inferSelect;
+export type InsertInventoryEvent = typeof inventoryEvents.$inferInsert;
 export type ServiceQualityRating = typeof serviceQualityRatings.$inferSelect;
+export type InsertServiceQualityRating = typeof serviceQualityRatings.$inferInsert;
 export type DataPartner = typeof dataPartners.$inferSelect;
 export type InsertDataPartner = typeof dataPartners.$inferInsert;
 export type DataApiLog = typeof dataApiLogs.$inferSelect;

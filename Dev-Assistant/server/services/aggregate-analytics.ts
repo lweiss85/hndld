@@ -309,7 +309,7 @@ export async function getServiceQualityBenchmarks(
     const ratings = await db.select({
       avgOverall: avg(serviceQualityRatings.overallRating),
       avgQuality: avg(serviceQualityRatings.qualityRating),
-      avgValue: avg(serviceQualityRatings.valueRating),
+      avgValue: avg(serviceQualityRatings.valueForMoneyRating),
       count: count(),
     })
       .from(serviceQualityRatings)
@@ -324,7 +324,7 @@ export async function getServiceQualityBenchmarks(
     const recommendStats = await db.select({
       recommended: count(sql`CASE WHEN ${serviceQualityRatings.wouldRecommend} = true THEN 1 END`),
       withIssues: count(sql`CASE WHEN ${serviceQualityRatings.hadIssue} = true THEN 1 END`),
-      issuesResolved: count(sql`CASE WHEN ${serviceQualityRatings.issueResolved} = true THEN 1 END`),
+      issuesResolved: count(sql`CASE WHEN ${serviceQualityRatings.issueResolvedSatisfactorily} = true THEN 1 END`),
       total: count(),
     })
       .from(serviceQualityRatings)

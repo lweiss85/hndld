@@ -55,6 +55,8 @@ import { registerProviderRoutes } from "./routes/provider";
 import { registerInventoryRoutes } from "./routes/inventory";
 import { registerDataApiRoutes } from "./routes/data-api";
 import { registerDataPartnersAdminRoutes } from "./routes/data-partners-admin";
+import { registerHouseholdDetailsRoutes } from "./routes/household-details";
+import { registerServiceRatingsRoutes } from "./routes/service-ratings";
 
 const householdContext = householdContextMiddleware;
 
@@ -145,6 +147,8 @@ export async function registerRoutes(
   registerProviderRoutes(v1);
   registerInventoryRoutes(v1);
   registerDataPartnersAdminRoutes(v1);
+  registerHouseholdDetailsRoutes(v1);
+  registerServiceRatingsRoutes(v1);
 
   registerAlexaRoutes(app);
   registerDataApiRoutes(app);

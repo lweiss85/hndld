@@ -1,0 +1,164 @@
+Implement the cross-household data aggregation engine for analytics.
+
+## Architecture Principles
+
+1. K-ANONYMITY: Never return results with fewer than K records (default 10)
+2. CONSENT-BASED: Only include households that consented
+3. CACHEABLE: Results should be cacheable for performance
+4. AUDITABLE: Log all aggregation queries
+
+## Create server/services/aggregate-analytics.ts
+
+### Constants & Types
+
+const DEFAULT_K_ANONYMITY = 10;
+const CACHE_TTL_SECONDS = 3600;
+
+interface AggregationOptions {
+  kAnonymity?: number;
+  cacheKey?: string;
+  cacheTtl?: number;
+}
+
+interface AggregationResult<T> {
+  data: T | null;
+  metadata: {
+    sampleSize: number;
+    meetsKAnonymity: boolean;
+    kThreshold: number;
+    queryTimeMs: number;
+    cached: boolean;
+  };
+  filters?: Record<string, any>;
+}
+
+### Consent Filter
+
+function getConsentedHouseholdsSubquery() {
+  return db.select({ householdId: householdDetails.householdId })
+    .from(householdDetails)
+    .where(eq(householdDetails.consentToAnonymizedAnalytics, true));
+}
+
+### 1. Appliance Lifespan Analytics
+
+export async function getApplianceLifespanAnalytics(
+  category: string,
+  filters?: { brand?: string; model?: string; region?: string; climateZone?: string },
+  options?: AggregationOptions
+): Promise<AggregationResult<{
+  averageLifespanYears: number;
+  medianLifespanYears: number;
+  percentile10: number;
+  percentile90: number;
+  standardDeviation: number;
+  totalFailures: number;
+  failuresByAge: { ageRange: string; count: number; percentage: number }[];
+  topFailureCategories: { category: string; count: number; percentage: number }[];
+  reliabilityScore: number;
+  brandComparison?: { brand: string; avgLifespan: number; sampleSize: number }[];
+}>>
+
+Implementation:
+1. Check cache
+2. Build conditions (eventType=FAILURE, itemCategory, filters, consent)
+3. Query aggregate stats: AVG, MIN, MAX, STDDEV, COUNT
+4. Check k-anonymity threshold
+5. Query percentiles using PERCENTILE_CONT
+6. Query failure category distribution
+7. Query age distribution with CASE buckets
+8. Query brand comparison (if not filtering by brand)
+9. Calculate reliability score vs expected lifespan
+10. Cache and return
+
+### 2. Vendor Pricing Benchmarks
+
+export async function getVendorPricingBenchmarks(
+  serviceCategory: string,
+  filters?: { region?: string; state?: string; metroArea?: string; priceType?: string; sqftMin?: number; sqftMax?: number },
+  options?: AggregationOptions
+): Promise<AggregationResult<{
+  averagePriceCents: number;
+  medianPriceCents: number;
+  percentile25: number;
+  percentile75: number;
+  minPriceCents: number;
+  maxPriceCents: number;
+  priceBySquareFootage: { sqftRange: string; avgPrice: number; count: number }[];
+  priceByRegion: { region: string; avgPrice: number; count: number }[];
+  priceHistory: { month: string; avgPrice: number; count: number }[];
+  recommendedBudgetRange: { low: number; mid: number; high: number };
+}>>
+
+### 3. Service Quality Benchmarks
+
+export async function getServiceQualityBenchmarks(
+  serviceCategory: string,
+  filters?: { region?: string; minRating?: number },
+  options?: AggregationOptions
+): Promise<AggregationResult<{
+  averageOverallRating: number;
+  averageQualityRating: number;
+  averageValueRating: number;
+  npsScore: number;
+  recommendationRate: number;
+  issueRate: number;
+  issueResolutionRate: number;
+  ratingDistribution: { rating: number; count: number; percentage: number }[];
+}>>
+
+### 4. Home Operating Cost Benchmarks
+
+export async function getHomeOperatingCostBenchmarks(
+  filters: { region: string; homeType?: string; sqftMin?: number; sqftMax?: number },
+  options?: AggregationOptions
+): Promise<AggregationResult<{
+  avgAnnualTotalCents: number;
+  avgMonthlyCents: number;
+  avgPerSqFtCents: number;
+  costBreakdown: { category: string; avgAnnualCents: number; percentage: number }[];
+  monthlyTrend: { month: string; avgCost: number }[];
+}>>
+
+### 5. Seasonal Demand Patterns
+
+export async function getSeasonalDemandPatterns(
+  serviceCategory: string,
+  region?: string,
+  options?: AggregationOptions
+): Promise<AggregationResult<{
+  demandByMonth: { month: number; monthName: string; demandIndex: number }[];
+  peakMonths: number[];
+  lowMonths: number[];
+  yearOverYearGrowth: number;
+}>>
+
+### SQL Patterns to Use
+
+-- Percentiles
+SELECT 
+  PERCENTILE_CONT(0.25) WITHIN GROUP (ORDER BY price) as p25,
+  PERCENTILE_CONT(0.50) WITHIN GROUP (ORDER BY price) as p50,
+  PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY price) as p75
+FROM vendor_pricing WHERE ...
+
+-- Age buckets
+SELECT 
+  CASE 
+    WHEN age < 2 THEN '0-2 years'
+    WHEN age < 5 THEN '2-5 years'
+    WHEN age < 8 THEN '5-8 years'
+    ELSE '8+ years'
+  END as age_range,
+  COUNT(*) as count
+FROM inventory_events WHERE ...
+GROUP BY 1
+
+-- Time series
+SELECT 
+  TO_CHAR(effective_date, 'YYYY-MM') as month,
+  AVG(price_amount_cents)::integer as avg_price,
+  COUNT(*) as count
+FROM vendor_pricing WHERE ...
+GROUP BY 1
+ORDER BY 1
