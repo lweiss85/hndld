@@ -1,0 +1,119 @@
+Implement secure API for data partners with auth, rate limiting, billing.
+
+## Schema
+
+### dataPartners table
+
+Fields:
+- id, organizationName, organizationType, website
+- contactName, contactEmail, contactPhone
+- apiKeyHash, apiKeyPrefix, apiKeySuffix
+- secondaryApiKeyHash, secondaryApiKeyPrefix (rotation)
+- tier: TRIAL | BASIC | PROFESSIONAL | ENTERPRISE | RESEARCH
+- status: PENDING_APPROVAL | ACTIVE | SUSPENDED | TERMINATED
+- allowedEndpoints, allowedRegions, allowedCategories (jsonb)
+- ipWhitelist (jsonb)
+- requestsPerMinute, requestsPerHour, requestsPerDay, requestsPerMonth
+- currentMinuteUsage, currentHourUsage, currentDayUsage, currentMonthUsage
+- minuteResetAt, hourResetAt, dayResetAt, monthResetAt
+- monthlyBaseFee, perRequestFee
+- stripeCustomerId, stripeSubscriptionId
+- contractStartDate, contractEndDate
+- createdAt, updatedAt
+
+### dataApiRequests table
+
+Fields:
+- id, partnerId
+- endpoint, method, queryParams
+- responseStatus, responseTimeMs, resultCount
+- errorCode, errorMessage
+- billableUnits
+- ipAddress, userAgent, requestId
+- createdAt
+
+## Tier Configuration
+
+const TIER_CONFIG = {
+  TRIAL: {
+    endpoints: ["/appliance-lifespan", "/vendor-pricing"],
+    maxResultsPerRequest: 100,
+  },
+  BASIC: {
+    endpoints: ["+/service-quality"],
+    maxResultsPerRequest: 500,
+  },
+  PROFESSIONAL: {
+    endpoints: ["+/home-operating-costs", "+/seasonal-demand"],
+    maxResultsPerRequest: 2000,
+  },
+  ENTERPRISE: {
+    endpoints: ["*"],
+    maxResultsPerRequest: 10000,
+  },
+  RESEARCH: {
+    endpoints: ["*"],
+    maxResultsPerRequest: 50000,
+  },
+};
+
+## Create server/routes/data-api.ts
+
+### Authentication Middleware
+
+async function authenticatePartner(req, res, next):
+1. Extract Bearer token
+2. Validate format (hndld_data_*)
+3. Find partner by prefix
+4. Verify with bcrypt
+5. Check status === ACTIVE
+6. Check IP whitelist
+7. Check endpoint access
+8. Check rate limits
+9. Attach partner to req
+
+### Rate Limiting
+
+async function checkAndUpdateRateLimits(partner):
+1. Check/reset minute counter
+2. Check/reset hour counter
+3. Check/reset day counter
+4. Check/reset month counter
+5. Update counters atomically
+6. Return { allowed, message?, retryAfter? }
+
+### Request Logging
+
+async function logRequest(req, res, resultCount, errorCode?, errorMessage?):
+- Insert to dataApiRequests
+
+### Endpoints
+
+GET /data/v1/appliance-lifespan?category=HVAC&brand=...&region=...
+GET /data/v1/vendor-pricing?serviceCategory=CLEANING&region=...
+GET /data/v1/service-quality?serviceCategory=CLEANING&region=...
+GET /data/v1/home-operating-costs?region=TX&homeType=...
+GET /data/v1/seasonal-demand?serviceCategory=LANDSCAPING&region=...
+GET /data/v1/usage (current limits/usage)
+GET /data/v1/available-endpoints (tier info)
+
+### Admin Routes
+
+POST /admin/data-partners (create with generated API key)
+POST /admin/data-partners/:id/approve
+POST /admin/data-partners/:id/rotate-key
+PATCH /admin/data-partners/:id
+GET /admin/data-partners/:id/usage
+
+### API Key Generation
+
+function generateApiKey() {
+  const key = `hndld_data_${randomBytes(32).toString("hex")}`;
+  return {
+    key,
+    prefix: key.substring(0, 12),
+    suffix: key.substring(key.length - 4),
+  };
+}
+// Hash with bcrypt cost 12
+// Return key ONLY ONCE in create response

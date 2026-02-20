@@ -5,9 +5,9 @@ import { eq, and, gte, desc, count, avg, sql } from "drizzle-orm";
 import { isAuthenticated } from "../replit_integrations/auth";
 import { householdContextMiddleware } from "../middleware/householdContext";
 import bcrypt from "bcrypt";
-import crypto from "crypto";
 import { subDays } from "date-fns";
 import logger from "../lib/logger";
+import { generateApiKey } from "./data-api";
 
 const router = Router();
 
@@ -17,35 +17,51 @@ router.post(
   householdContextMiddleware,
   async (req: Request, res: Response) => {
     try {
-      const { name, companyName, contactEmail, contactName, tier, monthlyRequestLimit, dailyRequestLimit } = req.body;
+      const {
+        organizationName, organizationType, website,
+        contactName, contactEmail, contactPhone,
+        tier, ipWhitelist,
+        requestsPerMinute, requestsPerHour, requestsPerDay, requestsPerMonth,
+        monthlyBaseFee, perRequestFee,
+        contractStartDate, contractEndDate,
+      } = req.body;
 
-      if (!name || !contactEmail) {
-        return res.status(400).json({ error: "Name and contact email are required" });
+      if (!organizationName || !contactEmail) {
+        return res.status(400).json({ error: "Organization name and contact email are required" });
       }
 
-      const apiKey = `hndld_data_${crypto.randomBytes(32).toString("hex")}`;
-      const apiKeyPrefix = apiKey.substring(0, 8);
-      const apiKeyHash = await bcrypt.hash(apiKey, 10);
+      const { key, prefix, suffix } = generateApiKey();
+      const apiKeyHash = await bcrypt.hash(key, 12);
 
       const [partner] = await db.insert(dataPartners).values({
-        name,
-        companyName: companyName || null,
-        contactEmail,
+        organizationName,
+        organizationType: organizationType || null,
+        website: website || null,
         contactName: contactName || null,
-        tier: tier || "BASIC",
+        contactEmail,
+        contactPhone: contactPhone || null,
+        tier: tier || "TRIAL",
+        status: "PENDING_APPROVAL",
         apiKeyHash,
-        apiKeyPrefix,
-        monthlyRequestLimit: monthlyRequestLimit || 1000,
-        dailyRequestLimit: dailyRequestLimit || 100,
+        apiKeyPrefix: prefix,
+        apiKeySuffix: suffix,
+        ipWhitelist: ipWhitelist || null,
+        requestsPerMinute: requestsPerMinute || 30,
+        requestsPerHour: requestsPerHour || 500,
+        requestsPerDay: requestsPerDay || 5000,
+        requestsPerMonth: requestsPerMonth || 50000,
+        monthlyBaseFee: monthlyBaseFee || 0,
+        perRequestFee: perRequestFee || 0,
+        contractStartDate: contractStartDate || null,
+        contractEndDate: contractEndDate || null,
         allowedEndpoints: [],
-        activatedAt: new Date(),
       }).returning();
 
-      logger.info("Data partner created", { partnerId: partner.id, name });
+      logger.info("Data partner created", { partnerId: partner.id, organizationName });
 
       res.status(201).json({
-        partner: { ...partner, apiKeyHash: undefined },
-        apiKey,
+        partner: { ...partner, apiKeyHash: undefined, secondaryApiKeyHash: undefined },
+        apiKey: key,
         warning: "Save this API key securely. It cannot be retrieved again.",
       });
     } catch (error: unknown) {
@@ -53,6 +69,38 @@ router.post(
         error: error instanceof Error ? error.message : String(error),
       });
       res.status(500).json({ error: "Failed to create partner" });
+    }
+  }
+);
+
+router.post(
+  "/data-partners/:id/approve",
+  isAuthenticated,
+  householdContextMiddleware,
+  async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+
+      const [partner] = await db.update(dataPartners)
+        .set({ status: "ACTIVE", updatedAt: new Date() })
+        .where(and(
+          eq(dataPartners.id, id),
+          eq(dataPartners.status, "PENDING_APPROVAL")
+        ))
+        .returning();
+
+      if (!partner) {
+        return res.status(404).json({ error: "Partner not found or not pending approval" });
+      }
+
+      logger.info("Data partner approved", { partnerId: id });
+
+      res.json({ partner: { ...partner, apiKeyHash: undefined, secondaryApiKeyHash: undefined } });
+    } catch (error: unknown) {
+      logger.error("Failed to approve data partner", {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      res.status(500).json({ error: "Failed to approve partner" });
     }
   }
 );
@@ -65,15 +113,17 @@ router.get(
     try {
       const partners = await db.select({
         id: dataPartners.id,
-        name: dataPartners.name,
-        companyName: dataPartners.companyName,
+        organizationName: dataPartners.organizationName,
+        organizationType: dataPartners.organizationType,
         contactEmail: dataPartners.contactEmail,
         tier: dataPartners.tier,
-        isActive: dataPartners.isActive,
+        status: dataPartners.status,
+        apiKeyPrefix: dataPartners.apiKeyPrefix,
+        apiKeySuffix: dataPartners.apiKeySuffix,
         currentMonthUsage: dataPartners.currentMonthUsage,
         currentDayUsage: dataPartners.currentDayUsage,
-        monthlyRequestLimit: dataPartners.monthlyRequestLimit,
-        dailyRequestLimit: dataPartners.dailyRequestLimit,
+        requestsPerMonth: dataPartners.requestsPerMonth,
+        requestsPerDay: dataPartners.requestsPerDay,
         contractStartDate: dataPartners.contractStartDate,
         contractEndDate: dataPartners.contractEndDate,
         createdAt: dataPartners.createdAt,
@@ -147,27 +197,34 @@ router.patch(
   async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
-      const { tier, monthlyRequestLimit, dailyRequestLimit, isActive, allowedEndpoints, allowedRegions, allowedCategories, deactivationReason } = req.body;
+      const {
+        tier, status,
+        requestsPerMinute, requestsPerHour, requestsPerDay, requestsPerMonth,
+        allowedEndpoints, allowedRegions, allowedCategories,
+        ipWhitelist,
+        monthlyBaseFee, perRequestFee,
+        stripeCustomerId, stripeSubscriptionId,
+        contractStartDate, contractEndDate,
+      } = req.body;
 
       const updates: Record<string, unknown> = { updatedAt: new Date() };
 
       if (tier !== undefined) updates.tier = tier;
-      if (monthlyRequestLimit !== undefined) updates.monthlyRequestLimit = monthlyRequestLimit;
-      if (dailyRequestLimit !== undefined) updates.dailyRequestLimit = dailyRequestLimit;
+      if (status !== undefined) updates.status = status;
+      if (requestsPerMinute !== undefined) updates.requestsPerMinute = requestsPerMinute;
+      if (requestsPerHour !== undefined) updates.requestsPerHour = requestsPerHour;
+      if (requestsPerDay !== undefined) updates.requestsPerDay = requestsPerDay;
+      if (requestsPerMonth !== undefined) updates.requestsPerMonth = requestsPerMonth;
       if (allowedEndpoints !== undefined) updates.allowedEndpoints = allowedEndpoints;
       if (allowedRegions !== undefined) updates.allowedRegions = allowedRegions;
       if (allowedCategories !== undefined) updates.allowedCategories = allowedCategories;
-
-      if (isActive === false) {
-        updates.isActive = false;
-        updates.deactivatedAt = new Date();
-        updates.deactivationReason = deactivationReason || "Deactivated by admin";
-      } else if (isActive === true) {
-        updates.isActive = true;
-        updates.deactivatedAt = null;
-        updates.deactivationReason = null;
-        updates.activatedAt = new Date();
-      }
+      if (ipWhitelist !== undefined) updates.ipWhitelist = ipWhitelist;
+      if (monthlyBaseFee !== undefined) updates.monthlyBaseFee = monthlyBaseFee;
+      if (perRequestFee !== undefined) updates.perRequestFee = perRequestFee;
+      if (stripeCustomerId !== undefined) updates.stripeCustomerId = stripeCustomerId;
+      if (stripeSubscriptionId !== undefined) updates.stripeSubscriptionId = stripeSubscriptionId;
+      if (contractStartDate !== undefined) updates.contractStartDate = contractStartDate;
+      if (contractEndDate !== undefined) updates.contractEndDate = contractEndDate;
 
       const [partner] = await db.update(dataPartners)
         .set(updates)
@@ -180,7 +237,7 @@ router.patch(
 
       logger.info("Data partner updated", { partnerId: id });
 
-      res.json({ partner: { ...partner, apiKeyHash: undefined } });
+      res.json({ partner: { ...partner, apiKeyHash: undefined, secondaryApiKeyHash: undefined } });
     } catch (error: unknown) {
       logger.error("Failed to update data partner", {
         error: error instanceof Error ? error.message : String(error),
@@ -198,25 +255,34 @@ router.post(
     try {
       const { id } = req.params;
 
-      const apiKey = `hndld_data_${crypto.randomBytes(32).toString("hex")}`;
-      const apiKeyPrefix = apiKey.substring(0, 8);
-      const apiKeyHash = await bcrypt.hash(apiKey, 10);
+      const [existing] = await db.select().from(dataPartners)
+        .where(eq(dataPartners.id, id)).limit(1);
 
-      const [partner] = await db.update(dataPartners)
-        .set({ apiKeyHash, apiKeyPrefix, updatedAt: new Date() })
-        .where(eq(dataPartners.id, id))
-        .returning();
-
-      if (!partner) {
+      if (!existing) {
         return res.status(404).json({ error: "Partner not found" });
       }
+
+      const { key, prefix, suffix } = generateApiKey();
+      const newHash = await bcrypt.hash(key, 12);
+
+      const [partner] = await db.update(dataPartners)
+        .set({
+          secondaryApiKeyHash: existing.apiKeyHash,
+          secondaryApiKeyPrefix: existing.apiKeyPrefix,
+          apiKeyHash: newHash,
+          apiKeyPrefix: prefix,
+          apiKeySuffix: suffix,
+          updatedAt: new Date(),
+        })
+        .where(eq(dataPartners.id, id))
+        .returning();
 
       logger.info("Data partner API key rotated", { partnerId: id });
 
       res.json({
-        partner: { ...partner, apiKeyHash: undefined },
-        apiKey,
-        warning: "Save this new API key securely. The old key is now invalid.",
+        partner: { ...partner, apiKeyHash: undefined, secondaryApiKeyHash: undefined },
+        apiKey: key,
+        warning: "Save this new API key securely. The previous key will continue working temporarily for rotation.",
       });
     } catch (error: unknown) {
       logger.error("Failed to rotate partner key", {

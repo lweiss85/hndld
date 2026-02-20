@@ -2445,40 +2445,56 @@ export const serviceQualityRatings = pgTable("service_quality_ratings", {
 ]);
 
 export const dataPartnerTierEnum = pgEnum("data_partner_tier", [
-  "BASIC", "PREMIUM", "ENTERPRISE", "RESEARCH"
+  "TRIAL", "BASIC", "PROFESSIONAL", "ENTERPRISE", "RESEARCH"
+]);
+
+export const dataPartnerStatusEnum = pgEnum("data_partner_status", [
+  "PENDING_APPROVAL", "ACTIVE", "SUSPENDED", "TERMINATED"
 ]);
 
 export const dataPartners = pgTable("data_partners", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  name: varchar("name", { length: 200 }).notNull(),
-  companyName: varchar("company_name", { length: 200 }),
+  organizationName: varchar("organization_name", { length: 200 }).notNull(),
+  organizationType: varchar("organization_type", { length: 100 }),
+  website: varchar("website", { length: 500 }),
+  contactName: varchar("contact_name", { length: 200 }),
   contactEmail: varchar("contact_email", { length: 255 }).notNull(),
-  contactName: varchar("contact_name", { length: 100 }),
+  contactPhone: varchar("contact_phone", { length: 50 }),
   apiKeyHash: varchar("api_key_hash", { length: 255 }).notNull(),
-  apiKeyPrefix: varchar("api_key_prefix", { length: 10 }).notNull(),
-  tier: dataPartnerTierEnum("tier").default("BASIC").notNull(),
+  apiKeyPrefix: varchar("api_key_prefix", { length: 20 }).notNull(),
+  apiKeySuffix: varchar("api_key_suffix", { length: 10 }),
+  secondaryApiKeyHash: varchar("secondary_api_key_hash", { length: 255 }),
+  secondaryApiKeyPrefix: varchar("secondary_api_key_prefix", { length: 20 }),
+  tier: dataPartnerTierEnum("tier").default("TRIAL").notNull(),
+  status: dataPartnerStatusEnum("status").default("PENDING_APPROVAL").notNull(),
   allowedEndpoints: jsonb("allowed_endpoints").$type<string[]>().default([]),
   allowedRegions: jsonb("allowed_regions").$type<string[]>(),
   allowedCategories: jsonb("allowed_categories").$type<string[]>(),
-  monthlyRequestLimit: integer("monthly_request_limit").default(1000),
-  dailyRequestLimit: integer("daily_request_limit").default(100),
-  currentMonthUsage: integer("current_month_usage").default(0),
+  ipWhitelist: jsonb("ip_whitelist").$type<string[]>(),
+  requestsPerMinute: integer("requests_per_minute").default(30),
+  requestsPerHour: integer("requests_per_hour").default(500),
+  requestsPerDay: integer("requests_per_day").default(5000),
+  requestsPerMonth: integer("requests_per_month").default(50000),
+  currentMinuteUsage: integer("current_minute_usage").default(0),
+  currentHourUsage: integer("current_hour_usage").default(0),
   currentDayUsage: integer("current_day_usage").default(0),
-  usageResetDate: date("usage_reset_date"),
-  monthlyFeeCents: integer("monthly_fee_cents").default(0),
-  perRequestFeeCents: integer("per_request_fee_cents").default(0),
+  currentMonthUsage: integer("current_month_usage").default(0),
+  minuteResetAt: timestamp("minute_reset_at"),
+  hourResetAt: timestamp("hour_reset_at"),
+  dayResetAt: timestamp("day_reset_at"),
+  monthResetAt: timestamp("month_reset_at"),
+  monthlyBaseFee: integer("monthly_base_fee").default(0),
+  perRequestFee: integer("per_request_fee").default(0),
   stripeCustomerId: varchar("stripe_customer_id", { length: 100 }),
-  isActive: boolean("is_active").default(true).notNull(),
-  activatedAt: timestamp("activated_at"),
-  deactivatedAt: timestamp("deactivated_at"),
-  deactivationReason: text("deactivation_reason"),
+  stripeSubscriptionId: varchar("stripe_subscription_id", { length: 100 }),
   contractStartDate: date("contract_start_date"),
   contractEndDate: date("contract_end_date"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (table) => [
   index("data_partners_api_key_idx").on(table.apiKeyPrefix),
-  index("data_partners_active_idx").on(table.isActive),
+  index("data_partners_status_idx").on(table.status),
+  index("data_partners_secondary_key_idx").on(table.secondaryApiKeyPrefix),
 ]);
 
 export const dataApiLogs = pgTable("data_api_logs", {
@@ -2490,14 +2506,18 @@ export const dataApiLogs = pgTable("data_api_logs", {
   responseStatus: integer("response_status").notNull(),
   responseTimeMs: integer("response_time_ms"),
   resultCount: integer("result_count"),
+  errorCode: varchar("error_code", { length: 50 }),
+  errorMessage: text("error_message"),
   billableUnits: integer("billable_units").default(1),
   ipAddress: varchar("ip_address", { length: 45 }),
   userAgent: text("user_agent"),
+  requestId: varchar("request_id", { length: 100 }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (table) => [
   index("data_api_logs_partner_idx").on(table.partnerId),
   index("data_api_logs_endpoint_idx").on(table.endpoint),
   index("data_api_logs_date_idx").on(table.createdAt),
+  index("data_api_logs_request_id_idx").on(table.requestId),
 ]);
 
 export type HouseholdDetail = typeof householdDetails.$inferSelect;
