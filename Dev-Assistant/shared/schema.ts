@@ -504,7 +504,7 @@ export const playbookSteps = pgTable("playbook_steps", {
 // Audit Log (trust layer for tracking all changes)
 export const auditLogEntityTypeEnum = pgEnum("audit_log_entity_type", [
   "TASK", "APPROVAL", "UPDATE", "REQUEST", "VENDOR", "SPENDING", 
-  "CALENDAR_EVENT", "VAULT", "SETTINGS", "PLAYBOOK", "MEMBER", "HOUSEHOLD"
+  "CALENDAR_EVENT", "VAULT", "SETTINGS", "PLAYBOOK", "MEMBER", "HOUSEHOLD", "SECURITY"
 ]);
 
 export const auditLogs = pgTable("audit_logs", {

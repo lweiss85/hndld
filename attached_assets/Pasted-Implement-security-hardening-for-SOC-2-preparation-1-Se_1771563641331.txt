@@ -1,0 +1,141 @@
+Implement security hardening for SOC 2 preparation.
+
+## 1. Security Headers (server/middleware/security.ts)
+
+import helmet from "helmet";
+import hpp from "hpp";
+import { slowDown } from "express-slow-down";
+
+export function configureSecurityMiddleware(app) {
+  app.use(helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'"],
+        imgSrc: ["'self'", "data:", "https:"],
+        connectSrc: ["'self'", "https://api.anthropic.com"],
+        frameSrc: ["'none'"],
+      },
+    },
+    hsts: { maxAge: 31536000, includeSubDomains: true, preload: true },
+    frameguard: { action: "deny" },
+  }));
+  
+  app.use(hpp());
+  
+  app.use(slowDown({
+    windowMs: 60000,
+    delayAfter: 100,
+    delayMs: (hits) => hits * 100,
+  }));
+  
+  app.use(express.json({ limit: "10kb" }));
+}
+
+## 2. Input Validation (server/lib/validation.ts)
+
+import { z } from "zod";
+import sanitizeHtml from "sanitize-html";
+
+export function sanitizeString(input: string): string {
+  return sanitizeHtml(input.trim(), { allowedTags: [], allowedAttributes: {} });
+}
+
+export const emailSchema = z.string().email().max(255);
+export const uuidSchema = z.string().uuid();
+export const safeStringSchema = z.string().max(1000).transform(sanitizeString);
+
+const SQL_PATTERNS = [
+  /(\%27)|(\')|(\-\-)/i,
+  /\b(union|select|insert|delete|drop)\b.*\b(from|into|table)\b/i,
+];
+
+export function detectSqlInjection(input: string): boolean {
+  return SQL_PATTERNS.some(p => p.test(input));
+}
+
+## 3. Security Logging (server/lib/security-logger.ts)
+
+type SecurityEventType = 
+  | "AUTHENTICATION_SUCCESS" | "AUTHENTICATION_FAILURE"
+  | "AUTHORIZATION_FAILURE" | "RATE_LIMIT_EXCEEDED"
+  | "POTENTIAL_ATTACK" | "DATA_EXPORT"
+  | "API_KEY_CREATED" | "API_KEY_REVOKED";
+
+interface SecurityEvent {
+  eventType: SecurityEventType;
+  userId?: string;
+  ipAddress?: string;
+  details: Record<string, any>;
+  severity: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+}
+
+export async function logSecurityEvent(event: SecurityEvent): Promise<void> {
+  logger.warn("Security event", { ...event, timestamp: new Date() });
+  
+  await db.insert(auditLogs).values({
+    action: event.eventType,
+    entityType: "SECURITY_EVENT",
+    changes: event.details,
+    ipAddress: event.ipAddress,
+  });
+  
+  if (event.severity === "CRITICAL") {
+    await sendCriticalAlert(event);
+  }
+}
+
+## 4. Field Encryption (server/lib/field-encryption.ts)
+
+import { createCipheriv, createDecipheriv, randomBytes, scryptSync } from "crypto";
+
+const ALGORITHM = "aes-256-gcm";
+
+export function encryptField(plaintext: string, masterKey: string): string {
+  const salt = randomBytes(32);
+  const iv = randomBytes(16);
+  const key = scryptSync(masterKey, salt, 32);
+  
+  const cipher = createCipheriv(ALGORITHM, key, iv);
+  let encrypted = cipher.update(plaintext, "utf8", "hex");
+  encrypted += cipher.final("hex");
+  const authTag = cipher.getAuthTag();
+  
+  return `${salt.toString("hex")}:${iv.toString("hex")}:${authTag.toString("hex")}:${encrypted}`;
+}
+
+export function decryptField(encrypted: string, masterKey: string): string {
+  const [saltHex, ivHex, tagHex, ciphertext] = encrypted.split(":");
+  const key = scryptSync(masterKey, Buffer.from(saltHex, "hex"), 32);
+  
+  const decipher = createDecipheriv(ALGORITHM, key, Buffer.from(ivHex, "hex"));
+  decipher.setAuthTag(Buffer.from(tagHex, "hex"));
+  
+  let decrypted = decipher.update(ciphertext, "hex", "utf8");
+  decrypted += decipher.final("utf8");
+  return decrypted;
+}
+
+## 5. SOC 2 Checklist (docs/SECURITY_CHECKLIST.md)
+
+### Access Control
+- [ ] RBAC implemented
+- [ ] Least privilege enforced
+- [ ] API keys rotated regularly
+- [ ] Sessions secure (httpOnly, secure)
+
+### Data Protection
+- [ ] Encryption at rest
+- [ ] Encryption in transit (TLS 1.3)
+- [ ] Sensitive fields encrypted
+- [ ] PII identified and protected
+
+### Logging & Monitoring
+- [ ] Security events logged
+- [ ] Audit trail maintained
+- [ ] Log retention policy
+
+### Vulnerability Management
+- [ ] npm audit clean
+- [ ] Dependencies updated
+- [ ] Pen test scheduled
