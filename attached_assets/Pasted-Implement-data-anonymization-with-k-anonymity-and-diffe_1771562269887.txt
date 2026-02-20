@@ -1,0 +1,140 @@
+Implement data anonymization with k-anonymity and differential privacy.
+
+## Create server/services/data-anonymization.ts
+
+### Configuration
+
+const DEFAULT_K_ANONYMITY = 10;
+const DEFAULT_L_DIVERSITY = 3;
+const EPSILON = 1.0; // Differential privacy parameter
+
+### PII Detection
+
+const PII_PATTERNS = [
+  { name: "email", patterns: [/email/i] },
+  { name: "phone", patterns: [/phone/i, /mobile/i, /tel/i] },
+  { name: "name", patterns: [/^name$/i, /first_?name/i, /last_?name/i] },
+  { name: "address", patterns: [/^address$/i, /street/i] },
+  { name: "ssn", patterns: [/ssn/i, /social_?security/i] },
+  { name: "financial", patterns: [/credit_?card/i, /bank_?account/i] },
+  { name: "auth", patterns: [/password/i, /secret/i, /token/i, /api_?key/i] },
+  { name: "ip", patterns: [/ip_?address/i] },
+];
+
+export function isPiiField(fieldName: string): boolean
+
+### Quasi-Identifier Generalizers
+
+const QUASI_IDENTIFIERS = [
+  {
+    name: "postalCode",
+    patterns: [/postal/i, /zip/i],
+    generalizer: (v) => v ? String(v).substring(0, 3) + "**" : null,
+  },
+  {
+    name: "age",
+    patterns: [/^age$/i],
+    generalizer: (v) => {
+      if (v < 25) return "18-24";
+      if (v < 35) return "25-34";
+      if (v < 45) return "35-44";
+      if (v < 55) return "45-54";
+      if (v < 65) return "55-64";
+      return "65+";
+    },
+  },
+  {
+    name: "income",
+    patterns: [/income/i],
+    generalizer: (v) => {
+      if (v < 50000) return "UNDER_50K";
+      if (v < 100000) return "50K_100K";
+      if (v < 250000) return "100K_250K";
+      return "250K_PLUS";
+    },
+  },
+  {
+    name: "squareFootage",
+    patterns: [/sq_?ft/i, /square_?foot/i],
+    generalizer: (v) => {
+      if (v < 1500) return "UNDER_1500";
+      if (v < 2500) return "1500_2500";
+      if (v < 3500) return "2500_3500";
+      return "3500_PLUS";
+    },
+  },
+  {
+    name: "date",
+    patterns: [/date/i, /_at$/i],
+    generalizer: (v) => {
+      const d = new Date(v);
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
+    },
+  },
+];
+
+### Core Functions
+
+export function removePii<T>(record: T): Partial<T>
+// Remove all fields matching PII patterns
+
+export function generalizeQuasiIdentifiers<T>(record: T, fieldsToGeneralize?: string[])
+// Apply generalizers, return { record, generalizedFields }
+
+export function checkKAnonymity<T>(
+  records: T[],
+  quasiIdentifierKeys: string[],
+  k: number = 10
+): {
+  passes: boolean;
+  smallestGroupSize: number;
+  totalGroups: number;
+  groupsUnderK: number;
+  violatingGroups: { key: string; size: number }[];
+}
+// Group by quasi-identifier combination, check min group size
+
+export function checkLDiversity<T>(
+  records: T[],
+  quasiIdKeys: string[],
+  sensitiveKey: string,
+  l: number = 3
+): { passes: boolean; minDiversity: number }
+// Check diversity of sensitive attribute within groups
+
+export function addLaplacianNoise(
+  value: number,
+  sensitivity: number,
+  epsilon: number = 1.0
+): number {
+  const scale = sensitivity / epsilon;
+  const u = Math.random() - 0.5;
+  const noise = -scale * Math.sign(u) * Math.log(1 - 2 * Math.abs(u));
+  return value + noise;
+}
+
+export function anonymizeDataset<T>(
+  records: T[],
+  quasiIdKeys: string[],
+  config?: {
+    kAnonymity?: number;
+    suppressSmallGroups?: boolean;
+    generalizeQuasiIdentifiers?: boolean;
+  }
+): {
+  data: Partial<T>[];
+  metadata: {
+    originalCount: number;
+    anonymizedCount: number;
+    suppressedCount: number;
+    kAnonymityAchieved: boolean;
+    generalizedFields: string[];
+  };
+}
+// Full pipeline: removePii → generalize → check k → suppress small groups
+
+export function pseudonymize(value: string, salt?: string): string
+// SHA-256 hash, return first 16 chars
+
+export function generateAnonymousId(originalId: string, entityType: string): string
+// Return `anon_${entityType}_${pseudonymize(originalId)}`

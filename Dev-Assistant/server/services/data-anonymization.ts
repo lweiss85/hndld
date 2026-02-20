@@ -1,174 +1,272 @@
-interface AnonymizationConfig {
-  kAnonymity: number;
-  generalizeLocation: boolean;
-  generalizeDates: boolean;
-  generalizeAmounts: boolean;
-  removeIdentifiers: boolean;
+import crypto from "crypto";
+
+const DEFAULT_K_ANONYMITY = 10;
+const DEFAULT_L_DIVERSITY = 3;
+const EPSILON = 1.0;
+
+const PII_PATTERNS = [
+  { name: "email", patterns: [/email/i] },
+  { name: "phone", patterns: [/phone/i, /mobile/i, /tel/i] },
+  { name: "name", patterns: [/^name$/i, /first_?name/i, /last_?name/i] },
+  { name: "address", patterns: [/^address$/i, /street/i] },
+  { name: "ssn", patterns: [/ssn/i, /social_?security/i] },
+  { name: "financial", patterns: [/credit_?card/i, /bank_?account/i] },
+  { name: "auth", patterns: [/password/i, /secret/i, /token/i, /api_?key/i] },
+  { name: "ip", patterns: [/ip_?address/i] },
+];
+
+export function isPiiField(fieldName: string): boolean {
+  return PII_PATTERNS.some((p) =>
+    p.patterns.some((rx) => rx.test(fieldName))
+  );
 }
 
-const DEFAULT_CONFIG: AnonymizationConfig = {
-  kAnonymity: 10,
-  generalizeLocation: true,
-  generalizeDates: true,
-  generalizeAmounts: false,
-  removeIdentifiers: true,
-};
-
-const PII_FIELDS = [
-  "email", "phone", "name", "firstName", "lastName",
-  "address", "streetAddress", "fullAddress",
-  "ssn", "socialSecurity", "taxId",
-  "creditCard", "bankAccount",
-  "password", "passwordHash",
-  "ipAddress", "userAgent",
-];
-
-const LOCATION_FIELDS = [
-  "city", "state", "region", "county", "neighborhood",
-  "suburb", "district", "municipality",
-];
-
 const QUASI_IDENTIFIERS = [
-  "postalCode", "zipCode", "birthDate", "exactAge",
-  "exactIncome", "exactSquareFootage",
+  {
+    name: "postalCode",
+    patterns: [/postal/i, /zip/i],
+    generalizer: (v: unknown) => (v ? String(v).substring(0, 3) + "**" : null),
+  },
+  {
+    name: "age",
+    patterns: [/^age$/i],
+    generalizer: (v: unknown) => {
+      const n = Number(v);
+      if (n < 25) return "18-24";
+      if (n < 35) return "25-34";
+      if (n < 45) return "35-44";
+      if (n < 55) return "45-54";
+      if (n < 65) return "55-64";
+      return "65+";
+    },
+  },
+  {
+    name: "income",
+    patterns: [/income/i],
+    generalizer: (v: unknown) => {
+      const n = Number(v);
+      if (n < 50000) return "UNDER_50K";
+      if (n < 100000) return "50K_100K";
+      if (n < 250000) return "100K_250K";
+      return "250K_PLUS";
+    },
+  },
+  {
+    name: "squareFootage",
+    patterns: [/sq_?ft/i, /square_?foot/i],
+    generalizer: (v: unknown) => {
+      const n = Number(v);
+      if (n < 1500) return "UNDER_1500";
+      if (n < 2500) return "1500_2500";
+      if (n < 3500) return "2500_3500";
+      return "3500_PLUS";
+    },
+  },
+  {
+    name: "date",
+    patterns: [/date/i, /_at$/i],
+    generalizer: (v: unknown) => {
+      const d = new Date(v as string | number);
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    },
+  },
 ];
 
-export function anonymizeRecord<T extends Record<string, unknown>>(
-  record: T,
-  config: AnonymizationConfig = DEFAULT_CONFIG
-): Partial<T> {
+export function removePii<T extends Record<string, unknown>>(record: T): Partial<T> {
   const result: Record<string, unknown> = {};
-
-  for (const [key, value] of Object.entries(record)) {
-    if (config.removeIdentifiers && PII_FIELDS.some(pii =>
-      key.toLowerCase().includes(pii.toLowerCase())
-    )) {
-      continue;
+  for (const key of Object.keys(record)) {
+    if (!isPiiField(key)) {
+      result[key] = record[key];
     }
-
-    if (config.generalizeLocation && LOCATION_FIELDS.some(loc =>
-      key.toLowerCase() === loc.toLowerCase()
-    )) {
-      result[key] = generalizeLocationValue(key, value);
-      continue;
-    }
-
-    if (QUASI_IDENTIFIERS.some(qi => key.toLowerCase().includes(qi.toLowerCase()))) {
-      result[key] = generalizeValue(key, value, config);
-      continue;
-    }
-
-    result[key] = value;
   }
-
   return result as Partial<T>;
 }
 
-function generalizeLocationValue(key: string, value: unknown): unknown {
-  if (value === null || value === undefined) return null;
-  const str = String(value).trim();
-  const lowerKey = key.toLowerCase();
+export function generalizeQuasiIdentifiers<T extends Record<string, unknown>>(
+  record: T,
+  fieldsToGeneralize?: string[]
+): { record: Record<string, unknown>; generalizedFields: string[] } {
+  const out: Record<string, unknown> = { ...record };
+  const generalizedFields: string[] = [];
 
-  if (lowerKey === "city" || lowerKey === "neighborhood" || lowerKey === "suburb" || lowerKey === "district" || lowerKey === "municipality") {
-    return "[REDACTED]";
+  for (const key of Object.keys(out)) {
+    if (fieldsToGeneralize && !fieldsToGeneralize.includes(key)) continue;
+    for (const qi of QUASI_IDENTIFIERS) {
+      if (qi.patterns.some((rx) => rx.test(key))) {
+        out[key] = qi.generalizer(out[key]);
+        generalizedFields.push(key);
+        break;
+      }
+    }
   }
 
-  if (lowerKey === "state" || lowerKey === "region") {
-    return str.length <= 3 ? str : str.substring(0, 2).toUpperCase();
-  }
-
-  if (lowerKey === "county") {
-    return "[REDACTED]";
-  }
-
-  return "[REDACTED]";
-}
-
-function generalizeValue(key: string, value: unknown, config: AnonymizationConfig): unknown {
-  if (value === null || value === undefined) return null;
-
-  if (key.toLowerCase().includes("postal") || key.toLowerCase().includes("zip")) {
-    return String(value).substring(0, 3) + "XX";
-  }
-
-  if (key.toLowerCase().includes("date") && config.generalizeDates) {
-    const date = new Date(String(value));
-    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
-  }
-
-  if (key.toLowerCase().includes("age")) {
-    const age = Number(value);
-    if (age < 25) return "18-24";
-    if (age < 35) return "25-34";
-    if (age < 45) return "35-44";
-    if (age < 55) return "45-54";
-    if (age < 65) return "55-64";
-    return "65+";
-  }
-
-  if (key.toLowerCase().includes("income")) {
-    const income = Number(value);
-    if (income < 50000) return "UNDER_50K";
-    if (income < 100000) return "50K_100K";
-    if (income < 250000) return "100K_250K";
-    if (income < 500000) return "250K_500K";
-    return "500K_PLUS";
-  }
-
-  if (key.toLowerCase().includes("sqft") || key.toLowerCase().includes("squarefootage")) {
-    const sqft = Number(value);
-    if (sqft < 1000) return "UNDER_1000";
-    if (sqft < 1500) return "1000_1500";
-    if (sqft < 2000) return "1500_2000";
-    if (sqft < 2500) return "2000_2500";
-    if (sqft < 3500) return "2500_3500";
-    if (sqft < 5000) return "3500_5000";
-    return "5000_PLUS";
-  }
-
-  return value;
+  return { record: out, generalizedFields };
 }
 
 export function checkKAnonymity<T extends Record<string, unknown>>(
   records: T[],
   quasiIdentifierKeys: string[],
-  k: number = 10
-): { passes: boolean; smallestGroup: number; groupCount: number } {
+  k: number = DEFAULT_K_ANONYMITY
+): {
+  passes: boolean;
+  smallestGroupSize: number;
+  totalGroups: number;
+  groupsUnderK: number;
+  violatingGroups: { key: string; size: number }[];
+} {
   const groups = new Map<string, number>();
 
-  for (const record of records) {
-    const key = quasiIdentifierKeys
-      .map(qiKey => String(record[qiKey] || ""))
+  for (const rec of records) {
+    const groupKey = quasiIdentifierKeys
+      .map((qk) => String(rec[qk] ?? ""))
       .join("|");
-
-    groups.set(key, (groups.get(key) || 0) + 1);
+    groups.set(groupKey, (groups.get(groupKey) || 0) + 1);
   }
 
-  const groupSizes = Array.from(groups.values());
-  const smallestGroup = groupSizes.length > 0 ? Math.min(...groupSizes) : 0;
+  let smallestGroupSize = Infinity;
+  const violatingGroups: { key: string; size: number }[] = [];
+
+  groups.forEach((size, key) => {
+    if (size < smallestGroupSize) smallestGroupSize = size;
+    if (size < k) violatingGroups.push({ key, size });
+  });
+
+  if (groups.size === 0) smallestGroupSize = 0;
 
   return {
-    passes: smallestGroup >= k,
-    smallestGroup,
-    groupCount: groups.size,
+    passes: violatingGroups.length === 0 && groups.size > 0,
+    smallestGroupSize,
+    totalGroups: groups.size,
+    groupsUnderK: violatingGroups.length,
+    violatingGroups,
   };
+}
+
+export function checkLDiversity<T extends Record<string, unknown>>(
+  records: T[],
+  quasiIdKeys: string[],
+  sensitiveKey: string,
+  l: number = DEFAULT_L_DIVERSITY
+): { passes: boolean; minDiversity: number } {
+  const groups = new Map<string, Set<unknown>>();
+
+  for (const rec of records) {
+    const groupKey = quasiIdKeys
+      .map((qk) => String(rec[qk] ?? ""))
+      .join("|");
+    if (!groups.has(groupKey)) groups.set(groupKey, new Set());
+    groups.get(groupKey)!.add(rec[sensitiveKey]);
+  }
+
+  let minDiversity = Infinity;
+  groups.forEach((vals) => {
+    if (vals.size < minDiversity) minDiversity = vals.size;
+  });
+
+  if (groups.size === 0) minDiversity = 0;
+
+  return {
+    passes: minDiversity >= l && groups.size > 0,
+    minDiversity,
+  };
+}
+
+export function addLaplacianNoise(
+  value: number,
+  sensitivity: number,
+  epsilon: number = EPSILON
+): number {
+  const scale = sensitivity / epsilon;
+  const u = Math.random() - 0.5;
+  const noise = -scale * Math.sign(u) * Math.log(1 - 2 * Math.abs(u));
+  return value + noise;
 }
 
 export function anonymizeDataset<T extends Record<string, unknown>>(
   records: T[],
-  config: AnonymizationConfig = DEFAULT_CONFIG
-): { data: Partial<T>[]; meetsKAnonymity: boolean; recordCount: number } {
-  const anonymized = records.map(r => anonymizeRecord(r, config));
+  quasiIdKeys: string[],
+  config?: {
+    kAnonymity?: number;
+    suppressSmallGroups?: boolean;
+    generalizeQuasiIdentifiers?: boolean;
+  }
+): {
+  data: Partial<T>[];
+  metadata: {
+    originalCount: number;
+    anonymizedCount: number;
+    suppressedCount: number;
+    kAnonymityAchieved: boolean;
+    generalizedFields: string[];
+  };
+} {
+  const k = config?.kAnonymity ?? DEFAULT_K_ANONYMITY;
+  const shouldSuppress = config?.suppressSmallGroups ?? true;
+  const shouldGeneralize = config?.generalizeQuasiIdentifiers ?? true;
+
+  let cleaned = records.map((r) => removePii(r) as Record<string, unknown>);
+
+  let allGeneralizedFields: string[] = [];
+  if (shouldGeneralize) {
+    const generalized = cleaned.map((r) =>
+      generalizeQuasiIdentifiers(r as Record<string, unknown>, quasiIdKeys)
+    );
+    cleaned = generalized.map((g) => g.record);
+    const fieldSet = new Set<string>();
+    for (const g of generalized) {
+      for (const f of g.generalizedFields) fieldSet.add(f);
+    }
+    allGeneralizedFields = Array.from(fieldSet);
+  }
+
+  let suppressedCount = 0;
+  let finalData = cleaned;
+
+  if (shouldSuppress) {
+    const groups = new Map<string, number>();
+    for (const rec of cleaned) {
+      const groupKey = quasiIdKeys
+        .map((qk) => String(rec[qk] ?? ""))
+        .join("|");
+      groups.set(groupKey, (groups.get(groupKey) || 0) + 1);
+    }
+
+    finalData = cleaned.filter((rec) => {
+      const groupKey = quasiIdKeys
+        .map((qk) => String(rec[qk] ?? ""))
+        .join("|");
+      const size = groups.get(groupKey) || 0;
+      if (size < k) {
+        suppressedCount++;
+        return false;
+      }
+      return true;
+    });
+  }
 
   const kCheck = checkKAnonymity(
-    anonymized,
-    ["region", "homeType", "sqftRange"],
-    config.kAnonymity
+    finalData as (T & Record<string, unknown>)[],
+    quasiIdKeys,
+    k
   );
 
   return {
-    data: kCheck.passes ? anonymized : [],
-    meetsKAnonymity: kCheck.passes,
-    recordCount: records.length,
+    data: finalData as Partial<T>[],
+    metadata: {
+      originalCount: records.length,
+      anonymizedCount: finalData.length,
+      suppressedCount,
+      kAnonymityAchieved: kCheck.passes,
+      generalizedFields: allGeneralizedFields,
+    },
   };
+}
+
+export function pseudonymize(value: string, salt?: string): string {
+  const input = salt ? `${salt}:${value}` : value;
+  return crypto.createHash("sha256").update(input).digest("hex").substring(0, 16);
+}
+
+export function generateAnonymousId(originalId: string, entityType: string): string {
+  return `anon_${entityType}_${pseudonymize(originalId)}`;
 }
