@@ -53,6 +53,8 @@ import { registerOAuthRoutes } from "./routes/oauth";
 import { registerAutomationRoutes } from "./routes/automations";
 import { registerProviderRoutes } from "./routes/provider";
 import { registerInventoryRoutes } from "./routes/inventory";
+import { registerDataApiRoutes } from "./routes/data-api";
+import { registerDataPartnersAdminRoutes } from "./routes/data-partners-admin";
 
 const householdContext = householdContextMiddleware;
 
@@ -142,8 +144,10 @@ export async function registerRoutes(
   registerAutomationRoutes(v1);
   registerProviderRoutes(v1);
   registerInventoryRoutes(v1);
+  registerDataPartnersAdminRoutes(v1);
 
   registerAlexaRoutes(app);
+  registerDataApiRoutes(app);
   registerGoogleAssistantRoutes(app);
 
   app.use("/api/v1", v1);
