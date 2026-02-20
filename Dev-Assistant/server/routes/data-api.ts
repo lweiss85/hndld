@@ -4,7 +4,7 @@ import { dataPartners, dataApiLogs } from "@shared/schema";
 import { eq, and } from "drizzle-orm";
 import bcrypt from "bcrypt";
 import {
-  getApplianceLifespan,
+  getApplianceLifespanAnalytics,
   getVendorPricingBenchmarks,
   getMaintenanceCostBenchmarks,
   getSeasonalDemandPatterns,
@@ -122,29 +122,33 @@ router.use(authenticateDataPartner as unknown as (req: Request, res: Response, n
 
 router.get("/appliance-lifespan", async (req: DataApiRequest, res: Response) => {
   try {
-    const { category, brand, model } = req.query;
+    const { category, brand, model, region, climateZone } = req.query;
 
     if (!category) {
       return res.status(400).json({ error: "category is required" });
     }
 
-    const result = await getApplianceLifespan(
+    const result = await getApplianceLifespanAnalytics(
       category as string,
-      brand as string | undefined,
-      model as string | undefined
+      {
+        brand: brand as string | undefined,
+        model: model as string | undefined,
+        region: region as string | undefined,
+        climateZone: climateZone as string | undefined,
+      }
     );
 
-    if (!result.meetsMinimumThreshold) {
-      logDataApiRequest(req, res, 0);
+    logDataApiRequest(req, res, result.metadata.sampleSize);
+
+    if (!result.metadata.meetsKAnonymity) {
       return res.status(404).json({
         error: "Insufficient data",
         message: "Not enough records to provide anonymized results",
-        sampleSize: result.sampleSize,
-        minimumRequired: 10,
+        sampleSize: result.metadata.sampleSize,
+        minimumRequired: result.metadata.kThreshold,
       });
     }
 
-    logDataApiRequest(req, res, result.sampleSize);
     res.json(result);
   } catch (error: unknown) {
     logger.error("Appliance lifespan API error", {
@@ -156,7 +160,7 @@ router.get("/appliance-lifespan", async (req: DataApiRequest, res: Response) => 
 
 router.get("/vendor-pricing", async (req: DataApiRequest, res: Response) => {
   try {
-    const { serviceCategory, region, priceType } = req.query;
+    const { serviceCategory, region, state, metroArea, priceType, sqftMin, sqftMax } = req.query;
 
     if (!serviceCategory) {
       return res.status(400).json({ error: "serviceCategory is required" });
@@ -170,16 +174,26 @@ router.get("/vendor-pricing", async (req: DataApiRequest, res: Response) => {
 
     const result = await getVendorPricingBenchmarks(
       serviceCategory as string,
-      region as string | undefined,
-      priceType as string | undefined
+      {
+        region: region as string | undefined,
+        state: state as string | undefined,
+        metroArea: metroArea as string | undefined,
+        priceType: priceType as string | undefined,
+        sqftMin: sqftMin ? Number(sqftMin) : undefined,
+        sqftMax: sqftMax ? Number(sqftMax) : undefined,
+      }
     );
 
-    if (!result.meetsMinimumThreshold) {
-      logDataApiRequest(req, res, 0);
-      return res.status(404).json({ error: "Insufficient data", sampleSize: result.sampleSize });
+    logDataApiRequest(req, res, result.metadata.sampleSize);
+
+    if (!result.metadata.meetsKAnonymity) {
+      return res.status(404).json({
+        error: "Insufficient data",
+        sampleSize: result.metadata.sampleSize,
+        minimumRequired: result.metadata.kThreshold,
+      });
     }
 
-    logDataApiRequest(req, res, result.sampleSize);
     res.json(result);
   } catch (error: unknown) {
     logger.error("Vendor pricing API error", {
@@ -203,10 +217,14 @@ router.get("/maintenance-costs", async (req: DataApiRequest, res: Response) => {
       homeType as string | undefined
     );
 
-    logDataApiRequest(req, res, result.sampleSize);
+    logDataApiRequest(req, res, result.metadata.sampleSize);
 
-    if (!result.meetsMinimumThreshold) {
-      return res.status(404).json({ error: "Insufficient data" });
+    if (!result.metadata.meetsKAnonymity) {
+      return res.status(404).json({
+        error: "Insufficient data",
+        sampleSize: result.metadata.sampleSize,
+        minimumRequired: result.metadata.kThreshold,
+      });
     }
 
     res.json(result);
@@ -231,7 +249,16 @@ router.get("/seasonal-demand", async (req: DataApiRequest, res: Response) => {
       region as string | undefined
     );
 
-    logDataApiRequest(req, res, result.sampleSize);
+    logDataApiRequest(req, res, result.metadata.sampleSize);
+
+    if (!result.metadata.meetsKAnonymity) {
+      return res.status(404).json({
+        error: "Insufficient data",
+        sampleSize: result.metadata.sampleSize,
+        minimumRequired: result.metadata.kThreshold,
+      });
+    }
+
     res.json(result);
   } catch (error: unknown) {
     logger.error("Seasonal demand API error", {
@@ -243,7 +270,7 @@ router.get("/seasonal-demand", async (req: DataApiRequest, res: Response) => {
 
 router.get("/service-quality", async (req: DataApiRequest, res: Response) => {
   try {
-    const { serviceCategory, region } = req.query;
+    const { serviceCategory, region, minRating } = req.query;
 
     if (!serviceCategory) {
       return res.status(400).json({ error: "serviceCategory is required" });
@@ -251,13 +278,20 @@ router.get("/service-quality", async (req: DataApiRequest, res: Response) => {
 
     const result = await getServiceQualityBenchmarks(
       serviceCategory as string,
-      region as string | undefined
+      {
+        region: region as string | undefined,
+        minRating: minRating ? Number(minRating) : undefined,
+      }
     );
 
-    logDataApiRequest(req, res, result.sampleSize);
+    logDataApiRequest(req, res, result.metadata.sampleSize);
 
-    if (!result.meetsMinimumThreshold) {
-      return res.status(404).json({ error: "Insufficient data" });
+    if (!result.metadata.meetsKAnonymity) {
+      return res.status(404).json({
+        error: "Insufficient data",
+        sampleSize: result.metadata.sampleSize,
+        minimumRequired: result.metadata.kThreshold,
+      });
     }
 
     res.json(result);
@@ -278,15 +312,22 @@ router.get("/home-operating-costs", async (req: DataApiRequest, res: Response) =
     }
 
     const result = await getHomeOperatingCostBenchmarks(
-      region as string,
-      homeType as string | undefined,
-      sqftMin && sqftMax ? { min: Number(sqftMin), max: Number(sqftMax) } : undefined
+      {
+        region: region as string,
+        homeType: homeType as string | undefined,
+        sqftMin: sqftMin ? Number(sqftMin) : undefined,
+        sqftMax: sqftMax ? Number(sqftMax) : undefined,
+      }
     );
 
-    logDataApiRequest(req, res, result.sampleSize);
+    logDataApiRequest(req, res, result.metadata.sampleSize);
 
-    if (!result.meetsMinimumThreshold) {
-      return res.status(404).json({ error: "Insufficient data" });
+    if (!result.metadata.meetsKAnonymity) {
+      return res.status(404).json({
+        error: "Insufficient data",
+        sampleSize: result.metadata.sampleSize,
+        minimumRequired: result.metadata.kThreshold,
+      });
     }
 
     res.json(result);
