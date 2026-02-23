@@ -64,6 +64,9 @@ const Properties = lazy(() => import("@/pages/properties"));
 const Automations = lazy(() => import("@/pages/automations"));
 const ProviderPortal = lazy(() => import("@/pages/provider/portal"));
 const Inventory = lazy(() => import("@/pages/inventory"));
+const Marketplace = lazy(() => import("@/pages/marketplace"));
+const ProviderDetail = lazy(() => import("@/pages/provider-detail"));
+const MyBookings = lazy(() => import("@/pages/my-bookings"));
 
 function LoadingScreen() {
   return (
@@ -125,6 +128,9 @@ function ClientRouter() {
         <Route path="/properties" component={Properties} />
         <Route path="/automations" component={Automations} />
         <Route path="/inventory" component={Inventory} />
+        <Route path="/marketplace" component={Marketplace} />
+        <Route path="/marketplace/:slug" component={ProviderDetail} />
+        <Route path="/my-bookings" component={MyBookings} />
         <Route path="/provider" component={ProviderPortal} />
         <Route component={NotFound} />
       </Switch>
@@ -170,6 +176,9 @@ function AssistantRouter() {
         <Route path="/properties" component={Properties} />
         <Route path="/automations" component={Automations} />
         <Route path="/inventory" component={Inventory} />
+        <Route path="/marketplace" component={Marketplace} />
+        <Route path="/marketplace/:slug" component={ProviderDetail} />
+        <Route path="/my-bookings" component={MyBookings} />
         <Route path="/provider" component={ProviderPortal} />
         <Route component={NotFound} />
       </Switch>

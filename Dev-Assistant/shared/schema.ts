@@ -2113,6 +2113,153 @@ export type ProviderStaff = typeof providerStaff.$inferSelect;
 export type ProviderClient = typeof providerClients.$inferSelect;
 export type ProviderScheduleItem = typeof providerSchedule.$inferSelect;
 
+export const verificationStatusEnum = pgEnum("verification_status", [
+  "NONE", "BASIC", "VERIFIED", "PREMIUM"
+]);
+
+export const providerProfiles = pgTable("provider_profiles", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  providerId: varchar("provider_id").references(() => serviceProviders.id).notNull().unique(),
+
+  slug: varchar("slug", { length: 200 }).notNull().unique(),
+  displayName: varchar("display_name", { length: 200 }).notNull(),
+  tagline: varchar("tagline", { length: 300 }),
+  description: text("description"),
+
+  profilePhotoUrl: text("profile_photo_url"),
+  coverPhotoUrl: text("cover_photo_url"),
+  galleryPhotos: jsonb("gallery_photos").$type<string[]>(),
+
+  serviceAreas: jsonb("service_areas").$type<{ postalCode?: string; city?: string; state?: string; radius?: number }[]>(),
+  servicesOffered: jsonb("services_offered").$type<{ category: string; name: string; description?: string; priceRange?: string; duration?: string }[]>(),
+  availability: jsonb("availability").$type<{ leadTimeDays?: number; sameDay?: boolean; weekends?: boolean; evenings?: boolean }>(),
+
+  verificationStatus: verificationStatusEnum("verification_status").default("NONE").notNull(),
+  verifiedAt: timestamp("verified_at"),
+  backgroundCheckAt: timestamp("background_check_at"),
+  insuranceVerifiedAt: timestamp("insurance_verified_at"),
+
+  responseTimeMinutes: integer("response_time_minutes"),
+  completionRate: numeric("completion_rate", { precision: 5, scale: 2 }),
+
+  isAcceptingClients: boolean("is_accepting_clients").default(true),
+  isPublic: boolean("is_public").default(false),
+  featuredUntil: timestamp("featured_until"),
+
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  index("provider_profiles_slug_idx").on(table.slug),
+  index("provider_profiles_provider_idx").on(table.providerId),
+  index("provider_profiles_public_idx").on(table.isPublic),
+]);
+
+export const bookingStatusEnum = pgEnum("booking_status", [
+  "PENDING", "ACCEPTED", "DECLINED", "CANCELLED", "COMPLETED"
+]);
+
+export const bookingRequests = pgTable("booking_requests", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  consumerId: varchar("consumer_id").notNull(),
+  consumerHouseholdId: varchar("consumer_household_id").references(() => households.id).notNull(),
+  providerId: varchar("provider_id").references(() => serviceProviders.id).notNull(),
+
+  serviceCategory: varchar("service_category", { length: 100 }).notNull(),
+  serviceType: varchar("service_type", { length: 200 }),
+  requestedDate: date("requested_date").notNull(),
+  requestedTimeSlot: varchar("requested_time_slot", { length: 50 }),
+  flexibleDates: boolean("flexible_dates").default(false),
+  alternativeDates: jsonb("alternative_dates").$type<string[]>(),
+
+  propertyDetails: jsonb("property_details").$type<{
+    sqft?: number;
+    bedrooms?: number;
+    bathrooms?: number;
+    specialInstructions?: string;
+  }>(),
+
+  status: bookingStatusEnum("status").default("PENDING").notNull(),
+  providerResponseAt: timestamp("provider_response_at"),
+  declineReason: text("decline_reason"),
+
+  quotedPriceCents: integer("quoted_price_cents"),
+  finalPriceCents: integer("final_price_cents"),
+  hndldFeeCents: integer("hndld_fee_cents"),
+
+  bookedAt: timestamp("booked_at"),
+  completedAt: timestamp("completed_at"),
+
+  consumerNotes: text("consumer_notes"),
+  providerNotes: text("provider_notes"),
+
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  index("booking_requests_consumer_idx").on(table.consumerId),
+  index("booking_requests_provider_idx").on(table.providerId),
+  index("booking_requests_status_idx").on(table.status),
+  index("booking_requests_date_idx").on(table.requestedDate),
+]);
+
+export const senderTypeEnum = pgEnum("booking_sender_type", [
+  "CONSUMER", "PROVIDER"
+]);
+
+export const bookingMessages = pgTable("booking_messages", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  bookingRequestId: varchar("booking_request_id").references(() => bookingRequests.id).notNull(),
+  senderId: varchar("sender_id").notNull(),
+  senderType: senderTypeEnum("sender_type").notNull(),
+
+  message: text("message").notNull(),
+  attachments: jsonb("attachments").$type<string[]>(),
+
+  readAt: timestamp("read_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("booking_messages_booking_idx").on(table.bookingRequestId),
+  index("booking_messages_sender_idx").on(table.senderId),
+]);
+
+export const marketplaceReviews = pgTable("marketplace_reviews", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  providerId: varchar("provider_id").references(() => serviceProviders.id).notNull(),
+  consumerId: varchar("consumer_id").notNull(),
+  bookingRequestId: varchar("booking_request_id").references(() => bookingRequests.id),
+
+  overallRating: integer("overall_rating").notNull(),
+  qualityRating: integer("quality_rating"),
+  punctualityRating: integer("punctuality_rating"),
+  valueRating: integer("value_rating"),
+
+  reviewText: text("review_text"),
+
+  providerResponse: text("provider_response"),
+  providerRespondedAt: timestamp("provider_responded_at"),
+
+  isVerified: boolean("is_verified").default(false).notNull(),
+  isPublic: boolean("is_public").default(true).notNull(),
+
+  helpfulCount: integer("helpful_count").default(0).notNull(),
+
+  reportedAt: timestamp("reported_at"),
+  reportReason: text("report_reason"),
+
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("marketplace_reviews_provider_idx").on(table.providerId),
+  index("marketplace_reviews_consumer_idx").on(table.consumerId),
+  index("marketplace_reviews_booking_idx").on(table.bookingRequestId),
+]);
+
+export type ProviderProfile = typeof providerProfiles.$inferSelect;
+export type InsertProviderProfile = typeof providerProfiles.$inferInsert;
+export type BookingRequest = typeof bookingRequests.$inferSelect;
+export type InsertBookingRequest = typeof bookingRequests.$inferInsert;
+export type BookingMessage = typeof bookingMessages.$inferSelect;
+export type MarketplaceReview = typeof marketplaceReviews.$inferSelect;
+export type InsertMarketplaceReview = typeof marketplaceReviews.$inferInsert;
+
 export const inventoryCategoryEnum = pgEnum("inventory_category", [
   "APPLIANCE", "ELECTRONICS", "FURNITURE", "HVAC", "PLUMBING",
   "ELECTRICAL", "OUTDOOR", "VEHICLE", "OTHER"

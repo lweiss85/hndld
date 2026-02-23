@@ -1,0 +1,194 @@
+Build the Provider Marketplace and Booking System.
+
+## PHASE 1: Provider Discovery
+
+### 1.1 Provider Public Profiles
+
+Create providerProfiles table:
+- providerId (FK to serviceProviders)
+- slug (URL-friendly name: "sparkle-cleaning-dallas")
+- displayName, tagline, description
+- profilePhotoUrl, coverPhotoUrl, galleryPhotos (jsonb)
+- serviceAreas (jsonb): [{ postalCode, city, radius }]
+- servicesOffered (jsonb): [{ category, description, priceRange }]
+- availability: { leadTime, sameDay, weekends, evenings }
+- verificationStatus: "NONE" | "BASIC" | "VERIFIED" | "PREMIUM"
+- verifiedAt, backgroundCheckAt, insuranceVerifiedAt
+- responseTimeMinutes (avg)
+- completionRate (%)
+- isAcceptingClients (boolean)
+- isPublic (boolean)
+- featuredUntil (timestamp, null = not featured)
+
+### 1.2 Provider Search Endpoint
+
+GET /api/v1/marketplace/providers
+
+Query params:
+- category (CLEANING, PERSONAL_ASSISTANT, LANDSCAPING, etc.)
+- location (postalCode or city,state)
+- radius (miles, default 25)
+- availability (sameDay, weekend, evening)
+- minRating (1-5)
+- verified (boolean)
+- sortBy: "rating" | "distance" | "response_time" | "price_low" | "price_high"
+
+Response:
+{
+  providers: [
+    {
+      id, slug, displayName, tagline,
+      profilePhotoUrl,
+      category, servicesOffered,
+      rating: 4.8,
+      reviewCount: 127,
+      responseTime: "Usually responds in 2 hours",
+      distance: "3.2 miles",
+      priceRange: "$$",
+      badges: ["VERIFIED", "TOP_RATED", "FAST_RESPONDER"],
+      nextAvailable: "Tomorrow",
+      isFeatured: false // Clearly marked if sponsored
+    }
+  ],
+  featured: [ // Separate section, clearly labeled
+    { ...provider, sponsoredUntil: "2026-03-01" }
+  ],
+  total: 47,
+  filters: { ... }
+}
+
+### 1.3 Provider Detail Page
+
+GET /api/v1/marketplace/providers/:slug
+
+Response:
+{
+  provider: {
+    ...fullProfile,
+    services: [
+      { name: "Standard Clean", description, priceRange: "$120-180", duration: "2-3 hours" },
+      { name: "Deep Clean", description, priceRange: "$200-300", duration: "4-5 hours" }
+    ],
+    reviews: [
+      { rating, text, author: "Sarah M.", date, serviceType, verified: true }
+    ],
+    stats: {
+      jobsCompleted: 847,
+      repeatClientRate: 78%,
+      avgRating: 4.8,
+      responseTime: "2 hours"
+    },
+    availability: {
+      nextAvailable: "2026-02-24",
+      calendar: [ { date, slots: ["9am", "1pm", "4pm"] } ]
+    },
+    badges: [
+      { type: "VERIFIED", label: "Background Checked", earnedAt },
+      { type: "TOP_RATED", label: "Top 10% in Dallas", earnedAt }
+    ]
+  }
+}
+
+## PHASE 2: Booking System
+
+### 2.1 Booking Request Schema
+
+Create bookingRequests table:
+- id
+- consumerId (FK to users)
+- consumerHouseholdId (FK to households)
+- providerId (FK to serviceProviders)
+- serviceCategory
+- serviceType (from provider's offerings)
+- requestedDate, requestedTimeSlot
+- flexibleDates (boolean)
+- alternativeDates (jsonb)
+- propertyDetails: { sqft, bedrooms, bathrooms, specialInstructions }
+- status: "PENDING" | "ACCEPTED" | "DECLINED" | "CANCELLED" | "COMPLETED"
+- providerResponseAt
+- declineReason
+- quotedPriceCents
+- finalPriceCents
+- hndldFeeCents (platform fee)
+- bookedAt, completedAt
+- consumerNotes, providerNotes
+- createdAt
+
+### 2.2 Booking Flow Endpoints
+
+POST /api/v1/marketplace/booking-requests
+- Create a booking request (consumer)
+
+GET /api/v1/provider/booking-requests
+- View incoming requests (provider)
+
+PATCH /api/v1/provider/booking-requests/:id/respond
+- Accept with quote, or decline with reason
+
+POST /api/v1/marketplace/booking-requests/:id/confirm
+- Consumer confirms the quote
+
+### 2.3 Messaging (Booking Context)
+
+Create bookingMessages table:
+- bookingRequestId
+- senderId, senderType (CONSUMER | PROVIDER)
+- message, attachments
+- readAt, createdAt
+
+## PHASE 3: Reviews & Trust
+
+### 3.1 Verified Reviews
+
+Only allow reviews from:
+- Completed bookings through hndld
+- Or verified transactions (receipt uploaded + provider confirmed)
+
+Create marketplaceReviews table:
+- providerId, consumerId, bookingRequestId
+- overallRating, qualityRating, punctualityRating, valueRating
+- reviewText
+- providerResponse, providerRespondedAt
+- isVerified (boolean) - true if through hndld booking
+- isPublic (boolean)
+- helpfulCount
+- reportedAt, reportReason
+
+### 3.2 Trust Badges (EARNED, not bought)
+
+| Badge | How Earned | Display |
+|-------|------------|---------|
+| VERIFIED | Background check + insurance | ✓ Verified |
+| TOP_RATED | Top 10% by rating in area | ⭐ Top Rated |
+| FAST_RESPONDER | <2hr avg response | ⚡ Fast |
+| RELIABLE | 95%+ completion rate | 🎯 Reliable |
+| VETERAN | 500+ jobs on hndld | 🏆 Veteran |
+| NEIGHBOR_FAVORITE | Most shared in network | ❤️ Favorite |
+
+## PHASE 4: Provider Tools (Monetization)
+
+### Free Tier
+- Basic profile
+- Up to 5 active clients
+- Standard search placement
+- 15% booking fee
+
+### Pro Tier ($49/mo)
+- Enhanced profile (more photos, video)
+- Unlimited clients
+- Analytics dashboard
+- 12% booking fee
+- Priority support
+
+### Premium Tier ($149/mo)
+- Everything in Pro
+- Route optimization
+- Staff accounts (up to 5)
+- 10% booking fee
+- API access
+- Dedicated support
+
+### Optional Add-Ons
+- Verification badge: $99 one-time (background check)
+- Featured placement: $X/week (CLEARLY LABELED as sponsored)
+- Boost visibility: $X/day (temporary, labeled)

@@ -2,9 +2,10 @@ import { Router, Request, Response, NextFunction } from "express";
 import { db } from "../../db";
 import {
   serviceProviders, providerStaff, providerClients, providerSchedule,
+  providerProfiles, marketplaceReviews, bookingRequests,
   vendors, households,
   type InsertServiceProvider, type ProviderClient, type ProviderStaff as ProviderStaffType,
-  type ProviderScheduleItem,
+  type ProviderScheduleItem, type InsertProviderProfile,
 } from "@shared/schema";
 import { eq, and, desc, sql, gte, lte, count, asc } from "drizzle-orm";
 import { isAuthenticated } from "../../replit_integrations/auth";
@@ -205,11 +206,27 @@ export function registerProviderRoutes(parent: Router) {
 
       const data = schema.parse(req.body);
 
+      const provider = (req as any).provider;
+      const tier = provider.subscriptionTier?.toUpperCase() || "STARTER";
+      const tierLimits: Record<string, number | null> = { STARTER: 5, FREE: 5, PRO: null, PREMIUM: null };
+      const maxClients = tierLimits[tier] ?? 5;
+      if (maxClients !== null) {
+        const [clientCount] = await db.select({ total: count() })
+          .from(providerClients)
+          .where(and(eq(providerClients.providerId, providerId), eq(providerClients.status, "ACTIVE")));
+        if ((clientCount?.total || 0) >= maxClients) {
+          return res.status(403).json({
+            error: `Client limit reached for ${tier} tier (max ${maxClients}). Upgrade to add more clients.`,
+            tier,
+            maxClients,
+            currentClients: clientCount?.total || 0,
+          });
+        }
+      }
+
       const [household] = await db.select({ id: households.id }).from(households)
         .where(eq(households.id, data.householdId));
       if (!household) return res.status(404).json({ error: "Household not found" });
-
-      const provider = (req as any).provider;
       const [vendorLink] = await db.select({ id: vendors.id }).from(vendors)
         .where(and(
           eq(vendors.householdId, data.householdId),
@@ -490,6 +507,365 @@ export function registerProviderRoutes(parent: Router) {
       });
     } catch (err: unknown) {
       res.status(500).json({ error: "Failed to fetch leads" });
+    }
+  });
+
+  const TIER_LIMITS: Record<string, { maxClients: number | null; feePercent: number }> = {
+    STARTER: { maxClients: 5, feePercent: 15 },
+    FREE: { maxClients: 5, feePercent: 15 },
+    PRO: { maxClients: null, feePercent: 12 },
+    PREMIUM: { maxClients: null, feePercent: 10 },
+  };
+
+  function generateSlug(name: string): string {
+    return name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .substring(0, 180);
+  }
+
+  async function makeUniqueSlug(base: string): Promise<string> {
+    let slug = base;
+    let attempt = 0;
+    while (true) {
+      const candidate = attempt === 0 ? slug : `${slug}-${attempt}`;
+      const [existing] = await db.select({ id: providerProfiles.id })
+        .from(providerProfiles)
+        .where(eq(providerProfiles.slug, candidate));
+      if (!existing) return candidate;
+      attempt++;
+      if (attempt > 100) return `${slug}-${Date.now()}`;
+    }
+  }
+
+  function getTierLimits(tier: string) {
+    return TIER_LIMITS[tier?.toUpperCase()] || TIER_LIMITS.STARTER;
+  }
+
+  router.get("/profile", isAuthenticated, requireProvider, async (req: Request, res: Response) => {
+    try {
+      const provider = (req as any).provider;
+      const [profile] = await db.select().from(providerProfiles)
+        .where(eq(providerProfiles.providerId, provider.id));
+
+      const tierInfo = getTierLimits(provider.subscriptionTier || "STARTER");
+
+      res.json({
+        profile: profile || null,
+        provider,
+        tier: {
+          name: (provider.subscriptionTier || "STARTER").toUpperCase(),
+          maxClients: tierInfo.maxClients,
+          feePercent: tierInfo.feePercent,
+          currentClients: provider.totalClients || 0,
+          canAddClients: tierInfo.maxClients === null || (provider.totalClients || 0) < tierInfo.maxClients,
+        },
+      });
+    } catch (err: unknown) {
+      logger.error("Failed to fetch provider profile", { error: err });
+      res.status(500).json({ error: "Failed to fetch profile" });
+    }
+  });
+
+  const profileSchema = z.object({
+    displayName: z.string().min(1).max(200),
+    tagline: z.string().max(300).optional(),
+    description: z.string().optional(),
+    profilePhotoUrl: z.string().optional(),
+    coverPhotoUrl: z.string().optional(),
+    galleryPhotos: z.array(z.string()).optional(),
+    serviceAreas: z.array(z.object({
+      postalCode: z.string().optional(),
+      city: z.string().optional(),
+      state: z.string().optional(),
+      radius: z.number().optional(),
+    })).optional(),
+    servicesOffered: z.array(z.object({
+      category: z.string(),
+      name: z.string(),
+      description: z.string().optional(),
+      priceRange: z.string().optional(),
+      duration: z.string().optional(),
+    })).optional(),
+    availability: z.object({
+      leadTimeDays: z.number().optional(),
+      sameDay: z.boolean().optional(),
+      weekends: z.boolean().optional(),
+      evenings: z.boolean().optional(),
+    }).optional(),
+    isAcceptingClients: z.boolean().optional(),
+    isPublic: z.boolean().optional(),
+  });
+
+  router.post("/profile", isAuthenticated, requireProvider, async (req: Request, res: Response) => {
+    try {
+      const provider = (req as any).provider;
+
+      const [existing] = await db.select({ id: providerProfiles.id })
+        .from(providerProfiles)
+        .where(eq(providerProfiles.providerId, provider.id));
+      if (existing) return res.status(409).json({ error: "Profile already exists. Use PATCH to update." });
+
+      const data = profileSchema.parse(req.body);
+      const baseSlug = generateSlug(data.displayName || provider.businessName);
+      const slug = await makeUniqueSlug(baseSlug);
+
+      const [profile] = await db.insert(providerProfiles).values({
+        providerId: provider.id,
+        slug,
+        displayName: data.displayName,
+        tagline: data.tagline,
+        description: data.description,
+        profilePhotoUrl: data.profilePhotoUrl,
+        coverPhotoUrl: data.coverPhotoUrl,
+        galleryPhotos: data.galleryPhotos,
+        serviceAreas: data.serviceAreas,
+        servicesOffered: data.servicesOffered,
+        availability: data.availability,
+        isAcceptingClients: data.isAcceptingClients ?? true,
+        isPublic: data.isPublic ?? false,
+      }).returning();
+
+      res.status(201).json(profile);
+    } catch (err: unknown) {
+      if (isZodError(err)) return res.status(400).json({ error: "Validation failed", details: err.errors });
+      if (isDbConstraintError(err)) return res.status(409).json({ error: "Profile already exists" });
+      logger.error("Profile creation failed", { error: err });
+      res.status(500).json({ error: "Failed to create profile" });
+    }
+  });
+
+  router.patch("/profile", isAuthenticated, requireProvider, async (req: Request, res: Response) => {
+    try {
+      const provider = (req as any).provider;
+
+      const [existing] = await db.select().from(providerProfiles)
+        .where(eq(providerProfiles.providerId, provider.id));
+      if (!existing) return res.status(404).json({ error: "No profile found. Use POST to create one." });
+
+      const updateSchema = profileSchema.partial();
+      const data = updateSchema.parse(req.body);
+
+      const updates: Partial<InsertProviderProfile> = {};
+      const allowedFields = [
+        "displayName", "tagline", "description", "profilePhotoUrl", "coverPhotoUrl",
+        "galleryPhotos", "serviceAreas", "servicesOffered", "availability",
+        "isAcceptingClients", "isPublic",
+      ] as const;
+
+      for (const field of allowedFields) {
+        if ((data as any)[field] !== undefined) (updates as any)[field] = (data as any)[field];
+      }
+
+      if (data.displayName && data.displayName !== existing.displayName) {
+        const baseSlug = generateSlug(data.displayName);
+        updates.slug = await makeUniqueSlug(baseSlug);
+      }
+
+      updates.updatedAt = new Date();
+
+      const [updated] = await db.update(providerProfiles)
+        .set(updates)
+        .where(eq(providerProfiles.providerId, provider.id))
+        .returning();
+
+      res.json(updated);
+    } catch (err: unknown) {
+      if (isZodError(err)) return res.status(400).json({ error: "Validation failed", details: err.errors });
+      logger.error("Profile update failed", { error: err });
+      res.status(500).json({ error: "Failed to update profile" });
+    }
+  });
+
+  router.get("/tier", isAuthenticated, requireProvider, async (req: Request, res: Response) => {
+    try {
+      const provider = (req as any).provider;
+      const tierInfo = getTierLimits(provider.subscriptionTier || "STARTER");
+
+      const [clientCount] = await db.select({ total: count() })
+        .from(providerClients)
+        .where(and(
+          eq(providerClients.providerId, provider.id),
+          eq(providerClients.status, "ACTIVE"),
+        ));
+
+      const currentClients = clientCount?.total || 0;
+
+      res.json({
+        tier: (provider.subscriptionTier || "STARTER").toUpperCase(),
+        subscriptionStatus: provider.subscriptionStatus || "TRIAL",
+        trialEndsAt: provider.trialEndsAt,
+        maxClients: tierInfo.maxClients,
+        feePercent: tierInfo.feePercent,
+        currentClients,
+        canAddClients: tierInfo.maxClients === null || currentClients < tierInfo.maxClients,
+        atLimit: tierInfo.maxClients !== null && currentClients >= tierInfo.maxClients,
+      });
+    } catch (err: unknown) {
+      logger.error("Failed to fetch tier info", { error: err });
+      res.status(500).json({ error: "Failed to fetch tier info" });
+    }
+  });
+
+  router.get("/featured-status", isAuthenticated, requireProvider, async (req: Request, res: Response) => {
+    try {
+      const provider = (req as any).provider;
+      const [profile] = await db.select({
+        featuredUntil: providerProfiles.featuredUntil,
+        isPublic: providerProfiles.isPublic,
+        verificationStatus: providerProfiles.verificationStatus,
+      }).from(providerProfiles)
+        .where(eq(providerProfiles.providerId, provider.id));
+
+      if (!profile) return res.status(404).json({ error: "No profile found" });
+
+      const now = new Date();
+      const isFeatured = profile.featuredUntil ? new Date(profile.featuredUntil) > now : false;
+
+      res.json({
+        isFeatured,
+        featuredUntil: profile.featuredUntil,
+        isPublic: profile.isPublic,
+        verificationStatus: profile.verificationStatus,
+        sponsoredLabel: isFeatured ? "Sponsored" : null,
+      });
+    } catch (err: unknown) {
+      logger.error("Failed to fetch featured status", { error: err });
+      res.status(500).json({ error: "Failed to fetch featured status" });
+    }
+  });
+
+  router.patch("/reviews/:id/respond", isAuthenticated, requireProvider, async (req: Request, res: Response) => {
+    try {
+      const providerId = (req as any).providerId as string;
+
+      const responseSchema = z.object({
+        response: z.string().min(1).max(1000),
+      });
+
+      const { response } = responseSchema.parse(req.body);
+
+      const [review] = await db.select().from(marketplaceReviews)
+        .where(and(
+          eq(marketplaceReviews.id, req.params.id),
+          eq(marketplaceReviews.providerId, providerId),
+        ));
+
+      if (!review) return res.status(404).json({ error: "Review not found" });
+
+      if (review.providerResponse) {
+        return res.status(409).json({ error: "You have already responded to this review" });
+      }
+
+      const [updated] = await db.update(marketplaceReviews)
+        .set({
+          providerResponse: response,
+          providerRespondedAt: new Date(),
+        })
+        .where(eq(marketplaceReviews.id, req.params.id))
+        .returning();
+
+      res.json(updated);
+    } catch (err: unknown) {
+      if (isZodError(err)) return res.status(400).json({ error: "Validation failed", details: err.errors });
+      logger.error("Failed to respond to review", { error: err });
+      res.status(500).json({ error: "Failed to respond to review" });
+    }
+  });
+
+  router.get("/booking-requests", isAuthenticated, requireProvider, async (req: Request, res: Response) => {
+    try {
+      const providerId = (req as any).providerId as string;
+      const { status, limit: limitStr, offset: offsetStr } = req.query;
+      const limit = Math.min(parseInt(limitStr as string) || 20, 100);
+      const offset = parseInt(offsetStr as string) || 0;
+
+      let conditions = [eq(bookingRequests.providerId, providerId)];
+      if (status && typeof status === "string") {
+        conditions.push(eq(bookingRequests.status, status as any));
+      }
+
+      const results = await db.select().from(bookingRequests)
+        .where(and(...conditions))
+        .orderBy(desc(bookingRequests.createdAt))
+        .limit(limit)
+        .offset(offset);
+
+      res.json({
+        requests: results,
+        pagination: { limit, offset },
+      });
+    } catch (err: unknown) {
+      logger.error("Failed to fetch provider booking requests", { error: err });
+      res.status(500).json({ error: "Failed to fetch booking requests" });
+    }
+  });
+
+  router.patch("/booking-requests/:id/respond", isAuthenticated, requireProvider, async (req: Request, res: Response) => {
+    try {
+      const providerId = (req as any).providerId as string;
+
+      const respondSchema = z.object({
+        action: z.enum(["accept", "decline"]),
+        quotedPriceCents: z.number().int().min(0).optional(),
+        providerNotes: z.string().max(2000).optional(),
+        declineReason: z.string().max(500).optional(),
+      });
+
+      const data = respondSchema.parse(req.body);
+
+      const [booking] = await db.select().from(bookingRequests)
+        .where(and(
+          eq(bookingRequests.id, req.params.id),
+          eq(bookingRequests.providerId, providerId),
+        ));
+
+      if (!booking) return res.status(404).json({ error: "Booking request not found" });
+      if (booking.status !== "PENDING") {
+        return res.status(400).json({ error: `Cannot respond to a ${booking.status.toLowerCase()} booking` });
+      }
+
+      if (data.action === "accept") {
+        if (!data.quotedPriceCents && data.quotedPriceCents !== 0) {
+          return res.status(400).json({ error: "quotedPriceCents is required when accepting" });
+        }
+
+        const provider = (req as any).provider;
+        const tierInfo = getTierLimits(provider.subscriptionTier || "STARTER");
+        const hndldFeeCents = Math.round(data.quotedPriceCents * (tierInfo.feePercent / 100));
+
+        const [updated] = await db.update(bookingRequests)
+          .set({
+            status: "ACCEPTED",
+            quotedPriceCents: data.quotedPriceCents,
+            hndldFeeCents,
+            providerNotes: data.providerNotes || null,
+            providerResponseAt: new Date(),
+            updatedAt: new Date(),
+          })
+          .where(eq(bookingRequests.id, req.params.id))
+          .returning();
+
+        return res.json(updated);
+      } else {
+        const [updated] = await db.update(bookingRequests)
+          .set({
+            status: "DECLINED",
+            declineReason: data.declineReason || null,
+            providerNotes: data.providerNotes || null,
+            providerResponseAt: new Date(),
+            updatedAt: new Date(),
+          })
+          .where(eq(bookingRequests.id, req.params.id))
+          .returning();
+
+        return res.json(updated);
+      }
+    } catch (err: unknown) {
+      if (isZodError(err)) return res.status(400).json({ error: "Validation failed", details: err.errors });
+      logger.error("Booking response failed", { error: err });
+      res.status(500).json({ error: "Failed to respond to booking" });
     }
   });
 }
