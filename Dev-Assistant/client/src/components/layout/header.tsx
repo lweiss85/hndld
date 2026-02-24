@@ -12,7 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Switch } from "@/components/ui/switch";
-import { Moon, Sun, LogOut, UserCircle, CreditCard, BarChart3, AlertTriangle, MessageCircle, MoreHorizontal, Send, FolderOpen, Building2 } from "lucide-react";
+import { Moon, Sun, LogOut, UserCircle, CreditCard, BarChart3, AlertTriangle, MessageCircle, MoreHorizontal, Send, FolderOpen, Building2, Store, CalendarCheck } from "lucide-react";
 import { NotificationCenter } from "@/components/notification-center";
 import { GlobalSearchTrigger } from "@/components/global-search";
 import { HouseholdSwitcher } from "@/components/household-switcher";
@@ -183,6 +183,18 @@ export function Header() {
                 <DropdownMenuItem className="gap-2 cursor-pointer" data-testid="menu-item-insights">
                   <BarChart3 className="h-4 w-4" />
                   Insights
+                </DropdownMenuItem>
+              </Link>
+              <Link href="/marketplace">
+                <DropdownMenuItem className="gap-2 cursor-pointer" data-testid="menu-item-marketplace">
+                  <Store className="h-4 w-4" />
+                  Marketplace
+                </DropdownMenuItem>
+              </Link>
+              <Link href="/my-bookings">
+                <DropdownMenuItem className="gap-2 cursor-pointer" data-testid="menu-item-bookings">
+                  <CalendarCheck className="h-4 w-4" />
+                  My Bookings
                 </DropdownMenuItem>
               </Link>
               {activeRole === "ASSISTANT" && (
