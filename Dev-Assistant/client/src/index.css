@@ -9,21 +9,21 @@
    ==================================== */
 
 :root {
-  /* Brand: Ink Navy (Luxe, Modern, Trust) */
+  /* Brand: Ink Navy (#14213D) */
   --hndld-ink-50: 220 30% 97%;
   --hndld-ink-100: 220 25% 94%;
   --hndld-ink-200: 220 22% 85%;
   --hndld-ink-300: 220 20% 70%;
   --hndld-ink-400: 220 25% 50%;
-  --hndld-ink-500: 220 37% 35%;
-  --hndld-ink-600: 220 37% 25%;
-  --hndld-ink-700: 220 37% 19%;
+  --hndld-ink-500: 220 47% 35%;
+  --hndld-ink-600: 220 50% 25%;
+  --hndld-ink-700: 220 50% 16%;
   
-  /* Accent: Champagne Gold */
-  --hndld-gold-300: 42 40% 75%;
-  --hndld-gold-400: 42 45% 65%;
-  --hndld-gold-500: 42 50% 55%;
-  --hndld-gold-600: 42 52% 45%;
+  /* Accent: Champagne Gold (#C9A96E) */
+  --hndld-gold-300: 37 42% 78%;
+  --hndld-gold-400: 37 45% 68%;
+  --hndld-gold-500: 37 44% 61%;
+  --hndld-gold-600: 37 46% 50%;
   
   /* Warm Neutrals - Porcelain */
   --hndld-warm-50: 36 33% 98%;
@@ -75,8 +75,8 @@
   --popover-foreground: 220 24% 10%;
   --popover-border: 30 20% 88%;
   
-  --primary: 220 37% 25%; /* ink navy */
-  --primary-foreground: 0 0% 100%;
+  --primary: 220 50% 16%; /* ink navy #14213D */
+  --primary-foreground: 36 33% 97%;
   
   --secondary: 30 18% 92%;
   --secondary-foreground: 220 24% 15%;
@@ -119,14 +119,14 @@
   --chart-4: 36 61% 50%;
   --chart-5: 153 47% 40%;
   
-  --font-sans: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --font-serif: Georgia, serif;
+  --font-sans: 'DM Sans', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-serif: 'Cormorant Garamond', Georgia, serif;
   --font-mono: Menlo, monospace;
   
-  --radius: .625rem;
-  --radius-lg: 1.375rem; /* 22px for cards */
-  --radius-md: 1rem; /* 16px for buttons */
-  --radius-sm: .5rem; /* 8px */
+  --radius: 4px;
+  --radius-lg: 8px;
+  --radius-md: 4px;
+  --radius-sm: 4px;
   
   /* Premium soft shadows */
   --shadow-2xs: 0px 1px 2px 0px hsl(220 24% 10% / 0.02);
