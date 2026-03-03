@@ -21,7 +21,7 @@ Preferred communication style: Simple, everyday language.
 - **Routing**: Wouter for client-side routing with role-based route switching (ClientRouter vs AssistantRouter)
 - **State Management**: TanStack React Query for server state, caching, and optimistic updates
 - **Styling**: TailwindCSS with shadcn/ui component library (New York style variant) and custom CSS variables for theming
-- **Design System**: Premium "White Glove" theme with porcelain (#F6F2EA) and ink navy (#1D2A44) color palette, Inter font family
+- **Design System**: Premium "White Glove" ambient theme with porcelain (#F8F5F0), navy (#14213D), gold (#C9A96E) palette. Cormorant Garamond (serif, headings) + DM Sans (sans, body) via @fontsource. Time-aware UI with phase-based sky/accent/glow colors (morning/afternoon/evening/night). BreathingGreeting (rAF font-weight oscillation), AmbientParticles (canvas), simplified 3-element header (household name, bell, avatar dropdown)
 - **Mobile-First**: Bottom tab navigation, iOS safe area padding, responsive layouts, PWA manifest for installability
 
 ### Backend Architecture
