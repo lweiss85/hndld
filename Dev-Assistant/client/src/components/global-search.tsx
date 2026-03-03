@@ -71,7 +71,7 @@ interface GlobalSearchDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-function GlobalSearchDialog({ open, onOpenChange }: GlobalSearchDialogProps) {
+export function GlobalSearchDialog({ open, onOpenChange }: GlobalSearchDialogProps) {
   const [query, setQuery] = useState("");
   const [activeFilters, setActiveFilters] = useState<string[]>(["tasks", "updates", "vendors", "preferences"]);
   const [, setLocation] = useLocation();

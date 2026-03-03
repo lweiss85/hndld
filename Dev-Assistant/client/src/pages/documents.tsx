@@ -339,7 +339,7 @@ export default function DocumentsPage() {
             <FileText className="h-5 w-5 text-[#C9A96E]" />
           </div>
           <div className="flex-1">
-            <h1 className="text-xl font-bold tracking-tight">Documents</h1>
+            <h1 className="text-xl font-display font-medium tracking-tight">Documents</h1>
             <p className="text-xs text-muted-foreground">Track contracts & expirations</p>
           </div>
           <Button
@@ -357,15 +357,15 @@ export default function DocumentsPage() {
         <div className="px-4 pt-4">
           <div className="grid grid-cols-3 gap-2">
             <div className="rounded-2xl border border-border/50 bg-card p-3 text-center">
-              <p className="text-2xl font-bold">{summary.total}</p>
+              <p className="text-3xl font-display font-medium">{summary.total}</p>
               <p className="text-[10px] text-muted-foreground mt-0.5">Total</p>
             </div>
             <div className={`rounded-2xl border p-3 text-center ${summary.expiringSoon > 0 ? "border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950" : "border-border/50 bg-card"}`}>
-              <p className="text-2xl font-bold">{summary.expiringSoon}</p>
+              <p className="text-3xl font-display font-medium">{summary.expiringSoon}</p>
               <p className="text-[10px] text-muted-foreground mt-0.5">Expiring Soon</p>
             </div>
             <div className={`rounded-2xl border p-3 text-center ${summary.expired > 0 ? "border-red-200 bg-red-50 dark:border-red-900 dark:bg-red-950" : "border-border/50 bg-card"}`}>
-              <p className="text-2xl font-bold">{summary.expired}</p>
+              <p className="text-3xl font-display font-medium">{summary.expired}</p>
               <p className="text-[10px] text-muted-foreground mt-0.5">Expired</p>
             </div>
           </div>

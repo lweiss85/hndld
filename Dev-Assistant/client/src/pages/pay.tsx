@@ -277,7 +277,7 @@ export default function PayPage() {
           <>
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-2xl font-light">{formatCurrency(totalPending)}</CardTitle>
+                <CardTitle className="text-3xl font-display font-medium">{formatCurrency(totalPending)}</CardTitle>
                 <CardDescription>Amount Due</CardDescription>
               </CardHeader>
               <CardContent>
@@ -306,7 +306,7 @@ export default function PayPage() {
                           </p>
                         </div>
                         <div className="text-right">
-                          <p className="font-medium">{formatCurrency(item.amount)}</p>
+                          <p className="font-medium font-display">{formatCurrency(item.amount)}</p>
                           <Badge variant="secondary" className="text-xs">
                             <Clock className="w-3 h-3 mr-1" /> Pay Now
                           </Badge>
@@ -337,7 +337,7 @@ export default function PayPage() {
                           </p>
                         </div>
                         <div className="text-right">
-                          <p className="font-medium text-muted-foreground">{formatCurrency(item.amount)}</p>
+                          <p className="font-medium font-display text-muted-foreground">{formatCurrency(item.amount)}</p>
                           {item.tipAmount && item.tipAmount > 0 && (
                             <p className="text-xs text-green-600">+{formatCurrency(item.tipAmount)} tip</p>
                           )}
@@ -357,7 +357,7 @@ export default function PayPage() {
           <DialogHeader>
             <DialogTitle>Pay {selectedItem?.title || selectedItem?.vendor || selectedItem?.category}</DialogTitle>
             <DialogDescription>
-              {formatCurrency(selectedItem?.amount || 0)} reimbursement
+              <span className="font-display">{formatCurrency(selectedItem?.amount || 0)}</span> reimbursement
             </DialogDescription>
           </DialogHeader>
 
@@ -399,17 +399,17 @@ export default function PayPage() {
               <div className="p-4 bg-muted rounded-lg">
                 <div className="flex justify-between text-sm">
                   <span>Reimbursement</span>
-                  <span>{formatCurrency(selectedItem?.amount || 0)}</span>
+                  <span className="font-display">{formatCurrency(selectedItem?.amount || 0)}</span>
                 </div>
                 {tipAmount > 0 && (
                   <div className="flex justify-between text-sm text-green-600">
                     <span>Tip</span>
-                    <span>+{formatCurrency(tipAmount)}</span>
+                    <span className="font-display">+{formatCurrency(tipAmount)}</span>
                   </div>
                 )}
                 <div className="flex justify-between font-medium mt-2 pt-2 border-t">
                   <span>Total</span>
-                  <span>{formatCurrency((selectedItem?.amount || 0) + tipAmount)}</span>
+                  <span className="font-display">{formatCurrency((selectedItem?.amount || 0) + tipAmount)}</span>
                 </div>
               </div>
 

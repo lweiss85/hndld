@@ -450,7 +450,7 @@ export default function Tasks() {
       />
     <div className="px-4 py-6 space-y-4 max-w-4xl mx-auto">
       <div className="flex items-center justify-between gap-4 animate-fade-in-up">
-        <h1 className="text-2xl font-semibold" data-testid="text-page-title">Tasks</h1>
+        <h1 className="text-2xl font-display font-medium" data-testid="text-page-title">Tasks</h1>
         <div className="flex items-center gap-2">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

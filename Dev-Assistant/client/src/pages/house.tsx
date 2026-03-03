@@ -55,7 +55,7 @@ export default function House() {
   return (
     <div className="px-4 py-6 space-y-6 max-w-4xl mx-auto">
       <div className="flex items-center justify-between gap-4">
-        <h1 className="text-2xl font-semibold" data-testid="text-page-title">House</h1>
+        <h1 className="text-2xl font-display font-medium" data-testid="text-page-title">House</h1>
         <Button size="sm" variant="outline" data-testid="button-add-info">
           <Plus aria-hidden="true" className="h-4 w-4 mr-1" />
           Add

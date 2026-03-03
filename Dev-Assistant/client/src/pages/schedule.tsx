@@ -88,7 +88,7 @@ export default function Schedule() {
     <PageTransition>
       <div className="px-4 py-6 space-y-6 max-w-4xl mx-auto pb-24">
         <div className="flex items-center justify-between gap-4">
-          <h1 className="text-2xl font-semibold" data-testid="text-page-title">Schedule</h1>
+          <h1 className="text-2xl font-display font-medium" data-testid="text-page-title">Schedule</h1>
         </div>
 
         {nextVisit ? (
@@ -97,7 +97,7 @@ export default function Schedule() {
               <div className="flex items-start justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground mb-1">Next Cleaning</p>
-                  <p className="text-2xl font-bold">
+                  <p className="text-3xl font-display font-medium">
                     {format(new Date(nextVisit.scheduledAt), "EEEE")}
                   </p>
                   <p className="text-lg text-muted-foreground">

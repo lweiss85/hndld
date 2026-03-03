@@ -200,7 +200,7 @@ export default function GetPaidPage() {
 
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-2xl font-light">{formatCurrency(totalPending)}</CardTitle>
+                <CardTitle className="text-3xl font-display font-medium">{formatCurrency(totalPending)}</CardTitle>
                 <CardDescription>Pending Reimbursements</CardDescription>
               </CardHeader>
               <CardContent>
@@ -229,7 +229,7 @@ export default function GetPaidPage() {
 
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-2xl font-light">{formatCurrency(totalAwaitingReconciliation)}</CardTitle>
+                <CardTitle className="text-3xl font-display font-medium">{formatCurrency(totalAwaitingReconciliation)}</CardTitle>
                 <CardDescription>Payments to Confirm</CardDescription>
               </CardHeader>
               <CardContent>

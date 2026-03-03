@@ -199,7 +199,7 @@ function ClientSpendingView() {
       <PullToRefreshIndicator {...pullToRefreshProps} />
     <div className="px-4 py-6 space-y-6 max-w-4xl mx-auto">
       <div>
-        <h1 className="text-2xl font-semibold" data-testid="text-page-title">Money</h1>
+        <h1 className="text-2xl font-display font-medium" data-testid="text-page-title">Money</h1>
         <p className="text-muted-foreground mt-1">Reimbursements and receipts, handled.</p>
       </div>
 
@@ -580,7 +580,7 @@ function AssistantSpendingView() {
     <div className="px-4 py-6 space-y-6 max-w-4xl mx-auto">
       <div className="flex items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold" data-testid="text-page-title">Money</h1>
+          <h1 className="text-2xl font-display font-medium" data-testid="text-page-title">Money</h1>
           <p className="text-muted-foreground mt-1">Track expenses and reimbursements</p>
         </div>
         <div className="flex items-center gap-2">
@@ -645,7 +645,7 @@ function AssistantSpendingView() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <span className="text-2xl font-bold" data-testid="text-weekly-total">
+            <span className="text-3xl font-display font-medium" data-testid="text-weekly-total">
               ${(weeklyTotal / 100).toFixed(2)}
             </span>
           </CardContent>
@@ -658,7 +658,7 @@ function AssistantSpendingView() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <span className="text-2xl font-bold" data-testid="text-monthly-total">
+            <span className="text-3xl font-display font-medium" data-testid="text-monthly-total">
               ${(monthlyTotal / 100).toFixed(2)}
             </span>
           </CardContent>

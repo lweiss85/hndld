@@ -172,19 +172,19 @@ function TimeReturnedCard({ impact }: { impact: ImpactMetrics }) {
 
       <div className="grid grid-cols-3 gap-4">
         <div className="text-center">
-          <p className="text-2xl font-bold text-foreground tabular-nums" data-testid="text-time-week">
+          <p className="text-3xl font-medium text-foreground tabular-nums font-display" data-testid="text-time-week">
             {formatTime(weekMinutes)}
           </p>
           <p className="text-xs text-muted-foreground">This week</p>
         </div>
         <div className="text-center">
-          <p className="text-2xl font-bold text-foreground tabular-nums" data-testid="text-time-month">
+          <p className="text-3xl font-medium text-foreground tabular-nums font-display" data-testid="text-time-month">
             {formatTime(monthMinutes)}
           </p>
           <p className="text-xs text-muted-foreground">This month</p>
         </div>
         <div className="text-center">
-          <p className="text-2xl font-bold text-foreground tabular-nums" data-testid="text-time-total">
+          <p className="text-3xl font-medium text-foreground tabular-nums font-display" data-testid="text-time-total">
             {Math.floor(allTimeMinutes / 60)}h
           </p>
           <p className="text-xs text-muted-foreground">All time</p>
@@ -492,7 +492,7 @@ export default function ThisWeek() {
       <LuxuryCard className="relative overflow-hidden">
         <AmbientParticles active={pendingApprovals.length === 0} color={getTimeContext().accentColor} />
         <div style={{ position: "relative", zIndex: 1 }}>
-          <h2 className="text-xl font-semibold text-foreground mb-1">
+          <h2 className="text-xl font-display font-medium text-foreground mb-1">
             This week is hndld.
           </h2>
           <p className="text-sm text-muted-foreground mb-4">

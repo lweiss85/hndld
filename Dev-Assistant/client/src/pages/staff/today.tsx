@@ -212,7 +212,7 @@ export default function StaffToday() {
       <div className="px-4 py-6 space-y-6 max-w-4xl mx-auto pb-24">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-semibold text-foreground">Today</h1>
+            <h1 className="text-2xl font-display font-medium text-foreground">Today</h1>
             <p className="text-muted-foreground text-sm">
               {format(now, "EEEE, MMMM d")}
             </p>

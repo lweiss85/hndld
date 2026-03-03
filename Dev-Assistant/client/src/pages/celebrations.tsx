@@ -103,7 +103,7 @@ function StatCard({ label, value, icon: Icon }: { label: string; value: number |
   return (
     <div className="flex flex-col items-center gap-1 p-4 rounded-2xl bg-card border border-border/50">
       <Icon className="h-5 w-5 text-muted-foreground mb-1" />
-      <span className="text-2xl font-bold tracking-tight">{value}</span>
+      <span className="text-3xl font-display font-medium tracking-tight">{value}</span>
       <span className="text-[11px] text-muted-foreground uppercase tracking-wider">{label}</span>
     </div>
   );

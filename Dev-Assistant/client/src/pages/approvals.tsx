@@ -148,7 +148,7 @@ export default function Approvals() {
       />
     <div className="px-4 py-6 space-y-6 max-w-4xl mx-auto">
       <div className="flex items-center justify-between gap-4 animate-fade-in-up">
-        <h1 className="text-2xl font-semibold" data-testid="text-page-title">Approvals</h1>
+        <h1 className="text-2xl font-display font-medium" data-testid="text-page-title">Approvals</h1>
         {activeRole === "ASSISTANT" && (
           <Button size="sm" onClick={() => setShowCreateDialog(true)} data-testid="button-create-approval">
             <Plus className="h-4 w-4 mr-1" aria-hidden="true" />
@@ -292,7 +292,7 @@ export default function Approvals() {
             {selectedApproval?.amount && (
               <div className="flex items-center gap-2">
                 <DollarSign className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
-                <span className="text-2xl font-bold">
+                <span className="text-3xl font-display font-medium">
                   ${(selectedApproval.amount / 100).toFixed(2)}
                 </span>
               </div>

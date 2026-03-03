@@ -131,7 +131,7 @@ export default function Reports() {
       <div className="px-4 py-6 space-y-6 max-w-4xl mx-auto">
         <div className="flex items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-semibold">Annual Report</h1>
+            <h1 className="text-2xl font-display font-medium">Annual Report</h1>
             <p className="text-muted-foreground mt-1">
               Financial overview for tax preparation
             </p>
@@ -182,7 +182,7 @@ export default function Reports() {
                     <DollarSign className="h-3.5 w-3.5" aria-hidden="true" />
                     Total Spent
                   </div>
-                  <p className="text-xl font-semibold">
+                  <p className="text-xl font-display font-medium">
                     {formatCents(report.summary.totalSpending)}
                   </p>
                 </CardContent>
@@ -193,7 +193,7 @@ export default function Reports() {
                     <Receipt className="h-3.5 w-3.5" aria-hidden="true" />
                     Transactions
                   </div>
-                  <p className="text-xl font-semibold">
+                  <p className="text-xl font-display font-medium">
                     {report.summary.transactionCount.toLocaleString()}
                   </p>
                 </CardContent>
@@ -206,7 +206,7 @@ export default function Reports() {
                     <TrendingUp className="h-3.5 w-3.5 text-green-600" aria-hidden="true" />
                     Deductible
                   </div>
-                  <p className="text-xl font-semibold text-green-700 dark:text-green-400">
+                  <p className="text-xl font-display font-medium text-green-700 dark:text-green-400">
                     {formatCents(report.summary.deductibleTotal)}
                   </p>
                 </CardContent>
@@ -219,7 +219,7 @@ export default function Reports() {
                     <AlertTriangle className="h-3.5 w-3.5 text-amber-600" aria-hidden="true" />
                     1099 Vendors
                   </div>
-                  <p className="text-xl font-semibold">
+                  <p className="text-xl font-display font-medium">
                     {report.summary.vendorsRequiring1099}
                   </p>
                   <p className="text-[10px] text-muted-foreground">Paid $600+</p>

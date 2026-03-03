@@ -18,7 +18,7 @@ export default function StaffMore() {
   return (
     <div className="px-4 py-6 space-y-6 max-w-4xl mx-auto pb-24">
       <div>
-        <h1 className="text-2xl font-semibold text-foreground">More</h1>
+        <h1 className="text-2xl font-display font-medium text-foreground">More</h1>
         <p className="text-muted-foreground text-sm">
           Settings and account
         </p>
