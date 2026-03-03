@@ -8,8 +8,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Button } from "@/components/ui/button";
-import { Building2, Check, ChevronDown } from "lucide-react";
+import { Check, ChevronDown } from "lucide-react";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { triggerHaptic } from "@/components/juice";
@@ -72,31 +71,41 @@ export function HouseholdSwitcher() {
     return null;
   }
 
+  const displayName = activeHousehold?.name || households[0]?.name || "Home";
+
   if (households.length === 1) {
     return (
-      <div className="flex items-center gap-2 px-2 py-1 text-sm">
-        <Building2 className="h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />
-        <span className="text-muted-foreground text-xs">{households[0].name}</span>
-      </div>
+      <span
+        className="text-foreground max-w-[200px] truncate"
+        style={{
+          fontFamily: "'Cormorant Garamond', Georgia, serif",
+          fontWeight: 400,
+          fontSize: "1.125rem",
+          letterSpacing: "0.01em",
+        }}
+      >
+        {displayName}
+      </span>
     );
   }
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button 
-          variant="ghost" 
-          size="sm"
-          className="gap-1.5 px-2 h-auto py-1.5"
+        <button
+          className="flex items-center gap-1.5 text-foreground hover:opacity-70 transition-opacity"
           aria-label="Switch household"
           data-testid="household-switcher"
+          style={{
+            fontFamily: "'Cormorant Garamond', Georgia, serif",
+            fontWeight: 400,
+            fontSize: "1.125rem",
+            letterSpacing: "0.01em",
+          }}
         >
-          <Building2 className="h-3.5 w-3.5" aria-hidden="true" />
-          <span className="text-xs font-medium max-w-24 truncate">
-            {activeHousehold?.name || "Select"}
-          </span>
-          <ChevronDown className="h-3 w-3" aria-hidden="true" />
-        </Button>
+          <span className="max-w-[200px] truncate">{displayName}</span>
+          <ChevronDown className="h-3.5 w-3.5 opacity-50" aria-hidden="true" />
+        </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-56">
         <DropdownMenuLabel className="text-xs">Switch Household</DropdownMenuLabel>

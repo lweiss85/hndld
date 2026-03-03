@@ -1,16 +1,9 @@
 import { useActiveServiceType, ServiceType } from "@/hooks/use-active-service-type";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Button } from "@/components/ui/button";
-import { ChevronDown, Sparkles, Home } from "lucide-react";
+import { triggerHaptic } from "@/components/juice";
 
-const SERVICE_LABELS: Record<ServiceType, { label: string; icon: typeof Sparkles }> = {
-  CLEANING: { label: "Cleaning", icon: Sparkles },
-  PA: { label: "Personal Assistant", icon: Home },
+const SERVICE_LABELS: Record<ServiceType, string> = {
+  CLEANING: "Cleaning",
+  PA: "Personal Assistant",
 };
 
 export function ServiceSwitcher() {
@@ -26,48 +19,41 @@ export function ServiceSwitcher() {
     return null;
   }
 
-  const current = SERVICE_LABELS[activeServiceType];
-  const CurrentIcon = current.icon;
-
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button 
-          variant="ghost" 
-          size="sm" 
-          className="gap-1.5 text-xs font-medium text-ink-navy/70 hover:text-ink-navy"
-          aria-label="Switch service type"
-        >
-          <CurrentIcon className="h-3.5 w-3.5" aria-hidden="true" />
-          {current.label}
-          <ChevronDown className="h-3 w-3" aria-hidden="true" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="min-w-[160px]">
-        {availableServiceTypes.map((serviceType) => {
-          const service = SERVICE_LABELS[serviceType];
-          const Icon = service.icon;
-          const isActive = serviceType === activeServiceType;
-          
-          return (
-            <DropdownMenuItem
-              key={serviceType}
-              onClick={() => setActiveServiceType(serviceType)}
-              className={isActive ? "bg-porcelain" : ""}
-            >
-              <Icon className="h-4 w-4 mr-2" aria-hidden="true" />
-              {service.label}
-            </DropdownMenuItem>
-          );
-        })}
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <div className="flex gap-1.5" role="tablist" aria-label="Service type">
+      {availableServiceTypes.map((serviceType) => {
+        const isActive = serviceType === activeServiceType;
+        return (
+          <button
+            key={serviceType}
+            role="tab"
+            aria-selected={isActive}
+            onClick={() => {
+              setActiveServiceType(serviceType);
+              triggerHaptic("light");
+            }}
+            className={`
+              px-3 py-1 rounded-full text-xs font-medium transition-all duration-200
+              ${isActive
+                ? "bg-primary text-primary-foreground shadow-sm"
+                : "bg-muted/60 text-muted-foreground hover:bg-muted"
+              }
+            `}
+            style={{
+              fontFamily: "'DM Sans', system-ui, sans-serif",
+              letterSpacing: "0.04em",
+              textTransform: "uppercase",
+            }}
+          >
+            {SERVICE_LABELS[serviceType]}
+          </button>
+        );
+      })}
+    </div>
   );
 }
 
 export function ServiceBadge({ serviceType }: { serviceType: ServiceType }) {
-  const label = SERVICE_LABELS[serviceType]?.label ?? serviceType;
-  
   return (
     <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-ink-navy/5 text-ink-navy/60">
       {serviceType === "CLEANING" ? "Cleaning" : "PA"}
