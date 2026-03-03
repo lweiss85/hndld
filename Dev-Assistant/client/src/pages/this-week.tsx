@@ -34,6 +34,8 @@ import { useToast } from "@/hooks/use-toast";
 import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
 import { PullToRefreshIndicator } from "@/components/pull-to-refresh";
 import { BreathingGreeting } from "@/components/BreathingGreeting";
+import { AmbientParticles } from "@/components/AmbientParticles";
+import { getTimeContext } from "@/lib/time-context";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useActiveServiceType } from "@/hooks/use-active-service-type";
 import { withServiceType } from "@/lib/serviceUrl";
@@ -477,31 +479,34 @@ export default function ThisWeek() {
         <BreathingGreeting name={firstName} greeting={getGreeting()} />
       </header>
 
-      <LuxuryCard>
-        <h2 className="text-xl font-semibold text-foreground mb-1">
-          This week is hndld.
-        </h2>
+      <LuxuryCard className="relative overflow-hidden">
+        <AmbientParticles active={pendingApprovals.length === 0} color={getTimeContext().accentColor} />
+        <div style={{ position: "relative", zIndex: 1 }}>
+          <h2 className="text-xl font-semibold text-foreground mb-1">
+            This week is hndld.
+          </h2>
           <p className="text-sm text-muted-foreground mb-4">
             {priorityTasks.length} priorities 
             {todayEvents > 0 && ` • ${todayEvents} today`}
             {pendingApprovals.length > 0 && ` • ${pendingApprovals.length} waiting`}
           </p>
           
-        <div className="flex flex-wrap gap-3">
-          <Button asChild className="rounded-xl">
-            <Link href="/requests" data-testid="button-request-hero">
-              <MessageSquarePlus className="w-4 h-4 mr-2" aria-hidden="true" />
-              Request
-            </Link>
-          </Button>
-          {pendingApprovals.length > 0 && (
-            <Button variant="outline" asChild className="rounded-xl">
-              <Link href="/approvals" data-testid="button-approvals-hero">
-                <Bell className="w-4 h-4 mr-2" aria-hidden="true" />
-                Approvals ({pendingApprovals.length})
+          <div className="flex flex-wrap gap-3">
+            <Button asChild className="rounded-xl">
+              <Link href="/requests" data-testid="button-request-hero">
+                <MessageSquarePlus className="w-4 h-4 mr-2" aria-hidden="true" />
+                Request
               </Link>
             </Button>
-          )}
+            {pendingApprovals.length > 0 && (
+              <Button variant="outline" asChild className="rounded-xl">
+                <Link href="/approvals" data-testid="button-approvals-hero">
+                  <Bell className="w-4 h-4 mr-2" aria-hidden="true" />
+                  Approvals ({pendingApprovals.length})
+                </Link>
+              </Button>
+            )}
+          </div>
         </div>
       </LuxuryCard>
 
