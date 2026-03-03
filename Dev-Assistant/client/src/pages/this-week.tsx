@@ -33,6 +33,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
 import { PullToRefreshIndicator } from "@/components/pull-to-refresh";
+import { BreathingGreeting } from "@/components/BreathingGreeting";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useActiveServiceType } from "@/hooks/use-active-service-type";
 import { withServiceType } from "@/lib/serviceUrl";
@@ -304,11 +305,8 @@ function CleaningOverview() {
         progress={progress}
       />
       <div className="px-5 py-6 space-y-6 max-w-4xl mx-auto pb-24">
-        <header className="space-y-1 animate-fade-in-up">
-          <h1 className="text-2xl font-semibold text-foreground" data-testid="text-greeting">
-            {getGreeting()}, {firstName}.
-          </h1>
-          <p className="text-xs text-muted-foreground">Your cleaning service overview</p>
+        <header className="animate-fade-in-up">
+          <BreathingGreeting name={firstName} greeting={getGreeting()} />
         </header>
 
         <section>
@@ -475,13 +473,8 @@ export default function ThisWeek() {
         progress={progress}
       />
     <div className="px-5 py-6 space-y-6 max-w-4xl mx-auto pb-24">
-      <header className="space-y-1 animate-fade-in-up">
-        <h1 className="text-2xl font-semibold text-foreground" data-testid="text-greeting">
-          {getGreeting()}, {firstName}.
-        </h1>
-        <p className="text-xs text-muted-foreground">
-          Last updated {formatDistanceToNow(new Date(), { addSuffix: true })}
-        </p>
+      <header className="animate-fade-in-up">
+        <BreathingGreeting name={firstName} greeting={getGreeting()} />
       </header>
 
       <LuxuryCard>
