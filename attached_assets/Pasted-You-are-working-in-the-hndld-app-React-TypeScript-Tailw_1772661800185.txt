@@ -1,0 +1,28 @@
+You are working in the hndld app (React + TypeScript + Tailwind + Framer Motion).
+
+Create a global long-press gesture that opens the request creation bottom sheet from anywhere on the home screen.
+
+Step 1 — Create a useLongPress hook at client/src/hooks/use-long-press.ts:
+- Accepts: { onLongPress: () => void, delay?: number (default 600ms) }
+- Returns: { onPointerDown, onPointerUp, onPointerLeave }
+- On pointerdown, start a timer; if pointer is still held at delay ms, call onLongPress and trigger navigator.vibrate(20)
+- On pointerup or pointerleave before delay, cancel the timer
+- Does NOT interfere with scroll — only trigger if the pointer hasn't moved more than 8px
+
+Step 2 — Create a RequestBottomSheet component at client/src/components/RequestBottomSheet.tsx:
+- A Framer Motion animated bottom sheet that slides up from the bottom (y: "100%" to y: 0)
+- Backdrop overlay (rgba(20,33,61,0.4) with blur(4px)) that fades in
+- Contains the existing <SmartRequestInput> component and <QuickRequestButtons> component
+- A drag handle at the top (36px wide, 4px tall, rounded, muted color)
+- Can be dismissed by: tapping the backdrop, pressing escape, or dragging the sheet down past 80px
+- On open, immediately focus the SmartRequestInput textarea
+- Sheet height: 75vh, with scrollable content if it overflows
+
+Step 3 — In client/src/pages/this-week.tsx:
+- Import useLongPress and apply it to the main scrollable content div (the one that wraps all the cards)
+- On long press, set a state variable showRequestSheet to true and open RequestBottomSheet
+- Add a subtle visual hint the first time: after the page loads for the first time (check localStorage key "hndld_longpress_hinted"), show a brief 2s tooltip near the bottom of the screen: "Hold anywhere to make a request" — then set the localStorage key so it never shows again
+
+The long-press should NOT trigger when the user long-presses on a button, link, input, or card with its own click handler. Use event.target.closest('button, a, input, [data-no-longpress]') to check and bail out.
+
+Do not remove the existing + button on /requests — the sheet is additive, not a replacement.

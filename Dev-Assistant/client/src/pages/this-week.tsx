@@ -15,6 +15,7 @@ import {
   CalendarDays,
   Heart
 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { format, isToday, isTomorrow, isThisWeek, formatDistanceToNow } from "date-fns";
 import type { Task, Approval, CalendarEvent, Update, SpendingItem } from "@shared/schema";
 import { Link } from "wouter";
@@ -43,6 +44,8 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useActiveServiceType } from "@/hooks/use-active-service-type";
 import { withServiceType } from "@/lib/serviceUrl";
 import { PayNowSheet } from "@/components/pay-now-sheet";
+import { useLongPress } from "@/hooks/use-long-press";
+import { RequestBottomSheet } from "@/components/RequestBottomSheet";
 
 interface ImpactMetrics {
   minutesReturnedWeek: number;
@@ -436,17 +439,35 @@ function CleaningOverview() {
 export default function ThisWeek() {
   const { user } = useAuth();
   const { activeServiceType } = useActiveServiceType();
+  const [showRequestSheet, setShowRequestSheet] = useState(false);
+  const [showLongPressHint, setShowLongPressHint] = useState(false);
 
-  if (activeServiceType === "CLEANING") {
-    return <CleaningOverview />;
-  }
+  const longPressHandlers = useLongPress({
+    onLongPress: () => setShowRequestSheet(true),
+  });
+
+  useEffect(() => {
+    const hinted = localStorage.getItem("hndld_longpress_hinted");
+    if (!hinted) {
+      const timer = setTimeout(() => {
+        setShowLongPressHint(true);
+        localStorage.setItem("hndld_longpress_hinted", "1");
+        setTimeout(() => setShowLongPressHint(false), 2000);
+      }, 1500);
+      return () => clearTimeout(timer);
+    }
+  }, []);
+
+  const isPA = activeServiceType !== "CLEANING";
 
   const { data, isLoading } = useQuery<DashboardData>({
     queryKey: ["/api/dashboard"],
+    enabled: isPA,
   });
 
   const { data: updates } = useQuery<Update[]>({
     queryKey: ["/api/updates"],
+    enabled: isPA,
   });
 
   const { isRefreshing, pullDistance, threshold, progress } = usePullToRefresh({
@@ -458,6 +479,10 @@ export default function ThisWeek() {
       ]);
     },
   });
+
+  if (!isPA) {
+    return <CleaningOverview />;
+  }
 
   if (isLoading) return <WeeklyBriefSkeleton />;
 
@@ -482,7 +507,11 @@ export default function ThisWeek() {
         isRefreshing={isRefreshing}
         progress={progress}
       />
-    <div className="px-5 py-6 space-y-6 max-w-4xl mx-auto pb-24">
+    <div
+      className="px-5 py-6 space-y-6 max-w-4xl mx-auto pb-24"
+      {...longPressHandlers}
+      style={{ touchAction: "pan-y" }}
+    >
       <header className="animate-fade-in-up space-y-3">
         <ConciergeWhisper />
         <BreathingGreeting name={firstName} greeting={getGreeting()} />
@@ -607,6 +636,25 @@ export default function ThisWeek() {
         </section>
       )}
     </div>
+
+      <RequestBottomSheet
+        open={showRequestSheet}
+        onClose={() => setShowRequestSheet(false)}
+      />
+
+      <AnimatePresence>
+        {showLongPressHint && (
+          <motion.div
+            className="fixed bottom-24 left-1/2 -translate-x-1/2 z-40 px-4 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-medium shadow-lg"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 10 }}
+            transition={{ duration: 0.3 }}
+          >
+            Hold anywhere to make a request
+          </motion.div>
+        )}
+      </AnimatePresence>
     </PageTransition>
   );
 }

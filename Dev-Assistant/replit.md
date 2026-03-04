@@ -26,6 +26,7 @@ Preferred communication style: Simple, everyday language.
 - **State Management**: TanStack React Query for server state and caching
 - **Styling**: TailwindCSS with shadcn/ui component library (New York style variant)
 - **Design System**: Premium "White Glove" ambient theme with porcelain (#F8F5F0), navy (#14213D), gold (#C9A96E) palette. Cormorant Garamond (serif, headings) + DM Sans (sans, body) via @fontsource. Time-aware UI with phase-based sky/accent/glow colors (morning/afternoon/evening/night). BreathingGreeting (rAF font-weight oscillation), AmbientParticles (canvas), ConciergeWhisper (priority-driven ambient one-liner above greeting), simplified 3-element header (household name, bell, avatar dropdown)
+- **Gestures**: Long-press anywhere on the home screen (600ms, 8px movement threshold) opens RequestBottomSheet for quick request creation. One-time hint tooltip on first visit. Uses `useLongPress` hook at `client/src/hooks/use-long-press.ts`
 - **Motion System**: framer-motion for page transitions, stagger animations, ripple effects, success celebrations, haptic feedback
 - **Accessibility**: LiveAnnouncerProvider for screen reader announcements, reduced motion support
 - **Visual Effects**: Glass morphism (.hndld-glass), ambient glow (.hndld-glow), signature curves (.hndld-curve)
