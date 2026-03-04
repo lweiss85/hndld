@@ -5,7 +5,7 @@ const ease = [0.22, 1, 0.36, 1];
 
 export default function Landing() {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background font-sans">
 
       <section aria-label="Hero" className="relative min-h-screen flex flex-col items-center justify-center px-6 py-20 bg-gradient-to-b from-background via-background to-accent">
 
@@ -21,7 +21,7 @@ export default function Landing() {
         </motion.div>
 
         <motion.h1
-          className="text-center max-w-2xl"
+          className="text-center max-w-2xl font-display"
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.2, ease }}
@@ -83,7 +83,7 @@ export default function Landing() {
             viewport={{ once: true }}
             transition={{ duration: 0.8 }}
           >
-            <h2 className="text-3xl md:text-4xl font-light text-foreground">
+            <h2 className="text-3xl md:text-4xl font-display font-light text-foreground">
               Everything in its place
             </h2>
             <p className="mt-4 text-lg text-muted-foreground max-w-md mx-auto">
@@ -102,7 +102,7 @@ export default function Landing() {
               <div className="h-full rounded-2xl bg-card shadow-lg overflow-hidden border border-border">
                 <div className="h-14 bg-accent border-b border-border flex items-center px-5">
                   <div className="w-8 h-8 rounded-full bg-secondary" />
-                  <span className="ml-3 font-medium text-foreground">This Week</span>
+                  <span className="ml-3 font-display font-medium text-foreground">This Week</span>
                 </div>
                 <div className="p-5 space-y-4">
                   <div className="h-24 rounded-xl bg-gradient-to-r from-secondary to-accent" />
@@ -129,7 +129,7 @@ export default function Landing() {
       <section aria-label="How it works" className="py-24 px-6 bg-background">
         <div className="max-w-4xl mx-auto">
           <motion.h2
-            className="text-3xl md:text-4xl font-light text-foreground text-center mb-20"
+            className="text-3xl md:text-4xl font-display font-light text-foreground text-center mb-20"
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
             viewport={{ once: true }}
@@ -151,7 +151,7 @@ export default function Landing() {
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.15, duration: 0.6 }}
               >
-                <span className="text-6xl font-light text-muted-foreground/30">{step.num}</span>
+                <span className="text-6xl font-display font-light text-muted-foreground/30">{step.num}</span>
                 <div>
                   <h3 className="text-xl font-medium text-foreground">{step.title}</h3>
                   <p className="mt-2 text-muted-foreground text-lg">{step.desc}</p>
@@ -170,7 +170,7 @@ export default function Landing() {
           viewport={{ once: true }}
           transition={{ duration: 0.8 }}
         >
-          <blockquote className="text-2xl md:text-3xl font-light text-foreground leading-relaxed italic">
+          <blockquote className="text-2xl md:text-3xl font-display font-light text-foreground leading-relaxed italic">
             "I used to spend my Sundays coordinating the week ahead. Now I spend them with my family."
           </blockquote>
           <div className="mt-8 flex items-center justify-center gap-4">
@@ -204,7 +204,7 @@ export default function Landing() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
         >
-          <h2 className="text-4xl md:text-5xl font-light text-foreground">
+          <h2 className="text-4xl md:text-5xl font-display font-light text-foreground">
             Ready to reclaim your time?
           </h2>
           <p className="mt-6 text-xl text-muted-foreground">
@@ -222,7 +222,7 @@ export default function Landing() {
 
       <footer aria-label="Site footer" className="py-12 px-6 bg-primary text-primary-foreground/70">
         <div className="max-w-4xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
-          <span className="font-medium text-primary-foreground">hndld</span>
+          <span className="font-display font-medium text-primary-foreground text-lg">hndld</span>
           <div className="flex gap-8 text-sm">
             <a href="/privacy" className="hover:text-primary-foreground transition-colors">Privacy</a>
             <a href="/terms" className="hover:text-primary-foreground transition-colors">Terms</a>

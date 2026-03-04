@@ -85,7 +85,7 @@ interface ProviderData {
 
 function ProviderDetailSkeleton() {
   return (
-    <div className="min-h-screen" style={{ backgroundColor: "#F6F2EA" }}>
+    <div className="min-h-screen bg-background">
       <Skeleton className="h-48 w-full" />
       <div className="px-4 -mt-12 space-y-6 pb-24">
         <div className="flex items-end gap-4">
@@ -118,7 +118,7 @@ function StarRating({ rating }: { rating: number }) {
           className={`h-4 w-4 ${
             star <= Math.round(rating)
               ? "fill-amber-400 text-amber-400"
-              : "text-[#1D2A44]/20"
+              : "text-primary/20"
           }`}
         />
       ))}
@@ -129,16 +129,16 @@ function StarRating({ rating }: { rating: number }) {
 function RatingBar({ label, value }: { label: string; value: number }) {
   return (
     <div className="flex items-center gap-3">
-      <span className="text-sm w-24 shrink-0" style={{ color: "#1D2A44" }}>
+      <span className="text-sm w-24 shrink-0 text-foreground">
         {label}
       </span>
-      <div className="flex-1 h-2 rounded-full bg-[#1D2A44]/10">
+      <div className="flex-1 h-2 rounded-full bg-primary/10">
         <div
           className="h-full rounded-full bg-amber-400 transition-all"
           style={{ width: `${(value / 5) * 100}%` }}
         />
       </div>
-      <span className="text-sm font-medium w-8 text-right" style={{ color: "#1D2A44" }}>
+      <span className="text-sm font-medium w-8 text-right text-foreground">
         {value.toFixed(1)}
       </span>
     </div>
@@ -228,12 +228,9 @@ export default function ProviderDetailPage() {
 
   if (error || !provider) {
     return (
-      <div
-        className="min-h-screen flex flex-col items-center justify-center px-4"
-        style={{ backgroundColor: "#F6F2EA", color: "#1D2A44", fontFamily: "Inter, sans-serif" }}
-      >
-        <h2 className="text-xl font-semibold mb-2">Provider not found</h2>
-        <p className="text-sm opacity-60 mb-6">This provider may no longer be available.</p>
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center px-4">
+        <h2 className="text-xl font-display font-semibold text-foreground mb-2">Provider not found</h2>
+        <p className="text-sm text-muted-foreground mb-6">This provider may no longer be available.</p>
         <Button variant="outline" onClick={() => navigate("/marketplace")}>
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back to Marketplace
@@ -243,10 +240,7 @@ export default function ProviderDetailPage() {
   }
 
   return (
-    <div
-      className="min-h-screen pb-24"
-      style={{ backgroundColor: "#F6F2EA", color: "#1D2A44", fontFamily: "Inter, sans-serif" }}
-    >
+    <div className="min-h-screen bg-background pb-24">
       <div className="relative">
         {provider.coverPhoto ? (
           <img
@@ -255,19 +249,14 @@ export default function ProviderDetailPage() {
             className="w-full h-48 object-cover"
           />
         ) : (
-          <div
-            className="w-full h-48"
-            style={{
-              background: "linear-gradient(135deg, #1D2A44 0%, #3B5278 50%, #6B8CBF 100%)",
-            }}
-          />
+          <div className="w-full h-48 bg-gradient-to-br from-primary via-primary/80 to-primary/50" />
         )}
         <button
           onClick={() => navigate("/marketplace")}
-          className="absolute top-4 left-4 w-10 h-10 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center shadow-sm"
+          className="absolute top-4 left-4 w-10 h-10 rounded-full bg-card/80 backdrop-blur-sm flex items-center justify-center shadow-sm"
           aria-label="Back to marketplace"
         >
-          <ArrowLeft className="h-5 w-5" style={{ color: "#1D2A44" }} />
+          <ArrowLeft className="h-5 w-5 text-foreground" />
         </button>
       </div>
 
@@ -277,22 +266,19 @@ export default function ProviderDetailPage() {
             <img
               src={provider.profilePhoto}
               alt={provider.displayName}
-              className="w-24 h-24 rounded-full border-4 border-[#F6F2EA] object-cover shadow-lg"
+              className="w-24 h-24 rounded-full border-4 border-background object-cover shadow-lg"
             />
           ) : (
-            <div
-              className="w-24 h-24 rounded-full border-4 border-[#F6F2EA] shadow-lg flex items-center justify-center text-2xl font-bold text-white"
-              style={{ backgroundColor: "#1D2A44" }}
-            >
+            <div className="w-24 h-24 rounded-full border-4 border-background shadow-lg flex items-center justify-center text-2xl font-display font-bold text-primary-foreground bg-primary">
               {provider.displayName.charAt(0)}
             </div>
           )}
           <div className="flex-1 pb-1">
-            <h1 className="text-xl font-bold" style={{ color: "#1D2A44" }}>
+            <h1 className="text-xl font-display font-bold text-foreground">
               {provider.displayName}
             </h1>
             {provider.tagline && (
-              <p className="text-sm mt-0.5" style={{ color: "#1D2A44", opacity: 0.6 }}>
+              <p className="text-sm mt-0.5 text-muted-foreground">
                 {provider.tagline}
               </p>
             )}
@@ -300,55 +286,55 @@ export default function ProviderDetailPage() {
         </div>
 
         <div className="grid grid-cols-2 gap-3">
-          <Card className="border-0 shadow-sm" style={{ backgroundColor: "white" }}>
+          <Card className="border-0 shadow-sm bg-card">
             <CardContent className="p-3 flex items-center gap-3">
-              <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ backgroundColor: "#1D2A44" }}>
-                <Briefcase className="h-4 w-4 text-white" />
+              <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-primary">
+                <Briefcase className="h-4 w-4 text-primary-foreground" />
               </div>
               <div>
-                <p className="text-lg font-bold" style={{ color: "#1D2A44" }}>
+                <p className="text-lg font-display font-bold text-foreground">
                   {provider.jobsCompleted}
                 </p>
-                <p className="text-xs" style={{ color: "#1D2A44", opacity: 0.5 }}>Jobs Done</p>
+                <p className="text-xs text-muted-foreground">Jobs Done</p>
               </div>
             </CardContent>
           </Card>
-          <Card className="border-0 shadow-sm" style={{ backgroundColor: "white" }}>
+          <Card className="border-0 shadow-sm bg-card">
             <CardContent className="p-3 flex items-center gap-3">
               <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-amber-400">
                 <Star className="h-4 w-4 text-white" />
               </div>
               <div>
-                <p className="text-lg font-bold" style={{ color: "#1D2A44" }}>
+                <p className="text-lg font-display font-bold text-foreground">
                   {provider.rating.toFixed(1)}
                 </p>
-                <p className="text-xs" style={{ color: "#1D2A44", opacity: 0.5 }}>Rating</p>
+                <p className="text-xs text-muted-foreground">Rating</p>
               </div>
             </CardContent>
           </Card>
-          <Card className="border-0 shadow-sm" style={{ backgroundColor: "white" }}>
+          <Card className="border-0 shadow-sm bg-card">
             <CardContent className="p-3 flex items-center gap-3">
               <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-emerald-500">
                 <Clock className="h-4 w-4 text-white" />
               </div>
               <div>
-                <p className="text-lg font-bold" style={{ color: "#1D2A44" }}>
+                <p className="text-lg font-display font-bold text-foreground">
                   {provider.responseTime}
                 </p>
-                <p className="text-xs" style={{ color: "#1D2A44", opacity: 0.5 }}>Response</p>
+                <p className="text-xs text-muted-foreground">Response</p>
               </div>
             </CardContent>
           </Card>
-          <Card className="border-0 shadow-sm" style={{ backgroundColor: "white" }}>
+          <Card className="border-0 shadow-sm bg-card">
             <CardContent className="p-3 flex items-center gap-3">
               <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-blue-500">
                 <CheckCircle2 className="h-4 w-4 text-white" />
               </div>
               <div>
-                <p className="text-lg font-bold" style={{ color: "#1D2A44" }}>
+                <p className="text-lg font-display font-bold text-foreground">
                   {provider.completionRate}%
                 </p>
-                <p className="text-xs" style={{ color: "#1D2A44", opacity: 0.5 }}>Completion</p>
+                <p className="text-xs text-muted-foreground">Completion</p>
               </div>
             </CardContent>
           </Card>
@@ -356,7 +342,7 @@ export default function ProviderDetailPage() {
 
         {provider.badges && provider.badges.length > 0 && (
           <div className="space-y-3">
-            <h2 className="text-sm font-semibold uppercase tracking-wider" style={{ color: "#1D2A44", opacity: 0.5 }}>
+            <h2 className="text-sm font-display font-semibold uppercase tracking-wider text-muted-foreground">
               Badges
             </h2>
             <div className="flex flex-wrap gap-2">
@@ -364,8 +350,7 @@ export default function ProviderDetailPage() {
                 <Badge
                   key={badge.id}
                   variant="secondary"
-                  className="px-3 py-1 rounded-full text-xs font-medium"
-                  style={{ backgroundColor: "#1D2A44", color: "#F6F2EA" }}
+                  className="px-3 py-1 rounded-full text-xs font-medium bg-primary text-primary-foreground"
                 >
                   {badge.icon && <span className="mr-1">{badge.icon}</span>}
                   {badge.label}
@@ -377,34 +362,34 @@ export default function ProviderDetailPage() {
 
         {provider.services && provider.services.length > 0 && (
           <div className="space-y-3">
-            <h2 className="text-sm font-semibold uppercase tracking-wider" style={{ color: "#1D2A44", opacity: 0.5 }}>
+            <h2 className="text-sm font-display font-semibold uppercase tracking-wider text-muted-foreground">
               Services
             </h2>
             <div className="space-y-3">
               {provider.services.map((service) => (
-                <Card key={service.id} className="border-0 shadow-sm" style={{ backgroundColor: "white" }}>
+                <Card key={service.id} className="border-0 shadow-sm bg-card">
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
-                        <h3 className="font-semibold" style={{ color: "#1D2A44" }}>
+                        <h3 className="font-semibold text-foreground">
                           {service.name}
                         </h3>
                         {service.description && (
-                          <p className="text-sm mt-1" style={{ color: "#1D2A44", opacity: 0.6 }}>
+                          <p className="text-sm mt-1 text-muted-foreground">
                             {service.description}
                           </p>
                         )}
                       </div>
                     </div>
                     <div className="flex items-center gap-4 mt-3">
-                      <span className="flex items-center gap-1 text-sm font-medium" style={{ color: "#1D2A44" }}>
+                      <span className="flex items-center gap-1 text-sm font-medium text-foreground">
                         <DollarSign className="h-3.5 w-3.5" />
                         {service.priceMin === service.priceMax
                           ? `$${service.priceMin}`
                           : `$${service.priceMin} – $${service.priceMax}`}
                       </span>
                       {service.duration && (
-                        <span className="flex items-center gap-1 text-sm" style={{ color: "#1D2A44", opacity: 0.5 }}>
+                        <span className="flex items-center gap-1 text-sm text-muted-foreground">
                           <Timer className="h-3.5 w-3.5" />
                           {service.duration}
                         </span>
@@ -419,10 +404,10 @@ export default function ProviderDetailPage() {
 
         {provider.ratingBreakdown && (
           <div className="space-y-3">
-            <h2 className="text-sm font-semibold uppercase tracking-wider" style={{ color: "#1D2A44", opacity: 0.5 }}>
+            <h2 className="text-sm font-display font-semibold uppercase tracking-wider text-muted-foreground">
               Rating Breakdown
             </h2>
-            <Card className="border-0 shadow-sm" style={{ backgroundColor: "white" }}>
+            <Card className="border-0 shadow-sm bg-card">
               <CardContent className="p-4 space-y-3">
                 <RatingBar label="Overall" value={provider.ratingBreakdown.overall} />
                 <RatingBar label="Quality" value={provider.ratingBreakdown.quality} />
@@ -435,25 +420,25 @@ export default function ProviderDetailPage() {
 
         {provider.reviews && provider.reviews.length > 0 && (
           <div className="space-y-3">
-            <h2 className="text-sm font-semibold uppercase tracking-wider" style={{ color: "#1D2A44", opacity: 0.5 }}>
+            <h2 className="text-sm font-display font-semibold uppercase tracking-wider text-muted-foreground">
               Reviews ({provider.reviews.length})
             </h2>
             <div className="space-y-3">
               {provider.reviews.map((review) => (
-                <Card key={review.id} className="border-0 shadow-sm" style={{ backgroundColor: "white" }}>
+                <Card key={review.id} className="border-0 shadow-sm bg-card">
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="font-medium text-sm" style={{ color: "#1D2A44" }}>
+                      <span className="font-medium text-sm text-foreground">
                         {review.authorName}
                       </span>
                       <StarRating rating={review.rating} />
                     </div>
                     {review.text && (
-                      <p className="text-sm mb-2" style={{ color: "#1D2A44", opacity: 0.7 }}>
+                      <p className="text-sm mb-2 text-muted-foreground">
                         {review.text}
                       </p>
                     )}
-                    <p className="text-xs" style={{ color: "#1D2A44", opacity: 0.4 }}>
+                    <p className="text-xs text-muted-foreground/60">
                       {new Date(review.createdAt).toLocaleDateString("en-US", {
                         month: "short",
                         day: "numeric",
@@ -468,13 +453,9 @@ export default function ProviderDetailPage() {
         )}
       </div>
 
-      <div
-        className="fixed bottom-0 left-0 right-0 p-4 border-t"
-        style={{ backgroundColor: "#F6F2EA", borderColor: "#1D2A44" + "15" }}
-      >
+      <div className="fixed bottom-0 left-0 right-0 p-4 border-t border-border bg-background">
         <Button
-          className="w-full h-12 text-base font-semibold rounded-xl"
-          style={{ backgroundColor: "#1D2A44", color: "#F6F2EA" }}
+          className="w-full h-12 text-base font-semibold rounded-xl bg-primary text-primary-foreground hover:bg-primary/90"
           onClick={() => setShowBookingDialog(true)}
         >
           Request Booking
@@ -484,11 +465,11 @@ export default function ProviderDetailPage() {
       <Dialog open={showBookingDialog} onOpenChange={setShowBookingDialog}>
         <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle style={{ color: "#1D2A44" }}>Request Booking</DialogTitle>
+            <DialogTitle className="text-foreground font-display">Request Booking</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label style={{ color: "#1D2A44" }}>Service</Label>
+              <Label className="text-foreground">Service</Label>
               <Select
                 value={bookingData.serviceId}
                 onValueChange={(val) => setBookingData({ ...bookingData, serviceId: val })}
@@ -507,7 +488,7 @@ export default function ProviderDetailPage() {
             </div>
 
             <div className="space-y-2">
-              <Label style={{ color: "#1D2A44" }}>Requested Date</Label>
+              <Label className="text-foreground">Requested Date</Label>
               <Input
                 type="date"
                 value={bookingData.requestedDate}
@@ -517,7 +498,7 @@ export default function ProviderDetailPage() {
             </div>
 
             <div className="space-y-2">
-              <Label style={{ color: "#1D2A44" }}>Time Slot</Label>
+              <Label className="text-foreground">Time Slot</Label>
               <Select
                 value={bookingData.timeSlot}
                 onValueChange={(val) => setBookingData({ ...bookingData, timeSlot: val })}
@@ -536,7 +517,7 @@ export default function ProviderDetailPage() {
             </div>
 
             <div className="space-y-2">
-              <Label style={{ color: "#1D2A44" }}>Property Details</Label>
+              <Label className="text-foreground">Property Details</Label>
               <div className="grid grid-cols-3 gap-2">
                 <div>
                   <Input
@@ -566,7 +547,7 @@ export default function ProviderDetailPage() {
             </div>
 
             <div className="space-y-2">
-              <Label style={{ color: "#1D2A44" }}>Special Instructions</Label>
+              <Label className="text-foreground">Special Instructions</Label>
               <Textarea
                 placeholder="Any special requests or details..."
                 value={bookingData.specialInstructions}
@@ -578,7 +559,7 @@ export default function ProviderDetailPage() {
             </div>
 
             <div className="flex items-center justify-between">
-              <Label style={{ color: "#1D2A44" }}>Flexible on dates?</Label>
+              <Label className="text-foreground">Flexible on dates?</Label>
               <Switch
                 checked={bookingData.flexibleDates}
                 onCheckedChange={(checked) =>
@@ -589,8 +570,7 @@ export default function ProviderDetailPage() {
           </div>
           <DialogFooter>
             <Button
-              className="w-full h-11 font-semibold rounded-xl"
-              style={{ backgroundColor: "#1D2A44", color: "#F6F2EA" }}
+              className="w-full h-11 font-semibold rounded-xl bg-primary text-primary-foreground hover:bg-primary/90"
               disabled={
                 !bookingData.serviceId ||
                 !bookingData.requestedDate ||

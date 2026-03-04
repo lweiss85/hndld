@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { AnimatePresence, motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -37,6 +38,20 @@ import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
 import { PullToRefreshIndicator } from "@/components/pull-to-refresh";
 import { useActiveServiceType } from "@/hooks/use-active-service-type";
 import { withServiceType } from "@/lib/serviceUrl";
+import { SwipeableApprovalCard } from "@/components/SwipeableApprovalCard";
+
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(
+    typeof window !== "undefined" ? window.innerWidth <= 768 : true
+  );
+  useEffect(() => {
+    const mql = window.matchMedia("(max-width: 768px)");
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mql.addEventListener("change", handler);
+    return () => mql.removeEventListener("change", handler);
+  }, []);
+  return isMobile;
+}
 
 interface ApprovalWithComments extends Approval {
   comments?: Comment[];
@@ -57,8 +72,11 @@ export default function Approvals() {
   const { toast } = useToast();
   const { activeRole } = useUser();
   const { activeServiceType } = useActiveServiceType();
+  const isMobile = useIsMobile();
   const [selectedApproval, setSelectedApproval] = useState<ApprovalWithComments | null>(null);
   const [newComment, setNewComment] = useState("");
+  const [swipedIds, setSwipedIds] = useState<Set<string>>(new Set());
+  const [showEmptyDelay, setShowEmptyDelay] = useState(false);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [newApproval, setNewApproval] = useState<Partial<InsertApproval>>({
     title: "",
@@ -133,10 +151,51 @@ export default function Approvals() {
     },
   });
 
-  if (isLoading) return <ApprovalsSkeleton />;
-
   const pendingApprovals = approvals?.filter(a => a.status === "PENDING") || [];
   const pastApprovals = approvals?.filter(a => a.status !== "PENDING") || [];
+  const visiblePending = pendingApprovals.filter(a => !swipedIds.has(a.id));
+
+  useEffect(() => {
+    if (visiblePending.length === 0 && swipedIds.size > 0) {
+      const timer = setTimeout(() => setShowEmptyDelay(true), 400);
+      return () => clearTimeout(timer);
+    }
+    setShowEmptyDelay(false);
+  }, [visiblePending.length, swipedIds.size]);
+
+  const handleSwipeApprove = (id: string) => {
+    setSwipedIds(prev => new Set(prev).add(id));
+    updateApprovalMutation.mutate(
+      { id, status: "APPROVED" },
+      {
+        onError: () => {
+          setSwipedIds(prev => {
+            const next = new Set(prev);
+            next.delete(id);
+            return next;
+          });
+        },
+      }
+    );
+  };
+
+  const handleSwipeDecline = (id: string) => {
+    setSwipedIds(prev => new Set(prev).add(id));
+    updateApprovalMutation.mutate(
+      { id, status: "DECLINED" },
+      {
+        onError: () => {
+          setSwipedIds(prev => {
+            const next = new Set(prev);
+            next.delete(id);
+            return next;
+          });
+        },
+      }
+    );
+  };
+
+  if (isLoading) return <ApprovalsSkeleton />;
 
   return (
     <PageTransition className="relative">
@@ -196,54 +255,88 @@ export default function Approvals() {
           {pendingApprovals.length > 0 && (
             <div className="space-y-3">
               <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
-                Pending ({pendingApprovals.length})
+                Pending ({visiblePending.length})
               </h2>
-              <StaggeredList className="space-y-3" aria-label="Pending approvals list">
-              {pendingApprovals.map((approval) => (
-                <Card 
-                  key={approval.id} 
-                  className="hover-elevate cursor-pointer rounded-2xl"
-                  onClick={() => setSelectedApproval(approval)}
-                  data-testid={`card-approval-${approval.id}`}
-                >
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-medium truncate">{approval.title}</h3>
-                        {approval.details && (
-                          <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
-                            {approval.details}
-                          </p>
-                        )}
-                        <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
-                          {approval.amount && (
-                            <span className="flex items-center gap-1">
-                              <DollarSign className="h-3 w-3" aria-hidden="true" />
-                              {(approval.amount / 100).toFixed(2)}
-                            </span>
-                          )}
-                          {(approval.links as string[])?.length > 0 && (
-                            <span className="flex items-center gap-1">
-                              <LinkIcon className="h-3 w-3" aria-hidden="true" />
-                              {(approval.links as string[]).length}
-                            </span>
-                          )}
-                          {(approval.images as string[])?.length > 0 && (
-                            <span className="flex items-center gap-1">
-                              <ImageIcon className="h-3 w-3" aria-hidden="true" />
-                              {(approval.images as string[]).length}
-                            </span>
-                          )}
+
+              {isMobile ? (
+                <div className="relative" style={{ minHeight: visiblePending.length > 0 ? 180 : 0 }}>
+                  <AnimatePresence mode="popLayout">
+                    {visiblePending.length > 0 ? (
+                      visiblePending.slice(0, 3).map((approval, index) => (
+                        <SwipeableApprovalCard
+                          key={approval.id}
+                          approval={approval}
+                          onApprove={handleSwipeApprove}
+                          onDecline={handleSwipeDecline}
+                          stackIndex={index}
+                        />
+                      ))
+                    ) : showEmptyDelay ? (
+                      <motion.div
+                        key="empty"
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.3 }}
+                      >
+                        <Card>
+                          <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+                            <CheckCircle className="w-12 h-12 text-green-500 mb-3" aria-hidden="true" />
+                            <p className="font-medium">All caught up.</p>
+                            <p className="text-sm text-muted-foreground">Everything's hndld.</p>
+                          </CardContent>
+                        </Card>
+                      </motion.div>
+                    ) : null}
+                  </AnimatePresence>
+                </div>
+              ) : (
+                <StaggeredList className="space-y-3" aria-label="Pending approvals list">
+                  {pendingApprovals.map((approval) => (
+                    <Card 
+                      key={approval.id} 
+                      className="hover-elevate cursor-pointer rounded-2xl"
+                      onClick={() => setSelectedApproval(approval)}
+                      data-testid={`card-approval-${approval.id}`}
+                    >
+                      <CardContent className="p-4">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-medium truncate">{approval.title}</h3>
+                            {approval.details && (
+                              <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
+                                {approval.details}
+                              </p>
+                            )}
+                            <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
+                              {approval.amount && (
+                                <span className="flex items-center gap-1">
+                                  <DollarSign className="h-3 w-3" aria-hidden="true" />
+                                  {(approval.amount / 100).toFixed(2)}
+                                </span>
+                              )}
+                              {(approval.links as string[])?.length > 0 && (
+                                <span className="flex items-center gap-1">
+                                  <LinkIcon className="h-3 w-3" aria-hidden="true" />
+                                  {(approval.links as string[]).length}
+                                </span>
+                              )}
+                              {(approval.images as string[])?.length > 0 && (
+                                <span className="flex items-center gap-1">
+                                  <ImageIcon className="h-3 w-3" aria-hidden="true" />
+                                  {(approval.images as string[]).length}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <Badge variant="outline" className="text-amber-600 border-amber-500/30 shrink-0">
+                            Pending
+                          </Badge>
                         </div>
-                      </div>
-                      <Badge variant="outline" className="text-amber-600 border-amber-500/30 shrink-0">
-                        Pending
-                      </Badge>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-              </StaggeredList>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </StaggeredList>
+              )}
             </div>
           )}
 

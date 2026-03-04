@@ -81,7 +81,7 @@ function StarRating({ rating }: { rating: number }) {
             "h-3.5 w-3.5",
             star <= Math.round(rating)
               ? "fill-amber-400 text-amber-400"
-              : "text-[#1D2A44]/20"
+              : "text-primary/20"
           )}
         />
       ))}
@@ -91,7 +91,7 @@ function StarRating({ rating }: { rating: number }) {
 
 function ProviderCardSkeleton() {
   return (
-    <Card className="border-[#1D2A44]/8 bg-white/80">
+    <Card className="border-border bg-card/80">
       <CardContent className="p-4">
         <div className="flex gap-3">
           <Skeleton className="h-14 w-14 rounded-full shrink-0" />
@@ -116,10 +116,10 @@ function ProviderCardSkeleton() {
 function ProviderCard({ provider, sponsored = false }: { provider: MarketplaceProvider; sponsored?: boolean }) {
   return (
     <Link href={`/marketplace/${provider.slug}`}>
-      <Card className="border-[#1D2A44]/8 bg-white/80 hover:shadow-md transition-shadow cursor-pointer">
+      <Card className="border-border bg-card/80 hover:shadow-md transition-shadow cursor-pointer">
         <CardContent className="p-4">
           {sponsored && (
-            <span className="text-[10px] font-medium uppercase tracking-widest text-[#1D2A44]/40 mb-2 block">
+            <span className="text-[10px] font-medium uppercase tracking-widest text-primary/40 mb-2 block">
               Sponsored
             </span>
           )}
@@ -128,19 +128,19 @@ function ProviderCard({ provider, sponsored = false }: { provider: MarketplacePr
               <img
                 src={provider.profilePhotoUrl}
                 alt={provider.displayName}
-                className="h-14 w-14 rounded-full object-cover shrink-0 border border-[#1D2A44]/10"
+                className="h-14 w-14 rounded-full object-cover shrink-0 border border-border"
               />
             ) : (
-              <div className="h-14 w-14 rounded-full bg-[#1D2A44]/5 flex items-center justify-center shrink-0">
-                <User className="h-7 w-7 text-[#1D2A44]/30" />
+              <div className="h-14 w-14 rounded-full bg-primary/5 flex items-center justify-center shrink-0">
+                <User className="h-7 w-7 text-primary/30" />
               </div>
             )}
             <div className="flex-1 min-w-0">
-              <h3 className="font-semibold text-[#1D2A44] text-[15px] truncate">
+              <h3 className="font-semibold text-foreground text-[15px] truncate">
                 {provider.displayName}
               </h3>
               {provider.tagline && (
-                <p className="text-sm text-[#1D2A44]/60 line-clamp-1 mt-0.5">
+                <p className="text-sm text-muted-foreground line-clamp-1 mt-0.5">
                   {provider.tagline}
                 </p>
               )}
@@ -148,12 +148,12 @@ function ProviderCard({ provider, sponsored = false }: { provider: MarketplacePr
                 {provider.averageRating != null && provider.averageRating > 0 && (
                   <div className="flex items-center gap-1">
                     <StarRating rating={provider.averageRating} />
-                    <span className="text-xs text-[#1D2A44]/50">
+                    <span className="text-xs text-muted-foreground">
                       ({provider.totalReviews})
                     </span>
                   </div>
                 )}
-                <span className="text-xs text-[#1D2A44]/40 flex items-center gap-0.5">
+                <span className="text-xs text-muted-foreground flex items-center gap-0.5">
                   <MapPin className="h-3 w-3" />
                   Nearby
                 </span>
@@ -164,7 +164,7 @@ function ProviderCard({ provider, sponsored = false }: { provider: MarketplacePr
                     <Badge
                       key={badge}
                       variant="secondary"
-                      className="text-[10px] px-2 py-0 h-5 bg-[#1D2A44]/5 text-[#1D2A44]/70 border-0 font-medium"
+                      className="text-[10px] px-2 py-0 h-5 bg-primary/5 text-primary/70 border-0 font-medium"
                     >
                       {BADGE_LABELS[badge] || badge}
                     </Badge>
@@ -206,26 +206,26 @@ export default function MarketplacePage() {
     : providers;
 
   return (
-    <div className="min-h-screen bg-[#F6F2EA]">
-      <div className="px-4 py-6 space-y-5 max-w-2xl mx-auto" style={{ fontFamily: "Inter, sans-serif" }}>
-        <h1 className="text-2xl font-bold text-[#1D2A44] tracking-tight">
+    <div className="min-h-screen bg-background">
+      <div className="px-4 py-6 space-y-5 max-w-2xl mx-auto">
+        <h1 className="text-2xl font-display font-medium text-foreground tracking-tight">
           Marketplace
         </h1>
 
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#1D2A44]/40" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search providers..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9 bg-white/90 border-[#1D2A44]/10 text-[#1D2A44] placeholder:text-[#1D2A44]/35 focus-visible:ring-[#1D2A44]/20"
+            className="pl-9 bg-card/90 border-border text-foreground placeholder:text-muted-foreground/60 focus-visible:ring-primary/20"
             aria-label="Search providers"
           />
         </div>
 
         <div className="flex gap-2 overflow-x-auto pb-1 -mx-4 px-4 scrollbar-hide">
           <Select value={category} onValueChange={(val) => setCategory(val === "ALL" ? "" : val)}>
-            <SelectTrigger className="w-auto min-w-[120px] h-8 text-xs bg-white/90 border-[#1D2A44]/10 text-[#1D2A44]">
+            <SelectTrigger className="w-auto min-w-[120px] h-8 text-xs bg-card/90 border-border text-foreground">
               <SelectValue placeholder="Category" />
             </SelectTrigger>
             <SelectContent>
@@ -244,8 +244,8 @@ export default function MarketplacePage() {
             className={cn(
               "h-8 text-xs shrink-0",
               verified
-                ? "bg-[#1D2A44] text-white hover:bg-[#1D2A44]/90"
-                : "bg-white/90 border-[#1D2A44]/10 text-[#1D2A44] hover:bg-[#1D2A44]/5"
+                ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                : "bg-card/90 border-border text-foreground hover:bg-primary/5"
             )}
             onClick={() => setVerified(!verified)}
           >
@@ -253,7 +253,7 @@ export default function MarketplacePage() {
           </Button>
 
           <Select value={sortBy} onValueChange={setSortBy}>
-            <SelectTrigger className="w-auto min-w-[140px] h-8 text-xs bg-white/90 border-[#1D2A44]/10 text-[#1D2A44]">
+            <SelectTrigger className="w-auto min-w-[140px] h-8 text-xs bg-card/90 border-border text-foreground">
               <SelectValue placeholder="Sort by" />
             </SelectTrigger>
             <SelectContent>
@@ -276,7 +276,7 @@ export default function MarketplacePage() {
           <>
             {featured.length > 0 && (
               <section className="space-y-3">
-                <h2 className="text-sm font-semibold text-[#1D2A44]/50 uppercase tracking-wider">
+                <h2 className="text-sm font-display font-semibold text-muted-foreground uppercase tracking-wider">
                   Featured
                 </h2>
                 {featured.map((provider) => (
@@ -292,7 +292,7 @@ export default function MarketplacePage() {
             {filtered.length > 0 ? (
               <section className="space-y-3">
                 {featured.length > 0 && (
-                  <h2 className="text-sm font-semibold text-[#1D2A44]/50 uppercase tracking-wider">
+                  <h2 className="text-sm font-display font-semibold text-muted-foreground uppercase tracking-wider">
                     All Providers
                   </h2>
                 )}
@@ -302,13 +302,13 @@ export default function MarketplacePage() {
               </section>
             ) : (
               <div className="flex flex-col items-center justify-center py-16 text-center">
-                <div className="w-16 h-16 rounded-full bg-[#1D2A44]/5 flex items-center justify-center mb-4">
-                  <Search className="h-7 w-7 text-[#1D2A44]/25" />
+                <div className="w-16 h-16 rounded-full bg-primary/5 flex items-center justify-center mb-4">
+                  <Search className="h-7 w-7 text-primary/25" />
                 </div>
-                <h3 className="font-semibold text-[#1D2A44] text-lg mb-1">
+                <h3 className="font-semibold text-foreground text-lg mb-1">
                   No providers found
                 </h3>
-                <p className="text-sm text-[#1D2A44]/50 max-w-xs">
+                <p className="text-sm text-muted-foreground max-w-xs">
                   Try adjusting your filters or search to find the right service provider.
                 </p>
               </div>

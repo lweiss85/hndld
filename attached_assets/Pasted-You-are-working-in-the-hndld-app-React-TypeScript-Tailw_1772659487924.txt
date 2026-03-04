@@ -1,0 +1,23 @@
+You are working in the hndld app (React + TypeScript + Tailwind + Framer Motion).
+
+Install the gesture library if not present: the project already uses framer-motion, so use its drag functionality.
+
+In client/src/pages/approvals.tsx, replace the current list of approval cards with a swipeable card stack component. Here is exactly what to build:
+
+Create client/src/components/SwipeableApprovalCard.tsx:
+- Wraps each approval in a motion.div with drag="x" and dragConstraints={{ left: -200, right: 200 }}
+- As the user drags right (x > 30), show a champagne gold background layer (rgba(201,169,110,0.15)) fading in on the left edge with the text "Approve" and a checkmark, opacity tied to dragX / 150
+- As the user drags left (x < -30), show a cool grey background layer fading in on the right edge with the text "Decline" and an X, opacity tied to Math.abs(dragX) / 150
+- On dragEnd: if x > 120, call onApprove(approval.id) and animate the card flying off to the right (x: 400, opacity: 0, transition 0.3s)
+- On dragEnd: if x < -120, call onDecline(approval.id) and animate the card flying off to the left (x: -400, opacity: 0, transition 0.3s)
+- If drag doesn't meet threshold, spring the card back to center
+- Trigger navigator.vibrate(12) on approve, navigator.vibrate([8,50,8]) on decline
+- The card itself shows: approval title, amount (if present), date, and a short details preview
+
+In approvals.tsx, render approvals as a stacked card layout (position: relative, each card slightly offset +2px y per index for depth effect). When a card is swiped away, the next card animates up to take its place using AnimatePresence.
+
+When the last card is swiped, show the existing empty state ("All caught up. / Everything's hndld.") with a 400ms delay for effect.
+
+Keep the existing approve/decline API mutations — just call them from the swipe handlers instead of dialog buttons. Keep the dialog for desktop fallback (screen width > 768px shows the old dialog instead of swipe cards).
+
+Do not break any existing functionality. Test that approvals still update in the database via the existing PATCH /api/approvals/:id endpoint.
