@@ -1,0 +1,38 @@
+You are working in the hndld app (React + TypeScript + Tailwind + Framer Motion).
+
+Replace the existing multi-step onboarding form in client/src/pages/onboarding.tsx with a completely new first-run experience. DO NOT modify the existing onboarding API endpoints or schema — only change the frontend presentation.
+
+The new onboarding has exactly 3 screens:
+
+SCREEN 1 — Welcome (3 seconds, no interaction required, auto-advances):
+- Full screen, porcelain background (#F8F5F0)
+- Centered: hndld wordmark in Cormorant Garamond, 48px, weight 400, letter-spacing 0.06em
+- Below it, after 0.8s delay: "Your home, handled." in DM Sans, 16px, muted
+- After 2.5s, auto-crossfade to Screen 2 (no button, no tap required)
+- This is the luxury hotel lobby moment — no friction
+
+SCREEN 2 — "What matters most" (single required interaction):
+- Heading: "What brings you here?" in Cormorant Garamond, 32px
+- Show exactly 4 large pill options the user can tap (multi-select, up to 3):
+  - "Cleaning & home care"
+  - "Errands & household tasks"  
+  - "Scheduling & coordination"
+  - "Everything — I need it all handled"
+- Selected pills: navy background, porcelain text, gold border
+- Unselected: ghost border
+- Below the pills: a "Continue" button that becomes active once at least 1 is selected
+- This maps to serviceType preferences — save the selection to /api/households/preferences or a similar endpoint that exists; if none exists, just save to localStorage under "hndld_service_prefs" and proceed
+- No timezone, no dietary restrictions, no celebration styles on this screen
+
+SCREEN 3 — "One last thing" (captures household name only):
+- Heading: "What should we call your home?" in Cormorant Garamond, 32px  
+- A single large text input, centered, no label, placeholder: "The Weiss Residence"
+- Below: "You can always change this later." in 13px muted
+- Submit button: "We're ready." 
+- On submit: call the existing household creation/update API with the name value, then redirect to "/"
+
+Remove ALL the existing intermediate steps (timezone, locations, people, allergy/dietary info, celebration styles). These preferences will be collected contextually later via Prompt 6 (contextual preference capture). 
+
+Keep the existing API calls for household creation. Just capture name on screen 3 and service preference on screen 2. Everything else is deferred.
+
+Preserve the existing TOTAL_STEPS progress indicator pattern but only show 3 steps, not 5.
