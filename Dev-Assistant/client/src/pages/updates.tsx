@@ -1,8 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -15,18 +13,16 @@ import {
 import { 
   Plus, 
   MessageSquare,
-  Image as ImageIcon,
-  Receipt,
   X,
   Loader2,
 } from "lucide-react";
-import { format, formatDistanceToNow } from "date-fns";
+import { format } from "date-fns";
 import type { Update, Comment, InsertUpdate } from "@shared/schema";
 import { queryClient, apiRequest, versionedUrl } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useUser } from "@/lib/user-context";
-import { QuickReactions } from "@/components/quick-reactions";
 import { PageTransition, StaggeredList, triggerHaptic } from "@/components/juice";
+import { UpdateCard } from "@/components/updates/UpdateCard";
 import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
 import { PullToRefreshIndicator } from "@/components/pull-to-refresh";
 import { PhotoCapture } from "@/components/photo-capture";
@@ -174,64 +170,11 @@ export default function Updates() {
       ) : (
         <StaggeredList className="space-y-4" aria-label="Updates list">
           {updates?.map((update) => (
-              <Card key={update.id} className="rounded-2xl" data-testid={`card-update-${update.id}`}>
-                <CardContent className="p-4">
-                  <div className="flex gap-3">
-                    <Avatar className="h-10 w-10 shrink-0">
-                      <AvatarFallback className="bg-primary/10 text-primary text-sm">
-                        A
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="font-medium text-sm">Assistant</span>
-                        <span className="text-xs text-muted-foreground">
-                          {formatDistanceToNow(new Date(update.createdAt!), { addSuffix: true })}
-                        </span>
-                      </div>
-                      <p className="text-sm whitespace-pre-wrap">{update.text}</p>
-
-                      {(update.images as string[])?.length > 0 && (
-                        <div className="grid grid-cols-2 gap-2 mt-3">
-                          {(update.images as string[]).slice(0, 4).map((img, i) => (
-                            <img 
-                              key={i} 
-                              src={img} 
-                              alt={`Update photo ${i + 1}`} 
-                              className="rounded-md w-full aspect-square object-cover"
-                            />
-                          ))}
-                        </div>
-                      )}
-
-                      {(update.receipts as string[])?.length > 0 && (
-                        <div className="flex items-center gap-2 mt-3 p-2 rounded-md bg-muted/50">
-                          <Receipt className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                          <span className="text-xs text-muted-foreground">
-                            {(update.receipts as string[]).length} receipt(s) attached
-                          </span>
-                        </div>
-                      )}
-
-                      <div className="flex items-center gap-2 mt-3 pt-3 border-t flex-wrap">
-                        <QuickReactions entityType="UPDATE" entityId={update.id} compact />
-                        
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 px-2 gap-1 ml-auto"
-                          onClick={() => setSelectedUpdate(update)}
-                          aria-label="View comments"
-                          data-testid="button-comments"
-                        >
-                          <MessageSquare className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                          {update.comments?.length || 0}
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+            <UpdateCard
+              key={update.id}
+              update={update}
+              onCommentClick={setSelectedUpdate}
+            />
           ))}
         </StaggeredList>
       )}
