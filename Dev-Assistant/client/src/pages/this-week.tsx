@@ -38,6 +38,7 @@ import { AmbientParticles } from "@/components/AmbientParticles";
 import { getTimeContext } from "@/lib/time-context";
 import { ServiceSwitcher } from "@/components/service-switcher";
 import { PropertySwitcher } from "@/components/property-switcher";
+import { ConciergeWhisper } from "@/components/ConciergeWhisper";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useActiveServiceType } from "@/hooks/use-active-service-type";
 import { withServiceType } from "@/lib/serviceUrl";
@@ -310,6 +311,7 @@ function CleaningOverview() {
       />
       <div className="px-5 py-6 space-y-6 max-w-4xl mx-auto pb-24">
         <header className="animate-fade-in-up space-y-3">
+          <ConciergeWhisper />
           <BreathingGreeting name={firstName} greeting={getGreeting()} />
           <div className="flex items-center gap-2 flex-wrap">
             <ServiceSwitcher />
@@ -482,6 +484,7 @@ export default function ThisWeek() {
       />
     <div className="px-5 py-6 space-y-6 max-w-4xl mx-auto pb-24">
       <header className="animate-fade-in-up space-y-3">
+        <ConciergeWhisper />
         <BreathingGreeting name={firstName} greeting={getGreeting()} />
         <div className="flex items-center gap-2 flex-wrap">
           <ServiceSwitcher />

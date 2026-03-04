@@ -25,7 +25,7 @@ Preferred communication style: Simple, everyday language.
 - **Routing**: Wouter for client-side routing with role-based route switching
 - **State Management**: TanStack React Query for server state and caching
 - **Styling**: TailwindCSS with shadcn/ui component library (New York style variant)
-- **Design System**: Luxe "White Glove" theme with ink navy primary (#1D2A44), champagne gold accents (#D4C5A0), porcelain background (#F6F2EA), Inter font family
+- **Design System**: Premium "White Glove" ambient theme with porcelain (#F8F5F0), navy (#14213D), gold (#C9A96E) palette. Cormorant Garamond (serif, headings) + DM Sans (sans, body) via @fontsource. Time-aware UI with phase-based sky/accent/glow colors (morning/afternoon/evening/night). BreathingGreeting (rAF font-weight oscillation), AmbientParticles (canvas), ConciergeWhisper (priority-driven ambient one-liner above greeting), simplified 3-element header (household name, bell, avatar dropdown)
 - **Motion System**: framer-motion for page transitions, stagger animations, ripple effects, success celebrations, haptic feedback
 - **Accessibility**: LiveAnnouncerProvider for screen reader announcements, reduced motion support
 - **Visual Effects**: Glass morphism (.hndld-glass), ambient glow (.hndld-glow), signature curves (.hndld-curve)

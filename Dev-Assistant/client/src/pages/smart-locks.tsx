@@ -76,8 +76,8 @@ function getActionIcon(action: string) {
     case "CODE_USED": return <Key className="w-4 h-4 text-blue-600 dark:text-blue-400" />;
     case "CODE_CREATED": return <Plus className="w-4 h-4 text-emerald-600" />;
     case "CODE_DELETED": return <Trash2 className="w-4 h-4 text-red-600" />;
-    case "CODE_DISABLED": return <Shield className="w-4 h-4 text-gray-500" />;
-    default: return <Activity className="w-4 h-4 text-gray-500" />;
+    case "CODE_DISABLED": return <Shield className="w-4 h-4 text-muted-foreground" />;
+    default: return <Activity className="w-4 h-4 text-muted-foreground" />;
   }
 }
 
@@ -184,7 +184,7 @@ export default function SmartLocksPage() {
     <div className="p-4 pb-24 space-y-5">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-foreground">Smart Locks</h1>
+          <h1 className="text-xl font-display font-semibold text-foreground">Smart Locks</h1>
           <p className="text-sm text-muted-foreground mt-0.5">Manage access codes and lock activity</p>
         </div>
         <Dialog open={showAddLock} onOpenChange={setShowAddLock}>
@@ -235,13 +235,13 @@ export default function SmartLocksPage() {
                     "w-10 h-10 rounded-xl flex items-center justify-center",
                     lock.isConnected
                       ? "bg-emerald-100 dark:bg-emerald-900/30"
-                      : "bg-gray-100 dark:bg-gray-800"
+                      : "bg-muted"
                   )}>
                     <Lock className={cn(
                       "w-5 h-5",
                       lock.isConnected
                         ? "text-emerald-600 dark:text-emerald-400"
-                        : "text-gray-500"
+                        : "text-muted-foreground"
                     )} />
                   </div>
                   <div className="flex-1 min-w-0">
@@ -386,11 +386,11 @@ export default function SmartLocksPage() {
                           "w-9 h-9 rounded-lg flex items-center justify-center mt-0.5",
                           code.isActive
                             ? "bg-blue-100 dark:bg-blue-900/30"
-                            : "bg-gray-100 dark:bg-gray-800"
+                            : "bg-muted"
                         )}>
                           <Key className={cn(
                             "w-4 h-4",
-                            code.isActive ? "text-blue-600 dark:text-blue-400" : "text-gray-400"
+                            code.isActive ? "text-blue-600 dark:text-blue-400" : "text-muted-foreground"
                           )} />
                         </div>
                         <div className="flex-1 min-w-0">

@@ -36,7 +36,7 @@ const CATEGORIES: Record<string, { label: string; icon: typeof Package; color: s
   ELECTRICAL: { label: "Electrical", icon: Package, color: "text-yellow-500" },
   OUTDOOR: { label: "Outdoor", icon: Package, color: "text-green-500" },
   VEHICLE: { label: "Vehicle", icon: Package, color: "text-red-500" },
-  OTHER: { label: "Other", icon: Package, color: "text-gray-500" },
+  OTHER: { label: "Other", icon: Package, color: "text-muted-foreground" },
 };
 
 interface InventoryItem {
@@ -198,23 +198,23 @@ function AddItemDialog({
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <div className="relative bg-white dark:bg-gray-900 rounded-t-2xl sm:rounded-2xl w-full sm:max-w-lg max-h-[85vh] overflow-y-auto">
-        <div className="sticky top-0 bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 p-4 flex items-center justify-between z-10">
-          <h2 className="text-lg font-semibold text-ink dark:text-white">
+      <div className="relative bg-card rounded-t-2xl sm:rounded-2xl w-full sm:max-w-lg max-h-[85vh] overflow-y-auto">
+        <div className="sticky top-0 bg-card border-b border-border p-4 flex items-center justify-between z-10">
+          <h2 className="text-lg font-semibold text-foreground">
             Add Item
           </h2>
           <button onClick={onClose}>
-            <X className="w-5 h-5 text-gray-400" />
+            <X className="w-5 h-5 text-muted-foreground" />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="p-4 space-y-4">
           <div>
-            <label className="text-sm font-medium text-gray-600 dark:text-gray-400">
+            <label className="text-sm font-medium text-muted-foreground">
               Name *
             </label>
             <input
-              className="w-full mt-1 px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-ink dark:text-white"
+              className="w-full mt-1 px-3 py-2 border border-border rounded-lg bg-card text-foreground"
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
               required
@@ -222,11 +222,11 @@ function AddItemDialog({
           </div>
 
           <div>
-            <label className="text-sm font-medium text-gray-600 dark:text-gray-400">
+            <label className="text-sm font-medium text-muted-foreground">
               Category *
             </label>
             <select
-              className="w-full mt-1 px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-ink dark:text-white"
+              className="w-full mt-1 px-3 py-2 border border-border rounded-lg bg-card text-foreground"
               value={form.category}
               onChange={(e) => setForm({ ...form, category: e.target.value })}
             >
@@ -240,22 +240,22 @@ function AddItemDialog({
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-sm font-medium text-gray-600 dark:text-gray-400">
+              <label className="text-sm font-medium text-muted-foreground">
                 Location
               </label>
               <input
-                className="w-full mt-1 px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-ink dark:text-white"
+                className="w-full mt-1 px-3 py-2 border border-border rounded-lg bg-card text-foreground"
                 placeholder="Kitchen, Garage..."
                 value={form.location}
                 onChange={(e) => setForm({ ...form, location: e.target.value })}
               />
             </div>
             <div>
-              <label className="text-sm font-medium text-gray-600 dark:text-gray-400">
+              <label className="text-sm font-medium text-muted-foreground">
                 Brand
               </label>
               <input
-                className="w-full mt-1 px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-ink dark:text-white"
+                className="w-full mt-1 px-3 py-2 border border-border rounded-lg bg-card text-foreground"
                 value={form.brand}
                 onChange={(e) => setForm({ ...form, brand: e.target.value })}
               />
@@ -264,21 +264,21 @@ function AddItemDialog({
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-sm font-medium text-gray-600 dark:text-gray-400">
+              <label className="text-sm font-medium text-muted-foreground">
                 Model
               </label>
               <input
-                className="w-full mt-1 px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-ink dark:text-white"
+                className="w-full mt-1 px-3 py-2 border border-border rounded-lg bg-card text-foreground"
                 value={form.model}
                 onChange={(e) => setForm({ ...form, model: e.target.value })}
               />
             </div>
             <div>
-              <label className="text-sm font-medium text-gray-600 dark:text-gray-400">
+              <label className="text-sm font-medium text-muted-foreground">
                 Serial Number
               </label>
               <input
-                className="w-full mt-1 px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-ink dark:text-white"
+                className="w-full mt-1 px-3 py-2 border border-border rounded-lg bg-card text-foreground"
                 value={form.serialNumber}
                 onChange={(e) =>
                   setForm({ ...form, serialNumber: e.target.value })
@@ -287,18 +287,18 @@ function AddItemDialog({
             </div>
           </div>
 
-          <div className="border-t border-gray-100 dark:border-gray-800 pt-4">
-            <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">
+          <div className="border-t border-border pt-4">
+            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">
               Purchase Info
             </h3>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                <label className="text-sm font-medium text-muted-foreground">
                   Purchase Date
                 </label>
                 <input
                   type="date"
-                  className="w-full mt-1 px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-ink dark:text-white"
+                  className="w-full mt-1 px-3 py-2 border border-border rounded-lg bg-card text-foreground"
                   value={form.purchaseDate}
                   onChange={(e) =>
                     setForm({ ...form, purchaseDate: e.target.value })
@@ -306,13 +306,13 @@ function AddItemDialog({
                 />
               </div>
               <div>
-                <label className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                <label className="text-sm font-medium text-muted-foreground">
                   Price ($)
                 </label>
                 <input
                   type="number"
                   step="0.01"
-                  className="w-full mt-1 px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-ink dark:text-white"
+                  className="w-full mt-1 px-3 py-2 border border-border rounded-lg bg-card text-foreground"
                   value={form.purchasePrice}
                   onChange={(e) =>
                     setForm({ ...form, purchasePrice: e.target.value })
@@ -322,18 +322,18 @@ function AddItemDialog({
             </div>
           </div>
 
-          <div className="border-t border-gray-100 dark:border-gray-800 pt-4">
-            <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">
+          <div className="border-t border-border pt-4">
+            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">
               Warranty
             </h3>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                <label className="text-sm font-medium text-muted-foreground">
                   Warranty Expires
                 </label>
                 <input
                   type="date"
-                  className="w-full mt-1 px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-ink dark:text-white"
+                  className="w-full mt-1 px-3 py-2 border border-border rounded-lg bg-card text-foreground"
                   value={form.warrantyExpires}
                   onChange={(e) =>
                     setForm({ ...form, warrantyExpires: e.target.value })
@@ -341,11 +341,11 @@ function AddItemDialog({
                 />
               </div>
               <div>
-                <label className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                <label className="text-sm font-medium text-muted-foreground">
                   Warranty Type
                 </label>
                 <select
-                  className="w-full mt-1 px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-ink dark:text-white"
+                  className="w-full mt-1 px-3 py-2 border border-border rounded-lg bg-card text-foreground"
                   value={form.warrantyType}
                   onChange={(e) =>
                     setForm({ ...form, warrantyType: e.target.value })
@@ -359,11 +359,11 @@ function AddItemDialog({
               </div>
             </div>
             <div className="mt-3">
-              <label className="text-sm font-medium text-gray-600 dark:text-gray-400">
+              <label className="text-sm font-medium text-muted-foreground">
                 Warranty Provider
               </label>
               <input
-                className="w-full mt-1 px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-ink dark:text-white"
+                className="w-full mt-1 px-3 py-2 border border-border rounded-lg bg-card text-foreground"
                 value={form.warrantyProvider}
                 onChange={(e) =>
                   setForm({ ...form, warrantyProvider: e.target.value })
@@ -372,17 +372,17 @@ function AddItemDialog({
             </div>
           </div>
 
-          <div className="border-t border-gray-100 dark:border-gray-800 pt-4">
-            <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">
+          <div className="border-t border-border pt-4">
+            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">
               Maintenance
             </h3>
             <div>
-              <label className="text-sm font-medium text-gray-600 dark:text-gray-400">
+              <label className="text-sm font-medium text-muted-foreground">
                 Service Interval (days)
               </label>
               <input
                 type="number"
-                className="w-full mt-1 px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-ink dark:text-white"
+                className="w-full mt-1 px-3 py-2 border border-border rounded-lg bg-card text-foreground"
                 placeholder="e.g. 90 for quarterly"
                 value={form.serviceIntervalDays}
                 onChange={(e) =>
@@ -392,19 +392,19 @@ function AddItemDialog({
             </div>
           </div>
 
-          <div className="border-t border-gray-100 dark:border-gray-800 pt-4">
-            <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">
+          <div className="border-t border-border pt-4">
+            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">
               Insurance
             </h3>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                <label className="text-sm font-medium text-muted-foreground">
                   Insured Value ($)
                 </label>
                 <input
                   type="number"
                   step="0.01"
-                  className="w-full mt-1 px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-ink dark:text-white"
+                  className="w-full mt-1 px-3 py-2 border border-border rounded-lg bg-card text-foreground"
                   value={form.insuredValue}
                   onChange={(e) =>
                     setForm({ ...form, insuredValue: e.target.value })
@@ -412,11 +412,11 @@ function AddItemDialog({
                 />
               </div>
               <div>
-                <label className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                <label className="text-sm font-medium text-muted-foreground">
                   Insurance Category
                 </label>
                 <input
-                  className="w-full mt-1 px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-ink dark:text-white"
+                  className="w-full mt-1 px-3 py-2 border border-border rounded-lg bg-card text-foreground"
                   value={form.insuranceCategory}
                   onChange={(e) =>
                     setForm({ ...form, insuranceCategory: e.target.value })
@@ -427,11 +427,11 @@ function AddItemDialog({
           </div>
 
           <div>
-            <label className="text-sm font-medium text-gray-600 dark:text-gray-400">
+            <label className="text-sm font-medium text-muted-foreground">
               Notes
             </label>
             <textarea
-              className="w-full mt-1 px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-ink dark:text-white"
+              className="w-full mt-1 px-3 py-2 border border-border rounded-lg bg-card text-foreground"
               rows={3}
               value={form.notes}
               onChange={(e) => setForm({ ...form, notes: e.target.value })}
@@ -513,25 +513,25 @@ function AddServiceDialog({
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <div className="relative bg-white dark:bg-gray-900 rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md max-h-[85vh] overflow-y-auto">
-        <div className="sticky top-0 bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 p-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-ink dark:text-white">
+      <div className="relative bg-card rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md max-h-[85vh] overflow-y-auto">
+        <div className="sticky top-0 bg-card border-b border-border p-4 flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-foreground">
             Add Service Record
           </h2>
           <button onClick={onClose}>
-            <X className="w-5 h-5 text-gray-400" />
+            <X className="w-5 h-5 text-muted-foreground" />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="p-4 space-y-4">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-sm font-medium text-gray-600 dark:text-gray-400">
+              <label className="text-sm font-medium text-muted-foreground">
                 Date *
               </label>
               <input
                 type="date"
-                className="w-full mt-1 px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-ink dark:text-white"
+                className="w-full mt-1 px-3 py-2 border border-border rounded-lg bg-card text-foreground"
                 value={form.serviceDate}
                 onChange={(e) =>
                   setForm({ ...form, serviceDate: e.target.value })
@@ -540,11 +540,11 @@ function AddServiceDialog({
               />
             </div>
             <div>
-              <label className="text-sm font-medium text-gray-600 dark:text-gray-400">
+              <label className="text-sm font-medium text-muted-foreground">
                 Type *
               </label>
               <select
-                className="w-full mt-1 px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-ink dark:text-white"
+                className="w-full mt-1 px-3 py-2 border border-border rounded-lg bg-card text-foreground"
                 value={form.serviceType}
                 onChange={(e) =>
                   setForm({ ...form, serviceType: e.target.value })
@@ -560,11 +560,11 @@ function AddServiceDialog({
           </div>
 
           <div>
-            <label className="text-sm font-medium text-gray-600 dark:text-gray-400">
+            <label className="text-sm font-medium text-muted-foreground">
               Description
             </label>
             <textarea
-              className="w-full mt-1 px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-ink dark:text-white"
+              className="w-full mt-1 px-3 py-2 border border-border rounded-lg bg-card text-foreground"
               rows={2}
               value={form.description}
               onChange={(e) =>
@@ -575,23 +575,23 @@ function AddServiceDialog({
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-sm font-medium text-gray-600 dark:text-gray-400">
+              <label className="text-sm font-medium text-muted-foreground">
                 Cost ($)
               </label>
               <input
                 type="number"
                 step="0.01"
-                className="w-full mt-1 px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-ink dark:text-white"
+                className="w-full mt-1 px-3 py-2 border border-border rounded-lg bg-card text-foreground"
                 value={form.cost}
                 onChange={(e) => setForm({ ...form, cost: e.target.value })}
               />
             </div>
             <div>
-              <label className="text-sm font-medium text-gray-600 dark:text-gray-400">
+              <label className="text-sm font-medium text-muted-foreground">
                 Performed By
               </label>
               <input
-                className="w-full mt-1 px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-ink dark:text-white"
+                className="w-full mt-1 px-3 py-2 border border-border rounded-lg bg-card text-foreground"
                 value={form.performedBy}
                 onChange={(e) =>
                   setForm({ ...form, performedBy: e.target.value })
@@ -662,7 +662,7 @@ function ItemDetail({
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
       </div>
     );
   }
@@ -672,7 +672,7 @@ function ItemDetail({
 
   if (!item) {
     return (
-      <div className="text-center py-20 text-gray-500">Item not found</div>
+      <div className="text-center py-20 text-muted-foreground">Item not found</div>
     );
   }
 
@@ -680,17 +680,17 @@ function ItemDetail({
   const cat = CATEGORIES[item.category] || CATEGORIES.OTHER;
 
   return (
-    <div className="min-h-screen bg-porcelain dark:bg-gray-950">
-      <div className="sticky top-0 z-10 bg-white/80 dark:bg-gray-900/80 backdrop-blur border-b border-gray-100 dark:border-gray-800">
+    <div className="min-h-screen bg-background">
+      <div className="sticky top-0 z-10 bg-card/80 backdrop-blur border-b border-border">
         <div className="flex items-center gap-3 px-4 py-3">
           <button onClick={onBack}>
-            <ArrowLeft className="w-5 h-5 text-ink dark:text-white" />
+            <ArrowLeft className="w-5 h-5 text-foreground" />
           </button>
           <div className="flex-1">
-            <h1 className="text-lg font-semibold text-ink dark:text-white">
+            <h1 className="text-lg font-semibold text-foreground">
               {item.name}
             </h1>
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-muted-foreground">
               {cat.label}
               {item.location ? ` · ${item.location}` : ""}
             </p>
@@ -699,38 +699,38 @@ function ItemDetail({
       </div>
 
       <div className="p-4 space-y-4 max-w-lg mx-auto">
-        <div className="bg-white dark:bg-gray-900 rounded-xl p-4 space-y-3">
-          <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+        <div className="bg-card rounded-xl p-4 space-y-3">
+          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
             Details
           </h3>
           {item.brand && (
             <div className="flex justify-between">
-              <span className="text-sm text-gray-500">Brand</span>
-              <span className="text-sm font-medium text-ink dark:text-white">
+              <span className="text-sm text-muted-foreground">Brand</span>
+              <span className="text-sm font-medium text-foreground">
                 {item.brand}
               </span>
             </div>
           )}
           {item.model && (
             <div className="flex justify-between">
-              <span className="text-sm text-gray-500">Model</span>
-              <span className="text-sm font-medium text-ink dark:text-white">
+              <span className="text-sm text-muted-foreground">Model</span>
+              <span className="text-sm font-medium text-foreground">
                 {item.model}
               </span>
             </div>
           )}
           {item.serialNumber && (
             <div className="flex justify-between">
-              <span className="text-sm text-gray-500">Serial Number</span>
-              <span className="text-sm font-medium text-ink dark:text-white font-mono text-xs">
+              <span className="text-sm text-muted-foreground">Serial Number</span>
+              <span className="text-sm font-medium text-foreground font-mono text-xs">
                 {item.serialNumber}
               </span>
             </div>
           )}
           {item.color && (
             <div className="flex justify-between">
-              <span className="text-sm text-gray-500">Color</span>
-              <span className="text-sm font-medium text-ink dark:text-white">
+              <span className="text-sm text-muted-foreground">Color</span>
+              <span className="text-sm font-medium text-foreground">
                 {item.color}
               </span>
             </div>
@@ -738,30 +738,30 @@ function ItemDetail({
         </div>
 
         {(item.purchaseDate || item.purchasePrice) && (
-          <div className="bg-white dark:bg-gray-900 rounded-xl p-4 space-y-3">
-            <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+          <div className="bg-card rounded-xl p-4 space-y-3">
+            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
               Purchase
             </h3>
             {item.purchaseDate && (
               <div className="flex justify-between">
-                <span className="text-sm text-gray-500">Date</span>
-                <span className="text-sm font-medium text-ink dark:text-white">
+                <span className="text-sm text-muted-foreground">Date</span>
+                <span className="text-sm font-medium text-foreground">
                   {new Date(item.purchaseDate).toLocaleDateString()}
                 </span>
               </div>
             )}
             {item.purchasePrice && (
               <div className="flex justify-between">
-                <span className="text-sm text-gray-500">Price</span>
-                <span className="text-sm font-medium text-ink dark:text-white">
+                <span className="text-sm text-muted-foreground">Price</span>
+                <span className="text-sm font-medium text-foreground">
                   {formatCurrency(item.purchasePrice)}
                 </span>
               </div>
             )}
             {item.purchaseLocation && (
               <div className="flex justify-between">
-                <span className="text-sm text-gray-500">Location</span>
-                <span className="text-sm font-medium text-ink dark:text-white">
+                <span className="text-sm text-muted-foreground">Location</span>
+                <span className="text-sm font-medium text-foreground">
                   {item.purchaseLocation}
                 </span>
               </div>
@@ -769,63 +769,63 @@ function ItemDetail({
           </div>
         )}
 
-        <div className="bg-white dark:bg-gray-900 rounded-xl p-4 space-y-3">
-          <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+        <div className="bg-card rounded-xl p-4 space-y-3">
+          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
             Warranty
           </h3>
           {warranty ? (
             <>
               <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-500">Status</span>
+                <span className="text-sm text-muted-foreground">Status</span>
                 <Badge className={warranty.color}>{warranty.label}</Badge>
               </div>
               {item.warrantyType && (
                 <div className="flex justify-between">
-                  <span className="text-sm text-gray-500">Type</span>
-                  <span className="text-sm font-medium text-ink dark:text-white">
+                  <span className="text-sm text-muted-foreground">Type</span>
+                  <span className="text-sm font-medium text-foreground">
                     {item.warrantyType}
                   </span>
                 </div>
               )}
               {item.warrantyProvider && (
                 <div className="flex justify-between">
-                  <span className="text-sm text-gray-500">Provider</span>
-                  <span className="text-sm font-medium text-ink dark:text-white">
+                  <span className="text-sm text-muted-foreground">Provider</span>
+                  <span className="text-sm font-medium text-foreground">
                     {item.warrantyProvider}
                   </span>
                 </div>
               )}
               {item.warrantyExpires && (
                 <div className="flex justify-between">
-                  <span className="text-sm text-gray-500">Expires</span>
-                  <span className="text-sm font-medium text-ink dark:text-white">
+                  <span className="text-sm text-muted-foreground">Expires</span>
+                  <span className="text-sm font-medium text-foreground">
                     {new Date(item.warrantyExpires).toLocaleDateString()}
                   </span>
                 </div>
               )}
             </>
           ) : (
-            <p className="text-sm text-gray-400">No warranty information</p>
+            <p className="text-sm text-muted-foreground">No warranty information</p>
           )}
         </div>
 
         {(item.insuredValue || item.insuranceCategory) && (
-          <div className="bg-white dark:bg-gray-900 rounded-xl p-4 space-y-3">
-            <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+          <div className="bg-card rounded-xl p-4 space-y-3">
+            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
               Insurance
             </h3>
             {item.insuredValue && (
               <div className="flex justify-between">
-                <span className="text-sm text-gray-500">Insured Value</span>
-                <span className="text-sm font-medium text-ink dark:text-white">
+                <span className="text-sm text-muted-foreground">Insured Value</span>
+                <span className="text-sm font-medium text-foreground">
                   {formatCurrency(item.insuredValue)}
                 </span>
               </div>
             )}
             {item.insuranceCategory && (
               <div className="flex justify-between">
-                <span className="text-sm text-gray-500">Category</span>
-                <span className="text-sm font-medium text-ink dark:text-white">
+                <span className="text-sm text-muted-foreground">Category</span>
+                <span className="text-sm font-medium text-foreground">
                   {item.insuranceCategory}
                 </span>
               </div>
@@ -838,30 +838,30 @@ function ItemDetail({
             href={item.manualUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-3 bg-white dark:bg-gray-900 rounded-xl p-4"
+            className="flex items-center gap-3 bg-card rounded-xl p-4"
           >
             <FileText className="w-5 h-5 text-blue-500" />
-            <span className="text-sm font-medium text-ink dark:text-white flex-1">
+            <span className="text-sm font-medium text-foreground flex-1">
               View Manual
             </span>
-            <ExternalLink className="w-4 h-4 text-gray-400" />
+            <ExternalLink className="w-4 h-4 text-muted-foreground" />
           </a>
         )}
 
         {item.notes && (
-          <div className="bg-white dark:bg-gray-900 rounded-xl p-4">
-            <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+          <div className="bg-card rounded-xl p-4">
+            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2">
               Notes
             </h3>
-            <p className="text-sm text-ink dark:text-white whitespace-pre-wrap">
+            <p className="text-sm text-foreground whitespace-pre-wrap">
               {item.notes}
             </p>
           </div>
         )}
 
-        <div className="bg-white dark:bg-gray-900 rounded-xl p-4">
+        <div className="bg-card rounded-xl p-4">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
               Service History
             </h3>
             <Button
@@ -874,28 +874,28 @@ function ItemDetail({
           </div>
 
           {serviceHistory.length === 0 ? (
-            <p className="text-sm text-gray-400">No service records yet</p>
+            <p className="text-sm text-muted-foreground">No service records yet</p>
           ) : (
             <div className="space-y-3">
               {serviceHistory.map((record) => (
                 <div
                   key={record.service.id}
-                  className="border-l-2 border-gray-200 dark:border-gray-700 pl-3"
+                  className="border-l-2 border-border pl-3"
                 >
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-ink dark:text-white">
+                    <span className="text-sm font-medium text-foreground">
                       {record.service.serviceType}
                     </span>
-                    <span className="text-xs text-gray-400">
+                    <span className="text-xs text-muted-foreground">
                       {new Date(record.service.serviceDate).toLocaleDateString()}
                     </span>
                   </div>
                   {record.service.description && (
-                    <p className="text-sm text-gray-500 mt-0.5">
+                    <p className="text-sm text-muted-foreground mt-0.5">
                       {record.service.description}
                     </p>
                   )}
-                  <div className="flex items-center gap-3 mt-1 text-xs text-gray-400">
+                  <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
                     {record.service.cost && (
                       <span>{formatCurrency(record.service.cost)}</span>
                     )}
@@ -1024,17 +1024,17 @@ export default function InventoryPage() {
   const items: InventoryItem[] = inventoryData?.items || [];
 
   return (
-    <div className="min-h-screen bg-porcelain dark:bg-gray-950 pb-24">
-      <div className="sticky top-0 z-10 bg-white/80 dark:bg-gray-900/80 backdrop-blur border-b border-gray-100 dark:border-gray-800">
+    <div className="min-h-screen bg-background pb-24">
+      <div className="sticky top-0 z-10 bg-card/80 backdrop-blur border-b border-border">
         <div className="flex items-center gap-3 px-4 py-3">
           <button onClick={() => navigate("/")}>
-            <ArrowLeft className="w-5 h-5 text-ink dark:text-white" />
+            <ArrowLeft className="w-5 h-5 text-foreground" />
           </button>
-          <h1 className="text-lg font-semibold text-ink dark:text-white flex-1">
+          <h1 className="text-lg font-semibold text-foreground flex-1">
             Inventory
           </h1>
           <button onClick={() => setShowAddDialog(true)}>
-            <Plus className="w-5 h-5 text-ink dark:text-white" />
+            <Plus className="w-5 h-5 text-foreground" />
           </button>
         </div>
 
@@ -1051,8 +1051,8 @@ export default function InventoryPage() {
               onClick={() => setViewTab(key)}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
                 viewTab === key
-                  ? "bg-ink text-white dark:bg-white dark:text-gray-900"
-                  : "text-gray-500 hover:text-ink dark:hover:text-white"
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:text-foreground"
               }`}
             >
               <Icon className="w-3.5 h-3.5" />
@@ -1066,11 +1066,11 @@ export default function InventoryPage() {
         <>
           <div className="px-4 py-3 flex items-center gap-2">
             <div className="flex-1 relative">
-              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
               <input
                 type="text"
                 placeholder="Search items..."
-                className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-ink dark:text-white"
+                className="w-full pl-9 pr-3 py-2 text-sm border border-border rounded-lg bg-card text-foreground"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
@@ -1079,22 +1079,22 @@ export default function InventoryPage() {
               onClick={() => setShowFilters(!showFilters)}
               className={`p-2 rounded-lg border ${
                 categoryFilter
-                  ? "border-ink bg-ink/5 dark:border-white dark:bg-white/5"
-                  : "border-gray-200 dark:border-gray-700"
+                  ? "border-primary bg-primary/5"
+                  : "border-border"
               }`}
             >
-              <Filter className="w-4 h-4 text-ink dark:text-white" />
+              <Filter className="w-4 h-4 text-foreground" />
             </button>
             <button
               onClick={() =>
                 setViewMode(viewMode === "grid" ? "list" : "grid")
               }
-              className="p-2 rounded-lg border border-gray-200 dark:border-gray-700"
+              className="p-2 rounded-lg border border-border"
             >
               {viewMode === "grid" ? (
-                <List className="w-4 h-4 text-ink dark:text-white" />
+                <List className="w-4 h-4 text-foreground" />
               ) : (
-                <LayoutGrid className="w-4 h-4 text-ink dark:text-white" />
+                <LayoutGrid className="w-4 h-4 text-foreground" />
               )}
             </button>
           </div>
@@ -1105,8 +1105,8 @@ export default function InventoryPage() {
                 onClick={() => setCategoryFilter("")}
                 className={`px-3 py-1 rounded-full text-xs font-medium ${
                   !categoryFilter
-                    ? "bg-ink text-white dark:bg-white dark:text-gray-900"
-                    : "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400"
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted text-muted-foreground"
                 }`}
               >
                 All
@@ -1119,8 +1119,8 @@ export default function InventoryPage() {
                   }
                   className={`px-3 py-1 rounded-full text-xs font-medium ${
                     categoryFilter === key
-                      ? "bg-ink text-white dark:bg-white dark:text-gray-900"
-                      : "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400"
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted text-muted-foreground"
                   }`}
                 >
                   {label}
@@ -1131,15 +1131,15 @@ export default function InventoryPage() {
 
           {isLoading ? (
             <div className="flex items-center justify-center py-20">
-              <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+              <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
             </div>
           ) : items.length === 0 ? (
             <div className="text-center py-20 px-4">
-              <Package className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
-              <p className="text-gray-500 dark:text-gray-400 mb-1">
+              <Package className="w-12 h-12 text-muted-foreground/50 mx-auto mb-3" />
+              <p className="text-muted-foreground mb-1">
                 No items yet
               </p>
-              <p className="text-sm text-gray-400 dark:text-gray-500">
+              <p className="text-sm text-muted-foreground">
                 Add your first inventory item to start tracking
               </p>
             </div>
@@ -1152,23 +1152,23 @@ export default function InventoryPage() {
                   <button
                     key={item.id}
                     onClick={() => setSelectedItemId(item.id)}
-                    className="w-full text-left bg-white dark:bg-gray-900 rounded-xl p-3 flex items-center gap-3"
+                    className="w-full text-left bg-card rounded-xl p-3 flex items-center gap-3"
                   >
                     <div
-                      className={`w-10 h-10 rounded-lg bg-gray-50 dark:bg-gray-800 flex items-center justify-center ${cat.color}`}
+                      className={`w-10 h-10 rounded-lg bg-muted flex items-center justify-center ${cat.color}`}
                     >
                       <cat.icon className="w-5 h-5" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium text-ink dark:text-white truncate">
+                        <span className="text-sm font-medium text-foreground truncate">
                           {item.name}
                         </span>
                         {warranty && warranty.urgent && (
                           <AlertTriangle className="w-3.5 h-3.5 text-orange-500 flex-shrink-0" />
                         )}
                       </div>
-                      <div className="flex items-center gap-2 text-xs text-gray-400 mt-0.5">
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
                         {item.brand && <span>{item.brand}</span>}
                         {item.location && (
                           <>
@@ -1183,7 +1183,7 @@ export default function InventoryPage() {
                         {warranty.label}
                       </Badge>
                     )}
-                    <ChevronRight className="w-4 h-4 text-gray-300 flex-shrink-0" />
+                    <ChevronRight className="w-4 h-4 text-muted-foreground/50 flex-shrink-0" />
                   </button>
                 );
               })}
@@ -1197,17 +1197,17 @@ export default function InventoryPage() {
                   <button
                     key={item.id}
                     onClick={() => setSelectedItemId(item.id)}
-                    className="text-left bg-white dark:bg-gray-900 rounded-xl p-3"
+                    className="text-left bg-card rounded-xl p-3"
                   >
                     <div
-                      className={`w-8 h-8 rounded-lg bg-gray-50 dark:bg-gray-800 flex items-center justify-center ${cat.color} mb-2`}
+                      className={`w-8 h-8 rounded-lg bg-muted flex items-center justify-center ${cat.color} mb-2`}
                     >
                       <cat.icon className="w-4 h-4" />
                     </div>
-                    <p className="text-sm font-medium text-ink dark:text-white truncate">
+                    <p className="text-sm font-medium text-foreground truncate">
                       {item.name}
                     </p>
-                    <p className="text-xs text-gray-400 truncate mt-0.5">
+                    <p className="text-xs text-muted-foreground truncate mt-0.5">
                       {item.brand || cat.label}
                     </p>
                     {warranty && (
@@ -1226,7 +1226,7 @@ export default function InventoryPage() {
       {viewTab === "alerts" && (
         <div className="px-4 py-3 space-y-4">
           <div>
-            <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-2">
+            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-2">
               <Shield className="w-4 h-4" />
               Warranty Alerts
             </h3>
@@ -1237,7 +1237,7 @@ export default function InventoryPage() {
                     <button
                       key={item.id}
                       onClick={() => setSelectedItemId(item.id)}
-                      className="w-full text-left bg-white dark:bg-gray-900 rounded-xl p-3 flex items-center gap-3"
+                      className="w-full text-left bg-card rounded-xl p-3 flex items-center gap-3"
                     >
                       <AlertTriangle
                         className={`w-5 h-5 flex-shrink-0 ${
@@ -1247,20 +1247,20 @@ export default function InventoryPage() {
                         }`}
                       />
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-ink dark:text-white truncate">
+                        <p className="text-sm font-medium text-foreground truncate">
                           {item.name}
                         </p>
-                        <p className="text-xs text-gray-400">
+                        <p className="text-xs text-muted-foreground">
                           Warranty expires in {item.daysUntilExpiry} days
                         </p>
                       </div>
-                      <ChevronRight className="w-4 h-4 text-gray-300" />
+                      <ChevronRight className="w-4 h-4 text-muted-foreground/50" />
                     </button>
                   )
                 )}
               </div>
             ) : (
-              <p className="text-sm text-gray-400 bg-white dark:bg-gray-900 rounded-xl p-4">
+              <p className="text-sm text-muted-foreground bg-card rounded-xl p-4">
                 No upcoming warranty expirations
               </p>
             )}
@@ -1276,18 +1276,18 @@ export default function InventoryPage() {
                       <button
                         key={item.id}
                         onClick={() => setSelectedItemId(item.id)}
-                        className="w-full text-left bg-white dark:bg-gray-900 rounded-xl p-3 flex items-center gap-3 opacity-75"
+                        className="w-full text-left bg-card rounded-xl p-3 flex items-center gap-3 opacity-75"
                       >
                         <Clock className="w-5 h-5 text-red-400 flex-shrink-0" />
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-ink dark:text-white truncate">
+                          <p className="text-sm font-medium text-foreground truncate">
                             {item.name}
                           </p>
-                          <p className="text-xs text-gray-400">
+                          <p className="text-xs text-muted-foreground">
                             Warranty expired
                           </p>
                         </div>
-                        <ChevronRight className="w-4 h-4 text-gray-300" />
+                        <ChevronRight className="w-4 h-4 text-muted-foreground/50" />
                       </button>
                     )
                   )}
@@ -1297,7 +1297,7 @@ export default function InventoryPage() {
           </div>
 
           <div>
-            <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-2">
+            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-2">
               <Wrench className="w-4 h-4" />
               Maintenance Due
             </h3>
@@ -1313,7 +1313,7 @@ export default function InventoryPage() {
                     <button
                       key={item.id}
                       onClick={() => setSelectedItemId(item.id)}
-                      className="w-full text-left bg-white dark:bg-gray-900 rounded-xl p-3 flex items-center gap-3"
+                      className="w-full text-left bg-card rounded-xl p-3 flex items-center gap-3"
                     >
                       <Wrench
                         className={`w-5 h-5 flex-shrink-0 ${
@@ -1321,22 +1321,22 @@ export default function InventoryPage() {
                         }`}
                       />
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-ink dark:text-white truncate">
+                        <p className="text-sm font-medium text-foreground truncate">
                           {item.name}
                         </p>
-                        <p className="text-xs text-gray-400">
+                        <p className="text-xs text-muted-foreground">
                           {item.isOverdue
                             ? `Overdue by ${Math.abs(item.daysUntilDue)} days`
                             : `Due in ${item.daysUntilDue} days`}
                         </p>
                       </div>
-                      <ChevronRight className="w-4 h-4 text-gray-300" />
+                      <ChevronRight className="w-4 h-4 text-muted-foreground/50" />
                     </button>
                   )
                 )}
               </div>
             ) : (
-              <p className="text-sm text-gray-400 bg-white dark:bg-gray-900 rounded-xl p-4">
+              <p className="text-sm text-muted-foreground bg-card rounded-xl p-4">
                 No upcoming maintenance
               </p>
             )}
@@ -1346,18 +1346,18 @@ export default function InventoryPage() {
 
       {viewTab === "insurance" && (
         <div className="px-4 py-3 space-y-4">
-          <div className="bg-white dark:bg-gray-900 rounded-xl p-4">
-            <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">
+          <div className="bg-card rounded-xl p-4">
+            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">
               Total Insured Value
             </h3>
-            <p className="text-2xl font-bold text-ink dark:text-white">
+            <p className="text-2xl font-bold text-foreground">
               {formatCurrency(insuranceSummary?.totalInsuredValue || 0)}
             </p>
           </div>
 
           {insuranceSummary?.byCategory?.length > 0 && (
-            <div className="bg-white dark:bg-gray-900 rounded-xl p-4">
-              <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">
+            <div className="bg-card rounded-xl p-4">
+              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">
                 By Category
               </h3>
               <div className="space-y-3">
@@ -1378,14 +1378,14 @@ export default function InventoryPage() {
                           <catInfo.icon
                             className={`w-4 h-4 ${catInfo.color}`}
                           />
-                          <span className="text-sm text-ink dark:text-white">
+                          <span className="text-sm text-foreground">
                             {catInfo.label}
                           </span>
-                          <span className="text-xs text-gray-400">
+                          <span className="text-xs text-muted-foreground">
                             ({cat.count})
                           </span>
                         </div>
-                        <span className="text-sm font-medium text-ink dark:text-white">
+                        <span className="text-sm font-medium text-foreground">
                           {formatCurrency(cat.totalValue)}
                         </span>
                       </div>

@@ -153,7 +153,7 @@ export default function Landing() {
               >
                 <span className="text-6xl font-display font-light text-muted-foreground/30">{step.num}</span>
                 <div>
-                  <h3 className="text-xl font-medium text-foreground">{step.title}</h3>
+                  <h3 className="text-xl font-display font-medium text-foreground">{step.title}</h3>
                   <p className="mt-2 text-muted-foreground text-lg">{step.desc}</p>
                 </div>
               </motion.div>
