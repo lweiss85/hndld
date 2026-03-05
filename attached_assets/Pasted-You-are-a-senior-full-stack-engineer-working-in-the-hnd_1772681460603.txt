@@ -1,0 +1,143 @@
+You are a senior full-stack engineer working in the hndld app (React/TypeScript/Tailwind). The app already has a time-adaptive background system in client/src/lib/time-context.ts and client/src/components/layout/app-layout.tsx.
+
+## TASK: Amplify the time-of-day background to be more visible and luxurious
+
+### STEP 1: Update the time-context colors to be more dramatic
+
+In client/src/lib/time-context.ts, update the color values:
+```ts
+export function getTimeContext(): TimeContext {
+  const hour = new Date().getHours();
+
+  if (hour >= 5 && hour <= 11) {
+    return {
+      phase: "morning",
+      skyColor: "#FBF5EB",        // warmer golden cream
+      accentColor: "#C9A96E",
+      glowColor: "rgba(201,169,110,0.22)",  // stronger golden glow
+    };
+  }
+
+  if (hour >= 12 && hour <= 16) {
+    return {
+      phase: "afternoon",
+      skyColor: "#F4F6F8",        // cool, crisp
+      accentColor: "#7B9EA8",
+      glowColor: "rgba(123,158,168,0.14)",
+    };
+  }
+
+  if (hour >= 17 && hour <= 20) {
+    return {
+      phase: "evening",
+      skyColor: "#F6F0E6",        // warm amber
+      accentColor: "#D4A55A",
+      glowColor: "rgba(212,165,90,0.25)",  // strongest warm glow
+    };
+  }
+
+  return {
+    phase: "night",
+    skyColor: "#EEEDF3",          // cool lavender-gray
+    accentColor: "#8B8FA8",
+    glowColor: "rgba(139,143,168,0.15)",
+  };
+}
+```
+
+### STEP 2: Enhance the glow in app-layout.tsx
+
+In client/src/components/layout/app-layout.tsx, make the radial gradient glow larger and more visible:
+
+Replace the current glow div with:
+```tsx
+{/* Primary ambient glow */}
+<div
+  aria-hidden="true"
+  style={{
+    position: "absolute",
+    top: "-40px",
+    left: "50%",
+    transform: "translateX(-50%)",
+    width: "120%",
+    maxWidth: "800px",
+    height: "400px",
+    background: `radial-gradient(ellipse at 50% 0%, ${glowColor} 0%, transparent 65%)`,
+    pointerEvents: "none",
+    zIndex: 0,
+    transition: "background 3s ease",
+  }}
+/>
+```
+
+### STEP 3: Add a subtle grain texture overlay
+
+Add a CSS noise/grain texture to the entire app background. This makes the screen feel less digital and more physical — a technique used by luxury fashion brands.
+
+In client/src/index.css, add:
+```css
+/* Luxury grain texture overlay */
+.grain-overlay::after {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0.025;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 256px 256px;
+}
+
+/* Reduce grain in dark mode */
+.dark .grain-overlay::after {
+  opacity: 0.03;
+}
+
+/* Remove grain for reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  .grain-overlay::after {
+    display: none;
+  }
+}
+```
+
+Then in app-layout.tsx, add the `grain-overlay` class to the outermost div:
+```tsx
+<div
+  className="min-h-screen flex flex-col bg-background grain-overlay"
+  style={{
+    backgroundColor: skyColor,
+    transition: "background-color 3s ease",
+  }}
+>
+```
+
+### STEP 4: Add a 5-second ambient entrance animation on first app load
+
+Only on the FIRST page load (not on every navigation), animate the background color washing in.
+
+In app-layout.tsx, add a state for first load:
+```tsx
+const [isFirstLoad, setIsFirstLoad] = useState(true);
+
+useEffect(() => {
+  if (isFirstLoad) {
+    const timer = setTimeout(() => setIsFirstLoad(false), 3000);
+    return () => clearTimeout(timer);
+  }
+}, []);
+```
+
+On the main container, when isFirstLoad is true, animate from a pure white/neutral to the time-adaptive color:
+```tsx
+style={{
+  backgroundColor: isFirstLoad ? "#FAFAFA" : skyColor,
+  transition: isFirstLoad ? "background-color 3s cubic-bezier(0.22, 1, 0.36, 1)" : "background-color 2s ease",
+}}
+```
+
+Test that the grain texture doesn't interfere with touch/click events (pointer-events: none). Test that the background transitions are smooth. Test in both light and dark mode.

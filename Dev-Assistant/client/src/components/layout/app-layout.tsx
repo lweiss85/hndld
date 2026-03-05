@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { Header } from "./header";
 import { BottomNav } from "./bottom-nav";
 import { AIChat } from "@/components/ai-chat";
@@ -10,13 +11,23 @@ interface AppLayoutProps {
 
 export function AppLayout({ children }: AppLayoutProps) {
   const { skyColor, glowColor } = getTimeContext();
+  const [isFirstLoad, setIsFirstLoad] = useState(true);
+
+  useEffect(() => {
+    if (isFirstLoad) {
+      const timer = setTimeout(() => setIsFirstLoad(false), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, []);
 
   return (
     <div
-      className="min-h-screen flex flex-col bg-background"
+      className="min-h-screen flex flex-col bg-background grain-overlay"
       style={{
-        backgroundColor: skyColor,
-        transition: "background-color 2s ease",
+        backgroundColor: isFirstLoad ? "#FAFAFA" : skyColor,
+        transition: isFirstLoad
+          ? "background-color 3s cubic-bezier(0.22, 1, 0.36, 1)"
+          : "background-color 2s ease",
       }}
     >
       <a href="#main-content" className="skip-to-content">
@@ -33,15 +44,16 @@ export function AppLayout({ children }: AppLayoutProps) {
           aria-hidden="true"
           style={{
             position: "absolute",
-            top: 0,
+            top: "-40px",
             left: "50%",
             transform: "translateX(-50%)",
-            width: "100%",
-            maxWidth: "600px",
-            height: "320px",
-            background: `radial-gradient(ellipse at 50% 0%, ${glowColor} 0%, transparent 70%)`,
+            width: "120%",
+            maxWidth: "800px",
+            height: "400px",
+            background: `radial-gradient(ellipse at 50% 0%, ${glowColor} 0%, transparent 65%)`,
             pointerEvents: "none",
             zIndex: 0,
+            transition: "background 3s ease",
           }}
         />
         <div style={{ position: "relative", zIndex: 1 }}>
