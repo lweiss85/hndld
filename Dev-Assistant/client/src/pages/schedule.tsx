@@ -97,13 +97,13 @@ export default function Schedule() {
               <div className="flex items-start justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground mb-1">Next Cleaning</p>
-                  <p className="text-3xl font-display font-medium">
+                  <p className="text-3xl font-display font-medium" aria-label={format(new Date(nextVisit.scheduledAt), "EEEE, MMMM do, yyyy")}>
                     {format(new Date(nextVisit.scheduledAt), "EEEE")}
                   </p>
-                  <p className="text-lg text-muted-foreground">
+                  <p className="text-lg text-muted-foreground" aria-hidden="true">
                     {format(new Date(nextVisit.scheduledAt), "MMMM d, yyyy")}
                   </p>
-                  <p className="text-sm font-medium mt-2">
+                  <p className="text-sm font-medium mt-2" aria-label={`at ${format(new Date(nextVisit.scheduledAt), "h:mm a")}`}>
                     {format(new Date(nextVisit.scheduledAt), "h:mm a")}
                   </p>
                 </div>
@@ -180,10 +180,10 @@ export default function Schedule() {
                           <CalendarDays className="h-5 w-5 text-muted-foreground" />
                         </div>
                         <div>
-                          <p className="font-medium">
+                          <p className="font-medium" aria-label={format(new Date(visit.scheduledAt), "EEEE, MMMM do")}>
                             {format(new Date(visit.scheduledAt), "EEE, MMM d")}
                           </p>
-                          <p className="text-sm text-muted-foreground">
+                          <p className="text-sm text-muted-foreground" aria-label={`at ${format(new Date(visit.scheduledAt), "h:mm a")}`}>
                             {format(new Date(visit.scheduledAt), "h:mm a")}
                           </p>
                         </div>
@@ -212,7 +212,7 @@ export default function Schedule() {
                           <CheckCircle2 className="h-5 w-5 text-green-600" />
                         </div>
                         <div>
-                          <p className="font-medium">
+                          <p className="font-medium" aria-label={format(new Date(visit.scheduledAt), "EEEE, MMMM do, yyyy")}>
                             {format(new Date(visit.scheduledAt), "EEE, MMM d, yyyy")}
                           </p>
                           <div className="flex items-center gap-2 text-sm text-muted-foreground">

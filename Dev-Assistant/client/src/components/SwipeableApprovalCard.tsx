@@ -156,7 +156,7 @@ export const SwipeableApprovalCard = forwardRef<HTMLDivElement, SwipeableApprova
                     Reimbursement
                   </span>
                 )}
-                <span>
+                <span aria-label={format(new Date(approval.createdAt!), "EEEE, MMMM do, yyyy")}>
                   {format(new Date(approval.createdAt!), "MMM d, yyyy")}
                 </span>
               </div>

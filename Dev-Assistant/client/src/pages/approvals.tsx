@@ -355,7 +355,7 @@ export default function Approvals() {
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex-1 min-w-0">
                         <h3 className="font-medium truncate">{approval.title}</h3>
-                        <p className="text-xs text-muted-foreground mt-1">
+                        <p className="text-xs text-muted-foreground mt-1" aria-label={format(new Date(approval.updatedAt!), "EEEE, MMMM do, yyyy")}>
                           {format(new Date(approval.updatedAt!), "MMM d, yyyy")}
                         </p>
                       </div>

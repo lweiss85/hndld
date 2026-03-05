@@ -224,7 +224,7 @@ export default function Today() {
       <div className="flex items-center justify-between gap-4">
         <div>
           <h1 className="font-display text-3xl font-light tracking-tight" data-testid="text-page-title">Today</h1>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-muted-foreground" aria-label={format(now, "EEEE, MMMM do, yyyy")}>
             {format(now, "EEEE, MMMM d")}
           </p>
         </div>
@@ -267,7 +267,7 @@ export default function Today() {
                             {request.category}
                           </Badge>
                           {request.dueAt && (
-                            <span className="text-xs text-muted-foreground">
+                            <span className="text-xs text-muted-foreground" aria-label={`Due ${format(new Date(request.dueAt), "EEEE, MMMM do")}`}>
                               Due: {format(new Date(request.dueAt), "MMM d")}
                             </span>
                           )}
@@ -340,7 +340,10 @@ export default function Today() {
                           <div className="flex items-start justify-between gap-2">
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2">
-                                <span className="text-xs font-medium text-muted-foreground">
+                                <span
+                                  className="text-xs font-medium text-muted-foreground"
+                                  aria-label={`${format(item.time, "EEEE")} at ${format(item.time, "h:mm a")}${item.endTime ? ` to ${format(item.endTime, "h:mm a")}` : ""}`}
+                                >
                                   {format(item.time, "h:mm a")}
                                   {item.endTime && ` - ${format(item.endTime, "h:mm a")}`}
                                 </span>

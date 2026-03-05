@@ -342,7 +342,7 @@ function CleaningOverview() {
                 </div>
                 <div className="flex-1">
                   <p className="font-medium text-foreground">{nextVisit.title}</p>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-muted-foreground" aria-label={nextVisit.dueAt ? format(new Date(nextVisit.dueAt), "EEEE, MMMM do 'at' h:mm a") : "Not scheduled"}>
                     {nextVisit.dueAt ? format(new Date(nextVisit.dueAt), "EEEE, MMM d 'at' h:mm a") : "Not scheduled"}
                   </p>
                 </div>

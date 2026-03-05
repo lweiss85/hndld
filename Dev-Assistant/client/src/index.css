@@ -848,3 +848,46 @@
   letter-spacing: 0.08em;
   color: hsl(var(--muted-foreground));
 }
+
+/* Custom focus-visible ring — brand-consistent accessibility */
+*:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--hndld-gold-500));
+  border-radius: inherit;
+}
+
+button:focus-visible,
+[role="tab"]:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--hndld-gold-500));
+}
+
+.dark *:focus-visible {
+  box-shadow: 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--hndld-gold-400));
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: more) {
+  :root {
+    --border: 30 20% 70%;
+    --muted-foreground: 220 13% 30%;
+    --card-border: 30 20% 70%;
+  }
+
+  .dark {
+    --border: 220 15% 50%;
+    --muted-foreground: 220 13% 70%;
+  }
+
+  [class*="border"] {
+    border-width: 2px;
+  }
+
+  .text-hndld-gold-500 {
+    color: hsl(37 52% 40%);
+  }
+}
