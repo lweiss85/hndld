@@ -1,0 +1,31 @@
+You are working in the hndld app (React + TypeScript + Tailwind + Framer Motion).
+
+Build a "Zero State Ritual" — a special calm visual mode that activates when the user has no pending approvals, no overdue tasks, and no unpaid invoices.
+
+Step 1 — Create a useAllHandled hook at client/src/hooks/use-all-handled.ts:
+- Queries /api/approvals, /api/tasks, and the pending invoices endpoint
+- Returns { allHandled: boolean } — true only when:
+  - approvals: no items with status "PENDING"
+  - tasks: no items with status "PLANNED" or "IN_PROGRESS" and dueAt before now
+  - pending invoices: count === 0
+- Has a 1-second debounce so it doesn't flash during loading
+
+Step 2 — In client/src/pages/this-week.tsx, import useAllHandled. When allHandled is true:
+
+Apply these changes to the main page container (the outermost div):
+- Transition the background color over 3s to a slightly more saturated version of the current time-of-day sky color (use getTimeContext() from lib/time-context if it exists, or use the current hour to determine: morning #FEF9F0, afternoon #F2F6F9, evening #F9F5ED, night #F4F3F8)
+- Reduce the amount of content shown: hide the metrics card (Time Returned) and hide the AI Weekly Brief — leave only the greeting, the Concierge Whisper ("Your home is in order."), and the Upcoming section
+- The page should have more white space than normal — this is intentional
+
+Step 3 — Add a single centered element to the home screen (below the greeting, above Upcoming) when allHandled is true:
+- A thin horizontal rule: 60px wide, 1px, color: rgba(201,169,110,0.4), centered
+- Below it: "Your home is in order." in Cormorant Garamond, italic, 20px, muted foreground color
+- Below that: the current date formatted as "Wednesday, March 4" in DM Sans, 12px, muted, letter-spacing 0.08em
+- This entire element fades in over 1.2s (no slide, just opacity)
+
+Step 4 — The transition in/out:
+- When allHandled becomes true: all non-essential cards fade out over 0.5s (opacity → 0, then display:none), then the calm elements fade in
+- When allHandled becomes false (a new approval arrives): the calm elements fade out and normal cards fade back in over 0.3s — use AnimatePresence for this
+- Do not show a "zero state" on any page other than this-week.tsx
+
+Do not break any existing data fetching. The page should still work normally when allHandled is false.

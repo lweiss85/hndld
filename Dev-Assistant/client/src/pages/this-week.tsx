@@ -42,6 +42,7 @@ import { PropertySwitcher } from "@/components/property-switcher";
 import { ConciergeWhisper } from "@/components/ConciergeWhisper";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useActiveServiceType } from "@/hooks/use-active-service-type";
+import { useAllHandled } from "@/hooks/use-all-handled";
 import { withServiceType } from "@/lib/serviceUrl";
 import { PayNowSheet } from "@/components/pay-now-sheet";
 import { useLongPress } from "@/hooks/use-long-press";
@@ -436,6 +437,45 @@ function CleaningOverview() {
   );
 }
 
+const CALM_SKY: Record<string, string> = {
+  morning: "#FEF9F0",
+  afternoon: "#F2F6F9",
+  evening: "#F9F5ED",
+  night: "#F4F3F8",
+};
+
+function ZeroStateRitual() {
+  const now = new Date();
+  const dateLabel = format(now, "EEEE, MMMM d");
+
+  return (
+    <motion.div
+      className="flex flex-col items-center py-8"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1, transition: { duration: 1.2, delay: 0.5 } }}
+      exit={{ opacity: 0, transition: { duration: 0.3 } }}
+    >
+      <div
+        className="mb-4"
+        style={{
+          width: 60,
+          height: 1,
+          backgroundColor: "rgba(201,169,110,0.4)",
+        }}
+      />
+      <p className="font-display italic text-[20px] text-muted-foreground mb-1">
+        Your home is in order.
+      </p>
+      <p
+        className="font-sans text-xs text-muted-foreground"
+        style={{ letterSpacing: "0.08em" }}
+      >
+        {dateLabel}
+      </p>
+    </motion.div>
+  );
+}
+
 export default function ThisWeek() {
   const { user } = useAuth();
   const { activeServiceType } = useActiveServiceType();
@@ -459,6 +499,9 @@ export default function ThisWeek() {
   }, []);
 
   const isPA = activeServiceType !== "CLEANING";
+  const { allHandled } = useAllHandled(isPA);
+  const timeCtx = getTimeContext();
+  const calmBg = CALM_SKY[timeCtx.phase] || CALM_SKY.morning;
 
   const { data, isLoading } = useQuery<DashboardData>({
     queryKey: ["/api/dashboard"],
@@ -508,133 +551,194 @@ export default function ThisWeek() {
         progress={progress}
       />
     <div
-      className="px-5 py-6 space-y-6 max-w-4xl mx-auto pb-24"
+      className="px-5 py-6 max-w-4xl mx-auto pb-24"
       {...longPressHandlers}
-      style={{ touchAction: "pan-y" }}
+      style={{
+        touchAction: "pan-y",
+        backgroundColor: allHandled ? calmBg : undefined,
+        transition: "background-color 3s ease",
+      }}
     >
-      <header className="animate-fade-in-up space-y-3">
-        <ConciergeWhisper />
-        <BreathingGreeting name={firstName} greeting={getGreeting()} />
-        <div className="flex items-center gap-2 flex-wrap">
-          <ServiceSwitcher />
-          <PropertySwitcher />
-        </div>
-      </header>
-
-      <LuxuryCard className="relative overflow-hidden">
-        <AmbientParticles active={pendingApprovals.length === 0} color={getTimeContext().accentColor} />
-        <div style={{ position: "relative", zIndex: 1 }}>
-          <h2 className="text-xl font-display font-medium text-foreground mb-1">
-            This week is hndld.
-          </h2>
-          <p className="text-sm text-muted-foreground mb-4">
-            {priorityTasks.length} priorities 
-            {todayEvents > 0 && ` • ${todayEvents} today`}
-            {pendingApprovals.length > 0 && ` • ${pendingApprovals.length} waiting`}
-          </p>
-          
-          <div className="flex flex-wrap gap-3">
-            <Button asChild className="rounded-xl">
-              <Link href="/requests" data-testid="button-request-hero">
-                <MessageSquarePlus className="w-4 h-4 mr-2" aria-hidden="true" />
-                Request
-              </Link>
-            </Button>
-            {pendingApprovals.length > 0 && (
-              <Button variant="outline" asChild className="rounded-xl">
-                <Link href="/approvals" data-testid="button-approvals-hero">
-                  <Bell className="w-4 h-4 mr-2" aria-hidden="true" />
-                  Approvals ({pendingApprovals.length})
-                </Link>
-              </Button>
-            )}
+      <div className={allHandled ? "space-y-8" : "space-y-6"}>
+        <header className="animate-fade-in-up space-y-3">
+          <ConciergeWhisper />
+          <BreathingGreeting name={firstName} greeting={getGreeting()} />
+          <div className="flex items-center gap-2 flex-wrap">
+            <ServiceSwitcher />
+            <PropertySwitcher />
           </div>
-        </div>
-      </LuxuryCard>
+        </header>
 
-      {data?.impact && data.impact.minutesReturnedAllTime > 0 && (
-        <TimeReturnedCard impact={data.impact} />
-      )}
+        <AnimatePresence mode="wait">
+          {allHandled && <ZeroStateRitual key="zero-state" />}
+        </AnimatePresence>
 
-      <AIWeeklyBrief />
-
-      <section>
-        <SectionHeader 
-          title="Top Priorities" 
-          action={priorityTasks.length > 0 ? { label: "View all", href: "/tasks" } : undefined}
-        />
-        <LuxuryCard>
-          {priorityTasks.length === 0 ? (
-            <EmptyState
-              illustration={<CheckmarkIllustration className="w-full h-full" />}
-              title="Nothing urgent today."
-              description="You're in a good spot."
-            />
-          ) : (
-            <StaggeredList>
-              {priorityTasks.map((task) => (
-                <ItemRow
-                  key={task.id}
-                  title={task.title}
-                  meta={task.dueAt ? format(new Date(task.dueAt), "EEE, h:mm a") : undefined}
-                  urgency={task.urgency as "HIGH" | "MEDIUM" | "LOW"}
-                />
-              ))}
-            </StaggeredList>
+        <AnimatePresence>
+          {!allHandled && (
+            <motion.div
+              key="hero-card"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1, transition: { duration: 0.3 } }}
+              exit={{ opacity: 0, transition: { duration: 0.5 } }}
+            >
+              <LuxuryCard className="relative overflow-hidden">
+                <AmbientParticles active={pendingApprovals.length === 0} color={timeCtx.accentColor} />
+                <div style={{ position: "relative", zIndex: 1 }}>
+                  <h2 className="text-xl font-display font-medium text-foreground mb-1">
+                    This week is hndld.
+                  </h2>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    {priorityTasks.length} priorities 
+                    {todayEvents > 0 && ` • ${todayEvents} today`}
+                    {pendingApprovals.length > 0 && ` • ${pendingApprovals.length} waiting`}
+                  </p>
+                  
+                  <div className="flex flex-wrap gap-3">
+                    <Button asChild className="rounded-xl">
+                      <Link href="/requests" data-testid="button-request-hero">
+                        <MessageSquarePlus className="w-4 h-4 mr-2" aria-hidden="true" />
+                        Request
+                      </Link>
+                    </Button>
+                    {pendingApprovals.length > 0 && (
+                      <Button variant="outline" asChild className="rounded-xl">
+                        <Link href="/approvals" data-testid="button-approvals-hero">
+                          <Bell className="w-4 h-4 mr-2" aria-hidden="true" />
+                          Approvals ({pendingApprovals.length})
+                        </Link>
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </LuxuryCard>
+            </motion.div>
           )}
-        </LuxuryCard>
-      </section>
+        </AnimatePresence>
 
-      <section>
-        <SectionHeader 
-          title="Key Events" 
-          action={upcomingEvents.length > 0 ? { label: "View all", href: "/calendar" } : undefined}
-        />
-        <LuxuryCard>
-          {upcomingEvents.length === 0 ? (
-            <EmptyState
-              illustration={<CalendarIllustration className="w-full h-full" />}
-              title="No events this week."
-              description="Enjoy the calm."
-            />
-          ) : (
-            <StaggeredList>
-              {upcomingEvents.map((event) => (
-                <ItemRow
-                  key={event.id}
-                  title={event.title}
-                  meta={formatEventTime(event.startAt)}
-                  location={event.location || undefined}
-                />
-              ))}
-            </StaggeredList>
+        <AnimatePresence>
+          {!allHandled && data?.impact && data.impact.minutesReturnedAllTime > 0 && (
+            <motion.div
+              key="time-returned"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1, transition: { duration: 0.3 } }}
+              exit={{ opacity: 0, transition: { duration: 0.5 } }}
+            >
+              <TimeReturnedCard impact={data.impact} />
+            </motion.div>
           )}
-        </LuxuryCard>
-      </section>
+        </AnimatePresence>
 
-      {recentUpdates.length > 0 && (
+        <AnimatePresence>
+          {!allHandled && (
+            <motion.div
+              key="ai-brief"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1, transition: { duration: 0.3 } }}
+              exit={{ opacity: 0, transition: { duration: 0.5 } }}
+            >
+              <AIWeeklyBrief />
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <AnimatePresence>
+          {!allHandled && (
+            <motion.div
+              key="priorities"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1, transition: { duration: 0.3 } }}
+              exit={{ opacity: 0, transition: { duration: 0.5 } }}
+            >
+              <section>
+                <SectionHeader 
+                  title="Top Priorities" 
+                  action={priorityTasks.length > 0 ? { label: "View all", href: "/tasks" } : undefined}
+                />
+                <LuxuryCard>
+                  {priorityTasks.length === 0 ? (
+                    <EmptyState
+                      illustration={<CheckmarkIllustration className="w-full h-full" />}
+                      title="Nothing urgent today."
+                      description="You're in a good spot."
+                    />
+                  ) : (
+                    <StaggeredList>
+                      {priorityTasks.map((task) => (
+                        <ItemRow
+                          key={task.id}
+                          title={task.title}
+                          meta={task.dueAt ? format(new Date(task.dueAt), "EEE, h:mm a") : undefined}
+                          urgency={task.urgency as "HIGH" | "MEDIUM" | "LOW"}
+                        />
+                      ))}
+                    </StaggeredList>
+                  )}
+                </LuxuryCard>
+              </section>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         <section>
           <SectionHeader 
-            title="Handled for You" 
-            action={{ label: "View all", href: "/updates" }}
+            title="Upcoming" 
+            action={upcomingEvents.length > 0 ? { label: "View all", href: "/calendar" } : undefined}
           />
           <LuxuryCard>
-            <StaggeredList>
-              {recentUpdates.map((update) => (
-                <div 
-                  key={update.id} 
-                  className="flex items-center gap-3 py-2.5 border-b border-border/50 last:border-0"
-                  data-testid={`update-row-${update.id}`}
-                >
-                  <CheckCircle2 className="w-4 h-4 text-success shrink-0" aria-hidden="true" />
-                  <p className="text-sm text-foreground truncate flex-1">{update.text}</p>
-                  <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" aria-hidden="true" />
-                </div>
-              ))}
-            </StaggeredList>
+            {upcomingEvents.length === 0 ? (
+              <EmptyState
+                illustration={<CalendarIllustration className="w-full h-full" />}
+                title="No events this week."
+                description="Enjoy the calm."
+              />
+            ) : (
+              <StaggeredList>
+                {upcomingEvents.map((event) => (
+                  <ItemRow
+                    key={event.id}
+                    title={event.title}
+                    meta={formatEventTime(event.startAt)}
+                    location={event.location || undefined}
+                  />
+                ))}
+              </StaggeredList>
+            )}
           </LuxuryCard>
         </section>
-      )}
+
+        <AnimatePresence>
+          {!allHandled && recentUpdates.length > 0 && (
+            <motion.div
+              key="handled-for-you"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1, transition: { duration: 0.3 } }}
+              exit={{ opacity: 0, transition: { duration: 0.5 } }}
+            >
+              <section>
+                <SectionHeader 
+                  title="Handled for You" 
+                  action={{ label: "View all", href: "/updates" }}
+                />
+                <LuxuryCard>
+                  <StaggeredList>
+                    {recentUpdates.map((update) => (
+                      <div 
+                        key={update.id} 
+                        className="flex items-center gap-3 py-2.5 border-b border-border/50 last:border-0"
+                        data-testid={`update-row-${update.id}`}
+                      >
+                        <CheckCircle2 className="w-4 h-4 text-success shrink-0" aria-hidden="true" />
+                        <p className="text-sm text-foreground truncate flex-1">{update.text}</p>
+                        <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" aria-hidden="true" />
+                      </div>
+                    ))}
+                  </StaggeredList>
+                </LuxuryCard>
+              </section>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
     </div>
 
       <RequestBottomSheet
