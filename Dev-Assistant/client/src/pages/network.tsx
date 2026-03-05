@@ -856,7 +856,7 @@ export default function Network() {
   return (
     <PageTransition>
       <div className="px-4 py-6 space-y-6 max-w-4xl mx-auto">
-        <h1 className="text-2xl font-semibold animate-fade-in-up">Trusted Network</h1>
+        <h1 className="font-display text-3xl font-light tracking-tight animate-fade-in-up">Trusted Network</h1>
 
         <div className="flex gap-1 bg-muted/50 rounded-xl p-1">
           {TABS.map((tab) => (

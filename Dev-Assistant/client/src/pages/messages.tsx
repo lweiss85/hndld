@@ -40,7 +40,7 @@ function ConversationsList({
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-4 flex-wrap animate-fade-in-up">
-        <h1 className="text-2xl font-display font-medium" data-testid="text-page-title">Messages</h1>
+        <h1 className="font-display text-3xl font-light tracking-tight" data-testid="text-page-title">Messages</h1>
         <Button size="sm" onClick={onCreate} data-testid="button-new-conversation">
           <Plus aria-hidden="true" className="h-4 w-4 mr-2" />
           New

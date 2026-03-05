@@ -131,7 +131,7 @@ export default function Budgets() {
               <ChevronLeft className="h-5 w-5" />
             </Button>
             <div>
-              <h1 className="text-lg font-semibold">{historyCategory}</h1>
+              <h1 className="font-display text-3xl font-light tracking-tight">{historyCategory}</h1>
               <p className="text-xs text-muted-foreground">Spending History</p>
             </div>
           </div>
@@ -193,7 +193,7 @@ export default function Budgets() {
       <div className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b px-4 py-3">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-lg font-semibold">Budgets</h1>
+            <h1 className="font-display text-3xl font-light tracking-tight">Budgets</h1>
             <p className="text-xs text-muted-foreground">Track spending against limits</p>
           </div>
           <Dialog open={showForm} onOpenChange={setShowForm}>
@@ -315,15 +315,15 @@ export default function Budgets() {
                   </div>
 
                   <div className="flex items-center justify-between text-xs">
-                    <span className={getStatusColor(budget.percentUsed)}>
+                    <span className={`${getStatusColor(budget.percentUsed)} hndld-amount`}>
                       {formatCents(budget.spentCents)} spent
                     </span>
-                    <span className="text-muted-foreground">
+                    <span className="text-muted-foreground hndld-amount">
                       {budget.remainingCents >= 0
                         ? `${formatCents(budget.remainingCents)} remaining`
                         : `${formatCents(Math.abs(budget.remainingCents))} over`}
                     </span>
-                    <span className="text-muted-foreground font-medium">
+                    <span className="text-muted-foreground font-medium hndld-amount">
                       {formatCents(budget.budgetAmountCents)}
                     </span>
                   </div>

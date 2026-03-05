@@ -222,7 +222,7 @@ export default function Today() {
 
       <div className="flex items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold" data-testid="text-page-title">Today</h1>
+          <h1 className="font-display text-3xl font-light tracking-tight" data-testid="text-page-title">Today</h1>
           <p className="text-sm text-muted-foreground">
             {format(now, "EEEE, MMMM d")}
           </p>

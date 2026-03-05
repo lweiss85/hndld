@@ -53,7 +53,7 @@ export function BreathingGreeting({ name, greeting }: BreathingGreetingProps) {
         style={{
           fontFamily: "'Cormorant Garamond', Georgia, serif",
           fontWeight: 450,
-          fontSize: "2rem",
+          fontSize: "2.75rem",
           lineHeight: 1.2,
           color: "hsl(var(--foreground))",
         }}
@@ -64,7 +64,8 @@ export function BreathingGreeting({ name, greeting }: BreathingGreetingProps) {
       <p
         style={{
           fontFamily: "'DM Sans', system-ui, sans-serif",
-          fontSize: "13px",
+          fontSize: "14px",
+          letterSpacing: "0.04em",
           color: "hsl(var(--muted-foreground))",
           marginTop: "4px",
         }}

@@ -137,12 +137,12 @@ export default function GetPaidPage() {
             </Button>
           </Link>
           <div>
-            <h1 className="text-lg font-semibold">Get Paid</h1>
+            <h1 className="font-display text-3xl font-light tracking-tight">Get Paid</h1>
           </div>
         </div>
         <div className="p-8 text-center">
           <DollarSign className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-          <h2 className="font-medium text-lg mb-2">Assistant Only</h2>
+          <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Assistant Only</h2>
           <p className="text-muted-foreground">
             This page is for assistants to track their reimbursements.
           </p>
@@ -161,7 +161,7 @@ export default function GetPaidPage() {
             </Button>
           </Link>
           <div>
-            <h1 className="text-lg font-semibold">Get Paid</h1>
+            <h1 className="font-display text-3xl font-light tracking-tight">Get Paid</h1>
             <p className="text-sm text-muted-foreground">Track your reimbursements</p>
           </div>
         </div>

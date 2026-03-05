@@ -176,7 +176,7 @@ export default function PaymentProfilePage() {
             </Button>
           </Link>
           <div>
-            <h1 className="text-lg font-semibold">Payment Profile</h1>
+            <h1 className="font-display text-3xl font-light tracking-tight">Payment Profile</h1>
           </div>
         </div>
         <div className="p-8 text-center">
@@ -199,7 +199,7 @@ export default function PaymentProfilePage() {
           </Button>
         </Link>
         <div>
-          <h1 className="text-lg font-semibold" data-testid="text-page-title">Payment Profile</h1>
+          <h1 className="font-display text-3xl font-light tracking-tight" data-testid="text-page-title">Payment Profile</h1>
           <p className="text-sm text-muted-foreground">How clients reimburse you</p>
         </div>
       </div>

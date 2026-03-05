@@ -326,7 +326,7 @@ export default function Organizations() {
           </Button>
         </Link>
         <div className="flex-1">
-          <h1 className="text-2xl font-semibold" data-testid="text-page-title">Organizations</h1>
+          <h1 className="font-display text-3xl font-light tracking-tight" data-testid="text-page-title">Organizations</h1>
           <p className="text-sm text-muted-foreground">Manage your organizations and households</p>
         </div>
         <CreateOrganizationDialog />

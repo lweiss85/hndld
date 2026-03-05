@@ -213,7 +213,7 @@ export default function MyFeedbackPage() {
             <MessageCircle className="h-5 w-5 text-[#C9A96E]" />
           </div>
           <div>
-            <h1 className="text-xl font-bold tracking-tight">My Feedback</h1>
+            <h1 className="font-display text-3xl font-light tracking-tight">My Feedback</h1>
             <p className="text-xs text-muted-foreground">Track your submissions</p>
           </div>
         </div>

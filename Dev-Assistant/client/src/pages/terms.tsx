@@ -17,7 +17,7 @@ export default function Terms() {
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <h1 className="text-xl font-semibold">Terms of Service</h1>
+          <h1 className="font-display text-3xl font-light tracking-tight">Terms of Service</h1>
         </div>
       </header>
 

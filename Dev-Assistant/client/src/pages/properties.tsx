@@ -115,7 +115,7 @@ export default function PropertiesPage() {
     <div className="p-4 pb-24 space-y-5">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-foreground">Properties</h1>
+          <h1 className="font-display text-3xl font-light tracking-tight text-foreground">Properties</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
             {properties.length} {properties.length === 1 ? "property" : "properties"}
           </p>

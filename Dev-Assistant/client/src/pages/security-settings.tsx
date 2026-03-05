@@ -217,7 +217,7 @@ export default function SecuritySettingsPage() {
             <Shield className="h-5 w-5 text-[#C9A96E]" />
           </div>
           <div>
-            <h1 className="text-xl font-bold tracking-tight">Security</h1>
+            <h1 className="font-display text-3xl font-light tracking-tight">Security</h1>
             <p className="text-xs text-muted-foreground">Account security & privacy</p>
           </div>
         </div>

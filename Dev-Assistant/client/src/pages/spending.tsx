@@ -199,7 +199,7 @@ function ClientSpendingView() {
       <PullToRefreshIndicator {...pullToRefreshProps} />
     <div className="px-4 py-6 space-y-6 max-w-4xl mx-auto">
       <div>
-        <h1 className="text-2xl font-display font-medium" data-testid="text-page-title">Money</h1>
+        <h1 className="font-display text-3xl font-light tracking-tight" data-testid="text-page-title">Money</h1>
         <p className="text-muted-foreground mt-1">Reimbursements and receipts, handled.</p>
       </div>
 
@@ -240,7 +240,7 @@ function ClientSpendingView() {
                 <div className="flex items-center justify-between gap-3">
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-semibold text-lg">
+                      <span className="font-semibold text-lg hndld-amount">
                         ${(item.amount / 100).toFixed(2)}
                       </span>
                       <Badge variant="secondary" className={`text-xs ${getStatusBadgeClass(item.status)}`}>
@@ -295,7 +295,7 @@ function ClientSpendingView() {
                 <div className="flex items-center justify-between gap-3">
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-semibold text-lg">
+                      <span className="font-semibold text-lg hndld-amount">
                         ${(item.amount / 100).toFixed(2)}
                       </span>
                       <Badge variant="secondary" className="text-xs bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
@@ -342,7 +342,7 @@ function ClientSpendingView() {
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
-                        <span className="font-medium">${(item.amount / 100).toFixed(2)}</span>
+                        <span className="font-medium hndld-amount">${(item.amount / 100).toFixed(2)}</span>
                         {item.category && (
                           <Badge variant="outline" className="text-xs">{item.category}</Badge>
                         )}
@@ -371,7 +371,7 @@ function ClientSpendingView() {
         <Card className="bg-muted/30">
           <CardContent className="p-4">
             <p className="text-sm text-muted-foreground">This month</p>
-            <p className="text-lg font-semibold">
+            <p className="text-lg font-semibold hndld-amount">
               ${(monthlyReimbursed / 100).toFixed(2)} reimbursed
               <span className="text-muted-foreground font-normal"> • {thisMonthReconciled.length} items</span>
             </p>
@@ -407,7 +407,7 @@ function ClientSpendingView() {
                   </p>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
-                  <span className="font-semibold">${(invoice.amount / 100).toFixed(2)}</span>
+                  <span className="font-semibold hndld-amount">${(invoice.amount / 100).toFixed(2)}</span>
                   <Badge className={getStatusBadgeClass(invoice.status)}>
                     {getStatusLabel(invoice.status)}
                   </Badge>
@@ -580,7 +580,7 @@ function AssistantSpendingView() {
     <div className="px-4 py-6 space-y-6 max-w-4xl mx-auto">
       <div className="flex items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-display font-medium" data-testid="text-page-title">Money</h1>
+          <h1 className="font-display text-3xl font-light tracking-tight" data-testid="text-page-title">Money</h1>
           <p className="text-muted-foreground mt-1">Track expenses and reimbursements</p>
         </div>
         <div className="flex items-center gap-2">
@@ -645,7 +645,7 @@ function AssistantSpendingView() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <span className="text-3xl font-display font-medium" data-testid="text-weekly-total">
+            <span className="text-3xl font-display font-medium hndld-amount" data-testid="text-weekly-total">
               ${(weeklyTotal / 100).toFixed(2)}
             </span>
           </CardContent>
@@ -658,7 +658,7 @@ function AssistantSpendingView() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <span className="text-3xl font-display font-medium" data-testid="text-monthly-total">
+            <span className="text-3xl font-display font-medium hndld-amount" data-testid="text-monthly-total">
               ${(monthlyTotal / 100).toFixed(2)}
             </span>
           </CardContent>
@@ -677,7 +677,7 @@ function AssistantSpendingView() {
             {sortedCategories.map(([category, amount]) => (
               <div key={category} className="flex items-center justify-between">
                 <span className="text-sm font-medium">{category}</span>
-                <span className="text-sm text-muted-foreground">
+                <span className="text-sm text-muted-foreground hndld-amount">
                   ${(amount / 100).toFixed(2)}
                 </span>
               </div>
@@ -722,7 +722,7 @@ function AssistantSpendingView() {
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-medium">
+                          <span className="font-medium hndld-amount">
                             ${(item.amount / 100).toFixed(2)}
                           </span>
                           {item.category && (

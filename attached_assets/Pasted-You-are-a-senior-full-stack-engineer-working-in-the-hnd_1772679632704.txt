@@ -1,0 +1,177 @@
+You are a senior full-stack engineer working in the hndld app (React/TypeScript/Tailwind). This app is a luxury home concierge app targeting affluent millennials. The design language is white-glove luxury — think Chanel meets Four Seasons, NOT SaaS productivity.
+
+## TASK: Complete typography overhaul
+
+The app already has @fontsource/cormorant-garamond and @fontsource/dm-sans installed and imported in main.tsx. The CSS variables are already set in index.css:
+- --font-sans: 'DM Sans'
+- --font-serif / --font-display: 'Cormorant Garamond'
+
+However, the fonts are NOT being used consistently. Most components still render in system fonts or Inter. Fix this globally.
+
+### STEP 1: Add missing font weights to main.tsx
+
+Add these imports to client/src/main.tsx if not already present:
+```ts
+import "@fontsource/cormorant-garamond/300.css";
+import "@fontsource/cormorant-garamond/300-italic.css";
+import "@fontsource/cormorant-garamond/400.css";
+import "@fontsource/cormorant-garamond/400-italic.css";
+import "@fontsource/cormorant-garamond/500.css";
+import "@fontsource/cormorant-garamond/600.css";
+import "@fontsource/cormorant-garamond/700.css";
+import "@fontsource/dm-sans/300.css";
+import "@fontsource/dm-sans/400.css";
+import "@fontsource/dm-sans/500.css";
+import "@fontsource/dm-sans/600.css";
+import "@fontsource/dm-sans/700.css";
+```
+
+Also install and add IBM Plex Mono for data labels:
+```bash
+npm install @fontsource/ibm-plex-mono
+```
+Then in main.tsx:
+```ts
+import "@fontsource/ibm-plex-mono/400.css";
+import "@fontsource/ibm-plex-mono/500.css";
+```
+
+### STEP 2: Update CSS variables in index.css
+
+In the second `:root` block (around line 122), update:
+```css
+--font-sans: 'DM Sans', system-ui, -apple-system, sans-serif;
+--font-serif: 'Cormorant Garamond', Georgia, serif;
+--font-display: 'Cormorant Garamond', Georgia, serif;
+--font-body: 'DM Sans', system-ui, sans-serif;
+--font-mono: 'IBM Plex Mono', Menlo, monospace;
+```
+
+### STEP 3: Update tailwind.config.ts font families
+
+In the fontFamily section:
+```ts
+fontFamily: {
+  sans: ["'DM Sans'", "system-ui", "-apple-system", "sans-serif"],
+  serif: ["'Cormorant Garamond'", "Georgia", "serif"],
+  display: ["'Cormorant Garamond'", "Georgia", "serif"],
+  mono: ["'IBM Plex Mono'", "Menlo", "monospace"],
+},
+```
+
+### STEP 4: Update the global type scale in tailwind.config.ts
+
+Replace the fontSize section with a more dramatic luxury scale:
+```ts
+fontSize: {
+  'xs': ['0.75rem', { lineHeight: '1rem', letterSpacing: '0.02em' }],
+  'sm': ['0.8125rem', { lineHeight: '1.25rem' }],
+  'base': ['0.9375rem', { lineHeight: '1.625rem' }],
+  'lg': ['1.0625rem', { lineHeight: '1.75rem' }],
+  'xl': ['1.25rem', { lineHeight: '1.75rem' }],
+  '2xl': ['1.5rem', { lineHeight: '2rem' }],
+  '3xl': ['2rem', { lineHeight: '2.5rem' }],
+  '4xl': ['2.5rem', { lineHeight: '2.75rem' }],
+  '5xl': ['3rem', { lineHeight: '3.25rem' }],
+},
+```
+
+### STEP 5: Add utility classes to index.css
+
+Add these after the existing utility classes section:
+```css
+/* Luxury Typography Utilities */
+.font-display-light {
+  font-family: var(--font-display);
+  font-weight: 300;
+}
+
+.font-display-regular {
+  font-family: var(--font-display);
+  font-weight: 400;
+}
+
+.font-display-medium {
+  font-family: var(--font-display);
+  font-weight: 500;
+}
+
+.font-display-semibold {
+  font-family: var(--font-display);
+  font-weight: 600;
+}
+
+.font-data {
+  font-family: var(--font-mono);
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+/* Apply to all data/currency displays */
+.hndld-amount {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+```
+
+### STEP 6: Update the .hndld-page-title and .hndld-section-title classes
+
+Find and update these classes in index.css:
+```css
+.hndld-page-title {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 2rem;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  color: hsl(var(--foreground));
+}
+
+.hndld-section-title {
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: 0.6875rem;
+  line-height: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: hsl(var(--muted-foreground));
+}
+```
+
+### STEP 7: Apply Cormorant Garamond to ALL page-level headings
+
+Search through ALL files in client/src/pages/ and find every `<h1>` and `<h2>` tag. Add `font-display` class to h1 tags and ensure they use the serif display font. Specifically update:
+- this-week.tsx: The BreathingGreeting already uses Cormorant — good
+- today.tsx: Any heading text
+- approvals.tsx: Page title "Approvals" 
+- updates.tsx: Page title
+- pay.tsx: Page title
+- messages.tsx: Page title
+- All other page titles
+
+For h1 page titles, use: `className="font-display text-3xl font-light tracking-tight"`
+For h2 section headers, use: `className="text-xs font-semibold text-muted-foreground uppercase tracking-widest"`
+
+### STEP 8: Update the BreathingGreeting component
+
+In client/src/components/BreathingGreeting.tsx, increase the hero greeting size:
+- Change fontSize from "2rem" to "2.75rem" (44px)
+- The subtitle "Everything is in order." should use fontSize "14px" with letterSpacing "0.04em"
+
+### STEP 9: Apply font-data/hndld-amount to financial displays
+
+Search for any dollar amount rendering ($0.00, $625.00, etc.) across the app. Add the `hndld-amount` class to those elements. Key files:
+- client/src/components/pay-now-sheet.tsx
+- client/src/pages/pay.tsx
+- client/src/pages/spending.tsx
+- client/src/pages/budgets.tsx
+- client/src/components/layout/bottom-nav.tsx (the Pay $625 button)
+- Any component showing dollar amounts
+
+Also apply font-data to timestamps and metric numbers in:
+- client/src/pages/this-week.tsx (the Time Returned metrics: 0m, 30m, 0h)
+- Any other numerical data displays
+
+DO NOT change any functionality. Only change font rendering. Test that the app still works after all changes.

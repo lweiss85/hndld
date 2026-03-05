@@ -222,7 +222,7 @@ export default function AutomationsPage() {
       <div className="px-4 pt-6 pb-4">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-semibold text-ink-navy dark:text-porcelain">Automations</h1>
+            <h1 className="font-display text-3xl font-light tracking-tight text-ink-navy dark:text-porcelain">Automations</h1>
             <p className="text-sm text-ink-navy/50 dark:text-porcelain/50 mt-1">
               {automationsList.length} automation{automationsList.length !== 1 ? "s" : ""}
             </p>
@@ -467,7 +467,7 @@ function AutomationBuilder({
         <button onClick={onCancel} className="flex items-center gap-1 text-sm text-ink-navy/60 dark:text-porcelain/60 mb-4">
           <ArrowLeft className="w-4 h-4" /> Back
         </button>
-        <h1 className="text-2xl font-semibold text-ink-navy dark:text-porcelain">
+        <h1 className="font-display text-3xl font-light tracking-tight text-ink-navy dark:text-porcelain">
           {automation ? "Edit Automation" : "New Automation"}
         </h1>
 
@@ -712,7 +712,7 @@ function RunHistory({ automationId, automationName, onBack }: { automationId: st
         <button onClick={onBack} className="flex items-center gap-1 text-sm text-ink-navy/60 dark:text-porcelain/60 mb-4">
           <ArrowLeft className="w-4 h-4" /> Back
         </button>
-        <h1 className="text-2xl font-semibold text-ink-navy dark:text-porcelain">Run History</h1>
+        <h1 className="font-display text-3xl font-light tracking-tight text-ink-navy dark:text-porcelain">Run History</h1>
         <p className="text-sm text-ink-navy/50 dark:text-porcelain/50 mt-1">{automationName}</p>
       </div>
 
@@ -793,7 +793,7 @@ function TemplatesView({
         <button onClick={onBack} className="flex items-center gap-1 text-sm text-ink-navy/60 dark:text-porcelain/60 mb-4">
           <ArrowLeft className="w-4 h-4" /> Back
         </button>
-        <h1 className="text-2xl font-semibold text-ink-navy dark:text-porcelain">Templates</h1>
+        <h1 className="font-display text-3xl font-light tracking-tight text-ink-navy dark:text-porcelain">Templates</h1>
         <p className="text-sm text-ink-navy/50 dark:text-porcelain/50 mt-1">Pre-built automations to get you started</p>
       </div>
 

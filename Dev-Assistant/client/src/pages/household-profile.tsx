@@ -155,7 +155,7 @@ export default function HouseholdProfile() {
 
   return (
     <div className="px-4 py-6 space-y-4 max-w-4xl mx-auto">
-      <h1 className="text-2xl font-semibold" data-testid="text-page-title">Household Profile</h1>
+      <h1 className="font-display text-3xl font-light tracking-tight" data-testid="text-page-title">Household Profile</h1>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <div className="overflow-x-auto -mx-4 px-4">

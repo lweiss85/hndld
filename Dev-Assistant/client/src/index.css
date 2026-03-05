@@ -123,7 +123,7 @@
   --font-serif: 'Cormorant Garamond', Georgia, serif;
   --font-display: 'Cormorant Garamond', Georgia, serif;
   --font-body: 'DM Sans', system-ui, sans-serif;
-  --font-mono: Menlo, monospace;
+  --font-mono: 'IBM Plex Mono', Menlo, monospace;
   
   --radius: 4px;
   --radius-lg: 8px;
@@ -769,4 +769,56 @@
 .ai-chat-bubble {
   right: 16px !important;
   left: auto !important;
+}
+
+.font-display-light {
+  font-family: var(--font-display);
+  font-weight: 300;
+}
+
+.font-display-regular {
+  font-family: var(--font-display);
+  font-weight: 400;
+}
+
+.font-display-medium {
+  font-family: var(--font-display);
+  font-weight: 500;
+}
+
+.font-display-semibold {
+  font-family: var(--font-display);
+  font-weight: 600;
+}
+
+.font-data {
+  font-family: var(--font-mono);
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+.hndld-amount {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+.hndld-page-title {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 2rem;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  color: hsl(var(--foreground));
+}
+
+.hndld-section-title {
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: 0.6875rem;
+  line-height: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: hsl(var(--muted-foreground));
 }

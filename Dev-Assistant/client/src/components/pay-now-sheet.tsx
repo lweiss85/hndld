@@ -302,11 +302,11 @@ export function PayNowSheet({ open, onOpenChange, spendingId, vendorName, onPaym
                 <p className="text-sm text-muted-foreground">
                   {tipAmount > 0 ? "Total" : "Amount"}
                 </p>
-                <p className="text-3xl font-bold" data-testid="text-pay-amount">
+                <p className="text-3xl font-bold hndld-amount" data-testid="text-pay-amount">
                   {formatAmount(totalAmount)}
                 </p>
                 {tipAmount > 0 && (
-                  <p className="text-sm text-green-600 mt-1">
+                  <p className="text-sm text-green-600 mt-1 hndld-amount">
                     {formatAmount(payOptions.amount)} + {formatAmount(tipAmount)} tip
                   </p>
                 )}
@@ -421,7 +421,7 @@ export function PayNowSheet({ open, onOpenChange, spendingId, vendorName, onPaym
                     <div className="flex items-center justify-between gap-2 bg-muted/50 rounded p-2">
                       <div className="min-w-0 flex-1">
                         <p className="text-xs text-muted-foreground">Amount</p>
-                        <p className="text-sm font-medium">{formatAmount(totalAmount)}</p>
+                        <p className="text-sm font-medium hndld-amount">{formatAmount(totalAmount)}</p>
                       </div>
                       <Button
                         variant="ghost"

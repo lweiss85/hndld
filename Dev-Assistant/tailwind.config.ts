@@ -123,28 +123,21 @@ export default {
         },
       },
       fontFamily: {
-        sans: ["var(--font-sans)"],
-        serif: ["var(--font-serif)"],
-        display: ["var(--font-display)"],
-        mono: ["var(--font-mono)"],
+        sans: ["'DM Sans'", "system-ui", "-apple-system", "sans-serif"],
+        serif: ["'Cormorant Garamond'", "Georgia", "serif"],
+        display: ["'Cormorant Garamond'", "Georgia", "serif"],
+        mono: ["'IBM Plex Mono'", "Menlo", "monospace"],
       },
       fontSize: {
-        /* Typography Scale - hndld Design System
-         * text-xs: 12px - timestamps, metadata, badges
-         * text-sm: 14px - body text, labels, descriptions
-         * text-base: 16px - primary body, form inputs
-         * text-lg: 18px - section headers, card titles
-         * text-xl: 20px - page subtitles, emphasis
-         * text-2xl: 24px - page titles
-         * text-3xl: 32px - hero text, onboarding headers
-         */
-        'xs': ['0.75rem', { lineHeight: '1rem' }],
-        'sm': ['0.875rem', { lineHeight: '1.25rem' }],
-        'base': ['1rem', { lineHeight: '1.5rem' }],
-        'lg': ['1.125rem', { lineHeight: '1.75rem' }],
+        'xs': ['0.75rem', { lineHeight: '1rem', letterSpacing: '0.02em' }],
+        'sm': ['0.8125rem', { lineHeight: '1.25rem' }],
+        'base': ['0.9375rem', { lineHeight: '1.625rem' }],
+        'lg': ['1.0625rem', { lineHeight: '1.75rem' }],
         'xl': ['1.25rem', { lineHeight: '1.75rem' }],
         '2xl': ['1.5rem', { lineHeight: '2rem' }],
-        '3xl': ['2rem', { lineHeight: '2.25rem' }],
+        '3xl': ['2rem', { lineHeight: '2.5rem' }],
+        '4xl': ['2.5rem', { lineHeight: '2.75rem' }],
+        '5xl': ['3rem', { lineHeight: '3.25rem' }],
       },
       transitionTimingFunction: {
         'luxury': 'cubic-bezier(0.4, 0, 0.2, 1)',

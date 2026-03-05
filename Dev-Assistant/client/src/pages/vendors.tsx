@@ -247,7 +247,7 @@ export default function Vendors() {
     <PageTransition>
     <div className="px-4 py-6 space-y-6 max-w-4xl mx-auto">
       <div className="flex items-center justify-between gap-4 animate-fade-in-up">
-        <h1 className="text-2xl font-semibold" data-testid="text-page-title">Vendors</h1>
+        <h1 className="font-display text-3xl font-light tracking-tight" data-testid="text-page-title">Vendors</h1>
         <Button size="sm" onClick={() => setShowCreateDialog(true)} data-testid="button-add-vendor">
           <Plus aria-hidden="true" className="h-4 w-4 mr-1" />
           Add

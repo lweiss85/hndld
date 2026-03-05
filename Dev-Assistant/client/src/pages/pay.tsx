@@ -242,7 +242,7 @@ export default function PayPage() {
             </Button>
           </Link>
           <div>
-            <h1 className="text-lg font-semibold">Pay</h1>
+            <h1 className="font-display text-3xl font-light tracking-tight">Pay</h1>
           </div>
         </div>
         <div className="p-8 text-center">
@@ -265,7 +265,7 @@ export default function PayPage() {
           </Button>
         </Link>
         <div>
-          <h1 className="text-lg font-semibold">Pay</h1>
+          <h1 className="font-display text-3xl font-light tracking-tight">Pay</h1>
           <p className="text-sm text-muted-foreground">Reimburse your assistant</p>
         </div>
       </div>

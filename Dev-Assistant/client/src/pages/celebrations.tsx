@@ -366,7 +366,7 @@ export default function CelebrationsPage() {
             <Gift className="h-5 w-5 text-[#1D2A44]" />
           </div>
           <div>
-            <h1 className="text-xl font-bold tracking-tight">Celebrations</h1>
+            <h1 className="font-display text-3xl font-light tracking-tight">Celebrations</h1>
             <p className="text-xs text-muted-foreground">
               {activeCelebrations.length > 0
                 ? `${activeCelebrations.length} new ${activeCelebrations.length === 1 ? "moment" : "moments"}`

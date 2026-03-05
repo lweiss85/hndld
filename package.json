@@ -12,6 +12,7 @@
   "dependencies": {
     "@assistant/conversation": "^3.8.1",
     "@fontsource/fraunces": "^5.2.9",
+    "@fontsource/ibm-plex-mono": "^5.2.7",
     "@reactour/tour": "^3.8.0",
     "@tanstack/react-virtual": "^3.13.18",
     "@types/hpp": "^0.2.7",

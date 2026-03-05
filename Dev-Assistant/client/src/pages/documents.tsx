@@ -253,7 +253,7 @@ export default function DocumentsPage() {
                 {selectedDoc.annualCost && (
                   <div>
                     <span className="text-xs text-muted-foreground">Annual Cost</span>
-                    <p className="font-medium">{formatCurrency(selectedDoc.annualCost)}</p>
+                    <p className="font-medium hndld-amount">{formatCurrency(selectedDoc.annualCost)}</p>
                     {selectedDoc.paymentFrequency && (
                       <span className="text-[10px] text-muted-foreground capitalize">{selectedDoc.paymentFrequency}</span>
                     )}
@@ -262,13 +262,13 @@ export default function DocumentsPage() {
                 {selectedDoc.coverageAmount && (
                   <div>
                     <span className="text-xs text-muted-foreground">Coverage</span>
-                    <p className="font-medium">{formatCurrency(selectedDoc.coverageAmount)}</p>
+                    <p className="font-medium hndld-amount">{formatCurrency(selectedDoc.coverageAmount)}</p>
                   </div>
                 )}
                 {selectedDoc.deductible && (
                   <div>
                     <span className="text-xs text-muted-foreground">Deductible</span>
-                    <p className="font-medium">{formatCurrency(selectedDoc.deductible)}</p>
+                    <p className="font-medium hndld-amount">{formatCurrency(selectedDoc.deductible)}</p>
                   </div>
                 )}
               </div>
@@ -339,7 +339,7 @@ export default function DocumentsPage() {
             <FileText className="h-5 w-5 text-[#C9A96E]" />
           </div>
           <div className="flex-1">
-            <h1 className="text-xl font-display font-medium tracking-tight">Documents</h1>
+            <h1 className="font-display text-3xl font-light tracking-tight">Documents</h1>
             <p className="text-xs text-muted-foreground">Track contracts & expirations</p>
           </div>
           <Button
@@ -371,7 +371,7 @@ export default function DocumentsPage() {
           </div>
           {summary.totalAnnualCost > 0 && (
             <p className="text-xs text-muted-foreground mt-2 text-center">
-              Annual spend: <span className="font-medium text-foreground">{formatCurrency(summary.totalAnnualCost)}</span>
+              Annual spend: <span className="font-medium text-foreground hndld-amount">{formatCurrency(summary.totalAnnualCost)}</span>
             </p>
           )}
         </div>
@@ -462,7 +462,7 @@ export default function DocumentsPage() {
                               </Badge>
                             )}
                             {doc.annualCost && (
-                              <span className="text-[10px] text-muted-foreground">
+                              <span className="text-[10px] text-muted-foreground hndld-amount">
                                 {formatCurrency(doc.annualCost)}/yr
                               </span>
                             )}

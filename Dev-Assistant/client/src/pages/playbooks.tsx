@@ -438,7 +438,7 @@ export default function Playbooks() {
     <div className="px-4 py-6 pb-28 space-y-6 max-w-4xl mx-auto">
       <div className="flex items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-display font-medium">Playbooks</h1>
+          <h1 className="font-display text-3xl font-light tracking-tight">Playbooks</h1>
           <p className="text-sm text-muted-foreground">Standard operating procedures</p>
         </div>
         <Button onClick={() => setShowCreateDialog(true)} data-testid="button-create-playbook">

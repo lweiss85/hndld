@@ -119,7 +119,7 @@ export function BottomNav() {
               data-testid="button-pay-now-cta"
             >
               <CreditCard className="h-5 w-5 mr-2" aria-hidden="true" />
-              Pay {formatAmount(pendingInvoices.totalAmount)}
+              Pay <span className="hndld-amount">{formatAmount(pendingInvoices.totalAmount)}</span>
               {pendingInvoices.count > 1 && (
                 <Badge variant="secondary" className="ml-2 bg-white/20 text-white border-0">
                   {pendingInvoices.count} invoices

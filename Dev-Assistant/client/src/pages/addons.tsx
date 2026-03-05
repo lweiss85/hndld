@@ -182,7 +182,7 @@ export default function Addons() {
     <PageTransition>
       <div className="px-4 py-6 space-y-6 max-w-4xl mx-auto pb-24">
         <div className="flex items-center justify-between gap-4">
-          <h1 className="text-2xl font-semibold" data-testid="text-page-title">Add-ons</h1>
+          <h1 className="font-display text-3xl font-light tracking-tight" data-testid="text-page-title">Add-ons</h1>
         </div>
 
         {nextVisit && (
