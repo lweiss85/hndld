@@ -7,7 +7,7 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
 
-const TOTAL_STEPS = 3;
+const TOTAL_STEPS = 3; // visual indicator only shows 3 steps; step 4 is the payoff transition
 
 const SERVICE_OPTIONS = [
   { id: "cleaning", label: "Cleaning & home care" },
@@ -57,6 +57,13 @@ export default function Onboarding() {
     }
   }, [step]);
 
+  useEffect(() => {
+    if (step === 4) {
+      const timer = setTimeout(() => setLocation("/"), 3500);
+      return () => clearTimeout(timer);
+    }
+  }, [step, setLocation]);
+
   const togglePref = (id: string) => {
     setSelectedPrefs((prev) => {
       if (prev.includes(id)) return prev.filter((p) => p !== id);
@@ -88,7 +95,7 @@ export default function Onboarding() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/onboarding/settings"] });
       queryClient.invalidateQueries({ queryKey: ["/api/user-profile"] });
-      setLocation("/");
+      setStep(4);
     },
     onError: (error) => {
       toast({
@@ -247,6 +254,53 @@ export default function Onboarding() {
             >
               {completeMutation.isPending || saveStepMutation.isPending ? "Setting up..." : "We're ready."}
             </Button>
+          </motion.div>
+        )}
+
+        {step === 4 && (
+          <motion.div
+            key="payoff"
+            className="flex-1 flex flex-col items-center justify-center px-6"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 1 }}
+          >
+            <motion.div
+              className="text-center"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
+            >
+              <h1
+                className="font-display"
+                style={{
+                  fontFamily: "'Cormorant Garamond', Georgia, serif",
+                  fontSize: "2.5rem",
+                  fontWeight: 300,
+                  lineHeight: 1.2,
+                  color: "hsl(var(--foreground))",
+                  letterSpacing: "-0.01em",
+                }}
+              >
+                The {householdName.trim()} Residence
+              </h1>
+              <motion.p
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 1, duration: 0.6 }}
+                style={{
+                  fontFamily: "'Cormorant Garamond', Georgia, serif",
+                  fontStyle: "italic",
+                  fontSize: "1.125rem",
+                  fontWeight: 300,
+                  color: "hsl(var(--muted-foreground))",
+                  marginTop: "1rem",
+                }}
+              >
+                We'll take it from here.
+              </motion.p>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>

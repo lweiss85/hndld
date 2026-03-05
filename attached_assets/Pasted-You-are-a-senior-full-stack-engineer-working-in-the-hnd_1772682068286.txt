@@ -1,0 +1,82 @@
+You are a senior full-stack engineer working in the hndld app (React/TypeScript/Tailwind + Framer Motion).
+
+## TASK: Add a "personalization payoff" moment at the end of onboarding
+
+In client/src/pages/onboarding.tsx, after step 3 (household naming) when the user taps "We're ready" and the setup completes, add a STEP 4 that holds for 3 seconds before redirecting to the home screen.
+
+### Changes:
+
+1. Change TOTAL_STEPS from 3 to 4 (but don't show step 4 in the indicator — it's a transition moment, not an input step)
+
+2. In the completeMutation onSuccess, instead of immediately calling setLocation("/"), set step to 4:
+```tsx
+onSuccess: () => {
+  queryClient.invalidateQueries({ queryKey: ["/api/onboarding/settings"] });
+  queryClient.invalidateQueries({ queryKey: ["/api/user-profile"] });
+  setStep(4); // Go to payoff moment instead of home
+},
+```
+
+3. Add step 4 rendering:
+```tsx
+{step === 4 && (
+  <motion.div
+    key="payoff"
+    className="flex-1 flex flex-col items-center justify-center px-6"
+    initial={{ opacity: 0 }}
+    animate={{ opacity: 1 }}
+    exit={{ opacity: 0 }}
+    transition={{ duration: 1 }}
+  >
+    <motion.div
+      className="text-center"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.8, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
+    >
+      <h1
+        className="font-display"
+        style={{
+          fontFamily: "'Cormorant Garamond', Georgia, serif",
+          fontSize: "2.5rem",
+          fontWeight: 300,
+          lineHeight: 1.2,
+          color: "hsl(var(--foreground))",
+          letterSpacing: "-0.01em",
+        }}
+      >
+        The {householdName} Residence
+      </h1>
+      <motion.p
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 1, duration: 0.6 }}
+        style={{
+          fontFamily: "'Cormorant Garamond', Georgia, serif",
+          fontStyle: "italic",
+          fontSize: "1.125rem",
+          fontWeight: 300,
+          color: "hsl(var(--muted-foreground))",
+          marginTop: "1rem",
+        }}
+      >
+        We'll take it from here.
+      </motion.p>
+    </motion.div>
+  </motion.div>
+)}
+```
+
+4. Add a timer that redirects to home after 3.5 seconds:
+```tsx
+useEffect(() => {
+  if (step === 4) {
+    const timer = setTimeout(() => setLocation("/"), 3500);
+    return () => clearTimeout(timer);
+  }
+}, [step, setLocation]);
+```
+
+5. Don't show the StepIndicator for step 4 — it should be a clean, minimal screen with just the household name and tagline.
+
+Test the full onboarding flow: Welcome → Preferences → Household Name → "The [Name] Residence / We'll take it from here." → auto-redirect to home.

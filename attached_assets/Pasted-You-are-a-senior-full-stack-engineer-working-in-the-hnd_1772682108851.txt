@@ -1,0 +1,105 @@
+You are a senior full-stack engineer working in the hndld app (React/TypeScript/Tailwind). This app needs award-level accessibility.
+
+## TASK: Add three accessibility enhancements
+
+### 1. ARIA Live Region for ConciergeWhisper
+
+In client/src/components/ConciergeWhisper.tsx, the whisper message should be announced to screen readers.
+
+Add `aria-live="polite"` and `role="status"` to the whisper paragraph:
+```tsx
+<motion.p
+  aria-live="polite"
+  role="status"
+  initial={{ opacity: 0 }}
+  animate={{ opacity: 1 }}
+  transition={{ duration: 0.5, delay: 0.3 }}
+  className="font-display italic text-muted-foreground"
+  style={{ fontSize: "17px" }}
+>
+  {message}
+</motion.p>
+```
+
+### 2. Custom Focus-Visible Styling with Champagne Gold
+
+In client/src/index.css, add custom focus-visible styles that use the brand's champagne gold color instead of browser default blue:
+```css
+/* Custom focus-visible ring — brand-consistent accessibility */
+*:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--hndld-gold-500));
+  border-radius: inherit;
+}
+
+/* Buttons and interactive elements */
+button:focus-visible,
+[role="tab"]:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--hndld-gold-500));
+}
+
+/* Dark mode adjustment */
+.dark *:focus-visible {
+  box-shadow: 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--hndld-gold-400));
+}
+```
+
+### 3. High Contrast Mode Support
+
+Add a `@media (prefers-contrast: more)` section in index.css:
+```css
+/* High contrast mode support */
+@media (prefers-contrast: more) {
+  :root {
+    --border: 30 20% 70%;
+    --muted-foreground: 220 13% 30%;
+    --card-border: 30 20% 70%;
+  }
+  
+  .dark {
+    --border: 220 15% 50%;
+    --muted-foreground: 220 13% 70%;
+  }
+  
+  /* Increase border widths */
+  [class*="border"] {
+    border-width: 2px;
+  }
+  
+  /* Ensure gold accents have sufficient contrast */
+  .text-hndld-gold-500 {
+    color: hsl(37 52% 40%);
+  }
+}
+```
+
+### 4. Semantic Time Descriptions for Screen Readers
+
+In any component that renders dates/times (today.tsx, this-week.tsx, schedule.tsx), add `aria-label` attributes with human-readable descriptions:
+
+For example, in timeline items:
+```tsx
+<span 
+  className="text-xs font-medium text-muted-foreground"
+  aria-label={`${format(item.time, "EEEE")} at ${format(item.time, "h:mm a")}`}
+>
+  {format(item.time, "h:mm a")}
+</span>
+```
+
+And for event dates:
+```tsx
+aria-label={isToday(eventDate) ? `Today at ${format(eventDate, "h:mm a")}` : format(eventDate, "EEEE, MMMM do 'at' h:mm a")}
+```
+
+Search through ALL page files and add semantic aria-labels to any date/time display. This helps screen reader users hear "Tuesday at 3:30 PM" instead of "Tue, Jan 9, 3:30 AM".
+
+Test with VoiceOver or screen reader simulator. Verify:
+- ConciergeWhisper messages are announced
+- Tab navigation shows gold focus rings
+- High contrast mode increases borders and text contrast
