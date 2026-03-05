@@ -1,0 +1,90 @@
+You are a senior full-stack engineer working in the hndld app (React/TypeScript/Tailwind + Framer Motion). 
+
+## TASK: Add a gold particle dissolution effect when swiping right to approve
+
+In client/src/components/SwipeableApprovalCard.tsx, when the user swipes right past the threshold and the card is approved, instead of just flying the card off-screen to the right, create a dissolving-into-gold-particles effect.
+
+### Implementation:
+
+1. Add a state for showing particles:
+```tsx
+const [showParticles, setShowParticles] = useState(false);
+const [particleOrigin, setParticleOrigin] = useState({ x: 0, y: 0 });
+```
+
+2. When the swipe passes threshold for approve, instead of immediately calling onApprove:
+```tsx
+if (offset > SWIPE_THRESHOLD) {
+  dismissed.current = true;
+  if (navigator.vibrate) navigator.vibrate([10, 30, 10]);
+  
+  // Get card center for particle origin
+  const rect = cardRef.current?.getBoundingClientRect();
+  if (rect) {
+    setParticleOrigin({ x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 });
+  }
+  
+  // Shrink and fade the card
+  await controls.start({
+    scale: 0.9,
+    opacity: 0,
+    transition: { duration: 0.3, ease: [0.22, 1, 0.36, 1] },
+  });
+  
+  setShowParticles(true);
+  
+  // Wait for particles to animate, then call onApprove
+  setTimeout(() => {
+    onApprove(approval.id);
+  }, 600);
+}
+```
+
+3. Add particle rendering after the card:
+```tsx
+<AnimatePresence>
+  {showParticles && (
+    <div className="fixed inset-0 pointer-events-none z-50">
+      {Array.from({ length: 16 }).map((_, i) => (
+        <motion.div
+          key={i}
+          className="absolute rounded-full"
+          style={{
+            left: particleOrigin.x,
+            top: particleOrigin.y,
+            width: 4 + Math.random() * 6,
+            height: 4 + Math.random() * 6,
+            background: i % 3 === 0 
+              ? 'hsl(37 44% 61%)' // gold
+              : i % 3 === 1
+                ? 'hsl(37 42% 78%)' // light gold
+                : 'hsl(220 50% 25%)', // ink navy accent
+          }}
+          initial={{ scale: 0, x: 0, y: 0 }}
+          animate={{
+            scale: [0, 1.2, 0.6],
+            x: (Math.random() - 0.5) * 250,
+            y: (Math.random() - 0.5) * 200 - 60,
+            opacity: [0, 1, 0],
+          }}
+          transition={{
+            duration: 0.7,
+            ease: [0.22, 1, 0.36, 1],
+            delay: Math.random() * 0.15,
+          }}
+        />
+      ))}
+    </div>
+  )}
+</AnimatePresence>
+```
+
+4. Keep the decline (swipe left) behavior the same — just fly off left with a subtle bounce. The particle effect is ONLY for approval (positive action).
+
+5. Make sure to add a cardRef:
+```tsx
+const cardRef = useRef<HTMLDivElement>(null);
+```
+And attach it to the inner card div.
+
+Test: Swipe right on an approval card. It should shrink, fade, and dissolve into gold and navy particles that float outward and upward. The whole thing should feel like a tiny celebration — like popping a champagne bubble.
