@@ -27,17 +27,17 @@ export function CalmState({ lastUpdated }: CalmStateProps) {
   const animate = useCallback((timestamp: number) => {
     if (!startRef.current) startRef.current = timestamp;
     const elapsed = timestamp - startRef.current;
-    const sin = Math.sin((2 * Math.PI * elapsed) / 8000);
-    const weight = 300 + ((sin + 1) / 2) * 200;
+    const t = (Math.sin((2 * Math.PI * elapsed) / 6000) + 1) / 2;
+    const opacity = 0.72 + t * 0.28;
     if (h1Ref.current) {
-      h1Ref.current.style.fontWeight = String(Math.round(weight));
+      h1Ref.current.style.opacity = String(opacity);
     }
     rafRef.current = requestAnimationFrame(animate);
   }, []);
 
   useEffect(() => {
     if (prefersReduced) {
-      if (h1Ref.current) h1Ref.current.style.fontWeight = "350";
+      if (h1Ref.current) h1Ref.current.style.opacity = "1";
       return;
     }
 
@@ -70,12 +70,11 @@ export function CalmState({ lastUpdated }: CalmStateProps) {
     >
       <motion.h1
         ref={h1Ref}
+        className="font-display font-light tracking-tight"
         initial={prefersReduced ? false : { opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
         style={{
-          fontFamily: "'Cormorant Garamond', Georgia, serif",
-          fontWeight: 350,
           fontSize: "2.75rem",
           lineHeight: 1.15,
           color: "hsl(var(--foreground))",
@@ -103,9 +102,8 @@ export function CalmState({ lastUpdated }: CalmStateProps) {
         initial={prefersReduced ? false : { opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8, delay: 0.8, ease: [0.22, 1, 0.36, 1] }}
+        className="font-display italic"
         style={{
-          fontFamily: "'Cormorant Garamond', Georgia, serif",
-          fontStyle: "italic",
           fontSize: "1.25rem",
           color: "hsl(var(--muted-foreground))",
           fontWeight: 300,
@@ -134,8 +132,8 @@ export function CalmState({ lastUpdated }: CalmStateProps) {
           initial={prefersReduced ? false : { opacity: 0 }}
           animate={{ opacity: 0.3 }}
           transition={{ duration: 0.5, delay: 1.8 }}
+          className="font-data"
           style={{
-            fontFamily: "'IBM Plex Mono', monospace",
             fontSize: "0.6875rem",
             color: "hsl(var(--muted-foreground))",
             marginTop: "2rem",

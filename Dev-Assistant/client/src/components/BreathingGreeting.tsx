@@ -13,10 +13,10 @@ export function BreathingGreeting({ name, greeting }: BreathingGreetingProps) {
   const animate = useCallback((timestamp: number) => {
     if (!startRef.current) startRef.current = timestamp;
     const elapsed = timestamp - startRef.current;
-    const sin = Math.sin((2 * Math.PI * elapsed) / 8000);
-    const weight = 300 + ((sin + 1) / 2) * 300;
+    const t = (Math.sin((2 * Math.PI * elapsed) / 6000) + 1) / 2;
+    const opacity = 0.72 + t * 0.28;
     if (h1Ref.current) {
-      h1Ref.current.style.fontWeight = String(Math.round(weight));
+      h1Ref.current.style.opacity = String(opacity);
     }
     rafRef.current = requestAnimationFrame(animate);
   }, []);
@@ -24,7 +24,7 @@ export function BreathingGreeting({ name, greeting }: BreathingGreetingProps) {
   useEffect(() => {
     const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (prefersReducedMotion) {
-      if (h1Ref.current) h1Ref.current.style.fontWeight = "400";
+      if (h1Ref.current) h1Ref.current.style.opacity = "1";
       return;
     }
 
@@ -50,9 +50,8 @@ export function BreathingGreeting({ name, greeting }: BreathingGreetingProps) {
     <div>
       <h1
         ref={h1Ref}
+        className="font-display text-3xl font-light tracking-tight"
         style={{
-          fontFamily: "'Cormorant Garamond', Georgia, serif",
-          fontWeight: 450,
           fontSize: "2.75rem",
           lineHeight: 1.2,
           color: "hsl(var(--foreground))",
