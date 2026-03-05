@@ -1,0 +1,103 @@
+You are working in the hndld app (React + TypeScript + Tailwind).
+
+The logo file is named hndldlogo.png and should be saved at:
+
+  client/public/hndldlogo.png
+
+This logo mark is a gold calligraphic "h" letterform. It is used in specific 
+places only — not everywhere. Follow these placements exactly:
+
+────────────────────────────────────────
+PLACEMENT 1 — Top Navigation Header
+────────────────────────────────────────
+File: client/src/components/layout/header.tsx
+
+Replace the existing <h1> text "hndld" with:
+  <img 
+    src="/hndldlogo.png" 
+    alt="hndld" 
+    className="h-7 w-auto"
+  />
+
+In light mode: no filter (gold shows naturally on light background)
+In dark mode: apply style={{ filter: "brightness(0) invert(1)" }} for a white version
+
+Use the existing useTheme() hook to conditionally apply the dark mode filter.
+Keep the link wrapping behavior (clicking logo still navigates to "/").
+Keep data-testid="text-app-title" on the img tag.
+
+────────────────────────────────────────
+PLACEMENT 2 — Landing Page Hero
+────────────────────────────────────────
+File: client/src/pages/landing.tsx
+
+Find the existing logo/icon in the hero section (the div with the Home icon 
+inside a rounded-2xl container). Replace it entirely with:
+  <img 
+    src="/hndldlogo.png" 
+    alt="hndld" 
+    className="h-20 w-auto"
+  />
+
+Remove the outer rounded-2xl container div — the mark stands on its own.
+Keep all existing Framer Motion animation wrappers around it unchanged.
+
+────────────────────────────────────────
+PLACEMENT 3 — Loading / Splash Screen
+────────────────────────────────────────
+File: client/src/App.tsx
+
+Find the LoadingScreen() component. Replace its entire return value with:
+
+  <div className="min-h-screen flex flex-col items-center justify-center bg-background">
+    <img 
+      src="/hndldlogo.png" 
+      alt="hndld"
+      className="h-16 w-auto animate-pulse"
+      style={{ animationDuration: "2s" }}
+    />
+  </div>
+
+────────────────────────────────────────
+PLACEMENT 4 — Onboarding Welcome Screen
+────────────────────────────────────────
+File: client/src/pages/onboarding.tsx
+
+On step 1 only, add the mark centered above the first heading:
+  <img 
+    src="/hndldlogo.png" 
+    alt="hndld" 
+    className="h-14 w-auto mx-auto mb-6" 
+  />
+
+Do not add it to steps 2–5.
+
+────────────────────────────────────────
+PLACEMENT 5 — PWA / Browser Tab Icon
+────────────────────────────────────────
+In client/index.html, update the favicon line to:
+  <link rel="icon" type="image/png" href="/hndldlogo.png" />
+
+In client/public/manifest.json, update the icons array to:
+  "icons": [
+    { "src": "/hndldlogo.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/hndldlogo.png", "sizes": "512x512", "type": "image/png" }
+  ]
+
+────────────────────────────────────────
+DO NOT place the logo in these locations:
+────────────────────────────────────────
+- Individual page headers (Approvals, Pay, Schedule, etc.)
+- The bottom navigation bar
+- Cards, badges, or empty states
+- As a watermark or background element anywhere
+- Do not render it smaller than h-6 (24px) — it loses legibility below that size
+
+────────────────────────────────────────
+FINAL CHECKS
+────────────────────────────────────────
+1. Logo loads in the top nav in both light and dark mode
+2. Landing page hero no longer shows the Home lucide icon
+3. Loading screen shows only the mark with a slow pulse — no skeletons
+4. No console errors about missing image paths
+5. Alt text on every instance is exactly "hndld" (lowercase, no period)

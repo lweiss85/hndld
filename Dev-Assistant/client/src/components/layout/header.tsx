@@ -45,7 +45,18 @@ export function Header() {
     <>
       <header className="sticky top-0 z-40 w-full" role="banner">
         <div className="flex h-14 items-center justify-between px-4 max-w-4xl mx-auto">
-          <HouseholdSwitcher />
+          <div className="flex items-center gap-2">
+            <Link href="/">
+              <img
+                src="/hndldlogo.png"
+                alt="hndld"
+                className="h-7 w-auto"
+                data-testid="text-app-title"
+                style={theme === "dark" ? { filter: "brightness(0) invert(1)" } : undefined}
+              />
+            </Link>
+            <HouseholdSwitcher />
+          </div>
 
           <div className="flex items-center gap-2">
             <NotificationCenter />

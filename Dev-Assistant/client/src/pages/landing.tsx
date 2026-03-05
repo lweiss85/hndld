@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Home, ChevronDown, Shield, Calendar, Zap } from "lucide-react";
+import { ChevronDown, Shield, Calendar, Zap } from "lucide-react";
 
 const ease = [0.22, 1, 0.36, 1];
 
@@ -15,9 +15,11 @@ export default function Landing() {
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.8, ease }}
         >
-          <div className="w-16 h-16 rounded-2xl bg-secondary flex items-center justify-center">
-            <Home aria-hidden="true" className="w-8 h-8 text-primary" />
-          </div>
+          <img
+            src="/hndldlogo.png"
+            alt="hndld"
+            className="h-20 w-auto"
+          />
         </motion.div>
 
         <motion.h1

@@ -70,9 +70,13 @@ const MyBookings = lazy(() => import("@/pages/my-bookings"));
 
 function LoadingScreen() {
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center gap-4 p-4">
-      <Skeleton className="h-10 w-32" />
-      <Skeleton className="h-4 w-48" />
+    <div className="min-h-screen flex flex-col items-center justify-center bg-background">
+      <img
+        src="/hndldlogo.png"
+        alt="hndld"
+        className="h-16 w-auto animate-pulse"
+        style={{ animationDuration: "2s" }}
+      />
     </div>
   );
 }

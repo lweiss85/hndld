@@ -125,6 +125,11 @@ export default function Onboarding() {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.6 }}
           >
+            <img
+              src="/hndldlogo.png"
+              alt="hndld"
+              className="h-14 w-auto mx-auto mb-6"
+            />
             <h1
               className="font-display text-foreground"
               style={{ fontSize: "48px", fontWeight: 400, letterSpacing: "0.06em" }}
