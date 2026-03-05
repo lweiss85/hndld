@@ -19,7 +19,7 @@ interface Household {
   userRole: string;
 }
 
-export function HouseholdSwitcher() {
+export function HouseholdSwitcher({ variant = "default" }: { variant?: "default" | "inline" }) {
   const { toast } = useToast();
   const [activeHouseholdId, setActiveHouseholdId] = useState<string | null>(
     localStorage.getItem("activeHouseholdId")
@@ -72,6 +72,52 @@ export function HouseholdSwitcher() {
   }
 
   const displayName = activeHousehold?.name || households[0]?.name || "Home";
+
+  if (variant === "inline") {
+    if (households.length <= 1) {
+      return (
+        <span className="text-sm text-muted-foreground">
+          {displayName}
+        </span>
+      );
+    }
+    return (
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button
+            className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            aria-label="Switch household"
+            data-testid="household-switcher-inline"
+          >
+            <span className="max-w-[180px] truncate">{displayName}</span>
+            <ChevronDown className="h-3 w-3 opacity-50" aria-hidden="true" />
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start" className="w-56">
+          <DropdownMenuLabel className="text-xs">Switch Household</DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          {households.map((household) => (
+            <DropdownMenuItem
+              key={household.id}
+              onClick={() => switchHousehold(household.id)}
+              className="flex items-center justify-between cursor-pointer"
+              data-testid={`household-option-${household.id}`}
+            >
+              <div className="flex flex-col">
+                <span className="font-medium">{household.name}</span>
+                <span className="text-xs text-muted-foreground capitalize">
+                  {household.userRole?.toLowerCase().replace("_", " ")}
+                </span>
+              </div>
+              {household.id === activeHouseholdId && (
+                <Check className="h-4 w-4 text-primary" aria-hidden="true" />
+              )}
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    );
+  }
 
   if (households.length === 1) {
     return (

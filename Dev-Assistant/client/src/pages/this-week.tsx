@@ -39,6 +39,7 @@ import { AmbientParticles } from "@/components/AmbientParticles";
 import { getTimeContext } from "@/lib/time-context";
 import { ServiceSwitcher } from "@/components/service-switcher";
 import { PropertySwitcher } from "@/components/property-switcher";
+import { HouseholdSwitcher } from "@/components/household-switcher";
 import { ConciergeWhisper } from "@/components/ConciergeWhisper";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useActiveServiceType } from "@/hooks/use-active-service-type";
@@ -317,8 +318,12 @@ function CleaningOverview() {
         <header className="animate-fade-in-up space-y-3">
           <ConciergeWhisper />
           <BreathingGreeting name={firstName} greeting={getGreeting()} />
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-2 mt-1">
+            <HouseholdSwitcher variant="inline" />
+            <span className="text-muted-foreground/40">·</span>
             <ServiceSwitcher />
+          </div>
+          <div className="flex items-center gap-2 flex-wrap mt-1">
             <PropertySwitcher />
           </div>
         </header>
@@ -563,8 +568,12 @@ export default function ThisWeek() {
         <header className="animate-fade-in-up space-y-3">
           <ConciergeWhisper />
           <BreathingGreeting name={firstName} greeting={getGreeting()} />
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-2 mt-1">
+            <HouseholdSwitcher variant="inline" />
+            <span className="text-muted-foreground/40">·</span>
             <ServiceSwitcher />
+          </div>
+          <div className="flex items-center gap-2 flex-wrap mt-1">
             <PropertySwitcher />
           </div>
         </header>

@@ -1,0 +1,128 @@
+You are a senior full-stack engineer working in the hndld app (React/TypeScript/Tailwind). This is a luxury home concierge app. The current header has too many elements (logo, household switcher, service switcher, client/assistant toggle, search, notifications, overflow menu, dark mode, avatar) — it reads like a SaaS dashboard, not a luxury app.
+
+## TASK: Simplify the header to exactly 3 elements
+
+### File: client/src/components/layout/header.tsx
+
+Redesign the header to contain ONLY:
+1. **Left side**: hndld logo (link to home)
+2. **Right side**: Search icon button + Avatar with notification badge
+
+Move everything else INTO the avatar dropdown menu:
+- Household switcher → becomes a menu section at the top of dropdown
+- Service type switcher → goes in dropdown
+- Client/Assistant role toggle → goes in dropdown
+- Theme toggle → stays in dropdown (already there)
+- All other navigation links → stay in dropdown
+
+### Specific implementation:
+```tsx
+<header className="sticky top-0 z-40 w-full" role="banner">
+  <div className="flex h-14 items-center justify-between px-5 max-w-4xl mx-auto">
+    {/* Left: Logo only */}
+    <Link href="/">
+      <img
+        src="/hndldlogo.png"
+        alt="hndld"
+        className="h-6 w-auto"
+        style={theme === "dark" ? { filter: "brightness(0) invert(1)" } : undefined}
+      />
+    </Link>
+
+    {/* Right: Search + Avatar */}
+    <div className="flex items-center gap-1">
+      <Button
+        variant="ghost"
+        size="icon"
+        className="rounded-full h-9 w-9"
+        onClick={() => setSearchOpen(true)}
+        aria-label="Search"
+      >
+        <Search className="h-4 w-4 text-muted-foreground" />
+      </Button>
+
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="icon" className="rounded-full relative" aria-label="Account menu">
+            <Avatar className="h-8 w-8">
+              <AvatarImage src={user?.profileImageUrl || undefined} />
+              <AvatarFallback className="bg-primary/10 text-primary text-xs font-medium">
+                {initials}
+              </AvatarFallback>
+            </Avatar>
+            {/* Notification badge on avatar */}
+            {hasNotifications && (
+              <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-hndld-gold-500 rounded-full border-2 border-background" />
+            )}
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-64">
+          {/* User info */}
+          <DropdownMenuLabel className="font-normal pb-3">
+            <p className="text-sm font-medium">{user?.firstName} {user?.lastName}</p>
+            <p className="text-xs text-muted-foreground">{user?.email}</p>
+          </DropdownMenuLabel>
+          <DropdownMenuSeparator />
+
+          {/* Household switcher section */}
+          <DropdownMenuLabel className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">
+            Household
+          </DropdownMenuLabel>
+          {/* Render inline household switcher options here */}
+
+          <DropdownMenuSeparator />
+
+          {/* Role switch */}
+          {canSwitchRoles && (
+            <>
+              <DropdownMenuItem onClick={() => setActiveRole(activeRole === "ASSISTANT" ? "CLIENT" : "ASSISTANT")}>
+                <ArrowLeftRight className="h-4 w-4 mr-2" />
+                Switch to {activeRole === "ASSISTANT" ? "Client" : "Assistant"}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+            </>
+          )}
+
+          {/* Notifications */}
+          <DropdownMenuItem>
+            <Bell className="h-4 w-4 mr-2" />
+            Notifications
+            {hasNotifications && <Badge className="ml-auto" variant="secondary">3</Badge>}
+          </DropdownMenuItem>
+
+          {/* Rest of menu items... keep existing links */}
+          {/* Profile, Messages, Requests, House Profile, Emergency, Insights, Marketplace, Bookings, Billing */}
+
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
+            {theme === "dark" ? <Sun className="h-4 w-4 mr-2" /> : <Moon className="h-4 w-4 mr-2" />}
+            {theme === "dark" ? "Light Mode" : "Dark Mode"}
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem className="text-destructive" onClick={() => logout()}>
+            <LogOut className="h-4 w-4 mr-2" />
+            Logout
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
+  </div>
+</header>
+```
+
+### ALSO: Remove the border from the header
+The header should NOT have a bottom border or divider line. It should be transparent with the time-adaptive background showing through. Remove any `border-b` or `border-border` classes from the header.
+
+### ALSO: Move HouseholdSwitcher and ServiceSwitcher to the this-week.tsx (client home) page
+The household name and service type should appear as subtle context below the greeting, not in the global header. In this-week.tsx, add just below the BreathingGreeting:
+```tsx
+<div className="flex items-center gap-2 mt-1">
+  <HouseholdSwitcher variant="inline" />
+  <span className="text-muted-foreground/40">·</span>
+  <ServiceSwitcher variant="inline" />
+</div>
+```
+
+You may need to create "inline" variant props for these switchers that render as simple text links rather than dropdown triggers in the header.
+
+Keep ALL existing functionality. Nothing should break. Test all navigation paths.

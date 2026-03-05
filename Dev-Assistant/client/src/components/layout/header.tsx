@@ -1,8 +1,10 @@
 import { useAuth } from "@/hooks/use-auth";
 import { useUser } from "@/lib/user-context";
 import { useTheme } from "@/lib/theme-provider";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,19 +13,77 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Switch } from "@/components/ui/switch";
-import { Moon, Sun, LogOut, UserCircle, CreditCard, BarChart3, AlertTriangle, MessageCircle, Send, FolderOpen, Building2, Store, CalendarCheck, Search, ArrowLeftRight } from "lucide-react";
-import { NotificationCenter } from "@/components/notification-center";
+import { Moon, Sun, LogOut, UserCircle, CreditCard, BarChart3, AlertTriangle, MessageCircle, Send, FolderOpen, Building2, Store, CalendarCheck, Search, ArrowLeftRight, Bell, Check, Repeat } from "lucide-react";
+import { useActiveServiceType, ServiceType } from "@/hooks/use-active-service-type";
 import { GlobalSearchDialog } from "@/components/global-search";
-import { HouseholdSwitcher } from "@/components/household-switcher";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { useState, useEffect, useCallback } from "react";
+import { queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { triggerHaptic } from "@/components/juice";
+
+interface Household {
+  id: string;
+  name: string;
+  userRole: string;
+}
 
 export function Header() {
   const { user, logout } = useAuth();
   const { activeRole, setActiveRole, canSwitchRoles } = useUser();
   const { theme, setTheme } = useTheme();
+  const { toast } = useToast();
+  const [, setLoc] = useLocation();
   const [searchOpen, setSearchOpen] = useState(false);
+  const {
+    activeServiceType,
+    setActiveServiceType,
+    hasMultipleServices,
+    availableServiceTypes,
+  } = useActiveServiceType();
+
+  const [activeHouseholdId, setActiveHouseholdId] = useState<string | null>(
+    localStorage.getItem("activeHouseholdId")
+  );
+
+  const { data: households } = useQuery<Household[]>({
+    queryKey: ["/api/households/mine"],
+  });
+
+  const { data: unreadData } = useQuery<{ count: number }>({
+    queryKey: ["/api/notifications/unread-count"],
+    refetchInterval: 30000,
+  });
+
+  useEffect(() => {
+    if (households && households.length > 0 && !activeHouseholdId) {
+      const firstHousehold = households[0].id;
+      setActiveHouseholdId(firstHousehold);
+      localStorage.setItem("activeHouseholdId", firstHousehold);
+    }
+  }, [households, activeHouseholdId]);
+
+  const switchHousehold = (householdId: string) => {
+    setActiveHouseholdId(householdId);
+    localStorage.setItem("activeHouseholdId", householdId);
+    queryClient.invalidateQueries({ queryKey: ["/api/tasks"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/today"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/calendar-events"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/updates"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/requests"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/approvals"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/vendors"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/spending"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/access-items"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/messages"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/insights"] });
+    triggerHaptic("medium");
+    toast({
+      title: "Household switched",
+      description: `Now managing: ${households?.find(h => h.id === householdId)?.name}`,
+    });
+  };
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if ((e.metaKey || e.ctrlKey) && e.key === "k") {
@@ -41,45 +101,82 @@ export function Header() {
     ? `${user.firstName?.[0] || ""}${user.lastName?.[0] || ""}`.toUpperCase() || "U"
     : "?";
 
+  const unreadCount = unreadData?.count || 0;
+  const hasNotifications = unreadCount > 0;
+
   return (
     <>
       <header className="sticky top-0 z-40 w-full" role="banner">
-        <div className="flex h-14 items-center justify-between px-4 max-w-4xl mx-auto">
-          <div className="flex items-center gap-2">
-            <Link href="/">
-              <img
-                src="/hndldlogo.png"
-                alt="hndld"
-                className="h-7 w-auto"
-                data-testid="text-app-title"
-                style={theme === "dark" ? { filter: "brightness(0) invert(1)" } : undefined}
-              />
-            </Link>
-            <HouseholdSwitcher />
-          </div>
+        <div className="flex h-14 items-center justify-between px-5 max-w-4xl mx-auto">
+          <Link href="/">
+            <img
+              src="/hndldlogo.png"
+              alt="hndld"
+              className="h-6 w-auto"
+              data-testid="text-app-title"
+              style={theme === "dark" ? { filter: "brightness(0) invert(1)" } : undefined}
+            />
+          </Link>
 
-          <div className="flex items-center gap-2">
-            <NotificationCenter />
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="rounded-full h-9 w-9"
+              onClick={() => setSearchOpen(true)}
+              aria-label="Search"
+              data-testid="button-search"
+            >
+              <Search className="h-4 w-4 text-muted-foreground" />
+            </Button>
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="rounded-full" aria-label="Account menu" data-testid="button-user-menu">
+                <Button variant="ghost" size="icon" className="rounded-full relative" aria-label="Account menu" data-testid="button-user-menu">
                   <Avatar className="h-8 w-8">
                     <AvatarImage src={user?.profileImageUrl || undefined} alt={user?.firstName || "User"} />
-                    <AvatarFallback className="bg-primary/10 text-primary text-sm font-medium">
+                    <AvatarFallback className="bg-primary/10 text-primary text-xs font-medium">
                       {initials}
                     </AvatarFallback>
                   </Avatar>
+                  {hasNotifications && (
+                    <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-hndld-gold-500 rounded-full border-2 border-background" />
+                  )}
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuLabel className="font-normal">
-                  <div className="flex flex-col gap-1">
-                    <p className="text-sm font-medium">{user?.firstName} {user?.lastName}</p>
-                    <p className="text-xs text-muted-foreground">{user?.email}</p>
-                  </div>
+              <DropdownMenuContent align="end" className="w-64">
+                <DropdownMenuLabel className="font-normal pb-3">
+                  <p className="text-sm font-medium">{user?.firstName} {user?.lastName}</p>
+                  <p className="text-xs text-muted-foreground">{user?.email}</p>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
+
+                {households && households.length > 1 && (
+                  <>
+                    <DropdownMenuLabel className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">
+                      Household
+                    </DropdownMenuLabel>
+                    {households.map((household) => (
+                      <DropdownMenuItem
+                        key={household.id}
+                        onClick={() => switchHousehold(household.id)}
+                        className="flex items-center justify-between cursor-pointer"
+                        data-testid={`household-option-${household.id}`}
+                      >
+                        <div className="flex flex-col">
+                          <span className="font-medium">{household.name}</span>
+                          <span className="text-xs text-muted-foreground capitalize">
+                            {household.userRole?.toLowerCase().replace("_", " ")}
+                          </span>
+                        </div>
+                        {household.id === activeHouseholdId && (
+                          <Check className="h-4 w-4 text-primary" aria-hidden="true" />
+                        )}
+                      </DropdownMenuItem>
+                    ))}
+                    <DropdownMenuSeparator />
+                  </>
+                )}
 
                 {canSwitchRoles && (
                   <>
@@ -95,13 +192,38 @@ export function Header() {
                   </>
                 )}
 
+                {hasMultipleServices && (
+                  <>
+                    <DropdownMenuLabel className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">
+                      Service Mode
+                    </DropdownMenuLabel>
+                    {availableServiceTypes.map((st: ServiceType) => (
+                      <DropdownMenuItem
+                        key={st}
+                        onClick={() => { setActiveServiceType(st); triggerHaptic("light"); }}
+                        className="flex items-center justify-between cursor-pointer"
+                        data-testid={`service-option-${st.toLowerCase()}`}
+                      >
+                        <span>{st === "CLEANING" ? "Cleaning" : "Personal Assistant"}</span>
+                        {st === activeServiceType && (
+                          <Check className="h-4 w-4 text-primary" aria-hidden="true" />
+                        )}
+                      </DropdownMenuItem>
+                    ))}
+                    <DropdownMenuSeparator />
+                  </>
+                )}
+
                 <DropdownMenuItem
                   className="gap-2 cursor-pointer"
-                  onClick={() => setSearchOpen(true)}
-                  data-testid="menu-item-search"
+                  onClick={() => { setLoc("/notifications"); }}
+                  data-testid="menu-item-notifications"
                 >
-                  <Search className="h-4 w-4" />
-                  Search
+                  <Bell className="h-4 w-4" />
+                  Notifications
+                  {hasNotifications && (
+                    <Badge className="ml-auto" variant="secondary">{unreadCount}</Badge>
+                  )}
                 </DropdownMenuItem>
 
                 <Link href="/profile">
