@@ -255,7 +255,7 @@ function DashboardView() {
     <div className="space-y-6">
       <div className="grid grid-cols-2 gap-3">
         {stats.map(stat => (
-          <Card key={stat.label} className="border-0 shadow-sm">
+          <Card key={stat.label} className="border-0 shadow-[0_2px_8px_rgba(26,29,46,0.04)]">
             <CardContent className="p-4">
               <div className="flex items-center justify-between mb-2">
                 <stat.icon className={cn("h-5 w-5", stat.color)} />
@@ -268,7 +268,7 @@ function DashboardView() {
       </div>
 
       {data.schedule?.completedThisMonth > 0 && (
-        <Card className="border-0 shadow-sm">
+        <Card className="border-0 shadow-[0_2px_8px_rgba(26,29,46,0.04)]">
           <CardContent className="p-4">
             <div className="flex items-center gap-2 mb-1">
               <CheckCircle2 className="h-4 w-4 text-green-600" />
@@ -284,7 +284,7 @@ function DashboardView() {
           <h3 className="text-sm font-medium text-muted-foreground mb-3">Upcoming Schedule</h3>
           <div className="space-y-2">
             {data.upcoming.map((item: any) => (
-              <Card key={item.id} className="border-0 shadow-sm">
+              <Card key={item.id} className="border-0 shadow-[0_2px_8px_rgba(26,29,46,0.04)]">
                 <CardContent className="p-3 flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <Calendar className="h-4 w-4 text-muted-foreground" />
@@ -306,7 +306,7 @@ function DashboardView() {
       )}
 
       {(!data.upcoming || data.upcoming.length === 0) && (
-        <Card className="border-0 shadow-sm border-dashed">
+        <Card className="border-0 shadow-[0_2px_8px_rgba(26,29,46,0.04)] border-dashed">
           <CardContent className="p-8 text-center">
             <Calendar className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
             <p className="text-sm text-muted-foreground">No upcoming appointments</p>
@@ -381,7 +381,7 @@ function ClientsView() {
       ) : (
         <div className="space-y-2">
           {clients.map((client: any) => (
-            <Card key={client.id} className="border-0 shadow-sm cursor-pointer hover:bg-muted/50 transition-colors"
+            <Card key={client.id} className="border-0 shadow-[0_2px_8px_rgba(26,29,46,0.04)] cursor-pointer hover:bg-muted/50 transition-colors"
               onClick={() => setSelectedClient(client)}>
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
@@ -587,7 +587,7 @@ function StaffView() {
       ) : (
         <div className="space-y-2">
           {staff.map((member: any) => (
-            <Card key={member.id} className={cn("border-0 shadow-sm", !member.isActive && "opacity-60")}>
+            <Card key={member.id} className={cn("border-0 shadow-[0_2px_8px_rgba(26,29,46,0.04)]", !member.isActive && "opacity-60")}>
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
@@ -749,7 +749,7 @@ function ScheduleView() {
       ) : (
         <div className="space-y-2">
           {schedule.map((item: any) => (
-            <Card key={item.id} className="border-0 shadow-sm">
+            <Card key={item.id} className="border-0 shadow-[0_2px_8px_rgba(26,29,46,0.04)]">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
@@ -873,7 +873,7 @@ function InvoicesView() {
       </div>
 
       {totalRevenue > 0 && (
-        <Card className="border-0 shadow-sm bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30">
+        <Card className="border-0 shadow-[0_2px_8px_rgba(26,29,46,0.04)] bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30">
           <CardContent className="p-4">
             <p className="text-xs text-muted-foreground mb-1">Completed Revenue</p>
             <p className="text-2xl font-bold text-green-700 dark:text-green-400">{formatCents(totalRevenue)}</p>
@@ -893,7 +893,7 @@ function InvoicesView() {
       ) : (
         <div className="space-y-2">
           {invoiceData.map((inv: any) => (
-            <Card key={inv.id} className="border-0 shadow-sm">
+            <Card key={inv.id} className="border-0 shadow-[0_2px_8px_rgba(26,29,46,0.04)]">
               <CardContent className="p-3 flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium">{inv.scheduledDate}</p>
@@ -951,7 +951,7 @@ function SettingsView({ provider }: { provider: any }) {
     <div className="space-y-6">
       <h2 className="text-lg font-semibold">Business Settings</h2>
 
-      <Card className="border-0 shadow-sm">
+      <Card className="border-0 shadow-[0_2px_8px_rgba(26,29,46,0.04)]">
         <CardContent className="p-4 space-y-4">
           <h3 className="text-sm font-medium text-muted-foreground">Business Info</h3>
           <div className="space-y-2">
@@ -975,7 +975,7 @@ function SettingsView({ provider }: { provider: any }) {
         </CardContent>
       </Card>
 
-      <Card className="border-0 shadow-sm">
+      <Card className="border-0 shadow-[0_2px_8px_rgba(26,29,46,0.04)]">
         <CardContent className="p-4 space-y-4">
           <h3 className="text-sm font-medium text-muted-foreground">Location</h3>
           <div className="space-y-2">
@@ -1003,7 +1003,7 @@ function SettingsView({ provider }: { provider: any }) {
         </CardContent>
       </Card>
 
-      <Card className="border-0 shadow-sm">
+      <Card className="border-0 shadow-[0_2px_8px_rgba(26,29,46,0.04)]">
         <CardContent className="p-4 space-y-4">
           <h3 className="text-sm font-medium text-muted-foreground">Insurance & Licensing</h3>
           <div className="space-y-2">

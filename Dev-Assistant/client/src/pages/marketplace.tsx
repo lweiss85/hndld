@@ -116,7 +116,7 @@ function ProviderCardSkeleton() {
 function ProviderCard({ provider, sponsored = false }: { provider: MarketplaceProvider; sponsored?: boolean }) {
   return (
     <Link href={`/marketplace/${provider.slug}`}>
-      <Card className="border-border bg-card/80 hover:shadow-md transition-shadow cursor-pointer">
+      <Card className="border-border bg-card/80 hover:shadow-[0_4px_16px_rgba(26,29,46,0.08)] transition-shadow cursor-pointer">
         <CardContent className="p-4">
           {sponsored && (
             <span className="text-[10px] font-medium uppercase tracking-widest text-primary/40 mb-2 block">

@@ -131,7 +131,7 @@ export const SwipeableApprovalCard = forwardRef<HTMLDivElement, SwipeableApprova
               </div>
             </motion.div>
 
-            <div className="relative bg-card border border-border/50 rounded-2xl p-5 shadow-sm">
+            <div className="relative bg-card border border-border/50 rounded-2xl p-5 shadow-[0_2px_8px_rgba(26,29,46,0.04)]">
               <div className="flex items-start justify-between gap-3 mb-2">
                 <h3 className="font-medium text-foreground leading-tight">
                   {approval.title}

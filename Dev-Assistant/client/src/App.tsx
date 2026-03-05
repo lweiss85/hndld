@@ -15,7 +15,7 @@ import { OfflineIndicator } from "@/components/offline-indicator";
 import { useAuth } from "@/hooks/use-auth";
 import { AppLayout } from "@/components/layout/app-layout";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AnimatePresence } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { LiveAnnouncerProvider } from "@/components/accessibility/live-region";
 import { OnboardingTourProvider } from "@/components/onboarding/tour";
 
@@ -71,11 +71,13 @@ const MyBookings = lazy(() => import("@/pages/my-bookings"));
 function LoadingScreen() {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-background">
-      <img
+      <motion.img
         src="/hndldlogo.png"
         alt="hndld"
-        className="h-16 w-auto animate-pulse"
-        style={{ animationDuration: "2s" }}
+        className="h-12 w-auto"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: [0.3, 0.8, 0.3] }}
+        transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
       />
     </div>
   );

@@ -12,9 +12,10 @@ export function LuxuryCard({ children, className }: LuxuryCardProps) {
   return (
     <div
       className={cn(
-        "bg-card rounded-2xl p-5 shadow-sm border border-card-border",
+        "bg-card rounded-2xl p-5 border border-card-border",
+        "shadow-[0_2px_8px_rgba(26,29,46,0.04)]",
         "transition-[transform,box-shadow] duration-200",
-        "hover:shadow-md hover:-translate-y-0.5",
+        "hover:shadow-[0_4px_16px_rgba(26,29,46,0.08)] hover:-translate-y-0.5",
         className
       )}
     >

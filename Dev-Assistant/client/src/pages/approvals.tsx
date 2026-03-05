@@ -3,6 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { HeroCard, ActionCard } from "@/components/premium";
+import { HandledIllustration } from "@/components/illustrations";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -246,9 +247,9 @@ export default function Approvals() {
       {pendingApprovals.length === 0 && pastApprovals.length === 0 ? (
         <HeroCard className="py-12">
           <div className="flex flex-col items-center justify-center text-center">
-            <CheckCircle className="w-12 h-12 text-green-500 mb-3" aria-hidden="true" />
+            <HandledIllustration size={64} className="mb-3" />
             <p className="font-medium">All caught up.</p>
-            <p className="text-sm text-muted-foreground">Everything's hndld.</p>
+            <p className="font-display italic text-muted-foreground" style={{ fontSize: "15px" }}>Everything's hndld.</p>
           </div>
         </HeroCard>
       ) : (
@@ -281,9 +282,9 @@ export default function Approvals() {
                       >
                         <HeroCard className="py-12">
                           <div className="flex flex-col items-center justify-center text-center">
-                            <CheckCircle className="w-12 h-12 text-green-500 mb-3" aria-hidden="true" />
+                            <HandledIllustration size={64} className="mb-3" />
                             <p className="font-medium">All caught up.</p>
-                            <p className="text-sm text-muted-foreground">Everything's hndld.</p>
+                            <p className="font-display italic text-muted-foreground" style={{ fontSize: "15px" }}>Everything's hndld.</p>
                           </div>
                         </HeroCard>
                       </motion.div>

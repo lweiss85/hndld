@@ -286,7 +286,7 @@ export default function ProviderDetailPage() {
         </div>
 
         <div className="grid grid-cols-2 gap-3">
-          <Card className="border-0 shadow-sm bg-card">
+          <Card className="border-0 shadow-[0_2px_8px_rgba(26,29,46,0.04)] bg-card">
             <CardContent className="p-3 flex items-center gap-3">
               <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-primary">
                 <Briefcase className="h-4 w-4 text-primary-foreground" />
@@ -299,7 +299,7 @@ export default function ProviderDetailPage() {
               </div>
             </CardContent>
           </Card>
-          <Card className="border-0 shadow-sm bg-card">
+          <Card className="border-0 shadow-[0_2px_8px_rgba(26,29,46,0.04)] bg-card">
             <CardContent className="p-3 flex items-center gap-3">
               <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-amber-400">
                 <Star className="h-4 w-4 text-white" />
@@ -312,7 +312,7 @@ export default function ProviderDetailPage() {
               </div>
             </CardContent>
           </Card>
-          <Card className="border-0 shadow-sm bg-card">
+          <Card className="border-0 shadow-[0_2px_8px_rgba(26,29,46,0.04)] bg-card">
             <CardContent className="p-3 flex items-center gap-3">
               <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-emerald-500">
                 <Clock className="h-4 w-4 text-white" />
@@ -325,7 +325,7 @@ export default function ProviderDetailPage() {
               </div>
             </CardContent>
           </Card>
-          <Card className="border-0 shadow-sm bg-card">
+          <Card className="border-0 shadow-[0_2px_8px_rgba(26,29,46,0.04)] bg-card">
             <CardContent className="p-3 flex items-center gap-3">
               <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-blue-500">
                 <CheckCircle2 className="h-4 w-4 text-white" />
@@ -367,7 +367,7 @@ export default function ProviderDetailPage() {
             </h2>
             <div className="space-y-3">
               {provider.services.map((service) => (
-                <Card key={service.id} className="border-0 shadow-sm bg-card">
+                <Card key={service.id} className="border-0 shadow-[0_2px_8px_rgba(26,29,46,0.04)] bg-card">
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
@@ -407,7 +407,7 @@ export default function ProviderDetailPage() {
             <h2 className="text-sm font-display font-semibold uppercase tracking-wider text-muted-foreground">
               Rating Breakdown
             </h2>
-            <Card className="border-0 shadow-sm bg-card">
+            <Card className="border-0 shadow-[0_2px_8px_rgba(26,29,46,0.04)] bg-card">
               <CardContent className="p-4 space-y-3">
                 <RatingBar label="Overall" value={provider.ratingBreakdown.overall} />
                 <RatingBar label="Quality" value={provider.ratingBreakdown.quality} />
@@ -425,7 +425,7 @@ export default function ProviderDetailPage() {
             </h2>
             <div className="space-y-3">
               {provider.reviews.map((review) => (
-                <Card key={review.id} className="border-0 shadow-sm bg-card">
+                <Card key={review.id} className="border-0 shadow-[0_2px_8px_rgba(26,29,46,0.04)] bg-card">
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between mb-2">
                       <span className="font-medium text-sm text-foreground">

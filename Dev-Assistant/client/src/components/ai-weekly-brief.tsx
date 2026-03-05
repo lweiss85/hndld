@@ -53,9 +53,6 @@ export function AIWeeklyBrief() {
           AI Weekly Brief
         </CardTitle>
         <div className="flex items-center gap-2">
-          {status?.demoMode && (
-            <Badge variant="secondary" className="text-xs">Demo</Badge>
-          )}
           <Tooltip>
             <TooltipTrigger asChild>
               <Button 

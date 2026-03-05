@@ -330,7 +330,7 @@ export default function SecuritySettingsPage() {
             </div>
 
             <div className="flex justify-center">
-              <div className="p-4 bg-white rounded-2xl shadow-sm">
+              <div className="p-4 bg-white rounded-2xl shadow-[0_2px_8px_rgba(26,29,46,0.04)]">
                 <img src={setupData.qrCode} alt="2FA QR Code" className="w-48 h-48" />
               </div>
             </div>

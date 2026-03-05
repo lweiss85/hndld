@@ -1,0 +1,94 @@
+You are a senior full-stack engineer working in the hndld app (React/TypeScript/Tailwind). Final polish pass.
+
+## TASK: Visual refinements for award-readiness
+
+### 1. Remove all "Demo" badges
+Search the entire client/src/ directory for any instance of "Demo" text in badges. Remove them. Key locations:
+- client/src/components/ai-weekly-brief.tsx (has a "Demo" badge)
+- Any other component showing "Demo", "Beta", or "Coming Soon" badges
+
+### 2. Remove the "webview" label
+In the screenshots there's a "webview" label in the top-left corner on some screens. If this is rendered by the app, find and remove it.
+
+### 3. Refine shadow consistency
+Go through all Card, LuxuryCard, and ActionCard usages and ensure shadows follow this hierarchy:
+- HeroCard: no shadow, uses gradient bg
+- ActionCard: `shadow-[0_2px_8px_rgba(26,29,46,0.04)]`  
+- InsightCard: no shadow
+- Modals/Sheets: `shadow-[0_8px_32px_rgba(26,29,46,0.12)]`
+
+Remove any `shadow-sm`, `shadow-md`, `shadow-lg` generic Tailwind shadows from cards. Use only the custom luxury shadow scale.
+
+### 4. Create a custom empty state illustration
+In client/src/components/illustrations/index.tsx, add or update the empty state illustration. Replace the generic Lucide checkmark with a custom SVG that ties into the hndld brand:
+```tsx
+export function HandledIllustration({ size = 64, className }: { size?: number; className?: string }) {
+  return (
+    <svg 
+      width={size} 
+      height={size} 
+      viewBox="0 0 64 64" 
+      fill="none" 
+      className={className}
+    >
+      {/* Minimalist house outline */}
+      <path 
+        d="M32 8L8 28v28h48V28L32 8z" 
+        stroke="hsl(var(--muted-foreground))" 
+        strokeWidth="1.5" 
+        strokeLinecap="round" 
+        strokeLinejoin="round"
+        fill="none"
+        opacity="0.3"
+      />
+      {/* Door/keyhole */}
+      <rect 
+        x="26" y="38" width="12" height="18" rx="6" 
+        stroke="hsl(var(--muted-foreground))" 
+        strokeWidth="1.5" 
+        fill="none"
+        opacity="0.3"
+      />
+      {/* Checkmark inside */}
+      <path 
+        d="M24 32l6 6 10-12" 
+        stroke="hsl(var(--hndld-gold-500))" 
+        strokeWidth="2" 
+        strokeLinecap="round" 
+        strokeLinejoin="round"
+        fill="none"
+      />
+    </svg>
+  );
+}
+```
+
+Use this illustration in all empty states throughout the app (approvals, updates, tasks, etc.) instead of the generic Lucide icons.
+
+### 5. Ensure "Everything's hndld." tagline uses consistent styling
+Search for all instances of "Everything's hndld" or "Everything is in order" text. Ensure they all use:
+- Font: Cormorant Garamond italic
+- Size: 14px or 15px
+- Color: muted-foreground
+- Consistent casing and punctuation
+
+### 6. Loading screen refinement
+In App.tsx, the LoadingScreen uses an `animate-pulse` on the logo. Change this to a more luxurious shimmer:
+```tsx
+function LoadingScreen() {
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center bg-background">
+      <motion.img
+        src="/hndldlogo.png"
+        alt="hndld"
+        className="h-12 w-auto"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: [0.3, 0.8, 0.3] }}
+        transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+      />
+    </div>
+  );
+}
+```
+
+Test that all empty states render the new illustration, all Demo badges are gone, and the loading screen uses the smooth opacity animation.

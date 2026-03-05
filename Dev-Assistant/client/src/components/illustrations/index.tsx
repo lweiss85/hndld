@@ -2,6 +2,44 @@ interface IllustrationProps {
   className?: string;
 }
 
+export function HandledIllustration({ size = 64, className }: { size?: number; className?: string }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 64 64"
+      fill="none"
+      className={className}
+      aria-hidden="true"
+    >
+      <path
+        d="M32 8L8 28v28h48V28L32 8z"
+        stroke="hsl(var(--muted-foreground))"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        fill="none"
+        opacity="0.3"
+      />
+      <rect
+        x="26" y="38" width="12" height="18" rx="6"
+        stroke="hsl(var(--muted-foreground))"
+        strokeWidth="1.5"
+        fill="none"
+        opacity="0.3"
+      />
+      <path
+        d="M24 32l6 6 10-12"
+        stroke="hsl(var(--hndld-gold-500))"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        fill="none"
+      />
+    </svg>
+  );
+}
+
 export function ConciergeBell({ className = "" }: IllustrationProps) {
   return (
     <svg

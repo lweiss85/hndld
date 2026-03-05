@@ -281,7 +281,7 @@ export default function AutomationsPage() {
               <Card
                 key={automation.id}
                 className={cn(
-                  "border-0 shadow-sm transition-all",
+                  "border-0 shadow-[0_2px_8px_rgba(26,29,46,0.04)] transition-all",
                   !automation.isEnabled && "opacity-60"
                 )}
               >
@@ -726,7 +726,7 @@ function RunHistory({ automationId, automationName, onBack }: { automationId: st
           </div>
         ) : (
           runs.map((run) => (
-            <Card key={run.id} className="border-0 shadow-sm">
+            <Card key={run.id} className="border-0 shadow-[0_2px_8px_rgba(26,29,46,0.04)]">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between mb-2">
                   <Badge
@@ -801,7 +801,7 @@ function TemplatesView({
         {templates.map((template) => {
           const triggerInfo = TRIGGER_LABELS[template.trigger];
           return (
-            <Card key={template.id} className="border-0 shadow-sm">
+            <Card key={template.id} className="border-0 shadow-[0_2px_8px_rgba(26,29,46,0.04)]">
               <CardContent className="p-4">
                 <div className="flex items-start gap-3">
                   <div className={cn("w-10 h-10 rounded-lg flex items-center justify-center shrink-0", COLOR_MAP[template.color] || COLOR_MAP.blue)}>

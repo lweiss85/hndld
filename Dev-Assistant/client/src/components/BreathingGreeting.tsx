@@ -62,15 +62,14 @@ export function BreathingGreeting({ name, greeting }: BreathingGreetingProps) {
         {greeting}, {name}.
       </h1>
       <p
+        className="font-display italic"
         style={{
-          fontFamily: "'DM Sans', system-ui, sans-serif",
-          fontSize: "14px",
-          letterSpacing: "0.04em",
+          fontSize: "15px",
           color: "hsl(var(--muted-foreground))",
           marginTop: "4px",
         }}
       >
-        Everything is in order.
+        Everything's hndld.
       </p>
     </div>
   );

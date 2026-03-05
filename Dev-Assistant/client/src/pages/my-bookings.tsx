@@ -182,7 +182,7 @@ function BookingCard({ booking }: { booking: BookingRequest }) {
 
   return (
     <Card
-      className="rounded-2xl border-border bg-card/80 backdrop-blur-sm shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+      className="rounded-2xl border-border bg-card/80 backdrop-blur-sm shadow-[0_2px_8px_rgba(26,29,46,0.04)] hover:shadow-[0_4px_16px_rgba(26,29,46,0.08)] transition-shadow cursor-pointer"
       onClick={() => setExpanded(!expanded)}
     >
       <CardContent className="p-4">

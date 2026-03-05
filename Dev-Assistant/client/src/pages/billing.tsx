@@ -124,12 +124,6 @@ export default function Billing() {
     <div className="px-4 py-6 space-y-6 max-w-4xl mx-auto">
       <div className="flex items-center justify-between gap-4">
         <h1 className="font-display text-3xl font-light tracking-tight" data-testid="text-page-title">Billing</h1>
-        {demoMode && (
-          <Badge variant="secondary" data-testid="badge-demo-mode">
-            <Sparkles className="h-3 w-3 mr-1" />
-            Demo Mode
-          </Badge>
-        )}
       </div>
 
       <Card data-testid="card-current-plan">
