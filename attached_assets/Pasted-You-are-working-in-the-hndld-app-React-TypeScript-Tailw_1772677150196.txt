@@ -1,0 +1,29 @@
+You are working in the hndld app (React + TypeScript + Tailwind).
+
+In client/src/pages/updates.tsx, give each update type a distinct visual card treatment instead of rendering all updates as identical white cards. Use the update's category or content to determine its type.
+
+Create client/src/components/updates/UpdateCard.tsx that replaces the current card rendering. It should detect update type from update.category (or infer from update.text content if no category exists) and render accordingly:
+
+TYPE: "CLEANING" (category === "CLEANING" or text includes "clean"):
+- Card has a very subtle sage green left border (3px, color: #2E7D5B)
+- If the update has 2+ image attachments, render them as a side-by-side before/after viewer with a vertical divider and tiny "Before" / "After" labels in 10px uppercase muted text
+- Status indicator: a small green dot + "Completed" badge
+
+TYPE: "GROCERY" / "ERRANDS" (category matches):
+- Card has a warm amber left border (color: #B07A2A)  
+- If the update has a receipt image, render it as a thumbnail on the right side of the card (60x80px, rounded-lg, object-cover)
+- Show item count if parseable from update.text: "14 items" in a small badge
+
+TYPE: "MAINTENANCE" / "REPAIR":
+- Card has a blue left border (color: #1e3058)
+- Show a status timeline indicator: a horizontal 3-dot progress line showing Scheduled → In Progress → Done, with the current status highlighted
+
+TYPE: "DEFAULT" (everything else):
+- Render as current (no left border treatment)
+
+All card types:
+- Keep existing comment threading, quick reactions, and image viewing functionality
+- The left border treatment replaces the existing uniform card style — do not add new sections, just change the visual accent and add the type-specific content treatment above
+- If an update has no images and no special content, just apply the left border — no other changes
+
+Update the updates list in updates.tsx to use <UpdateCard update={update} /> instead of the current inline card rendering. Keep all existing mutations and handlers.
