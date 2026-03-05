@@ -23,7 +23,7 @@ import {
   DollarSign,
   Heart,
 } from "lucide-react";
-import { SiVenmo } from "react-icons/si";
+import { VenmoIcon } from "@/components/illustrations";
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { useUser } from "@/lib/user-context";
@@ -357,7 +357,7 @@ export function PayNowSheet({ open, onOpenChange, spendingId, vendorName, onPaym
                 <div className="border rounded-lg p-4 space-y-3">
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
-                      <SiVenmo className="w-5 h-5 text-blue-500" />
+                      <VenmoIcon className="w-5 h-5 text-blue-500" />
                       <span className="font-medium">Venmo</span>
                     </div>
                     {payOptions.preferredMethod === "VENMO" && (

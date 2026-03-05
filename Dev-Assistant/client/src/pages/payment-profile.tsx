@@ -21,7 +21,7 @@ import {
   Eye,
   Save,
 } from "lucide-react";
-import { SiVenmo } from "react-icons/si";
+import { VenmoIcon } from "@/components/illustrations";
 import { Link, useLocation } from "wouter";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -222,7 +222,7 @@ export default function PaymentProfilePage() {
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="venmo" className="flex items-center gap-2">
-                    <SiVenmo className="w-4 h-4 text-blue-500" />
+                    <VenmoIcon className="w-4 h-4 text-blue-500" />
                     Venmo Username
                   </Label>
                   <div className="relative">

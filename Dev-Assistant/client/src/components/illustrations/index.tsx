@@ -2,6 +2,14 @@ interface IllustrationProps {
   className?: string;
 }
 
+export function VenmoIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden="true">
+      <path d="M19.8 1.4c.7 1.2 1 2.4 1 3.9 0 4.8-4.1 11.1-7.5 15.5H6.1L3.5 2.1l6.3-.6 1.6 12.8c1.5-2.4 3.3-6.2 3.3-8.8 0-1.4-.2-2.4-.6-3.2l5.7-.9z" />
+    </svg>
+  );
+}
+
 export function HandledIllustration({ size = 64, className }: { size?: number; className?: string }) {
   return (
     <svg

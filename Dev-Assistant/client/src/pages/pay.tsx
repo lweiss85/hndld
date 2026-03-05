@@ -13,7 +13,7 @@ import {
   ExternalLink,
   AlertCircle,
 } from "lucide-react";
-import { SiVenmo } from "react-icons/si";
+import { VenmoIcon } from "@/components/illustrations";
 import { Link } from "wouter";
 import { useUser } from "@/lib/user-context";
 import { formatDistanceToNow } from "date-fns";
@@ -425,7 +425,7 @@ export default function PayPage() {
                       onClick={() => handlePayNow("VENMO")}
                     >
                       <div className="flex items-center gap-2">
-                        <SiVenmo className="w-4 h-4 text-blue-500" />
+                        <VenmoIcon className="w-4 h-4 text-blue-500" />
                         Venmo @{payOptions.venmo.username}
                       </div>
                       <ExternalLink className="w-4 h-4" />
