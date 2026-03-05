@@ -1,0 +1,102 @@
+You are a senior full-stack engineer working in the hndld app (React/TypeScript/Tailwind). This is a luxury concierge app.
+
+## TASK: Redesign the bottom navigation
+
+### Changes to make in client/src/components/layout/bottom-nav.tsx:
+
+1. **Reduce client tabs from 5 to 4** by merging Updates and Messages into "Inbox":
+```tsx
+const clientTabs: NavItem[] = [
+  { path: "/", icon: <Home className="h-5 w-5" />, label: "Home" },
+  { path: "/updates", icon: <Inbox className="h-5 w-5" />, label: "Inbox" },
+  { path: "/approvals", icon: <CheckSquare className="h-5 w-5" />, label: "Approve" },
+  { path: "/pay", icon: <CreditCard className="h-5 w-5" />, label: "Pay" },
+];
+```
+
+Import `Inbox` from lucide-react. The "Inbox" tab routes to /updates which already shows both updates and can link to messages.
+
+2. **Reduce cleaning client tabs to 4**:
+```tsx
+const cleaningClientTabs: NavItem[] = [
+  { path: "/", icon: <Home className="h-5 w-5" />, label: "Home" },
+  { path: "/schedule", icon: <CalendarDays className="h-5 w-5" />, label: "Visits" },
+  { path: "/addons", icon: <Sparkles className="h-5 w-5" />, label: "Add-ons" },
+  { path: "/pay", icon: <CreditCard className="h-5 w-5" />, label: "Pay" },
+];
+```
+
+3. **Replace the active state indicator** from a background fill to a gold champagne underline:
+
+Replace the active indicator rendering. Instead of:
+```tsx
+{isActive && (
+  <div className="absolute inset-1 bg-primary/10 rounded-xl" />
+)}
+```
+
+Use a champagne gold underline bar that slides between tabs with a spring animation:
+```tsx
+{isActive && (
+  <motion.div
+    layoutId="activeTab"
+    className="absolute bottom-1 left-1/2 -translate-x-1/2 h-0.5 w-5 rounded-full"
+    style={{ backgroundColor: "hsl(var(--hndld-gold-500))" }}
+    transition={{ type: "spring", stiffness: 400, damping: 30 }}
+  />
+)}
+```
+
+Make sure to import `motion` from framer-motion.
+
+4. **Update the active/inactive icon styling**:
+```tsx
+<span className={cn(
+  "relative z-10 transition-all duration-200",
+  isActive ? "text-foreground scale-105" : "text-muted-foreground/60"
+)}>
+  {tab.icon}
+</span>
+<span className={cn(
+  "relative z-10 text-[10px] whitespace-nowrap mt-0.5",
+  isActive ? "font-semibold text-foreground" : "font-normal text-muted-foreground/60"
+)}>
+  {tab.label}
+</span>
+```
+
+5. **Redesign the Pay Now CTA banner** to be luxurious instead of aggressively green:
+
+Replace the green gradient Pay button with a muted navy approach:
+```tsx
+{hasUnpaidInvoices && pendingInvoices && (
+  <div className="px-4 py-2.5">
+    <Button
+      onClick={() => setShowPaySheet(true)}
+      className="w-full h-11 bg-primary hover:bg-primary/90 text-primary-foreground shadow-md font-medium text-sm tracking-wide rounded-xl"
+    >
+      <span className="hndld-amount">{formatAmount(pendingInvoices.totalAmount)}</span>
+      <span className="ml-2 text-primary-foreground/60">due</span>
+      {pendingInvoices.count > 1 && (
+        <Badge variant="secondary" className="ml-2 bg-white/15 text-white border-0 text-[10px]">
+          {pendingInvoices.count}
+        </Badge>
+      )}
+    </Button>
+  </div>
+)}
+```
+
+6. **Enhance the glassmorphism on the nav bar**. Ensure content scrolls behind it properly:
+```tsx
+<nav 
+  className="fixed bottom-0 left-0 right-0 z-50 bg-card/70 backdrop-blur-2xl border-t border-border/30"
+  style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+>
+```
+
+Test that:
+- The gold underline animates smoothly between tabs
+- The "Inbox" tab correctly routes to updates
+- The Pay banner looks restrained and on-brand
+- The glassmorphism effect is visible when scrolling
