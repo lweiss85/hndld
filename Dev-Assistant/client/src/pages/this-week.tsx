@@ -39,6 +39,7 @@ import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
 import { PullToRefreshIndicator } from "@/components/pull-to-refresh";
 import { BreathingGreeting } from "@/components/BreathingGreeting";
 import { AmbientParticles } from "@/components/AmbientParticles";
+import { CalmState } from "@/components/CalmState";
 import { getTimeContext } from "@/lib/time-context";
 import { ServiceSwitcher } from "@/components/service-switcher";
 import { PropertySwitcher } from "@/components/property-switcher";
@@ -452,38 +453,6 @@ const CALM_SKY: Record<string, string> = {
   night: "#F4F3F8",
 };
 
-function ZeroStateRitual() {
-  const now = new Date();
-  const dateLabel = format(now, "EEEE, MMMM d");
-
-  return (
-    <motion.div
-      className="flex flex-col items-center py-8"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1, transition: { duration: 1.2, delay: 0.5 } }}
-      exit={{ opacity: 0, transition: { duration: 0.3 } }}
-    >
-      <div
-        className="mb-4"
-        style={{
-          width: 60,
-          height: 1,
-          backgroundColor: "rgba(201,169,110,0.4)",
-        }}
-      />
-      <p className="font-display italic text-[20px] text-muted-foreground mb-1">
-        Your home is in order.
-      </p>
-      <p
-        className="font-sans text-xs text-muted-foreground"
-        style={{ letterSpacing: "0.08em" }}
-      >
-        {dateLabel}
-      </p>
-    </motion.div>
-  );
-}
-
 export default function ThisWeek() {
   const { user } = useAuth();
   const { activeServiceType } = useActiveServiceType();
@@ -511,7 +480,7 @@ export default function ThisWeek() {
   const timeCtx = getTimeContext();
   const calmBg = CALM_SKY[timeCtx.phase] || CALM_SKY.morning;
 
-  const { data, isLoading } = useQuery<DashboardData>({
+  const { data, isLoading, dataUpdatedAt } = useQuery<DashboardData>({
     queryKey: ["/api/dashboard"],
     enabled: isPA,
   });
@@ -567,165 +536,130 @@ export default function ThisWeek() {
         transition: "background-color 3s ease",
       }}
     >
-      <div className={allHandled ? "space-y-8" : "space-y-6"}>
-        <header className="animate-fade-in-up space-y-3">
-          <ConciergeWhisper />
-          <BreathingGreeting name={firstName} greeting={getGreeting()} />
-          <div className="flex items-center gap-2 mt-1">
-            <HouseholdSwitcher variant="inline" />
-            <span className="text-muted-foreground/40">·</span>
-            <ServiceSwitcher />
-          </div>
-          <div className="flex items-center gap-2 flex-wrap mt-1">
-            <PropertySwitcher />
-          </div>
-        </header>
+      <AnimatePresence mode="wait">
+        {allHandled ? (
+          <motion.div
+            key="calm-state"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0, transition: { duration: 0.3 } }}
+            style={{ margin: "-1.5rem -1.25rem -6rem" }}
+          >
+            <CalmState lastUpdated={dataUpdatedAt ? new Date(dataUpdatedAt) : undefined} />
+          </motion.div>
+        ) : (
+          <motion.div
+            key="active-state"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0, transition: { duration: 0.4 } }}
+            exit={{ opacity: 0, transition: { duration: 0.5 } }}
+            className="space-y-6"
+          >
+            <header className="animate-fade-in-up space-y-3">
+              <ConciergeWhisper />
+              <BreathingGreeting name={firstName} greeting={getGreeting()} />
+              <div className="flex items-center gap-2 mt-1">
+                <HouseholdSwitcher variant="inline" />
+                <span className="text-muted-foreground/40">·</span>
+                <ServiceSwitcher />
+              </div>
+              <div className="flex items-center gap-2 flex-wrap mt-1">
+                <PropertySwitcher />
+              </div>
+            </header>
 
-        <AnimatePresence mode="wait">
-          {allHandled && <ZeroStateRitual key="zero-state" />}
-        </AnimatePresence>
-
-        <AnimatePresence>
-          {!allHandled && (
-            <motion.div
-              key="hero-card"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1, transition: { duration: 0.3 } }}
-              exit={{ opacity: 0, transition: { duration: 0.5 } }}
-            >
-              <HeroCard className="relative overflow-hidden">
-                <AmbientParticles active={pendingApprovals.length === 0} color={timeCtx.accentColor} />
-                <div style={{ position: "relative", zIndex: 1 }}>
-                  <h2 className="text-xl font-display font-medium text-foreground mb-1">
-                    This week is hndld.
-                  </h2>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    {priorityTasks.length} priorities 
-                    {todayEvents > 0 && ` • ${todayEvents} today`}
-                    {pendingApprovals.length > 0 && ` • ${pendingApprovals.length} waiting`}
-                  </p>
-                  
-                  <div className="flex flex-wrap gap-3">
-                    <Button asChild className="rounded-xl">
-                      <Link href="/requests" data-testid="button-request-hero">
-                        <MessageSquarePlus className="w-4 h-4 mr-2" aria-hidden="true" />
-                        Request
+            <HeroCard className="relative overflow-hidden">
+              <AmbientParticles active={pendingApprovals.length === 0} color={timeCtx.accentColor} />
+              <div style={{ position: "relative", zIndex: 1 }}>
+                <h2 className="text-xl font-display font-medium text-foreground mb-1">
+                  This week is hndld.
+                </h2>
+                <p className="text-sm text-muted-foreground mb-4">
+                  {priorityTasks.length} priorities 
+                  {todayEvents > 0 && ` • ${todayEvents} today`}
+                  {pendingApprovals.length > 0 && ` • ${pendingApprovals.length} waiting`}
+                </p>
+                
+                <div className="flex flex-wrap gap-3">
+                  <Button asChild className="rounded-xl">
+                    <Link href="/requests" data-testid="button-request-hero">
+                      <MessageSquarePlus className="w-4 h-4 mr-2" aria-hidden="true" />
+                      Request
+                    </Link>
+                  </Button>
+                  {pendingApprovals.length > 0 && (
+                    <Button variant="outline" asChild className="rounded-xl">
+                      <Link href="/approvals" data-testid="button-approvals-hero">
+                        <Bell className="w-4 h-4 mr-2" aria-hidden="true" />
+                        Approvals ({pendingApprovals.length})
                       </Link>
                     </Button>
-                    {pendingApprovals.length > 0 && (
-                      <Button variant="outline" asChild className="rounded-xl">
-                        <Link href="/approvals" data-testid="button-approvals-hero">
-                          <Bell className="w-4 h-4 mr-2" aria-hidden="true" />
-                          Approvals ({pendingApprovals.length})
-                        </Link>
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              </HeroCard>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        <AnimatePresence>
-          {!allHandled && data?.impact && data.impact.minutesReturnedAllTime > 0 && (
-            <motion.div
-              key="time-returned"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1, transition: { duration: 0.3 } }}
-              exit={{ opacity: 0, transition: { duration: 0.5 } }}
-            >
-              <TimeReturnedCard impact={data.impact} />
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        <AnimatePresence>
-          {!allHandled && (
-            <motion.div
-              key="ai-brief"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1, transition: { duration: 0.3 } }}
-              exit={{ opacity: 0, transition: { duration: 0.5 } }}
-            >
-              <AIWeeklyBrief />
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        <AnimatePresence>
-          {!allHandled && (
-            <motion.div
-              key="priorities"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1, transition: { duration: 0.3 } }}
-              exit={{ opacity: 0, transition: { duration: 0.5 } }}
-            >
-              <section>
-                <SectionHeader 
-                  title="Top Priorities" 
-                  action={priorityTasks.length > 0 ? { label: "View all", href: "/tasks" } : undefined}
-                />
-                <ActionCard>
-                  {priorityTasks.length === 0 ? (
-                    <EmptyState
-                      illustration={<CheckmarkIllustration className="w-full h-full" />}
-                      title="Nothing urgent today."
-                      description="You're in a good spot."
-                    />
-                  ) : (
-                    <StaggeredList>
-                      {priorityTasks.map((task) => (
-                        <ItemRow
-                          key={task.id}
-                          title={task.title}
-                          meta={task.dueAt ? format(new Date(task.dueAt), "EEE, h:mm a") : undefined}
-                          urgency={task.urgency as "HIGH" | "MEDIUM" | "LOW"}
-                        />
-                      ))}
-                    </StaggeredList>
                   )}
-                </ActionCard>
-              </section>
-            </motion.div>
-          )}
-        </AnimatePresence>
+                </div>
+              </div>
+            </HeroCard>
 
-        <section>
-          <SectionHeader 
-            title="Upcoming" 
-            action={upcomingEvents.length > 0 ? { label: "View all", href: "/calendar" } : undefined}
-          />
-          <InsightCard>
-            {upcomingEvents.length === 0 ? (
-              <EmptyState
-                illustration={<CalendarIllustration className="w-full h-full" />}
-                title="No events this week."
-                description="Enjoy the calm."
-              />
-            ) : (
-              <StaggeredList>
-                {upcomingEvents.map((event) => (
-                  <ItemRow
-                    key={event.id}
-                    title={event.title}
-                    meta={formatEventTime(event.startAt)}
-                    location={event.location || undefined}
-                  />
-                ))}
-              </StaggeredList>
+            {data?.impact && data.impact.minutesReturnedAllTime > 0 && (
+              <TimeReturnedCard impact={data.impact} />
             )}
-          </InsightCard>
-        </section>
 
-        <AnimatePresence>
-          {!allHandled && recentUpdates.length > 0 && (
-            <motion.div
-              key="handled-for-you"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1, transition: { duration: 0.3 } }}
-              exit={{ opacity: 0, transition: { duration: 0.5 } }}
-            >
+            <AIWeeklyBrief />
+
+            <section>
+              <SectionHeader 
+                title="Top Priorities" 
+                action={priorityTasks.length > 0 ? { label: "View all", href: "/tasks" } : undefined}
+              />
+              <ActionCard>
+                {priorityTasks.length === 0 ? (
+                  <EmptyState
+                    illustration={<CheckmarkIllustration className="w-full h-full" />}
+                    title="Nothing urgent today."
+                    description="You're in a good spot."
+                  />
+                ) : (
+                  <StaggeredList>
+                    {priorityTasks.map((task) => (
+                      <ItemRow
+                        key={task.id}
+                        title={task.title}
+                        meta={task.dueAt ? format(new Date(task.dueAt), "EEE, h:mm a") : undefined}
+                        urgency={task.urgency as "HIGH" | "MEDIUM" | "LOW"}
+                      />
+                    ))}
+                  </StaggeredList>
+                )}
+              </ActionCard>
+            </section>
+
+            <section>
+              <SectionHeader 
+                title="Upcoming" 
+                action={upcomingEvents.length > 0 ? { label: "View all", href: "/calendar" } : undefined}
+              />
+              <InsightCard>
+                {upcomingEvents.length === 0 ? (
+                  <EmptyState
+                    illustration={<CalendarIllustration className="w-full h-full" />}
+                    title="No events this week."
+                    description="Enjoy the calm."
+                  />
+                ) : (
+                  <StaggeredList>
+                    {upcomingEvents.map((event) => (
+                      <ItemRow
+                        key={event.id}
+                        title={event.title}
+                        meta={formatEventTime(event.startAt)}
+                        location={event.location || undefined}
+                      />
+                    ))}
+                  </StaggeredList>
+                )}
+              </InsightCard>
+            </section>
+
+            {recentUpdates.length > 0 && (
               <section>
                 <SectionHeader 
                   title="Handled for You" 
@@ -747,10 +681,10 @@ export default function ThisWeek() {
                   </StaggeredList>
                 </InsightCard>
               </section>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
 
       <RequestBottomSheet

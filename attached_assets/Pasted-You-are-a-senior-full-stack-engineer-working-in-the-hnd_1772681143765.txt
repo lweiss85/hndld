@@ -1,0 +1,179 @@
+You are a senior full-stack engineer working in the hndld app (React/TypeScript/Tailwind + Framer Motion). This is a luxury home concierge app. The tagline is "mention it once. trust it's exceeded."
+
+## TASK: Build the "Calm State" — a full-screen takeover when everything is handled
+
+This is the app's signature moment. When a client has NO pending tasks, NO pending approvals, NO overdue items, and NO unread messages, the entire home screen should transform into a serene, minimal display that communicates "your home is in order." This is NOT a card with a checkmark. This is the WHOLE SCREEN.
+
+### The hook already exists
+Check client/src/hooks/use-all-handled.ts — there should already be a hook that computes whether everything is handled. If it doesn't exist, create it:
+```ts
+// client/src/hooks/use-all-handled.ts
+import { useQuery } from "@tanstack/react-query";
+
+interface DashboardData {
+  tasks: Array<{ status: string; dueAt: string | null }>;
+  approvals: Array<{ status: string }>;
+  events: Array<{ title: string; startAt: string }>;
+  spending: Array<{ amount: number }>;
+}
+
+export function useAllHandled() {
+  const { data } = useQuery<DashboardData>({ queryKey: ["/api/dashboard"] });
+  
+  if (!data) return { allHandled: false, isLoading: true };
+  
+  const hasPendingTasks = data.tasks.some(t => t.status !== "DONE" && t.status !== "WAITING_ON_CLIENT");
+  const hasPendingApprovals = data.approvals.some(a => a.status === "PENDING");
+  
+  return {
+    allHandled: !hasPendingTasks && !hasPendingApprovals,
+    isLoading: false,
+  };
+}
+```
+
+### Create the CalmState component
+
+Create client/src/components/CalmState.tsx:
+```tsx
+import { motion, useReducedMotion } from "framer-motion";
+import { useAuth } from "@/hooks/use-auth";
+import { formatDistanceToNow } from "date-fns";
+import { useState, useEffect } from "react";
+
+interface CalmStateProps {
+  lastUpdated?: Date;
+}
+
+function getGreeting(): string {
+  const hour = new Date().getHours();
+  if (hour >= 5 && hour < 12) return "Good morning";
+  if (hour >= 12 && hour < 17) return "Good afternoon";
+  return "Good evening";
+}
+
+export function CalmState({ lastUpdated }: CalmStateProps) {
+  const { user } = useAuth();
+  const prefersReduced = useReducedMotion();
+  const firstName = user?.firstName || "";
+  const [breathWeight, setBreathWeight] = useState(350);
+
+  // Breathing font weight animation
+  useEffect(() => {
+    if (prefersReduced) return;
+    let raf: number;
+    let start: number;
+    
+    const animate = (timestamp: number) => {
+      if (!start) start = timestamp;
+      const elapsed = timestamp - start;
+      const sin = Math.sin((2 * Math.PI * elapsed) / 8000);
+      setBreathWeight(300 + ((sin + 1) / 2) * 200);
+      raf = requestAnimationFrame(animate);
+    };
+    
+    raf = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(raf);
+  }, [prefersReduced]);
+
+  return (
+    <motion.div
+      className="flex flex-col items-center justify-center text-center px-8"
+      style={{ minHeight: "calc(100vh - 10rem)" }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
+    >
+      {/* Main greeting */}
+      <motion.h1
+        initial={prefersReduced ? false : { opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.8, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
+        style={{
+          fontFamily: "'Cormorant Garamond', Georgia, serif",
+          fontWeight: breathWeight,
+          fontSize: "2.75rem",
+          lineHeight: 1.15,
+          color: "hsl(var(--foreground))",
+          letterSpacing: "-0.01em",
+        }}
+      >
+        {getGreeting()}, {firstName}.
+      </motion.h1>
+
+      {/* Status line */}
+      <motion.p
+        initial={prefersReduced ? false : { opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.8, delay: 0.8, ease: [0.22, 1, 0.36, 1] }}
+        style={{
+          fontFamily: "'Cormorant Garamond', Georgia, serif",
+          fontStyle: "italic",
+          fontSize: "1.125rem",
+          color: "hsl(var(--muted-foreground))",
+          marginTop: "1rem",
+          fontWeight: 300,
+        }}
+      >
+        Your home is in order.
+      </motion.p>
+
+      {/* Last checked timestamp */}
+      {lastUpdated && (
+        <motion.p
+          initial={prefersReduced ? false : { opacity: 0 }}
+          animate={{ opacity: 0.4 }}
+          transition={{ duration: 0.5, delay: 1.5 }}
+          style={{
+            fontFamily: "'IBM Plex Mono', monospace",
+            fontSize: "0.6875rem",
+            color: "hsl(var(--muted-foreground))",
+            marginTop: "2rem",
+            letterSpacing: "0.04em",
+          }}
+        >
+          Last checked {formatDistanceToNow(lastUpdated, { addSuffix: true })}
+        </motion.p>
+      )}
+    </motion.div>
+  );
+}
+```
+
+### Integrate into the client home page
+
+In client/src/pages/this-week.tsx:
+
+1. Import the CalmState and useAllHandled:
+```tsx
+import { CalmState } from "@/components/CalmState";
+import { useAllHandled } from "@/hooks/use-all-handled";
+```
+
+2. Inside the component, after loading state is resolved, add a conditional:
+```tsx
+const { allHandled } = useAllHandled();
+
+// After the PullToRefreshIndicator, before any cards:
+if (allHandled) {
+  return (
+    <div className="relative px-4 py-6 max-w-4xl mx-auto">
+      <PullToRefreshIndicator ... />
+      <AnimatePresence mode="wait">
+        <CalmState lastUpdated={new Date()} />
+      </AnimatePresence>
+    </div>
+  );
+}
+
+// ... existing card-based UI continues below for non-calm state
+```
+
+3. When a new item appears (allHandled goes from true to false), the CalmState should fade out and the cards should fade in from below. Use AnimatePresence with mode="wait" to choreograph this transition.
+
+### Important details:
+- The CalmState respects prefers-reduced-motion
+- The breathing animation uses requestAnimationFrame (not CSS) for smooth variable font weight
+- The timestamp uses date-fns formatDistanceToNow for natural language
+- The component must still allow pull-to-refresh to work
+- The background time-adaptive glow from app-layout.tsx should still be visible (CalmState has no background of its own)
