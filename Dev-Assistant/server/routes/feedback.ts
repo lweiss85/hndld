@@ -236,7 +236,7 @@ router.patch(
         return res.status(400).json({ error: "Invalid status" });
       }
 
-      const updates: Record<string, any> = {
+      const updates: Record<string, unknown> = {
         status,
         updatedAt: new Date(),
       };

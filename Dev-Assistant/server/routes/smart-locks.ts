@@ -299,7 +299,7 @@ router.patch("/smart-locks/:lockId/codes/:codeId", isAuthenticated, householdCon
     const householdId = (req as any).householdId;
     const { isActive, name, expiresAt, scheduleType, scheduleDays, scheduleStartTime, scheduleEndTime } = req.body;
 
-    const updates: Record<string, any> = { updatedAt: new Date() };
+    const updates: Record<string, unknown> = { updatedAt: new Date() };
     if (isActive !== undefined) updates.isActive = isActive;
     if (name) updates.name = name;
     if (expiresAt !== undefined) updates.expiresAt = expiresAt ? new Date(expiresAt) : null;
@@ -406,6 +406,6 @@ router.get("/smart-locks/:id/activity", isAuthenticated, householdContextMiddlew
   }
 });
 
-export function registerSmartLockRoutes(router_parent: any) {
+export function registerSmartLockRoutes(router_parent: Router) {
   router_parent.use(router);
 }

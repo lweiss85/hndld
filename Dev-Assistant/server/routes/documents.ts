@@ -226,7 +226,7 @@ router.patch(
 
       if (!existing) return res.status(404).json({ error: "Document not found" });
 
-      const updates: Record<string, any> = { updatedAt: new Date() };
+      const updates: Record<string, unknown> = { updatedAt: new Date() };
       const fields = [
         "name", "type", "description", "provider", "policyNumber",
         "paymentFrequency", "documentFileId", "autoRenews",

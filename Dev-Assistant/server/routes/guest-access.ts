@@ -13,7 +13,16 @@ function generateToken(): string {
   return crypto.randomBytes(32).toString("hex");
 }
 
-const ACCESS_LEVEL_PRESETS: Record<string, any> = {
+interface GuestPermissions {
+  canViewTasks: boolean;
+  canViewCalendar: boolean;
+  canViewVendors: boolean;
+  canViewFiles: boolean;
+  canSendMessages: boolean;
+  canCreateTasks: boolean;
+}
+
+const ACCESS_LEVEL_PRESETS: Record<string, GuestPermissions> = {
   VIEW_ONLY: {
     canViewTasks: true,
     canViewCalendar: true,
@@ -236,7 +245,7 @@ router.patch(
 
       if (!existing) return res.status(404).json({ error: "Guest access not found" });
 
-      const updates: any = { updatedAt: new Date() };
+      const updates: Record<string, unknown> = { updatedAt: new Date() };
       if (req.body.accessLevel) {
         updates.accessLevel = req.body.accessLevel;
         updates.permissions = req.body.permissions || ACCESS_LEVEL_PRESETS[req.body.accessLevel];

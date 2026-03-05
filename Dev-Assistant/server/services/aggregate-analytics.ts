@@ -56,13 +56,32 @@ function logAggregationQuery(endpoint: string, filters: Record<string, unknown>,
   logger.info("Aggregation query", { endpoint, filters, queryTimeMs, sampleSize });
 }
 
-function rows(result: any): any[] {
-  return result.rows ?? result ?? [];
+interface BrandComparisonRow { brand: string | null; avg_lifespan: string; cnt: string }
+interface AgeBucketRow { age_range: string; cnt: string }
+interface FailureCategoryRow { category: string | null; cnt: string }
+interface PriceBySqftRow { sqft_range: string; avg_price: string; cnt: string }
+interface PriceByRegionRow { region: string | null; avg_price: string; cnt: string }
+interface PriceHistoryRow { month: string; avg_price: string; cnt: string }
+interface RatingDistributionRow { rating: number; cnt: string }
+interface CostBreakdownRow { category: string; total_amount: string; cnt: string }
+interface MonthlyTrendRow { month: string; avg_cost: string }
+interface HouseholdRow { household_id: string; square_footage: string | null }
+interface SeasonalMonthRow { month: number; cnt: string }
+interface QuarterCostRow { quarter: string; avg_cost: string; cnt: string }
+interface ApplianceStatsRow { avg_age: string; stddev_age: string; p10: string; p50: string; p90: string; total: string }
+interface VendorPricingStatsRow { avg_price: string; min_price: string; max_price: string; p25: string; p50: string; p75: string; total: string }
+interface ServiceQualityStatsRow { avg_overall: string; avg_quality: string; avg_value: string; total: string; recommended: string; with_issues: string; issues_resolved: string; promoters: string; detractors: string; nps_responses: string }
+interface SpendingStatsRow { avg_amount: string; total_amount: string; total: string }
+interface YoyStatsRow { this_year: string; last_year: string }
+
+function rows<T>(result: unknown): T[] {
+  if (Array.isArray(result)) return result;
+  return (result as { rows: T[] })?.rows ?? [];
 }
 
-function firstRow(result: any): any {
-  const r = rows(result);
-  return r[0] ?? {};
+function firstRow<T>(result: unknown): T {
+  const r = rows<T>(result);
+  return r[0] ?? ({} as T);
 }
 
 const MONTH_NAMES = ["January", "February", "March", "April", "May", "June",
@@ -88,7 +107,7 @@ export async function getApplianceLifespanAnalytics(
 }>> {
   const k = options?.kAnonymity ?? DEFAULT_K_ANONYMITY;
   const cacheKey = options?.cacheKey ?? `appliance-lifespan:${category}:${JSON.stringify(filters || {})}`;
-  const cached = getCached<any>(cacheKey);
+  const cached = getCached<ReturnType<typeof getApplianceLifespanAnalytics> extends Promise<AggregationResult<infer U>> ? U : never>(cacheKey);
   if (cached.hit) return cached.result;
 
   const startTime = Date.now();
@@ -126,13 +145,13 @@ export async function getApplianceLifespanAnalytics(
       FROM inventory_events
       WHERE ${whereClause}
     `);
-    const stats = firstRow(statsResult);
+    const stats = firstRow<ApplianceStatsRow>(statsResult);
 
     const sampleSize = Number(stats.total || 0);
     const queryTimeMs = Date.now() - startTime;
 
     if (sampleSize < k) {
-      const result: AggregationResult<any> = {
+      const result: AggregationResult<null> = {
         data: null,
         metadata: { sampleSize, meetsKAnonymity: false, kThreshold: k, queryTimeMs, cached: false },
         filters: { category, ...filters },
@@ -141,7 +160,7 @@ export async function getApplianceLifespanAnalytics(
       return result;
     }
 
-    const ageBuckets = rows(await db.execute(sql`
+    const ageBuckets = rows<AgeBucketRow>(await db.execute(sql`
       SELECT
         CASE
           WHEN appliance_age_years::numeric < 2 THEN '0-2 years'
@@ -157,7 +176,7 @@ export async function getApplianceLifespanAnalytics(
       ORDER BY 1
     `));
 
-    const failureCategories = rows(await db.execute(sql`
+    const failureCategories = rows<FailureCategoryRow>(await db.execute(sql`
       SELECT failure_category as category, COUNT(*) as cnt
       FROM inventory_events
       WHERE ${whereClause} AND failure_category IS NOT NULL
@@ -168,7 +187,7 @@ export async function getApplianceLifespanAnalytics(
 
     let brandComparison: { brand: string; avgLifespan: number; sampleSize: number }[] | undefined;
     if (!filters?.brand) {
-      const brands = rows(await db.execute(sql`
+      const brands = rows<BrandComparisonRow>(await db.execute(sql`
         SELECT
           item_brand as brand,
           AVG(appliance_age_years::numeric) as avg_lifespan,
@@ -181,8 +200,8 @@ export async function getApplianceLifespanAnalytics(
         LIMIT 15
       `));
       if (brands.length > 0) {
-        brandComparison = brands.map((b: any) => ({
-          brand: b.brand,
+        brandComparison = brands.map(b => ({
+          brand: b.brand ?? "",
           avgLifespan: Number(Number(b.avg_lifespan).toFixed(2)),
           sampleSize: Number(b.cnt),
         }));
@@ -197,7 +216,7 @@ export async function getApplianceLifespanAnalytics(
     const avgLife = Number(stats.avg_age || 0);
     const reliabilityScore = Math.min(100, Math.max(0, Math.round((avgLife / expected) * 100)));
 
-    const result: AggregationResult<any> = {
+    const result = {
       data: {
         averageLifespanYears: Number(Number(stats.avg_age || 0).toFixed(2)),
         medianLifespanYears: Number(Number(stats.p50 || 0).toFixed(2)),
@@ -206,16 +225,16 @@ export async function getApplianceLifespanAnalytics(
         standardDeviation: Number(Number(stats.stddev_age || 0).toFixed(2)),
         totalFailures: sampleSize,
         failuresByAge: ageBuckets
-          .filter((b: any) => Number(b.cnt) >= k)
-          .map((b: any) => ({
+          .filter(b => Number(b.cnt) >= k)
+          .map(b => ({
             ageRange: b.age_range,
             count: Number(b.cnt),
             percentage: Number(((Number(b.cnt) / sampleSize) * 100).toFixed(1)),
           })),
         topFailureCategories: failureCategories
-          .filter((c: any) => Number(c.cnt) >= k)
-          .map((c: any) => ({
-            category: c.category,
+          .filter(c => Number(c.cnt) >= k)
+          .map(c => ({
+            category: c.category ?? "",
             count: Number(c.cnt),
             percentage: Number(((Number(c.cnt) / sampleSize) * 100).toFixed(1)),
           })),
@@ -261,7 +280,7 @@ export async function getVendorPricingBenchmarks(
 }>> {
   const k = options?.kAnonymity ?? DEFAULT_K_ANONYMITY;
   const cacheKey = options?.cacheKey ?? `vendor-pricing:${serviceCategory}:${JSON.stringify(filters || {})}`;
-  const cached = getCached<any>(cacheKey);
+  const cached = getCached<ReturnType<typeof getVendorPricingBenchmarks> extends Promise<AggregationResult<infer U>> ? U : never>(cacheKey);
   if (cached.hit) return cached.result;
 
   const startTime = Date.now();
@@ -281,7 +300,7 @@ export async function getVendorPricingBenchmarks(
 
     const whereClause = sql.join(conditions, sql` AND `);
 
-    const stats = firstRow(await db.execute(sql`
+    const stats = firstRow<VendorPricingStatsRow>(await db.execute(sql`
       SELECT
         AVG(price_amount_cents) as avg_price,
         MIN(price_amount_cents) as min_price,
@@ -298,7 +317,7 @@ export async function getVendorPricingBenchmarks(
     const queryTimeMs = Date.now() - startTime;
 
     if (sampleSize < k) {
-      const result: AggregationResult<any> = {
+      const result: AggregationResult<null> = {
         data: null,
         metadata: { sampleSize, meetsKAnonymity: false, kThreshold: k, queryTimeMs, cached: false },
         filters: { serviceCategory, ...filters },
@@ -307,7 +326,7 @@ export async function getVendorPricingBenchmarks(
       return result;
     }
 
-    const priceBySquareFootage = rows(await db.execute(sql`
+    const priceBySquareFootage = rows<PriceBySqftRow>(await db.execute(sql`
       SELECT
         CASE
           WHEN home_square_footage < 1000 THEN 'Under 1,000 sqft'
@@ -324,7 +343,7 @@ export async function getVendorPricingBenchmarks(
       ORDER BY 1
     `));
 
-    const priceByRegion = rows(await db.execute(sql`
+    const priceByRegion = rows<PriceByRegionRow>(await db.execute(sql`
       SELECT
         region,
         AVG(price_amount_cents)::integer as avg_price,
@@ -335,7 +354,7 @@ export async function getVendorPricingBenchmarks(
       ORDER BY avg_price DESC
     `));
 
-    const priceHistory = rows(await db.execute(sql`
+    const priceHistory = rows<PriceHistoryRow>(await db.execute(sql`
       SELECT
         TO_CHAR(effective_date::date, 'YYYY-MM') as month,
         AVG(price_amount_cents)::integer as avg_price,
@@ -350,7 +369,7 @@ export async function getVendorPricingBenchmarks(
     const p50 = Math.round(Number(stats.p50 || 0));
     const p75 = Math.round(Number(stats.p75 || 0));
 
-    const result: AggregationResult<any> = {
+    const result = {
       data: {
         averagePriceCents: Math.round(Number(stats.avg_price || 0)),
         medianPriceCents: p50,
@@ -359,14 +378,14 @@ export async function getVendorPricingBenchmarks(
         minPriceCents: Number(stats.min_price || 0),
         maxPriceCents: Number(stats.max_price || 0),
         priceBySquareFootage: priceBySquareFootage
-          .filter((p: any) => Number(p.cnt) >= k)
-          .map((p: any) => ({ sqftRange: p.sqft_range, avgPrice: Number(p.avg_price), count: Number(p.cnt) })),
+          .filter(p => Number(p.cnt) >= k)
+          .map(p => ({ sqftRange: p.sqft_range, avgPrice: Number(p.avg_price), count: Number(p.cnt) })),
         priceByRegion: priceByRegion
-          .filter((p: any) => Number(p.cnt) >= k)
-          .map((p: any) => ({ region: p.region, avgPrice: Number(p.avg_price), count: Number(p.cnt) })),
+          .filter(p => Number(p.cnt) >= k)
+          .map(p => ({ region: p.region ?? "", avgPrice: Number(p.avg_price), count: Number(p.cnt) })),
         priceHistory: priceHistory
-          .filter((p: any) => Number(p.cnt) >= k)
-          .map((p: any) => ({ month: p.month, avgPrice: Number(p.avg_price), count: Number(p.cnt) })),
+          .filter(p => Number(p.cnt) >= k)
+          .map(p => ({ month: p.month, avgPrice: Number(p.avg_price), count: Number(p.cnt) })),
         recommendedBudgetRange: { low: p25, mid: p50, high: p75 },
       },
       metadata: { sampleSize, meetsKAnonymity: true, kThreshold: k, queryTimeMs, cached: false },
@@ -406,7 +425,7 @@ export async function getServiceQualityBenchmarks(
 }>> {
   const k = options?.kAnonymity ?? DEFAULT_K_ANONYMITY;
   const cacheKey = options?.cacheKey ?? `service-quality:${serviceCategory}:${JSON.stringify(filters || {})}`;
-  const cached = getCached<any>(cacheKey);
+  const cached = getCached<ReturnType<typeof getServiceQualityBenchmarks> extends Promise<AggregationResult<infer U>> ? U : never>(cacheKey);
   if (cached.hit) return cached.result;
 
   const startTime = Date.now();
@@ -428,7 +447,7 @@ export async function getServiceQualityBenchmarks(
 
     const whereClause = sql.join(conditions, sql` AND `);
 
-    const stats = firstRow(await db.execute(sql`
+    const stats = firstRow<ServiceQualityStatsRow>(await db.execute(sql`
       SELECT
         AVG(overall_rating) as avg_overall,
         AVG(quality_rating) as avg_quality,
@@ -448,7 +467,7 @@ export async function getServiceQualityBenchmarks(
     const queryTimeMs = Date.now() - startTime;
 
     if (sampleSize < k) {
-      const result: AggregationResult<any> = {
+      const result: AggregationResult<null> = {
         data: null,
         metadata: { sampleSize, meetsKAnonymity: false, kThreshold: k, queryTimeMs, cached: false },
         filters: { serviceCategory, ...filters },
@@ -465,7 +484,7 @@ export async function getServiceQualityBenchmarks(
     const total = Number(stats.total || 1);
     const withIssues = Number(stats.with_issues || 0);
 
-    const distribution = rows(await db.execute(sql`
+    const distribution = rows<RatingDistributionRow>(await db.execute(sql`
       SELECT overall_rating as rating, COUNT(*) as cnt
       FROM service_quality_ratings
       WHERE ${whereClause}
@@ -473,7 +492,7 @@ export async function getServiceQualityBenchmarks(
       ORDER BY 1
     `));
 
-    const result: AggregationResult<any> = {
+    const result = {
       data: {
         averageOverallRating: Number(Number(stats.avg_overall || 0).toFixed(2)),
         averageQualityRating: Number(Number(stats.avg_quality || 0).toFixed(2)),
@@ -485,8 +504,8 @@ export async function getServiceQualityBenchmarks(
           ? Number(((Number(stats.issues_resolved || 0) / withIssues) * 100).toFixed(1))
           : 100,
         ratingDistribution: distribution
-          .filter((d: any) => Number(d.cnt) >= k)
-          .map((d: any) => ({
+          .filter(d => Number(d.cnt) >= k)
+          .map(d => ({
             rating: Number(d.rating),
             count: Number(d.cnt),
             percentage: Number(((Number(d.cnt) / sampleSize) * 100).toFixed(1)),
@@ -525,7 +544,7 @@ export async function getHomeOperatingCostBenchmarks(
 }>> {
   const k = options?.kAnonymity ?? DEFAULT_K_ANONYMITY;
   const cacheKey = options?.cacheKey ?? `home-operating-costs:${JSON.stringify(filters)}`;
-  const cached = getCached<any>(cacheKey);
+  const cached = getCached<ReturnType<typeof getHomeOperatingCostBenchmarks> extends Promise<AggregationResult<infer U>> ? U : never>(cacheKey);
   if (cached.hit) return cached.result;
 
   const startTime = Date.now();
@@ -541,7 +560,7 @@ export async function getHomeOperatingCostBenchmarks(
 
     const houseWhere = sql.join(houseConditions, sql` AND `);
 
-    const households = rows(await db.execute(sql`
+    const households = rows<HouseholdRow>(await db.execute(sql`
       SELECT household_id, square_footage
       FROM household_details
       WHERE ${houseWhere}
@@ -551,7 +570,7 @@ export async function getHomeOperatingCostBenchmarks(
     const queryTimeMs = Date.now() - startTime;
 
     if (sampleSize < k) {
-      const result: AggregationResult<any> = {
+      const result: AggregationResult<null> = {
         data: null,
         metadata: { sampleSize, meetsKAnonymity: false, kThreshold: k, queryTimeMs, cached: false },
         filters,
@@ -560,10 +579,10 @@ export async function getHomeOperatingCostBenchmarks(
       return result;
     }
 
-    const householdIds = households.map((h: any) => h.household_id);
+    const householdIds = households.map(h => h.household_id);
     const idList = sql.join(householdIds.map((id: string) => sql`${id}`), sql`, `);
 
-    const costBreakdown = rows(await db.execute(sql`
+    const costBreakdown = rows<CostBreakdownRow>(await db.execute(sql`
       SELECT
         category,
         SUM(amount)::integer as total_amount,
@@ -574,11 +593,11 @@ export async function getHomeOperatingCostBenchmarks(
       ORDER BY total_amount DESC
     `));
 
-    const totalSpending = costBreakdown.reduce((s: number, c: any) => s + Number(c.total_amount || 0), 0);
+    const totalSpending = costBreakdown.reduce((s, c) => s + Number(c.total_amount || 0), 0);
     const avgAnnualTotal = Math.round(totalSpending / sampleSize);
-    const avgSqFt = households.reduce((s: number, h: any) => s + (Number(h.square_footage) || 0), 0) / sampleSize;
+    const avgSqFt = households.reduce((s, h) => s + (Number(h.square_footage) || 0), 0) / sampleSize;
 
-    const monthlyTrend = rows(await db.execute(sql`
+    const monthlyTrend = rows<MonthlyTrendRow>(await db.execute(sql`
       SELECT
         TO_CHAR(date::date, 'YYYY-MM') as month,
         AVG(amount)::integer as avg_cost
@@ -588,19 +607,19 @@ export async function getHomeOperatingCostBenchmarks(
       ORDER BY 1
     `));
 
-    const result: AggregationResult<any> = {
+    const result = {
       data: {
         avgAnnualTotalCents: avgAnnualTotal,
         avgMonthlyCents: Math.round(avgAnnualTotal / 12),
         avgPerSqFtCents: avgSqFt > 0 ? Math.round(avgAnnualTotal / avgSqFt) : 0,
         costBreakdown: costBreakdown
-          .filter((c: any) => Number(c.cnt) >= k)
-          .map((c: any) => ({
+          .filter(c => Number(c.cnt) >= k)
+          .map(c => ({
             category: c.category || "Other",
             avgAnnualCents: Math.round(Number(c.total_amount || 0) / sampleSize),
             percentage: totalSpending > 0 ? Number(((Number(c.total_amount || 0) / totalSpending) * 100).toFixed(1)) : 0,
           })),
-        monthlyTrend: monthlyTrend.map((m: any) => ({
+        monthlyTrend: monthlyTrend.map(m => ({
           month: m.month,
           avgCost: Number(m.avg_cost || 0),
         })),
@@ -639,7 +658,7 @@ export async function getMaintenanceCostBenchmarks(
 }>> {
   const k = options?.kAnonymity ?? DEFAULT_K_ANONYMITY;
   const cacheKey = options?.cacheKey ?? `maintenance-costs:${category}:${region}:${homeType}`;
-  const cached = getCached<any>(cacheKey);
+  const cached = getCached<ReturnType<typeof getMaintenanceCostBenchmarks> extends Promise<AggregationResult<infer U>> ? U : never>(cacheKey);
   if (cached.hit) return cached.result;
 
   const startTime = Date.now();
@@ -652,7 +671,7 @@ export async function getMaintenanceCostBenchmarks(
 
     const whereClause = sql.join(conditions, sql` AND `);
 
-    const stats = firstRow(await db.execute(sql`
+    const stats = firstRow<SpendingStatsRow>(await db.execute(sql`
       SELECT
         AVG(amount) as avg_amount,
         SUM(amount) as total_amount,
@@ -672,7 +691,7 @@ export async function getMaintenanceCostBenchmarks(
       };
     }
 
-    const costByQuarter = rows(await db.execute(sql`
+    const costByQuarter = rows<QuarterCostRow>(await db.execute(sql`
       SELECT
         'Q' || EXTRACT(QUARTER FROM date::date) as quarter,
         AVG(amount)::integer as avg_cost,
@@ -683,13 +702,13 @@ export async function getMaintenanceCostBenchmarks(
       ORDER BY 1
     `));
 
-    const result: AggregationResult<any> = {
+    const result = {
       data: {
         avgAnnualCostCents: Math.round(Number(stats.avg_amount || 0)),
         avgCostPerSqFtCents: 0,
         costByQuarter: costByQuarter
-          .filter((q: any) => Number(q.cnt) >= k)
-          .map((q: any) => ({
+          .filter(q => Number(q.cnt) >= k)
+          .map(q => ({
             quarter: q.quarter,
             avgCost: Number(q.avg_cost),
             count: Number(q.cnt),
@@ -729,7 +748,7 @@ export async function getSeasonalDemandPatterns(
 }>> {
   const k = options?.kAnonymity ?? DEFAULT_K_ANONYMITY;
   const cacheKey = options?.cacheKey ?? `seasonal-demand:${serviceCategory}:${region}`;
-  const cached = getCached<any>(cacheKey);
+  const cached = getCached<ReturnType<typeof getSeasonalDemandPatterns> extends Promise<AggregationResult<infer U>> ? U : never>(cacheKey);
   if (cached.hit) return cached.result;
 
   const startTime = Date.now();
@@ -743,7 +762,7 @@ export async function getSeasonalDemandPatterns(
 
     const whereClause = sql.join(conditions, sql` AND `);
 
-    const monthly = rows(await db.execute(sql`
+    const monthly = rows<SeasonalMonthRow>(await db.execute(sql`
       SELECT
         EXTRACT(MONTH FROM effective_date::date)::int as month,
         COUNT(*) as cnt
@@ -753,7 +772,7 @@ export async function getSeasonalDemandPatterns(
       ORDER BY 1
     `));
 
-    const totalCount = monthly.reduce((s: number, m: any) => s + Number(m.cnt), 0);
+    const totalCount = monthly.reduce((s, m) => s + Number(m.cnt), 0);
 
     if (totalCount < k) {
       return {
@@ -765,8 +784,8 @@ export async function getSeasonalDemandPatterns(
 
     const avgPerMonth = totalCount / 12;
     const demandByMonth = monthly
-      .filter((m: any) => Number(m.cnt) >= k)
-      .map((m: any) => ({
+      .filter(m => Number(m.cnt) >= k)
+      .map(m => ({
         month: Number(m.month),
         monthName: MONTH_NAMES[Number(m.month) - 1] || "",
         demandIndex: avgPerMonth > 0 ? Math.round((Number(m.cnt) / avgPerMonth) * 100) : 0,
@@ -774,7 +793,7 @@ export async function getSeasonalDemandPatterns(
 
     const sorted = [...demandByMonth].sort((a, b) => b.demandIndex - a.demandIndex);
 
-    const yoyStats = firstRow(await db.execute(sql`
+    const yoyStats = firstRow<YoyStatsRow>(await db.execute(sql`
       SELECT
         COUNT(CASE WHEN EXTRACT(YEAR FROM effective_date::date) = EXTRACT(YEAR FROM CURRENT_DATE) THEN 1 END) as this_year,
         COUNT(CASE WHEN EXTRACT(YEAR FROM effective_date::date) = EXTRACT(YEAR FROM CURRENT_DATE) - 1 THEN 1 END) as last_year
@@ -786,7 +805,7 @@ export async function getSeasonalDemandPatterns(
     const lastYear = Number(yoyStats.last_year || 0);
     const yearOverYearGrowth = lastYear > 0 ? Number((((thisYear - lastYear) / lastYear) * 100).toFixed(1)) : 0;
 
-    const result: AggregationResult<any> = {
+    const result = {
       data: {
         demandByMonth,
         peakMonths: sorted.slice(0, 3).map(m => m.month),

@@ -1,4 +1,4 @@
-import { Router, Request, Response } from "express";
+import { Router, Request, Response, RequestHandler } from "express";
 import {
   conversation,
   Simple,
@@ -13,11 +13,18 @@ import { startOfMonth, format } from "date-fns";
 import { getProvider } from "../services/smart-locks";
 import logger from "../lib/logger";
 
+interface ConversationHandle {
+  add: (content: unknown) => void;
+  user?: { params?: { accessToken?: string } };
+  intent?: { params?: Record<string, { resolved: string }> };
+  scene: { next?: { name: string } };
+}
+
 const router = Router();
 
 const app = conversation({ debug: process.env.NODE_ENV !== "production" });
 
-app.handle("main_invocation", async (conv: any) => {
+app.handle("main_invocation", async (conv: ConversationHandle) => {
   conv.add(new Simple({
     speech: "Welcome to hndld. You can ask about your next cleaning, pending approvals, spending, or control your smart locks. What would you like to do?",
     text: "Welcome to hndld! How can I help?",
@@ -27,7 +34,7 @@ app.handle("main_invocation", async (conv: any) => {
   conv.add(new Suggestion({ title: "Spending summary" }));
 });
 
-async function getUserContext(conv: any): Promise<{ userId: string; householdId: string } | null> {
+async function getUserContext(conv: ConversationHandle): Promise<{ userId: string; householdId: string } | null> {
   const accessToken = conv.user?.params?.accessToken;
   if (!accessToken) return null;
 
@@ -46,7 +53,7 @@ async function getUserContext(conv: any): Promise<{ userId: string; householdId:
   return { userId: token.userId, householdId: token.householdId };
 }
 
-app.handle("next_cleaning", async (conv: any) => {
+app.handle("next_cleaning", async (conv: ConversationHandle) => {
   const context = await getUserContext(conv);
   if (!context) {
     conv.add("Please link your hndld account in the Google Home app first.");
@@ -71,7 +78,7 @@ app.handle("next_cleaning", async (conv: any) => {
   }
 });
 
-app.handle("pending_approvals", async (conv: any) => {
+app.handle("pending_approvals", async (conv: ConversationHandle) => {
   const context = await getUserContext(conv);
   if (!context) {
     conv.add("Please link your hndld account first.");
@@ -96,7 +103,7 @@ app.handle("pending_approvals", async (conv: any) => {
   }
 });
 
-app.handle("approve_all", async (conv: any) => {
+app.handle("approve_all", async (conv: ConversationHandle) => {
   const context = await getUserContext(conv);
   if (!context) {
     conv.add("Please link your hndld account first.");
@@ -116,7 +123,7 @@ app.handle("approve_all", async (conv: any) => {
   conv.add("Done! I've approved all pending items.");
 });
 
-app.handle("spending_summary", async (conv: any) => {
+app.handle("spending_summary", async (conv: ConversationHandle) => {
   const context = await getUserContext(conv);
   if (!context) {
     conv.add("Please link your hndld account first.");
@@ -145,7 +152,7 @@ app.handle("spending_summary", async (conv: any) => {
   }
 });
 
-app.handle("create_task", async (conv: any) => {
+app.handle("create_task", async (conv: ConversationHandle) => {
   const context = await getUserContext(conv);
   if (!context) {
     conv.add("Please link your hndld account first.");
@@ -171,7 +178,7 @@ app.handle("create_task", async (conv: any) => {
   conv.add(`Done! I've created a task: ${taskTitle}.`);
 });
 
-app.handle("lock_door", async (conv: any) => {
+app.handle("lock_door", async (conv: ConversationHandle) => {
   const context = await getUserContext(conv);
   if (!context) {
     conv.add("Please link your hndld account first.");
@@ -211,7 +218,7 @@ app.handle("lock_door", async (conv: any) => {
   conv.add(`I couldn't lock the ${lock.name}. Please try again.`);
 });
 
-app.handle("unlock_door", async (conv: any) => {
+app.handle("unlock_door", async (conv: ConversationHandle) => {
   const context = await getUserContext(conv);
   if (!context) {
     conv.add("Please link your hndld account first.");
@@ -251,13 +258,13 @@ app.handle("unlock_door", async (conv: any) => {
   conv.add(`I couldn't unlock the ${lock.name}. Please try again.`);
 });
 
-app.handle("fallback", (conv: any) => {
+app.handle("fallback", (conv: ConversationHandle) => {
   conv.add("I'm not sure how to help with that. You can ask about your next cleaning, pending approvals, or spending.");
   conv.add(new Suggestion({ title: "Next cleaning" }));
   conv.add(new Suggestion({ title: "Help" }));
 });
 
-router.post("/google-assistant", app as any);
+router.post("/google-assistant", app as unknown as RequestHandler);
 
 export function registerGoogleAssistantRoutes(appRouter: Router) {
   appRouter.use(router);

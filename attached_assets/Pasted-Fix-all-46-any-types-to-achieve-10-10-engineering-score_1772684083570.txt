@@ -1,0 +1,310 @@
+Fix all 46 `any` types to achieve 10/10 engineering score.
+
+## 1. AGGREGATE-ANALYTICS.TS (26 any types)
+
+The issue: Raw SQL queries return untyped results.
+
+### Current Pattern (Bad)
+```typescript
+const result = await db.execute(sql`SELECT ...`);
+const rows = result.map((r: any) => ({ ... }));
+```
+
+### Fixed Pattern (Good)
+```typescript
+// Define explicit types for each query result
+interface ApplianceLifespanRow {
+  item_brand: string | null;
+  avg_lifespan: string;
+  cnt: string;
+}
+
+interface PricingBenchmarkRow {
+  sqft_range: string;
+  avg_price: string;
+  cnt: string;
+}
+
+interface MonthlyTrendRow {
+  month: string;
+  avg_price: string;
+  cnt: string;
+}
+
+interface FailureCategoryRow {
+  failure_category: string | null;
+  cnt: string;
+}
+
+interface RatingDistributionRow {
+  overall_rating: number;
+  cnt: string;
+}
+
+interface CostBreakdownRow {
+  category: string;
+  total_amount: string;
+  cnt: string;
+}
+
+interface SeasonalDemandRow {
+  month: number;
+  cnt: string;
+}
+
+// Helper function with proper typing
+function rows<T>(result: { rows: T[] } | T[]): T[] {
+  return Array.isArray(result) ? result : result.rows || [];
+}
+
+// Usage
+const brands = rows<ApplianceLifespanRow>(
+  await db.execute(sql`
+    SELECT item_brand, AVG(item_age_at_event_years) as avg_lifespan, COUNT(*) as cnt
+    FROM inventory_events
+    WHERE ...
+    GROUP BY item_brand
+  `)
+);
+
+// Now properly typed - no any needed
+const brandComparison = brands
+  .filter(b => Number(b.cnt) >= k)
+  .map(b => ({
+    brand: b.item_brand ?? "Unknown",
+    avgLifespan: Number(b.avg_lifespan),
+    sampleSize: Number(b.cnt),
+  }));
+```
+
+### Full Refactor
+
+Replace the top of aggregate-analytics.ts:
+```typescript
+// ===== QUERY RESULT TYPES =====
+
+interface BaseAggregateRow {
+  cnt: string;
+}
+
+interface ApplianceLifespanRow extends BaseAggregateRow {
+  item_brand: string | null;
+  item_model: string | null;
+  avg_lifespan: string;
+  min_lifespan: string;
+  max_lifespan: string;
+  std_dev: string | null;
+}
+
+interface FailureCategoryRow extends BaseAggregateRow {
+  failure_category: string | null;
+}
+
+interface AgeDistributionRow extends BaseAggregateRow {
+  age_range: string;
+}
+
+interface PercentileRow {
+  p10: string | null;
+  p25: string | null;
+  p50: string | null;
+  p75: string | null;
+  p90: string | null;
+}
+
+interface PricingRow extends BaseAggregateRow {
+  avg_price: string;
+  min_price: string;
+  max_price: string;
+}
+
+interface PriceBySqftRow extends BaseAggregateRow {
+  sqft_range: string;
+  avg_price: string;
+}
+
+interface PriceByRegionRow extends BaseAggregateRow {
+  region: string | null;
+  avg_price: string;
+}
+
+interface PriceHistoryRow extends BaseAggregateRow {
+  month: string;
+  avg_price: string;
+}
+
+interface RatingRow extends BaseAggregateRow {
+  overall_rating: number;
+}
+
+interface CostBreakdownRow extends BaseAggregateRow {
+  category: string;
+  total_amount: string;
+}
+
+interface MonthlyTrendRow extends BaseAggregateRow {
+  month: string;
+  avg_cost: string;
+}
+
+interface HouseholdRow {
+  household_id: string;
+  square_footage: string | null;
+}
+
+interface SeasonalRow extends BaseAggregateRow {
+  month: number;
+}
+
+// ===== TYPED HELPER FUNCTIONS =====
+
+function rows<T>(result: unknown): T[] {
+  if (Array.isArray(result)) return result as T[];
+  if (result && typeof result === "object" && "rows" in result) {
+    return (result as { rows: T[] }).rows;
+  }
+  return [];
+}
+
+function firstRow<T>(result: unknown): T | null {
+  const r = rows<T>(result);
+  return r.length > 0 ? r[0] : null;
+}
+```
+
+Then update each usage site to use the typed versions.
+
+## 2. GOOGLE-ASSISTANT.TS (10 any types)
+
+The issue: Google Actions SDK types.
+
+### Fix
+```typescript
+// At top of file, add proper types
+import type { 
+  ConversationV3,
+  HandlerInput,
+} from "@assistant/conversation";
+
+// Or define your own interfaces if not using the SDK
+interface GoogleAssistantRequest {
+  handler: {
+    name: string;
+  };
+  intent: {
+    name: string;
+    params: Record<string, { resolved: string }>;
+  };
+  session: {
+    id: string;
+    params: Record<string, unknown>;
+  };
+  user: {
+    verificationStatus: string;
+    params: {
+      userId?: string;
+      accessToken?: string;
+    };
+  };
+}
+
+interface GoogleAssistantResponse {
+  session: {
+    params: Record<string, unknown>;
+  };
+  prompt: {
+    firstSimple?: {
+      speech: string;
+      text?: string;
+    };
+    suggestions?: Array<{ title: string }>;
+  };
+}
+
+// Replace any with these types
+async function handleGoogleAssistant(
+  req: GoogleAssistantRequest
+): Promise<GoogleAssistantResponse> {
+  // ...
+}
+```
+
+## 3. ALEXA.TS (6 any types)
+
+The issue: Alexa Skills Kit types.
+
+### Fix
+```typescript
+// At top of file
+interface AlexaRequestEnvelope {
+  version: string;
+  session: {
+    sessionId: string;
+    application: { applicationId: string };
+    user: {
+      userId: string;
+      accessToken?: string;
+    };
+    new: boolean;
+  };
+  request: {
+    type: string;
+    requestId: string;
+    timestamp: string;
+    intent?: {
+      name: string;
+      slots?: Record<string, { value: string }>;
+    };
+  };
+}
+
+interface AlexaResponseBody {
+  version: string;
+  response: {
+    outputSpeech?: {
+      type: "PlainText" | "SSML";
+      text?: string;
+      ssml?: string;
+    };
+    card?: {
+      type: string;
+      title: string;
+      content: string;
+    };
+    shouldEndSession: boolean;
+  };
+}
+
+// Replace any with these
+function handleAlexaRequest(
+  requestEnvelope: AlexaRequestEnvelope
+): AlexaResponseBody {
+  // ...
+}
+```
+
+## 4. MISC ROUTES (4 any types)
+
+### budgets.ts
+Find and replace the any with proper type.
+
+### guest-access.ts
+Find and replace the any with proper type.
+
+### properties.ts
+Find and replace the any with proper type.
+
+### smart-locks.ts
+Find and replace the any with proper type.
+
+## VERIFICATION
+
+After fixes, run:
+```bash
+grep -r ": any" server/ --include="*.ts" | wc -l
+# Should return 0
+
+# Also run TypeScript compiler
+npx tsc --noEmit
+# Should pass with no errors
+```

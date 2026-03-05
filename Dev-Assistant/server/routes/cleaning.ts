@@ -199,7 +199,7 @@ export async function registerCleaningRoutes(app: Router): Promise<void> {
         }
       }
       
-      const updateData: Record<string, any> = {};
+      const updateData: Record<string, unknown> = {};
       if (name !== undefined) updateData.name = name;
       if (description !== undefined) updateData.description = description;
       if (priceInCents !== undefined) updateData.priceInCents = parseInt(priceInCents, 10);

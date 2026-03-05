@@ -125,7 +125,7 @@ router.patch("/properties/:id", isAuthenticated, householdContextMiddleware, asy
         .where(and(eq(properties.householdId, householdId), ne(properties.id, req.params.id)));
     }
 
-    const updates: Record<string, any> = {
+    const updates: Record<string, unknown> = {
       ...rest,
       updatedAt: new Date(),
     };
@@ -188,6 +188,6 @@ router.post("/properties/:id/set-primary", isAuthenticated, householdContextMidd
   }
 });
 
-export function registerPropertyRoutes(app: any) {
+export function registerPropertyRoutes(app: Router) {
   app.use(router);
 }

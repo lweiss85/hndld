@@ -9,6 +9,15 @@ import { startOfMonth, addDays, format } from "date-fns";
 import { getProvider } from "../services/smart-locks";
 import logger from "../lib/logger";
 
+interface AlexaIntent {
+  name: string;
+  slots?: Record<string, { value: string }>;
+}
+
+interface AlexaSession {
+  user?: { accessToken?: string };
+}
+
 const router = Router();
 
 router.post("/alexa", async (req: Request, res: Response) => {
@@ -42,7 +51,7 @@ router.post("/alexa", async (req: Request, res: Response) => {
   }
 });
 
-async function handleIntent(req: Request, res: Response, intent: any, session: any) {
+async function handleIntent(req: Request, res: Response, intent: AlexaIntent, session: AlexaSession) {
   const accessToken = session?.user?.accessToken;
 
   if (!accessToken && intent.name !== "AMAZON.HelpIntent" && intent.name !== "AMAZON.StopIntent" && intent.name !== "AMAZON.CancelIntent") {
@@ -183,7 +192,7 @@ async function handleApproveAll(res: Response, householdId: string) {
   ));
 }
 
-async function handleSpendingSummary(res: Response, householdId: string, slots: any) {
+async function handleSpendingSummary(res: Response, householdId: string, slots: AlexaIntent["slots"]) {
   const period = slots?.period?.value || "this month";
   let startDate = startOfMonth(new Date());
 
@@ -219,7 +228,7 @@ async function handleSpendingSummary(res: Response, householdId: string, slots: 
   ));
 }
 
-async function handleCreateTask(res: Response, householdId: string, userId: string, slots: any) {
+async function handleCreateTask(res: Response, householdId: string, userId: string, slots: AlexaIntent["slots"]) {
   const taskTitle = slots?.taskTitle?.value;
 
   if (!taskTitle) {
@@ -244,7 +253,7 @@ async function handleCreateTask(res: Response, householdId: string, userId: stri
   ));
 }
 
-async function handleLockDoor(res: Response, householdId: string, slots: any) {
+async function handleLockDoor(res: Response, householdId: string, slots: AlexaIntent["slots"]) {
   const doorName = slots?.doorName?.value || "front door";
 
   const [lock] = await db.select().from(smartLocks)
@@ -279,7 +288,7 @@ async function handleLockDoor(res: Response, householdId: string, slots: any) {
   return res.json(buildResponse(`I couldn't lock the ${lock.name}. Please try again or check the app.`, true));
 }
 
-async function handleUnlockDoor(res: Response, householdId: string, slots: any) {
+async function handleUnlockDoor(res: Response, householdId: string, slots: AlexaIntent["slots"]) {
   const doorName = slots?.doorName?.value || "front door";
 
   const [lock] = await db.select().from(smartLocks)
@@ -338,7 +347,7 @@ async function handleGuestAccess(res: Response, householdId: string) {
   ));
 }
 
-function buildResponse(speech: string, shouldEndSession: boolean, sessionAttributes?: any) {
+function buildResponse(speech: string, shouldEndSession: boolean, sessionAttributes?: Record<string, unknown>) {
   return {
     version: "1.0",
     sessionAttributes: sessionAttributes || {},

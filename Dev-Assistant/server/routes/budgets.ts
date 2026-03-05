@@ -199,7 +199,7 @@ router.patch(
         .where(and(eq(budgets.id, id), eq(budgets.householdId, householdId)));
       if (!existing) return res.status(404).json({ error: "Budget not found" });
 
-      const updates: any = { updatedAt: new Date() };
+      const updates: Record<string, unknown> = { updatedAt: new Date() };
       if (req.body.budgetAmountCents != null) updates.budgetAmountCents = Number(req.body.budgetAmountCents);
       if (req.body.alertThreshold != null) updates.alertThreshold = Number(req.body.alertThreshold);
       if (req.body.period) updates.period = req.body.period;
