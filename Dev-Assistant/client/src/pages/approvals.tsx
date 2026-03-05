@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { HeroCard, ActionCard } from "@/components/premium";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -243,13 +244,13 @@ export default function Approvals() {
       )}
 
       {pendingApprovals.length === 0 && pastApprovals.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+        <HeroCard className="py-12">
+          <div className="flex flex-col items-center justify-center text-center">
             <CheckCircle className="w-12 h-12 text-green-500 mb-3" aria-hidden="true" />
             <p className="font-medium">All caught up.</p>
             <p className="text-sm text-muted-foreground">Everything's hndld.</p>
-          </CardContent>
-        </Card>
+          </div>
+        </HeroCard>
       ) : (
         <div className="space-y-6">
           {pendingApprovals.length > 0 && (
@@ -278,13 +279,13 @@ export default function Approvals() {
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.3 }}
                       >
-                        <Card>
-                          <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+                        <HeroCard className="py-12">
+                          <div className="flex flex-col items-center justify-center text-center">
                             <CheckCircle className="w-12 h-12 text-green-500 mb-3" aria-hidden="true" />
                             <p className="font-medium">All caught up.</p>
                             <p className="text-sm text-muted-foreground">Everything's hndld.</p>
-                          </CardContent>
-                        </Card>
+                          </div>
+                        </HeroCard>
                       </motion.div>
                     ) : null}
                   </AnimatePresence>
@@ -292,13 +293,12 @@ export default function Approvals() {
               ) : (
                 <StaggeredList className="space-y-3" aria-label="Pending approvals list">
                   {pendingApprovals.map((approval) => (
-                    <Card 
+                    <ActionCard 
                       key={approval.id} 
-                      className="hover-elevate cursor-pointer rounded-2xl"
+                      className="p-4"
                       onClick={() => setSelectedApproval(approval)}
                       data-testid={`card-approval-${approval.id}`}
                     >
-                      <CardContent className="p-4">
                         <div className="flex items-start justify-between gap-3">
                           <div className="flex-1 min-w-0">
                             <h3 className="font-medium truncate">{approval.title}</h3>
@@ -332,8 +332,7 @@ export default function Approvals() {
                             Pending
                           </Badge>
                         </div>
-                      </CardContent>
-                    </Card>
+                    </ActionCard>
                   ))}
                 </StaggeredList>
               )}

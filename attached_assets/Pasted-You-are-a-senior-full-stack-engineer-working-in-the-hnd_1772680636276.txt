@@ -1,0 +1,107 @@
+You are a senior full-stack engineer working in the hndld app (React/TypeScript/Tailwind). This is a luxury home concierge app. Currently all cards have the same visual weight — white rectangles with identical rounded corners and shadows. This flattens the visual hierarchy.
+
+## TASK: Implement a 3-tier card hierarchy system
+
+### STEP 1: Create new card variants in the premium component system
+
+In client/src/components/premium/index.tsx, add or update card components:
+
+**HeroCard** — the primary status/greeting card at top of home screen:
+```tsx
+export function HeroCard({ children, className }: { children: React.ReactNode; className?: string }) {
+  return (
+    <div className={cn(
+      "rounded-3xl p-6 relative overflow-hidden",
+      "bg-gradient-to-br from-card via-card to-surface2",
+      "border border-border/30",
+      className
+    )}>
+      {/* Subtle inner glow */}
+      <div 
+        className="absolute inset-0 pointer-events-none opacity-30"
+        style={{
+          background: "radial-gradient(ellipse at 30% 20%, hsl(var(--highlight) / 0.15), transparent 60%)"
+        }}
+      />
+      <div className="relative z-10">{children}</div>
+    </div>
+  );
+}
+```
+
+**ActionCard** — for approvals, payments, interactive elements:
+```tsx
+export function ActionCard({ 
+  children, 
+  className,
+  onClick,
+}: { 
+  children: React.ReactNode; 
+  className?: string;
+  onClick?: () => void;
+}) {
+  return (
+    <motion.div
+      className={cn(
+        "rounded-2xl p-5 bg-card border border-border/50",
+        "shadow-[0_2px_8px_rgba(26,29,46,0.04)]",
+        onClick && "cursor-pointer",
+        className
+      )}
+      whileHover={onClick ? { y: -2, boxShadow: "0 4px 16px rgba(26,29,46,0.08)" } : undefined}
+      whileTap={onClick ? { scale: 0.99 } : undefined}
+      onClick={onClick}
+      transition={{ duration: 0.2 }}
+    >
+      {children}
+    </motion.div>
+  );
+}
+```
+
+**InsightCard** — for informational displays (Time Returned, AI Brief):
+```tsx
+export function InsightCard({ children, className }: { children: React.ReactNode; className?: string }) {
+  return (
+    <div className={cn(
+      "rounded-xl p-5 bg-surface2/80 border border-border/20",
+      className
+    )}>
+      {children}
+    </div>
+  );
+}
+```
+
+Make sure to export all three from the premium components barrel file.
+
+### STEP 2: Apply to the client home page (this-week.tsx)
+
+Go through client/src/pages/this-week.tsx and replace generic Card/LuxuryCard usage:
+
+1. The **status summary card** ("This week is handled. 2 priorities · 1 waiting" with Request/Approvals buttons) → wrap in `<HeroCard>`
+2. The **Time Returned metrics** card → wrap in `<InsightCard>`
+3. The **AI Weekly Brief** card → wrap in `<InsightCard>`
+4. Any **approval/action items** that appear → wrap in `<ActionCard>`
+5. The **pending request cards** → wrap in `<ActionCard>`
+
+### STEP 3: Apply to the assistant home page (today.tsx)
+
+In client/src/pages/today.tsx:
+1. The **next action card** (navy bg card at top) → keep its custom styling but ensure it uses `rounded-3xl`
+2. **Timeline items** → use `<ActionCard>` 
+3. **Next Up upcoming tasks** → use `<InsightCard>`
+
+### STEP 4: Apply to approvals page
+
+In client/src/pages/approvals.tsx:
+- Swipeable approval cards should use ActionCard-level styling
+- Empty state ("All caught up") should use HeroCard treatment with generous padding
+
+### STEP 5: Apply to the Pay page
+
+In client/src/pages/pay.tsx:
+- The amount due summary → HeroCard
+- Individual invoice items → ActionCard
+
+Ensure all pages still render correctly and no functionality is broken.

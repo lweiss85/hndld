@@ -1,6 +1,7 @@
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "wouter";
+import { motion } from "framer-motion";
 
 interface LuxuryCardProps {
   children: React.ReactNode;
@@ -17,6 +18,69 @@ export function LuxuryCard({ children, className }: LuxuryCardProps) {
         className
       )}
     >
+      {children}
+    </div>
+  );
+}
+
+export function HeroCard({ children, className }: { children: React.ReactNode; className?: string }) {
+  return (
+    <div className={cn(
+      "rounded-3xl p-6 relative overflow-hidden",
+      "bg-gradient-to-br from-card via-card to-surface2",
+      "border border-border/30",
+      className
+    )}>
+      <div 
+        className="absolute inset-0 pointer-events-none opacity-30"
+        style={{
+          background: "radial-gradient(ellipse at 30% 20%, rgba(201,169,110,0.15), transparent 60%)"
+        }}
+      />
+      <div className="relative z-10">{children}</div>
+    </div>
+  );
+}
+
+export function ActionCard({ 
+  children, 
+  className,
+  onClick,
+  ...rest
+}: { 
+  children: React.ReactNode; 
+  className?: string;
+  onClick?: () => void;
+  [key: string]: any;
+}) {
+  return (
+    <motion.div
+      className={cn(
+        "rounded-2xl p-5 bg-card border border-border/50",
+        "shadow-[0_2px_8px_rgba(26,29,46,0.04)]",
+        onClick && "cursor-pointer",
+        className
+      )}
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      whileHover={onClick ? { y: -2, boxShadow: "0 4px 16px rgba(26,29,46,0.08)" } : undefined}
+      whileTap={onClick ? { scale: 0.99 } : undefined}
+      onClick={onClick}
+      onKeyDown={onClick ? (e: React.KeyboardEvent) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClick(); } } : undefined}
+      transition={{ duration: 0.2 }}
+      {...rest}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+export function InsightCard({ children, className, ...rest }: { children: React.ReactNode; className?: string; [key: string]: any }) {
+  return (
+    <div className={cn(
+      "rounded-xl p-5 bg-surface2/80 border border-border/20",
+      className
+    )} {...rest}>
       {children}
     </div>
   );

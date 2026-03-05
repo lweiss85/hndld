@@ -21,6 +21,9 @@ import type { Task, Approval, CalendarEvent, Update, SpendingItem } from "@share
 import { Link } from "wouter";
 import { 
   LuxuryCard, 
+  HeroCard,
+  ActionCard,
+  InsightCard,
   SectionHeader, 
   ItemRow,
   SkeletonCard,
@@ -166,7 +169,7 @@ function TimeReturnedCard({ impact }: { impact: ImpactMetrics }) {
   }, [impact.minutesReturnedAllTime, toast]);
 
   return (
-    <LuxuryCard className="relative overflow-visible">
+    <InsightCard className="relative overflow-visible">
       <div className="flex items-center gap-2 mb-3">
         <Clock className="w-5 h-5 text-primary" aria-hidden="true" />
         <h3 className="font-semibold text-foreground">Time Returned</h3>
@@ -202,7 +205,7 @@ function TimeReturnedCard({ impact }: { impact: ImpactMetrics }) {
           That's ~{workdays} workday{workdays !== 1 ? 's' : ''} back in your life
         </p>
       )}
-    </LuxuryCard>
+    </InsightCard>
   );
 }
 
@@ -357,7 +360,7 @@ function CleaningOverview() {
         {pendingAddons.length > 0 && (
           <section>
             <SectionHeader title="Pending Add-ons" action={{ label: "View all", href: "/approvals" }} />
-            <LuxuryCard>
+            <ActionCard>
               <StaggeredList>
                 {pendingAddons.slice(0, 3).map((addon) => (
                   <ItemRow
@@ -368,14 +371,14 @@ function CleaningOverview() {
                   />
                 ))}
               </StaggeredList>
-            </LuxuryCard>
+            </ActionCard>
           </section>
         )}
 
         {recentPhotos.length > 0 && (
           <section>
             <SectionHeader title="Photos & Notes" action={{ label: "View all", href: "/updates" }} />
-            <LuxuryCard>
+            <InsightCard>
               <div className="grid grid-cols-3 gap-2 mb-3">
                 {recentPhotos.slice(0, 3).map((update) => (
                   <div key={update.id} className="aspect-square rounded-lg overflow-hidden bg-muted">
@@ -395,13 +398,13 @@ function CleaningOverview() {
                   See all photos
                 </Button>
               </Link>
-            </LuxuryCard>
+            </InsightCard>
           </section>
         )}
 
         <section>
           <SectionHeader title="Pay & Tip" action={pendingPayments.length > 0 ? { label: "View all", href: "/pay" } : undefined} />
-          <LuxuryCard>
+          <ActionCard>
             {pendingPayments.length > 0 ? (
               <div className="space-y-3">
                 {pendingPayments.slice(0, 2).map((item) => (
@@ -426,7 +429,7 @@ function CleaningOverview() {
               <Heart className="w-4 h-4" aria-hidden="true" />
               Tip your cleaner
             </Button>
-          </LuxuryCard>
+          </ActionCard>
         </section>
       </div>
 
@@ -590,7 +593,7 @@ export default function ThisWeek() {
               animate={{ opacity: 1, transition: { duration: 0.3 } }}
               exit={{ opacity: 0, transition: { duration: 0.5 } }}
             >
-              <LuxuryCard className="relative overflow-hidden">
+              <HeroCard className="relative overflow-hidden">
                 <AmbientParticles active={pendingApprovals.length === 0} color={timeCtx.accentColor} />
                 <div style={{ position: "relative", zIndex: 1 }}>
                   <h2 className="text-xl font-display font-medium text-foreground mb-1">
@@ -619,7 +622,7 @@ export default function ThisWeek() {
                     )}
                   </div>
                 </div>
-              </LuxuryCard>
+              </HeroCard>
             </motion.div>
           )}
         </AnimatePresence>
@@ -663,7 +666,7 @@ export default function ThisWeek() {
                   title="Top Priorities" 
                   action={priorityTasks.length > 0 ? { label: "View all", href: "/tasks" } : undefined}
                 />
-                <LuxuryCard>
+                <ActionCard>
                   {priorityTasks.length === 0 ? (
                     <EmptyState
                       illustration={<CheckmarkIllustration className="w-full h-full" />}
@@ -682,7 +685,7 @@ export default function ThisWeek() {
                       ))}
                     </StaggeredList>
                   )}
-                </LuxuryCard>
+                </ActionCard>
               </section>
             </motion.div>
           )}
@@ -693,7 +696,7 @@ export default function ThisWeek() {
             title="Upcoming" 
             action={upcomingEvents.length > 0 ? { label: "View all", href: "/calendar" } : undefined}
           />
-          <LuxuryCard>
+          <InsightCard>
             {upcomingEvents.length === 0 ? (
               <EmptyState
                 illustration={<CalendarIllustration className="w-full h-full" />}
@@ -712,7 +715,7 @@ export default function ThisWeek() {
                 ))}
               </StaggeredList>
             )}
-          </LuxuryCard>
+          </InsightCard>
         </section>
 
         <AnimatePresence>
@@ -728,7 +731,7 @@ export default function ThisWeek() {
                   title="Handled for You" 
                   action={{ label: "View all", href: "/updates" }}
                 />
-                <LuxuryCard>
+                <InsightCard>
                   <StaggeredList>
                     {recentUpdates.map((update) => (
                       <div 
@@ -742,7 +745,7 @@ export default function ThisWeek() {
                       </div>
                     ))}
                   </StaggeredList>
-                </LuxuryCard>
+                </InsightCard>
               </section>
             </motion.div>
           )}

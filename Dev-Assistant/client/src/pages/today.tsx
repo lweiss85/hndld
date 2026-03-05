@@ -1,5 +1,6 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
+import { ActionCard, InsightCard } from "@/components/premium";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -186,7 +187,7 @@ export default function Today() {
         progress={progress}
       />
       {nextAction && (
-        <Card className="bg-primary text-primary-foreground border-primary" data-testid="card-next-action">
+        <Card className="bg-primary text-primary-foreground border-primary rounded-3xl" data-testid="card-next-action">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="w-2 h-2 rounded-full bg-white animate-pulse" />
@@ -247,8 +248,7 @@ export default function Today() {
             </h2>
             <div className="space-y-2" aria-label="Incoming requests list">
               {pendingRequests.map((request) => (
-                <Card key={request.id} className="border-primary/20 bg-primary/5" data-testid={`card-request-${request.id}`}>
-                  <CardContent className="p-4">
+                <ActionCard key={request.id} className="border-primary/20 bg-primary/5" data-testid={`card-request-${request.id}`}>
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
@@ -283,8 +283,7 @@ export default function Today() {
                         Add to Tasks
                       </Button>
                     </div>
-                  </CardContent>
-                </Card>
+                </ActionCard>
               ))}
             </div>
           </div>
@@ -334,10 +333,10 @@ export default function Today() {
                         )}
                       </div>
                       
-                      <Card className={cn(
+                      <ActionCard className={cn(
+                        "p-3",
                         isPast && item.status !== "DONE" && "opacity-60"
                       )}>
-                        <CardContent className="p-3">
                           <div className="flex items-start justify-between gap-2">
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2">
@@ -427,8 +426,7 @@ export default function Today() {
                               <CheckCircle2 className="h-5 w-5 text-green-500" aria-hidden="true" />
                             )}
                           </div>
-                        </CardContent>
-                      </Card>
+                      </ActionCard>
                     </div>
                   );
                 })}
@@ -444,8 +442,7 @@ export default function Today() {
             </h2>
             <div className="space-y-2">
               {upcomingTasks.map((task) => (
-                <Card key={task.id} data-testid={`card-task-${task.id}`}>
-                  <CardContent className="p-3">
+                <InsightCard key={task.id} className="p-3" data-testid={`card-task-${task.id}`}>
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-3">
                         <Circle className="h-4 w-4 text-muted-foreground shrink-0" aria-hidden="true" />
@@ -457,8 +454,7 @@ export default function Today() {
                         {task.status?.replace("_", " ")}
                       </Badge>
                     </div>
-                  </CardContent>
-                </Card>
+                </InsightCard>
               ))}
             </div>
           </div>
