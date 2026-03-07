@@ -236,7 +236,7 @@ export default function ManageAddons() {
           <StaggeredList className="space-y-6">
             {Object.entries(groupedAddons || {}).map(([category, categoryAddons]) => (
               <div key={category} className="space-y-3">
-                <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+                <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
                   {category}
                 </h2>
                 <div className="space-y-2">

@@ -205,7 +205,7 @@ export default function Addons() {
 
         {pendingAddons && pendingAddons.length > 0 && (
           <div className="space-y-3">
-            <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+            <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
               Pending Requests ({pendingAddons.length})
             </h2>
             <StaggeredList className="space-y-2">
@@ -232,7 +232,7 @@ export default function Addons() {
         )}
 
         <div className="space-y-3">
-          <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-2">
+          <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
             <Sparkles className="h-4 w-4" />
             Available Add-ons
           </h2>

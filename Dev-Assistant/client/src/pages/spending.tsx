@@ -222,7 +222,7 @@ function ClientSpendingView() {
       )}
 
       <div className="space-y-3">
-        <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-2">
+        <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
           <Clock className="h-4 w-4" aria-hidden="true" />
           Waiting on you
         </h2>
@@ -285,7 +285,7 @@ function ClientSpendingView() {
 
       {paymentSentItems.length > 0 && (
         <div className="space-y-3">
-          <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-2">
+          <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
             <Clock className="h-4 w-4" aria-hidden="true" />
             Being reconciled
           </h2>
@@ -320,7 +320,7 @@ function ClientSpendingView() {
       )}
 
       <div className="space-y-3">
-        <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-2">
+        <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
           <Receipt className="h-4 w-4" aria-hidden="true" />
           Recent receipts
         </h2>
@@ -381,7 +381,7 @@ function ClientSpendingView() {
       )}
 
       <div className="space-y-3">
-        <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-2">
+        <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
           <CreditCard className="h-4 w-4" aria-hidden="true" />
           Invoice History
         </h2>
@@ -687,7 +687,7 @@ function AssistantSpendingView() {
       )}
 
       <div className="space-y-2">
-        <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+        <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
           Recent Expenses
         </h2>
         {spending?.length === 0 ? (

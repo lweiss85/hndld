@@ -279,7 +279,7 @@ export default function Vendors() {
         <div className="space-y-6" aria-label="Vendor list" role="region">
           {Object.entries(groupedVendors || {}).map(([category, categoryVendors]) => (
             <div key={category} className="space-y-2">
-              <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+              <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
                 {category}
               </h2>
               {categoryVendors.map((vendor) => (

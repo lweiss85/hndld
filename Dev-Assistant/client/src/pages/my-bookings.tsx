@@ -287,7 +287,7 @@ export default function MyBookingsPage() {
   return (
     <div className="min-h-screen bg-background">
       <div className="px-4 py-6 space-y-5 max-w-4xl mx-auto">
-        <h1 className="text-2xl font-display font-medium text-foreground tracking-tight">
+        <h1 className="font-display text-3xl font-light tracking-tight text-foreground">
           My Bookings
         </h1>
 

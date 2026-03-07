@@ -106,7 +106,7 @@ export function Header() {
 
   return (
     <>
-      <header className="sticky top-0 z-40 w-full" role="banner">
+      <header className="sticky top-0 z-40 w-full bg-background/70 backdrop-blur-2xl border-b border-border/20" role="banner">
         <div className="flex h-14 items-center justify-between px-5 max-w-4xl mx-auto">
           <Link href="/">
             <img

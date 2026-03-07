@@ -217,7 +217,7 @@ export default function StaffJobs() {
       />
       <div className="px-4 py-6 space-y-6 max-w-4xl mx-auto pb-24">
         <div>
-          <h1 className="text-2xl font-display font-medium text-foreground">Jobs</h1>
+          <h1 className="font-display text-3xl font-light tracking-tight text-foreground">Jobs</h1>
           <p className="text-muted-foreground text-sm">
             Your assigned jobs
           </p>

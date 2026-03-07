@@ -117,8 +117,8 @@ function StarRating({ rating }: { rating: number }) {
           key={star}
           className={`h-4 w-4 ${
             star <= Math.round(rating)
-              ? "fill-amber-400 text-amber-400"
-              : "text-primary/20"
+              ? "fill-hndld-gold-500 text-hndld-gold-500"
+              : "text-primary/15"
           }`}
         />
       ))}
@@ -134,7 +134,7 @@ function RatingBar({ label, value }: { label: string; value: number }) {
       </span>
       <div className="flex-1 h-2 rounded-full bg-primary/10">
         <div
-          className="h-full rounded-full bg-amber-400 transition-all"
+          className="h-full rounded-full bg-hndld-gold-500 transition-all"
           style={{ width: `${(value / 5) * 100}%` }}
         />
       </div>
@@ -274,7 +274,7 @@ export default function ProviderDetailPage() {
             </div>
           )}
           <div className="flex-1 pb-1">
-            <h1 className="text-xl font-display font-bold text-foreground">
+            <h1 className="font-display text-3xl font-light tracking-tight text-foreground">
               {provider.displayName}
             </h1>
             {provider.tagline && (
@@ -288,11 +288,11 @@ export default function ProviderDetailPage() {
         <div className="grid grid-cols-2 gap-3">
           <Card className="border-0 shadow-[0_2px_8px_rgba(26,29,46,0.04)] bg-card">
             <CardContent className="p-3 flex items-center gap-3">
-              <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-primary">
-                <Briefcase className="h-4 w-4 text-primary-foreground" />
+              <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-primary/10">
+                <Briefcase className="h-4 w-4 text-primary" />
               </div>
               <div>
-                <p className="text-lg font-display font-bold text-foreground">
+                <p className="text-lg font-data font-medium text-foreground">
                   {provider.jobsCompleted}
                 </p>
                 <p className="text-xs text-muted-foreground">Jobs Done</p>
@@ -301,11 +301,11 @@ export default function ProviderDetailPage() {
           </Card>
           <Card className="border-0 shadow-[0_2px_8px_rgba(26,29,46,0.04)] bg-card">
             <CardContent className="p-3 flex items-center gap-3">
-              <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-amber-400">
-                <Star className="h-4 w-4 text-white" />
+              <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-hndld-gold-500/15">
+                <Star className="h-4 w-4 text-hndld-gold-500" />
               </div>
               <div>
-                <p className="text-lg font-display font-bold text-foreground">
+                <p className="text-lg font-data font-medium text-foreground">
                   {provider.rating.toFixed(1)}
                 </p>
                 <p className="text-xs text-muted-foreground">Rating</p>
@@ -314,11 +314,11 @@ export default function ProviderDetailPage() {
           </Card>
           <Card className="border-0 shadow-[0_2px_8px_rgba(26,29,46,0.04)] bg-card">
             <CardContent className="p-3 flex items-center gap-3">
-              <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-emerald-500">
-                <Clock className="h-4 w-4 text-white" />
+              <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-success/10">
+                <Clock className="h-4 w-4 text-success" />
               </div>
               <div>
-                <p className="text-lg font-display font-bold text-foreground">
+                <p className="text-lg font-data font-medium text-foreground">
                   {provider.responseTime}
                 </p>
                 <p className="text-xs text-muted-foreground">Response</p>
@@ -327,11 +327,11 @@ export default function ProviderDetailPage() {
           </Card>
           <Card className="border-0 shadow-[0_2px_8px_rgba(26,29,46,0.04)] bg-card">
             <CardContent className="p-3 flex items-center gap-3">
-              <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-blue-500">
-                <CheckCircle2 className="h-4 w-4 text-white" />
+              <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-info/10">
+                <CheckCircle2 className="h-4 w-4 text-info" />
               </div>
               <div>
-                <p className="text-lg font-display font-bold text-foreground">
+                <p className="text-lg font-data font-medium text-foreground">
                   {provider.completionRate}%
                 </p>
                 <p className="text-xs text-muted-foreground">Completion</p>
@@ -342,7 +342,7 @@ export default function ProviderDetailPage() {
 
         {provider.badges && provider.badges.length > 0 && (
           <div className="space-y-3">
-            <h2 className="text-sm font-display font-semibold uppercase tracking-wider text-muted-foreground">
+            <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
               Badges
             </h2>
             <div className="flex flex-wrap gap-2">
@@ -362,7 +362,7 @@ export default function ProviderDetailPage() {
 
         {provider.services && provider.services.length > 0 && (
           <div className="space-y-3">
-            <h2 className="text-sm font-display font-semibold uppercase tracking-wider text-muted-foreground">
+            <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
               Services
             </h2>
             <div className="space-y-3">
@@ -404,7 +404,7 @@ export default function ProviderDetailPage() {
 
         {provider.ratingBreakdown && (
           <div className="space-y-3">
-            <h2 className="text-sm font-display font-semibold uppercase tracking-wider text-muted-foreground">
+            <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
               Rating Breakdown
             </h2>
             <Card className="border-0 shadow-[0_2px_8px_rgba(26,29,46,0.04)] bg-card">
@@ -420,7 +420,7 @@ export default function ProviderDetailPage() {
 
         {provider.reviews && provider.reviews.length > 0 && (
           <div className="space-y-3">
-            <h2 className="text-sm font-display font-semibold uppercase tracking-wider text-muted-foreground">
+            <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
               Reviews ({provider.reviews.length})
             </h2>
             <div className="space-y-3">

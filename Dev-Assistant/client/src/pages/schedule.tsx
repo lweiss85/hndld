@@ -88,7 +88,7 @@ export default function Schedule() {
     <PageTransition>
       <div className="px-4 py-6 space-y-6 max-w-4xl mx-auto pb-24">
         <div className="flex items-center justify-between gap-4">
-          <h1 className="text-2xl font-display font-medium" data-testid="text-page-title">Schedule</h1>
+          <h1 className="font-display text-3xl font-light tracking-tight" data-testid="text-page-title">Schedule</h1>
         </div>
 
         {nextVisit ? (
@@ -167,7 +167,7 @@ export default function Schedule() {
 
         {upcomingVisits.length > 1 && (
           <div className="space-y-3">
-            <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+            <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
               Upcoming ({upcomingVisits.length - 1} more)
             </h2>
             <StaggeredList className="space-y-2">
@@ -199,7 +199,7 @@ export default function Schedule() {
 
         {pastVisits.length > 0 && (
           <div className="space-y-3">
-            <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+            <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
               Past Cleanings
             </h2>
             <StaggeredList className="space-y-2">

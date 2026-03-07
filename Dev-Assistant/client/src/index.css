@@ -583,8 +583,25 @@
   .stagger-5 { animation-delay: 250ms; }
 }
 
-/* Skeleton shimmer animation */
-@keyframes shimmer {
+/* Premium card gradient */
+.premium-card {
+  background: linear-gradient(
+    135deg,
+    hsl(var(--card)) 0%,
+    hsl(var(--card) / 0.95) 100%
+  );
+}
+
+.dark .premium-card {
+  background: linear-gradient(
+    135deg,
+    hsl(var(--card)) 0%,
+    hsl(var(--card) / 0.92) 100%
+  );
+}
+
+/* Skeleton shimmer animation with gold accent */
+@keyframes shimmer-gold {
   0% {
     transform: translateX(-100%);
   }
@@ -607,10 +624,10 @@
   background: linear-gradient(
     90deg,
     transparent,
-    hsl(var(--foreground) / 0.04),
+    hsl(var(--hndld-gold-400) / 0.08),
     transparent
   );
-  animation: shimmer 1.5s ease-in-out infinite;
+  animation: shimmer-gold 2s ease-in-out infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -762,25 +779,6 @@
   100% {
     background-position: 200% 0;
   }
-}
-
-.skeleton-shimmer {
-  position: relative;
-  overflow: hidden;
-}
-
-.skeleton-shimmer::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    hsl(var(--muted) / 0.4) 50%,
-    transparent 100%
-  );
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite ease-in-out;
 }
 
 .scrollbar-hide {

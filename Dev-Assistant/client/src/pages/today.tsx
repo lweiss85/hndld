@@ -241,7 +241,7 @@ export default function Today() {
       <div className="space-y-6">
         {pendingRequests.length > 0 && (
           <div className="space-y-2">
-            <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-2">
+            <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
               <MessageSquare className="h-4 w-4" aria-hidden="true" />
               Incoming Requests
               <Badge variant="secondary" className="ml-1">{pendingRequests.length}</Badge>
@@ -290,7 +290,7 @@ export default function Today() {
         )}
 
         <div className="space-y-1">
-          <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-2">
+          <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
             <Clock className="h-4 w-4" aria-hidden="true" />
             Timeline
           </h2>
@@ -440,7 +440,7 @@ export default function Today() {
 
         {upcomingTasks.length > 0 && (
           <div className="space-y-1">
-            <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+            <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
               Next Up
             </h2>
             <div className="space-y-2">

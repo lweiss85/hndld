@@ -206,7 +206,7 @@ export default function Calendar() {
             return (
               <div key={dayKey} className="space-y-2">
                 <h2 className={cn(
-                  "text-sm font-medium uppercase tracking-wide",
+                  "text-xs font-semibold uppercase tracking-widest",
                   isCurrentDay ? "text-primary" : "text-muted-foreground"
                 )}>
                   {formatEventDate(day)}

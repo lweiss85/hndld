@@ -142,7 +142,7 @@ export default function StaffUpdates() {
       <div className="px-4 py-6 space-y-6 max-w-4xl mx-auto pb-24">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-display font-medium text-foreground">Updates</h1>
+            <h1 className="font-display text-3xl font-light tracking-tight text-foreground">Updates</h1>
             <p className="text-muted-foreground text-sm">
               Your posted updates
             </p>

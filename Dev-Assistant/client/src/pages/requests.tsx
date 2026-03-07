@@ -208,7 +208,7 @@ export default function Requests() {
           {/* Pending requests */}
           {(requests?.filter(r => !r.taskId).length ?? 0) > 0 && (
             <div className="space-y-3" aria-label="Pending requests list">
-              <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+              <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
                 Pending Requests
               </h2>
               {requests?.filter(r => !r.taskId).map((request) => (
@@ -249,7 +249,7 @@ export default function Requests() {
           {/* Accepted requests */}
           {(requests?.filter(r => r.taskId).length ?? 0) > 0 && (
             <div className="space-y-3">
-              <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-2">
+              <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
                 <CheckCircle2 className="h-4 w-4 text-success" aria-hidden="true" />
                 Accepted
               </h2>

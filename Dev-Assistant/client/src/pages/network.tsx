@@ -162,7 +162,7 @@ function ConnectionsTab() {
 
       {pending.length > 0 && (
         <div className="space-y-2">
-          <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+          <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
             Pending Requests
           </h3>
           {pending.map((conn) => (
@@ -201,7 +201,7 @@ function ConnectionsTab() {
 
       {accepted.length > 0 && (
         <div className="space-y-2">
-          <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+          <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
             Connected Households
           </h3>
           {accepted.map((conn) => (
@@ -234,7 +234,7 @@ function ConnectionsTab() {
 
       {sent.length > 0 && (
         <div className="space-y-2">
-          <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+          <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
             Sent Requests
           </h3>
           {sent.map((conn) => (
@@ -339,7 +339,7 @@ function ReferralsTab() {
 
       {received.length > 0 && (
         <div className="space-y-2">
-          <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+          <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
             Received
           </h3>
           {received.map((ref: any) => (
@@ -395,7 +395,7 @@ function ReferralsTab() {
 
       {sent.length > 0 && (
         <div className="space-y-2">
-          <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+          <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
             Sent
           </h3>
           {sent.map((ref: any) => (
@@ -691,7 +691,7 @@ function EmergencyCoverageTab() {
 
       {openRequests.length > 0 && (
         <div className="space-y-2">
-          <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+          <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
             Open Requests
           </h3>
           {openRequests.map((req: any) => (
@@ -737,7 +737,7 @@ function EmergencyCoverageTab() {
 
       {backupProvidersList && backupProvidersList.length > 0 && (
         <div className="space-y-2">
-          <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+          <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
             Available Backup Providers
           </h3>
           {backupProvidersList.map((prov: any) => (
@@ -770,7 +770,7 @@ function EmergencyCoverageTab() {
 
       {fulfilledRequests.length > 0 && (
         <div className="space-y-2">
-          <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+          <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
             Past Coverage
           </h3>
           {fulfilledRequests.map((req: any) => (

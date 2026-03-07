@@ -131,7 +131,7 @@ export default function Reports() {
       <div className="px-4 py-6 space-y-6 max-w-4xl mx-auto">
         <div className="flex items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-display font-medium">Annual Report</h1>
+            <h1 className="font-display text-3xl font-light tracking-tight">Annual Report</h1>
             <p className="text-muted-foreground mt-1">
               Financial overview for tax preparation
             </p>

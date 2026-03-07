@@ -254,7 +254,7 @@ export default function Approvals() {
         <div className="space-y-6">
           {pendingApprovals.length > 0 && (
             <div className="space-y-3">
-              <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+              <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
                 Pending ({visiblePending.length})
               </h2>
 
@@ -338,7 +338,7 @@ export default function Approvals() {
 
           {pastApprovals.length > 0 && (
             <div className="space-y-3">
-              <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+              <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
                 Past
               </h2>
               {pastApprovals.map((approval) => (

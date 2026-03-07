@@ -80,8 +80,8 @@ function StarRating({ rating }: { rating: number }) {
           className={cn(
             "h-3.5 w-3.5",
             star <= Math.round(rating)
-              ? "fill-amber-400 text-amber-400"
-              : "text-primary/20"
+              ? "fill-hndld-gold-500 text-hndld-gold-500"
+              : "text-primary/15"
           )}
         />
       ))}
@@ -208,7 +208,7 @@ export default function MarketplacePage() {
   return (
     <div className="min-h-screen bg-background">
       <div className="px-4 py-6 space-y-5 max-w-2xl mx-auto">
-        <h1 className="text-2xl font-display font-medium text-foreground tracking-tight">
+        <h1 className="font-display text-3xl font-light tracking-tight text-foreground">
           Marketplace
         </h1>
 
@@ -276,7 +276,7 @@ export default function MarketplacePage() {
           <>
             {featured.length > 0 && (
               <section className="space-y-3">
-                <h2 className="text-sm font-display font-semibold text-muted-foreground uppercase tracking-wider">
+                <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
                   Featured
                 </h2>
                 {featured.map((provider) => (
@@ -292,7 +292,7 @@ export default function MarketplacePage() {
             {filtered.length > 0 ? (
               <section className="space-y-3">
                 {featured.length > 0 && (
-                  <h2 className="text-sm font-display font-semibold text-muted-foreground uppercase tracking-wider">
+                  <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
                     All Providers
                   </h2>
                 )}
