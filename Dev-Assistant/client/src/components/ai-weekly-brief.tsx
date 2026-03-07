@@ -3,7 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { Sparkles, RefreshCw } from "lucide-react";
+import { RefreshCw } from "lucide-react";
+import { IconSparkle } from "@/components/icons/hndld-icons";
 import { Button } from "@/components/ui/button";
 import { queryClient } from "@/lib/queryClient";
 
@@ -49,7 +50,7 @@ export function AIWeeklyBrief() {
     <Card className="relative overflow-hidden" data-testid="card-ai-brief">
       <CardHeader className="pb-2 flex flex-row items-center justify-between gap-2">
         <CardTitle className="text-base flex items-center gap-2">
-          <Sparkles className="h-4 w-4 text-primary" />
+          <IconSparkle size={16} className="text-primary" />
           AI Weekly Brief
         </CardTitle>
         <div className="flex items-center gap-2">

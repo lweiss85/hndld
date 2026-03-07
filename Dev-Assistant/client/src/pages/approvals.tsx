@@ -18,16 +18,14 @@ import {
 } from "@/components/ui/dialog";
 import { 
   Check, 
-  CheckCircle,
   X, 
-  MessageSquare, 
   DollarSign, 
   Link as LinkIcon,
   Image as ImageIcon,
   Plus,
-  Receipt,
   ArrowRight
 } from "lucide-react";
+import { IconComplete, IconMessages, IconSpending } from "@/components/icons/hndld-icons";
 import { format } from "date-fns";
 import { Link } from "wouter";
 import type { Approval, Comment, InsertApproval, SpendingItem } from "@shared/schema";
@@ -225,7 +223,7 @@ export default function Approvals() {
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                    <Receipt className="h-5 w-5 text-primary" aria-hidden="true" />
+                    <IconSpending size={20} className="text-primary" aria-hidden="true" />
                   </div>
                   <div>
                     <p className="font-medium">Payments waiting</p>
@@ -443,7 +441,7 @@ export default function Approvals() {
 
             <div className="border-t pt-4">
               <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
-                <MessageSquare className="h-4 w-4" aria-hidden="true" />
+                <IconMessages size={16} aria-hidden="true" />
                 Comments
               </h4>
               <div className="space-y-2 mb-3">
@@ -479,7 +477,7 @@ export default function Approvals() {
                   aria-label="Add comment"
                   data-testid="button-add-comment"
                 >
-                  <MessageSquare className="h-4 w-4" aria-hidden="true" />
+                  <IconMessages size={16} aria-hidden="true" />
                 </Button>
               </div>
             </div>

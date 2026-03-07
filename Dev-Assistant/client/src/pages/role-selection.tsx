@@ -4,7 +4,7 @@ import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
-import { Briefcase, Users, Home } from "lucide-react";
+import { IconProvider, IconReferrals, IconHome } from "@/components/icons/hndld-icons";
 
 export default function RoleSelection() {
   const { toast } = useToast();
@@ -33,7 +33,7 @@ export default function RoleSelection() {
         <div className="max-w-md w-full space-y-8">
           <div className="text-center space-y-4">
             <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-primary/10 mb-4">
-              <Home className="h-10 w-10 text-primary" />
+              <IconHome size={40} className="text-primary" />
             </div>
             <h2 className="text-3xl font-bold tracking-tight" data-testid="text-role-heading">
               Welcome to hndld
@@ -52,7 +52,7 @@ export default function RoleSelection() {
               <CardContent className="p-6">
                 <div className="flex items-start gap-4">
                   <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                    <Briefcase className="h-6 w-6 text-primary" />
+                    <IconProvider size={24} className="text-primary" />
                   </div>
                   <div className="flex-1">
                     <h3 className="font-semibold text-lg">I'm a Household Assistant</h3>
@@ -72,7 +72,7 @@ export default function RoleSelection() {
               <CardContent className="p-6">
                 <div className="flex items-start gap-4">
                   <div className="w-12 h-12 rounded-xl bg-muted flex items-center justify-center shrink-0">
-                    <Users className="h-6 w-6 text-muted-foreground" />
+                    <IconReferrals size={24} className="text-muted-foreground" />
                   </div>
                   <div className="flex-1">
                     <h3 className="font-semibold text-lg">I'm a Family Member</h3>

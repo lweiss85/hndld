@@ -25,13 +25,10 @@ import {
 } from "@/components/ui/select";
 import {
   ArrowLeft,
-  Star,
-  Clock,
-  CheckCircle2,
-  Briefcase,
   DollarSign,
   Timer,
 } from "lucide-react";
+import { IconRatings, IconClock, IconProvider, IconComplete } from "@/components/icons/hndld-icons";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
@@ -113,13 +110,14 @@ function StarRating({ rating }: { rating: number }) {
   return (
     <div className="flex gap-0.5">
       {[1, 2, 3, 4, 5].map((star) => (
-        <Star
+        <IconRatings
           key={star}
-          className={`h-4 w-4 ${
+          size={16}
+          className={
             star <= Math.round(rating)
               ? "fill-hndld-gold-500 text-hndld-gold-500"
               : "text-primary/15"
-          }`}
+          }
         />
       ))}
     </div>
@@ -289,7 +287,7 @@ export default function ProviderDetailPage() {
           <Card className="border-0 shadow-[0_2px_8px_rgba(26,29,46,0.04)] bg-card">
             <CardContent className="p-3 flex items-center gap-3">
               <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-primary/10">
-                <Briefcase className="h-4 w-4 text-primary" />
+                <IconProvider size={16} className="text-primary" />
               </div>
               <div>
                 <p className="text-lg font-data font-medium text-foreground">
@@ -302,7 +300,7 @@ export default function ProviderDetailPage() {
           <Card className="border-0 shadow-[0_2px_8px_rgba(26,29,46,0.04)] bg-card">
             <CardContent className="p-3 flex items-center gap-3">
               <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-hndld-gold-500/15">
-                <Star className="h-4 w-4 text-hndld-gold-500" />
+                <IconRatings size={16} className="text-hndld-gold-500" />
               </div>
               <div>
                 <p className="text-lg font-data font-medium text-foreground">
@@ -315,7 +313,7 @@ export default function ProviderDetailPage() {
           <Card className="border-0 shadow-[0_2px_8px_rgba(26,29,46,0.04)] bg-card">
             <CardContent className="p-3 flex items-center gap-3">
               <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-success/10">
-                <Clock className="h-4 w-4 text-success" />
+                <IconClock size={16} className="text-success" />
               </div>
               <div>
                 <p className="text-lg font-data font-medium text-foreground">
@@ -328,7 +326,7 @@ export default function ProviderDetailPage() {
           <Card className="border-0 shadow-[0_2px_8px_rgba(26,29,46,0.04)] bg-card">
             <CardContent className="p-3 flex items-center gap-3">
               <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-info/10">
-                <CheckCircle2 className="h-4 w-4 text-info" />
+                <IconComplete size={16} className="text-info" />
               </div>
               <div>
                 <p className="text-lg font-data font-medium text-foreground">

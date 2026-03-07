@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
-import { ChevronDown, Shield, Calendar, Zap } from "lucide-react";
+import { ChevronDown, Shield, Zap } from "lucide-react";
+import { IconSchedule } from "@/components/icons/hndld-icons";
 
 const ease = [0.22, 1, 0.36, 1];
 
@@ -192,7 +193,7 @@ export default function Landing() {
             <Shield aria-hidden="true" className="w-3.5 h-3.5" /> Bank-level encryption
           </span>
           <span className="flex items-center gap-2">
-            <Calendar aria-hidden="true" className="w-3.5 h-3.5" /> Google Calendar sync
+            <IconSchedule aria-hidden="true" size={14} /> Google Calendar sync
           </span>
           <span className="flex items-center gap-2">
             <Zap aria-hidden="true" className="w-3.5 h-3.5" /> Setup in 5 minutes

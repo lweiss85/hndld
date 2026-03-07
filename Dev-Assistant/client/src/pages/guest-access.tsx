@@ -10,7 +10,8 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { Plus, UserPlus, Clock, Shield, ShieldOff, Mail, Copy, Check, UserX, Users } from "lucide-react";
+import { Plus, Shield, ShieldOff, Copy, Check, UserX } from "lucide-react";
+import { IconReferrals, IconClock, IconMessages } from "@/components/icons/hndld-icons";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow, format, isPast, isFuture } from "date-fns";
 
@@ -134,7 +135,7 @@ export default function GuestAccessPage() {
           </div>
           <Dialog open={showInvite} onOpenChange={setShowInvite}>
             <DialogTrigger asChild>
-              <Button size="sm"><UserPlus className="h-4 w-4 mr-1" /> Invite</Button>
+              <Button size="sm"><IconReferrals size={16} className="mr-1" /> Invite</Button>
             </DialogTrigger>
             <DialogContent className="max-h-[90vh] overflow-y-auto">
               <DialogHeader>
@@ -154,14 +155,14 @@ export default function GuestAccessPage() {
           <div className="grid grid-cols-3 gap-3">
             <Card>
               <CardContent className="p-3 text-center">
-                <Users className="h-4 w-4 mx-auto mb-1 text-emerald-500" />
+                <IconReferrals size={16} className="mx-auto mb-1 text-emerald-500" />
                 <div className="text-sm font-semibold">{activeGuests.length}</div>
                 <div className="text-[10px] text-muted-foreground">Active</div>
               </CardContent>
             </Card>
             <Card>
               <CardContent className="p-3 text-center">
-                <Clock className="h-4 w-4 mx-auto mb-1 text-amber-500" />
+                <IconClock size={16} className="mx-auto mb-1 text-amber-500" />
                 <div className="text-sm font-semibold">{pendingGuests.length}</div>
                 <div className="text-[10px] text-muted-foreground">Pending</div>
               </CardContent>
@@ -181,7 +182,7 @@ export default function GuestAccessPage() {
         ) : guests.length === 0 ? (
           <Card>
             <CardContent className="py-12 text-center">
-              <UserPlus className="h-10 w-10 mx-auto mb-3 text-muted-foreground" />
+              <IconReferrals size={40} className="mx-auto mb-3 text-muted-foreground" />
               <p className="text-sm text-muted-foreground leading-relaxed mb-4">Guest access links will be managed here.</p>
               <p className="text-sm text-muted-foreground mb-4">
                 Invite house sitters, contractors, or temporary help with time-limited access

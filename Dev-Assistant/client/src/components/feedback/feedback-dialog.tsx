@@ -5,13 +5,12 @@ import {
   Bug,
   Lightbulb,
   MessageCircle,
-  AlertCircle,
   Heart,
   X,
   Loader2,
-  CheckCircle2,
   Camera,
 } from "lucide-react";
+import { IconAlert, IconComplete } from "@/components/icons/hndld-icons";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
@@ -19,7 +18,7 @@ const FEEDBACK_TYPES = [
   { value: "BUG", label: "Bug Report", icon: Bug, color: "text-red-500" },
   { value: "FEATURE_REQUEST", label: "Feature Request", icon: Lightbulb, color: "text-amber-500" },
   { value: "GENERAL", label: "General", icon: MessageCircle, color: "text-blue-500" },
-  { value: "COMPLAINT", label: "Complaint", icon: AlertCircle, color: "text-orange-500" },
+  { value: "COMPLAINT", label: "Complaint", icon: IconAlert, color: "text-orange-500" },
   { value: "PRAISE", label: "Praise", icon: Heart, color: "text-pink-500" },
 ] as const;
 
@@ -95,7 +94,7 @@ export function FeedbackDialog({ open, onClose }: FeedbackDialogProps) {
           {submitted ? (
             <div className="py-8 text-center space-y-3">
               <div className="w-14 h-14 rounded-full bg-emerald-100 dark:bg-emerald-900 flex items-center justify-center mx-auto">
-                <CheckCircle2 className="h-7 w-7 text-emerald-600 dark:text-emerald-400" />
+                <IconComplete size={28} className="text-emerald-600 dark:text-emerald-400" />
               </div>
               <h3 className="font-semibold text-lg">Thank you!</h3>
               <p className="text-sm text-muted-foreground">

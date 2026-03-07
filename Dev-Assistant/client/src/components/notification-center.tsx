@@ -1,6 +1,7 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Bell, Check, CheckCheck, X, FileText, CheckSquare, MessageSquare, Calendar } from "lucide-react";
+import { Bell, Check, CheckCheck, X, FileText } from "lucide-react";
+import { IconTasks, IconMessages, IconSchedule } from "@/components/icons/hndld-icons";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -17,13 +18,13 @@ import { formatDistanceToNow } from "date-fns";
 import type { Notification } from "@shared/schema";
 import { useLocation } from "wouter";
 
-const notificationIcons: Record<string, typeof Bell> = {
+const notificationIcons: Record<string, React.ComponentType<{ className?: string }>> = {
   APPROVAL_NEEDED: FileText,
-  TASK_WAITING: CheckSquare,
-  UPDATE_POSTED: MessageSquare,
-  DAILY_DIGEST: Calendar,
-  WEEKLY_BRIEF: Calendar,
-  REQUEST_RECEIVED: MessageSquare,
+  TASK_WAITING: IconTasks,
+  UPDATE_POSTED: IconMessages,
+  DAILY_DIGEST: IconSchedule,
+  WEEKLY_BRIEF: IconSchedule,
+  REQUEST_RECEIVED: IconMessages,
 };
 
 export function NotificationCenter() {

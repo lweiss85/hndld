@@ -11,7 +11,8 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { Plus, TrendingUp, TrendingDown, DollarSign, AlertTriangle, Pencil, Trash2, ChevronLeft, BarChart3 } from "lucide-react";
+import { Plus, TrendingUp, TrendingDown, DollarSign, Pencil, Trash2, ChevronLeft, BarChart3 } from "lucide-react";
+import { IconAlert } from "@/components/icons/hndld-icons";
 import { cn } from "@/lib/utils";
 
 interface BudgetStatus {
@@ -234,7 +235,7 @@ export default function Budgets() {
             </Card>
             <Card>
               <CardContent className="p-3 text-center">
-                <AlertTriangle className={cn("h-4 w-4 mx-auto mb-1", overBudgetCount > 0 ? "text-red-500" : "text-muted-foreground")} />
+                <IconAlert size={16} className={cn("mx-auto mb-1", overBudgetCount > 0 ? "text-red-500" : "text-muted-foreground")} />
                 <div className="text-sm font-semibold">{overBudgetCount}</div>
                 <div className="text-[10px] text-muted-foreground">Over Budget</div>
               </CardContent>

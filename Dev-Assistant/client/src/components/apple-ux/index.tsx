@@ -11,7 +11,8 @@
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { cn } from "@/lib/utils";
-import { Check, Loader2, AlertCircle, Info, CheckCircle2, XCircle } from "lucide-react";
+import { Check, Loader2, Info, XCircle } from "lucide-react";
+import { IconComplete, IconAlert } from "@/components/icons/hndld-icons";
 
 // ============================================================================
 // HAPTIC FEEDBACK SYSTEM
@@ -516,9 +517,9 @@ export function AppleToast({
   }, [type]);
 
   const icons: Record<ToastType, React.ReactNode> = {
-    success: <CheckCircle2 className="h-5 w-5 text-emerald-500" />,
+    success: <IconComplete size={20} className="text-emerald-500" />,
     error: <XCircle className="h-5 w-5 text-red-500" />,
-    warning: <AlertCircle className="h-5 w-5 text-amber-500" />,
+    warning: <IconAlert size={20} className="text-amber-500" />,
     info: <Info className="h-5 w-5 text-blue-500" />,
   };
 

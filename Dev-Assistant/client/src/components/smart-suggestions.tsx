@@ -4,13 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { 
   Lightbulb, 
-  AlertCircle, 
   Calendar, 
-  CheckCircle2,
-  Clock,
   ArrowRight,
   Sparkles
 } from "lucide-react";
+import { IconComplete, IconAlert, IconClock } from "@/components/icons/hndld-icons";
 import { Link } from "wouter";
 import { cn } from "@/lib/utils";
 
@@ -26,9 +24,9 @@ interface SmartSuggestion {
 }
 
 const TYPE_ICONS: Record<string, React.ReactNode> = {
-  task: <CheckCircle2 className="h-4 w-4" />,
-  reminder: <AlertCircle className="h-4 w-4" />,
-  vendor: <Clock className="h-4 w-4" />,
+  task: <IconComplete size={16} />,
+  reminder: <IconAlert size={16} />,
+  vendor: <IconClock size={16} />,
   event: <Calendar className="h-4 w-4" />,
   pattern: <Sparkles className="h-4 w-4" />,
 };

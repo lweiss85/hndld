@@ -14,21 +14,17 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import {
-  Users,
-  UserPlus,
   Share2,
   ShoppingCart,
-  AlertTriangle,
-  Star,
   Check,
   X,
   ArrowRight,
   Percent,
   Shield,
   Phone,
-  Clock,
   ChevronRight,
 } from "lucide-react";
+import { IconReferrals, IconAlert, IconClock } from "@/components/icons/hndld-icons";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { PageTransition } from "@/components/juice";
@@ -37,7 +33,7 @@ import { cn } from "@/lib/utils";
 type Tab = "connections" | "referrals" | "group-buys" | "emergency";
 
 const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
-  { id: "connections", label: "Network", icon: <Users className="h-4 w-4" /> },
+  { id: "connections", label: "Network", icon: <IconReferrals size={16} /> },
   { id: "referrals", label: "Referrals", icon: <Share2 className="h-4 w-4" /> },
   { id: "group-buys", label: "Group Deals", icon: <ShoppingCart className="h-4 w-4" /> },
   { id: "emergency", label: "Coverage", icon: <Shield className="h-4 w-4" /> },
@@ -155,7 +151,7 @@ function ConnectionsTab() {
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">Your Network</h2>
         <Button size="sm" onClick={() => setShowInvite(true)}>
-          <UserPlus className="h-4 w-4 mr-1" />
+          <IconReferrals size={16} className="mr-1" />
           Connect
         </Button>
       </div>
@@ -210,7 +206,7 @@ function ConnectionsTab() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                      <Users className="h-5 w-5 text-primary" />
+                      <IconReferrals size={20} className="text-primary" />
                     </div>
                     <div>
                       <div className="font-medium">{conn.otherHouseholdName}</div>
@@ -253,14 +249,14 @@ function ConnectionsTab() {
       {accepted.length === 0 && pending.length === 0 && sent.length === 0 && (
         <div className="flex flex-col items-center justify-center py-12 text-center">
           <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
-            <Users className="h-8 w-8 text-muted-foreground" />
+            <IconReferrals size={32} className="text-muted-foreground" />
           </div>
           <h3 className="font-display text-xl font-light tracking-tight text-foreground mb-1.5">No connections yet</h3>
           <p className="text-sm text-muted-foreground mb-4">
             Connect with other households to share vendors, referrals, and group deals
           </p>
           <Button onClick={() => setShowInvite(true)}>
-            <UserPlus className="h-4 w-4 mr-1" />
+            <IconReferrals size={16} className="mr-1" />
             Connect a Household
           </Button>
         </div>
@@ -514,7 +510,7 @@ function GroupBuysTab() {
                         {offer.discountPercent}% off
                       </span>
                       <span className="flex items-center gap-1 text-muted-foreground">
-                        <Users className="h-3 w-3" />
+                        <IconReferrals size={12} />
                         {offer.currentHouseholds}/{offer.minHouseholds} households
                       </span>
                       {offer.location && (
@@ -680,7 +676,7 @@ function EmergencyCoverageTab() {
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">Emergency Coverage</h2>
         <Button size="sm" variant="destructive" onClick={() => setShowRequest(true)}>
-          <AlertTriangle className="h-4 w-4 mr-1" />
+          <IconAlert size={16} className="mr-1" />
           Need Help
         </Button>
       </div>
@@ -700,7 +696,7 @@ function EmergencyCoverageTab() {
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <div className="flex items-center gap-2">
-                      <AlertTriangle className="h-4 w-4 text-red-500" />
+                      <IconAlert size={16} className="text-red-500" />
                       <span className="font-medium">{req.serviceCategory}</span>
                     </div>
                     <p className="text-sm text-muted-foreground mt-1">
@@ -709,7 +705,7 @@ function EmergencyCoverageTab() {
                     {req.reason && <p className="text-sm mt-1">{req.reason}</p>}
                     {req.neededBy && (
                       <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
-                        <Clock className="h-3 w-3" /> Needed by {new Date(req.neededBy).toLocaleDateString()}
+                        <IconClock size={12} /> Needed by {new Date(req.neededBy).toLocaleDateString()}
                       </p>
                     )}
                   </div>

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
-import { WifiOff, Wifi, RefreshCw, Download, X, CheckCircle2 } from "lucide-react";
+import { WifiOff, Wifi, RefreshCw, Download, X } from "lucide-react";
+import { IconComplete } from "@/components/icons/hndld-icons";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -252,7 +253,7 @@ export function UpdateBanner() {
       <div className="fixed bottom-20 left-4 right-4 md:left-auto md:right-4 md:w-80 z-50 bg-card border border-border rounded-2xl shadow-luxury-lg p-4 animate-fade-in-up">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-success/10 flex items-center justify-center flex-shrink-0">
-            <CheckCircle2 className="w-5 h-5 text-success" />
+            <IconComplete size={20} className="text-success" />
           </div>
           <div className="flex-1 min-w-0">
             <h4 className="font-medium text-sm">Ready to Work Offline</h4>

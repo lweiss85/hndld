@@ -12,11 +12,12 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import {
   Building2, Users, Calendar, DollarSign, TrendingUp,
-  Plus, ArrowLeft, Clock, CheckCircle2, AlertCircle,
+  Plus, ArrowLeft,
   MapPin, Star, Briefcase, UserPlus, CalendarPlus,
   Settings, BarChart3, FileText, ChevronRight, XCircle,
   Play, Pause, Eye
 } from "lucide-react";
+import { IconComplete, IconAlert, IconClock } from "@/components/icons/hndld-icons";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 
@@ -271,7 +272,7 @@ function DashboardView() {
         <Card className="border-0 shadow-[0_2px_8px_rgba(26,29,46,0.04)]">
           <CardContent className="p-4">
             <div className="flex items-center gap-2 mb-1">
-              <CheckCircle2 className="h-4 w-4 text-green-600" />
+              <IconComplete size={16} className="text-green-600" />
               <span className="text-sm font-medium">Completed This Month</span>
             </div>
             <p className="text-2xl font-bold">{data.schedule.completedThisMonth}</p>
@@ -763,7 +764,7 @@ function ScheduleView() {
                 </div>
                 {item.estimatedDuration && (
                   <p className="text-xs text-muted-foreground mb-2">
-                    <Clock className="h-3 w-3 inline mr-1" />{item.estimatedDuration} min
+                    <IconClock size={12} className="inline mr-1" />{item.estimatedDuration} min
                   </p>
                 )}
                 {item.providerNotes && (
@@ -786,7 +787,7 @@ function ScheduleView() {
                 )}
                 {item.status === "IN_PROGRESS" && (
                   <Button size="sm" className="mt-3" onClick={() => statusMutation.mutate({ id: item.id, status: "COMPLETED" })}>
-                    <CheckCircle2 className="h-3 w-3 mr-1" /> Complete
+                    <IconComplete size={12} className="mr-1" /> Complete
                   </Button>
                 )}
               </CardContent>
@@ -1024,7 +1025,7 @@ function SettingsView({ provider }: { provider: any }) {
       </Card>
 
       <div className="flex items-center gap-2 p-4 bg-muted/50 rounded-lg text-sm text-muted-foreground">
-        <AlertCircle className="h-4 w-4 shrink-0" />
+        <IconAlert size={16} className="shrink-0" />
         <div>
           <p className="font-medium">Verification Status: {provider.isVerified ? "Verified" : "Pending"}</p>
           <p className="text-xs mt-0.5">Complete your profile and submit documentation to get verified</p>

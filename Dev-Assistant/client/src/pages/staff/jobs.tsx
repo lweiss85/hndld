@@ -5,13 +5,12 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
-  Clock, 
   MapPin, 
-  CheckCircle2,
   Circle,
   Play,
   Calendar,
 } from "lucide-react";
+import { IconComplete, IconClock } from "@/components/icons/hndld-icons";
 import { format } from "date-fns";
 import { triggerHaptic } from "@/components/juice";
 import type { Task } from "@shared/schema";
@@ -106,9 +105,9 @@ function TaskCard({ task }: { task: Task }) {
             disabled={isCompleted}
           >
             {isCompleted ? (
-              <CheckCircle2 className="h-6 w-6 text-success" />
+              <IconComplete size={24} className="text-success" />
             ) : task.status === "IN_PROGRESS" ? (
-              <CheckCircle2 className="h-6 w-6 text-warning" />
+              <IconComplete size={24} className="text-warning" />
             ) : (
               <Circle className="h-6 w-6 text-muted-foreground" />
             )}
@@ -145,7 +144,7 @@ function TaskCard({ task }: { task: Task }) {
               )}
               {task.estimatedMinutes && (
                 <span className="flex items-center gap-1">
-                  <Clock className="h-3 w-3" />
+                  <IconClock size={12} />
                   ~{task.estimatedMinutes} min
                 </span>
               )}
@@ -237,7 +236,7 @@ export default function StaffJobs() {
             {activeTasks.length === 0 ? (
               <Card className="border-dashed">
                 <CardContent className="pt-6 text-center">
-                  <CheckCircle2 className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
+                  <IconComplete size={48} className="mx-auto text-muted-foreground/50 mb-4" />
                   <p className="text-muted-foreground">No active jobs</p>
                   <p className="text-sm text-muted-foreground/70 mt-1">
                     You're all caught up!

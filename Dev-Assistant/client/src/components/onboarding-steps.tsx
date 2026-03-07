@@ -1,5 +1,6 @@
 import { cn } from "@/lib/utils";
-import { Check, Home, Users, Settings, Key, Sparkles } from "lucide-react";
+import { Check, Key } from "lucide-react";
+import { IconHome, IconReferrals, IconSettings, IconSparkle } from "@/components/icons/hndld-icons";
 
 interface OnboardingStep {
   id: number;
@@ -8,11 +9,11 @@ interface OnboardingStep {
 }
 
 const ONBOARDING_STEPS: OnboardingStep[] = [
-  { id: 1, title: "Home", icon: Home },
-  { id: 2, title: "People", icon: Users },
-  { id: 3, title: "Rules", icon: Settings },
+  { id: 1, title: "Home", icon: IconHome },
+  { id: 2, title: "People", icon: IconReferrals },
+  { id: 3, title: "Rules", icon: IconSettings },
   { id: 4, title: "Access", icon: Key },
-  { id: 5, title: "Done", icon: Sparkles },
+  { id: 5, title: "Done", icon: IconSparkle },
 ];
 
 interface OnboardingStepsProps {

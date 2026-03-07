@@ -12,12 +12,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import {
-  Zap, Plus, Play, Pause, Trash2, ChevronRight, Clock,
-  CheckCircle2, XCircle, AlertTriangle, ArrowLeft,
+  Zap, Plus, Play, Pause, Trash2, ChevronRight,
+  XCircle, ArrowLeft,
   Lock, Unlock, Bell, Mail, CalendarPlus, FileText,
   Webhook, ListTodo, ShieldCheck, DollarSign, Users,
   BookTemplate, History, Settings2
 } from "lucide-react";
+import { IconComplete, IconAlert, IconClock } from "@/components/icons/hndld-icons";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow, format } from "date-fns";
 
@@ -25,17 +26,17 @@ const TRIGGER_LABELS: Record<string, { label: string; icon: any; category: strin
   SMART_LOCK_UNLOCK: { label: "Smart Lock Unlocked", icon: Unlock, category: "Smart Home" },
   SMART_LOCK_LOCK: { label: "Smart Lock Locked", icon: Lock, category: "Smart Home" },
   APPROVAL_CREATED: { label: "Approval Created", icon: ShieldCheck, category: "Approvals" },
-  APPROVAL_PENDING_HOURS: { label: "Approval Pending (Hours)", icon: Clock, category: "Approvals" },
-  APPROVAL_APPROVED: { label: "Approval Approved", icon: CheckCircle2, category: "Approvals" },
+  APPROVAL_PENDING_HOURS: { label: "Approval Pending (Hours)", icon: IconClock, category: "Approvals" },
+  APPROVAL_APPROVED: { label: "Approval Approved", icon: IconComplete, category: "Approvals" },
   APPROVAL_REJECTED: { label: "Approval Rejected", icon: XCircle, category: "Approvals" },
   BUDGET_THRESHOLD: { label: "Budget Threshold Reached", icon: DollarSign, category: "Finance" },
-  BUDGET_EXCEEDED: { label: "Budget Exceeded", icon: AlertTriangle, category: "Finance" },
+  BUDGET_EXCEEDED: { label: "Budget Exceeded", icon: IconAlert, category: "Finance" },
   TASK_CREATED: { label: "Task Created", icon: ListTodo, category: "Tasks" },
-  TASK_COMPLETED: { label: "Task Completed", icon: CheckCircle2, category: "Tasks" },
-  TASK_OVERDUE: { label: "Task Overdue", icon: AlertTriangle, category: "Tasks" },
+  TASK_COMPLETED: { label: "Task Completed", icon: IconComplete, category: "Tasks" },
+  TASK_OVERDUE: { label: "Task Overdue", icon: IconAlert, category: "Tasks" },
   CLEANING_STARTED: { label: "Cleaning Started", icon: Settings2, category: "Services" },
-  CLEANING_COMPLETED: { label: "Cleaning Completed", icon: CheckCircle2, category: "Services" },
-  SCHEDULE_TIME: { label: "Scheduled Time", icon: Clock, category: "Schedule" },
+  CLEANING_COMPLETED: { label: "Cleaning Completed", icon: IconComplete, category: "Services" },
+  SCHEDULE_TIME: { label: "Scheduled Time", icon: IconClock, category: "Schedule" },
   SCHEDULE_DAY: { label: "Scheduled Day", icon: CalendarPlus, category: "Schedule" },
   DOCUMENT_EXPIRING: { label: "Document Expiring", icon: FileText, category: "Documents" },
   SPENDING_CREATED: { label: "Spending Recorded", icon: DollarSign, category: "Finance" },
@@ -49,7 +50,7 @@ const ACTION_LABELS: Record<string, { label: string; icon: any }> = {
   SEND_EMAIL: { label: "Send Email", icon: Mail },
   SEND_SMS: { label: "Send SMS", icon: Mail },
   CREATE_TASK: { label: "Create Task", icon: ListTodo },
-  COMPLETE_TASK: { label: "Complete Task", icon: CheckCircle2 },
+  COMPLETE_TASK: { label: "Complete Task", icon: IconComplete },
   CREATE_APPROVAL: { label: "Create Approval", icon: ShieldCheck },
   AUTO_APPROVE: { label: "Auto-Approve", icon: ShieldCheck },
   LOCK_DOOR: { label: "Lock Door", icon: Lock },
@@ -310,7 +311,7 @@ export default function AutomationsPage() {
                         </span>
                         {automation.lastRunAt && (
                           <span className="flex items-center gap-1">
-                            <Clock className="w-3 h-3" /> {formatDistanceToNow(new Date(automation.lastRunAt), { addSuffix: true })}
+                            <IconClock size={12} /> {formatDistanceToNow(new Date(automation.lastRunAt), { addSuffix: true })}
                           </span>
                         )}
                         {automation.lastRunStatus && (
@@ -738,7 +739,7 @@ function RunHistory({ automationId, automationName, onBack }: { automationId: st
                       run.status === "RUNNING" && "text-blue-600 border-blue-200"
                     )}
                   >
-                    {run.status === "SUCCESS" && <CheckCircle2 className="w-3 h-3 mr-1" />}
+                    {run.status === "SUCCESS" && <IconComplete size={12} className="mr-1" />}
                     {run.status === "FAILED" && <XCircle className="w-3 h-3 mr-1" />}
                     {run.status}
                   </Badge>
@@ -754,7 +755,7 @@ function RunHistory({ automationId, automationName, onBack }: { automationId: st
                     {run.actionsExecuted.map((a, i) => (
                       <div key={i} className="flex items-center gap-2 text-xs text-ink-navy/60 dark:text-porcelain/60">
                         {a.status === "SUCCESS" ? (
-                          <CheckCircle2 className="w-3 h-3 text-emerald-500 shrink-0" />
+                          <IconComplete size={12} className="text-emerald-500 shrink-0" />
                         ) : (
                           <XCircle className="w-3 h-3 text-red-500 shrink-0" />
                         )}

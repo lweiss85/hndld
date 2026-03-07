@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { format, setHours, setMinutes } from "date-fns";
-import { Calendar as CalendarIcon, Clock, X } from "lucide-react";
+import { X } from "lucide-react";
+import { IconSchedule, IconClock } from "@/components/icons/hndld-icons";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -127,7 +128,7 @@ export function DateTimePicker({
           )}
           data-testid={testId}
         >
-          <CalendarIcon className="mr-2 h-4 w-4" />
+          <IconSchedule size={16} className="mr-2" />
           {displayValue || placeholder}
           {value && (
             <Tooltip>
@@ -169,7 +170,7 @@ export function DateTimePicker({
                 onClick={() => setStep("date")}
                 className="text-xs"
               >
-                <CalendarIcon className="h-3 w-3 mr-1" />
+                <IconSchedule size={12} className="mr-1" />
                 {selectedDate && format(selectedDate, "MMM d")}
               </Button>
               <span className="text-muted-foreground text-sm">Select time</span>
@@ -189,7 +190,7 @@ export function DateTimePicker({
                     onClick={() => handleTimeSelect(time.hour, time.minute)}
                     data-testid={`button-time-${time.hour}-${time.minute}`}
                   >
-                    <Clock className="h-3 w-3 mr-2" />
+                    <IconClock size={12} className="mr-2" />
                     {time.label}
                   </Button>
                 ))}

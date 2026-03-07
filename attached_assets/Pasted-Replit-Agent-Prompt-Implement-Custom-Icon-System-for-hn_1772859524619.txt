@@ -1,0 +1,226 @@
+Replit Agent Prompt: Implement Custom Icon System for hndld
+You are a senior frontend engineer implementing a custom branded icon system for hndld, a luxury household concierge platform. The app uses React + Vite + TypeScript + TailwindCSS + shadcn/ui. Replace all generic Lucide icons with a custom dual-tone icon system that matches the brand.
+
+CONTEXT
+hndld currently uses Lucide React icons throughout the app (bottom nav, page headers, cards, buttons, empty states). We're replacing them with a custom SVG icon set that uses two-tone navy + champagne gold coloring. Lucide remains as a fallback for minor UI elements (chevrons, close buttons, etc.), but all feature-level icons get the custom treatment.
+Brand palette:
+--hndld-ink: #1A2332        (deep navy — all primary strokes)
+--hndld-porcelain: #F8F6F3  (warm white — backgrounds)
+--hndld-gold: #C9A96E       (champagne gold — accent details)
+--hndld-charcoal: #2A3444   (navy charcoal — secondary strokes)
+
+STEP 1: Create the Icon Component System
+Create: client/src/components/icons/hndld-icons.tsx
+Build a typed React icon component that renders inline SVGs. Each icon should:
+
+Accept size prop (default: 24), className prop, and all standard SVG props
+Use currentColor for the navy strokes so they inherit from parent text color
+Use a dedicated accentColor prop (default: #C9A96E) for the gold accent elements
+Use 1.75px stroke width, round linecap, round linejoin consistently
+Have a viewBox of 0 0 24 24 with no fill on stroke elements
+
+tsximport React from "react";
+
+interface HndldIconProps extends React.SVGProps<SVGSVGElement> {
+  size?: number;
+  accentColor?: string;
+}
+
+const defaultProps: HndldIconProps = {
+  size: 24,
+  accentColor: "#C9A96E",
+};
+
+// Wrapper component for consistency
+const IconWrapper: React.FC<HndldIconProps & { children: React.ReactNode }> = ({
+  size = 24,
+  accentColor = "#C9A96E",
+  className,
+  children,
+  ...props
+}) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    strokeWidth="1.75"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+    {...props}
+  >
+    {children}
+  </svg>
+);
+Define these 16 icons:
+Navigation icons:
+
+IconHome — House outline with pitched roof and door. Small gold checkmark in bottom-right area.
+IconSchedule — Calendar with top binding and line entries. Gold checkmark on one line.
+IconMessages — Two overlapping speech bubbles. Gold notification dot top-right.
+IconProfile — Person bust (head + shoulders). Gold filled circle for head.
+
+Service icons:
+
+IconSpending — Bifold wallet, slightly open with card peeking out. Gold clasp dot.
+IconTasks — Clipboard with checkmark. Gold checkmark.
+IconSparkle — Four-point star/sparkle shape. Gold fill on center or one point.
+IconCleaning — Angled broom with bristle base. Gold motion lines.
+
+Trust & relationship icons:
+
+IconCare — Two cupped hands, palms up. Gold heart floating above.
+IconProvider — Person silhouette with briefcase. Gold verified badge.
+IconReferrals — Two person silhouettes with connecting element. Gold connection dot.
+IconRatings — Five-point star. Gold filled star (this one is intentionally full gold).
+
+Status icons:
+
+IconAlert — Rounded triangle. Gold exclamation mark inside, navy triangle outline.
+IconComplete — Circle with checkmark. Gold checkmark, navy circle.
+IconClock — Circle clock face, hands at 10:10. Gold dot at 12 o'clock.
+IconSettings — Gear cog with 6 teeth. Gold dot at center.
+
+IMPORTANT for SVG paths: Each icon's primary structural lines use stroke="currentColor". Each icon's gold accent uses stroke={accentColor} or fill={accentColor} as appropriate. This separation is what makes the two-tone system work.
+Export all icons as named exports AND as a lookup map:
+tsxexport const hndldIcons = {
+  home: IconHome,
+  schedule: IconSchedule,
+  messages: IconMessages,
+  profile: IconProfile,
+  spending: IconSpending,
+  tasks: IconTasks,
+  sparkle: IconSparkle,
+  cleaning: IconCleaning,
+  care: IconCare,
+  provider: IconProvider,
+  referrals: IconReferrals,
+  ratings: IconRatings,
+  alert: IconAlert,
+  complete: IconComplete,
+  clock: IconClock,
+  settings: IconSettings,
+} as const;
+
+export type HndldIconName = keyof typeof hndldIcons;
+
+STEP 2: Create a Convenience Component
+Create: client/src/components/icons/icon.tsx
+tsximport { hndldIcons, type HndldIconName, type HndldIconProps } from "./hndld-icons";
+
+interface IconProps extends HndldIconProps {
+  name: HndldIconName;
+}
+
+export function Icon({ name, ...props }: IconProps) {
+  const IconComponent = hndldIcons[name];
+  return <IconComponent {...props} />;
+}
+
+STEP 3: Update Bottom Navigation
+Update: client/src/components/layout/bottom-nav.tsx
+Replace Lucide icon imports with hndld icons. The bottom nav is the highest-visibility placement — this is where the custom icons matter most.
+tsximport { IconHome, IconSchedule, IconMessages, IconProfile, IconSpending, IconTasks, IconClock, IconCleaning } from "@/components/icons/hndld-icons";
+
+// CLIENT tabs — replace Lucide icons with hndld icons:
+const clientTabs = [
+  { path: "/", icon: IconHome, label: "Home" },
+  { path: "/schedule", icon: IconSchedule, label: "Schedule" },
+  { path: "/spending", icon: IconSpending, label: "Spending" },
+  { path: "/messages", icon: IconMessages, label: "Messages" },
+  { path: "/profile", icon: IconProfile, label: "Profile" },
+];
+
+// ASSISTANT tabs:
+const assistantTabs = [
+  { path: "/", icon: IconClock, label: "Today" },
+  { path: "/tasks", icon: IconTasks, label: "Tasks" },
+  { path: "/schedule", icon: IconSchedule, label: "Calendar" },
+  { path: "/messages", icon: IconMessages, label: "Messages" },
+  { path: "/settings", icon: IconSettings, label: "Settings" },
+];
+Active state behavior: When a nav icon is active, the gold accent should be visible. When inactive, render the icon in a muted state — either reduce opacity to 0.4 or use a single-color version (all --hndld-charcoal). This means the accentColor prop should change based on active state:
+tsx<tab.icon
+  size={20}
+  accentColor={isActive ? "#C9A96E" : "currentColor"}
+  className={isActive ? "text-[#1A2332]" : "text-[#1A2332]/40"}
+/>
+
+STEP 4: Replace Icons Across the App
+Search the entire codebase for Lucide icon imports and replace feature-level icons with hndld equivalents. Keep Lucide for: ChevronLeft, ChevronRight, ChevronDown, X (close), Plus, Minus, Search, Filter, ArrowLeft, ArrowRight, MoreHorizontal, MoreVertical, ExternalLink, Copy, Trash2, Edit, Eye, EyeOff, Upload, Download, Share, LogOut.
+Replace with hndld icons in these locations:
+LocationCurrent Lucide IconReplace WithDashboard/home page headerHomeIconHomeSchedule/calendar pagesCalendarIconScheduleSpending/wallet pagesWallet / CreditCardIconSpendingTask lists and approvalsCheckCircle / CheckSquareIconTasks or IconCompleteChat/messagingMessageCircle / MessageSquareIconMessagesUser/profile sectionsUserIconProfileProvider profilesBriefcase / UserCheckIconProviderRatings/reviewsStarIconRatingsAdd-ons/extrasSparklesIconSparkleCleaning service typeBrush / any cleaning iconIconCleaningAlert/warning statesAlertTriangleIconAlertSuccess/completed statesCheckCircleIconCompleteTime/clock referencesClockIconClockSettings pageSettingsIconSettingsReferral/invite featuresUsers / UserPlusIconReferralsCare/concierge featuresHeart / HandHeartIconCare
+
+STEP 5: Add Icons to Empty States
+Every empty state in the app should use the relevant hndld icon at a larger size (48-64px) with reduced opacity, sitting above the empty state message. This replaces any generic illustrations or missing icons.
+tsx// Example empty state pattern
+<div className="flex flex-col items-center justify-center py-16 text-center">
+  <IconSchedule size={56} className="text-[#1A2332]/20 mb-4" accentColor="#C9A96E40" />
+  <h3 className="font-display text-lg text-[#1A2332]/80 mb-1">No upcoming appointments</h3>
+  <p className="text-sm text-[#1A2332]/50">Your schedule will appear here</p>
+</div>
+
+STEP 6: Add Icon Hover Animations (CSS)
+Add to your global CSS or Tailwind config:
+css/* Icon interaction animations — the "hndld feel" */
+.hndld-icon-interactive {
+  transition: transform 200ms cubic-bezier(0.32, 0.72, 0, 1),
+              opacity 200ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.hndld-icon-interactive:hover {
+  transform: scale(1.05);
+}
+
+.hndld-icon-interactive:active {
+  transform: scale(0.95);
+}
+
+/* Bottom nav icon tap animation */
+.hndld-nav-icon {
+  transition: transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.hndld-nav-icon.active {
+  transform: scale(1.1);
+}
+Apply hndld-icon-interactive class to all clickable icons. Apply hndld-nav-icon class to bottom nav icons.
+
+STEP 7: Create Icon Preview Page (Development Only)
+Create: client/src/pages/dev/icon-gallery.tsx
+Build a simple grid page that renders all 16 icons at multiple sizes (16, 20, 24, 32, 48) so we can visually QA the full set. Show each icon with its name label, at each size, on both light (#F8F6F3) and dark (#1A2332) backgrounds. Only include this route in development builds.
+
+VISUAL REFERENCE
+The icons follow this exact style:
+
+Geometric precision — clean bezier curves, no hand-drawn quality
+1.75px stroke weight — consistent across all icons, softer than standard 2px
+Rounded caps and joins — every line ending and corner is rounded
+Two-tone execution — navy (#1A2332) for structure, champagne gold (#C9A96E) for one accent element per icon
+24x24 grid — designed to be pixel-clear at this base size
+Style benchmarks — Phosphor Icons precision, Linear app aesthetic, Headspace warmth
+
+
+WHAT NOT TO DO
+
+Do NOT use filled/solid icon styles — these are outline icons with selective accent fills only
+Do NOT add drop shadows, glows, or gradients to the icons
+Do NOT make the gold accent elements too large — they should be subtle (a checkmark, a dot, a small heart)
+Do NOT change the stroke width per icon — 1.75px everywhere
+Do NOT use Lucide as a "close enough" substitute for the feature icons — the whole point is brand differentiation
+Do NOT forget the active/inactive state distinction in navigation — inactive icons should feel muted
+
+
+ACCEPTANCE CRITERIA
+
+ All 16 custom icons render correctly as inline SVGs
+ Bottom nav uses custom icons with active/inactive gold accent toggling
+ All feature-level Lucide icons replaced across the app
+ Empty states use large custom icons
+ Icons are crisp at 20px, 24px, and 48px sizes
+ Hover/tap animations work on interactive icons
+ Dev icon gallery page shows all icons at all sizes for QA
+ No TypeScript errors — all icon components are properly typed
+ Gold accent color is configurable via prop for theme flexibility

@@ -22,13 +22,12 @@ import {
 } from "@/components/ui/select";
 import { 
   Plus, 
-  Sparkles,
-  Clock,
   DollarSign,
   Pencil,
   Trash2,
   GripVertical
 } from "lucide-react";
+import { IconSparkle, IconClock } from "@/components/icons/hndld-icons";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { PageTransition, StaggeredList } from "@/components/juice";
@@ -221,7 +220,7 @@ export default function ManageAddons() {
         {!addons?.length ? (
           <Card className="border-dashed">
             <CardContent className="py-12 text-center">
-              <Sparkles className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
+              <IconSparkle size={48} className="mx-auto text-muted-foreground/50 mb-4" />
               <h3 className="font-display text-lg font-light tracking-tight text-foreground mb-1.5">No add-on services yet</h3>
               <p className="text-sm text-muted-foreground mb-4">
                 Create add-on services that clients can request with their cleanings
@@ -283,7 +282,7 @@ export default function ManageAddons() {
                               </span>
                               {addon.estimatedMinutes && (
                                 <span className="flex items-center gap-1 text-muted-foreground">
-                                  <Clock className="h-3.5 w-3.5" />
+                                  <IconClock size={14} />
                                   {addon.estimatedMinutes} min
                                 </span>
                               )}
@@ -346,7 +345,7 @@ export default function ManageAddons() {
                 <div className="space-y-2">
                   <Label htmlFor="time">Est. Time (min)</Label>
                   <div className="relative">
-                    <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <IconClock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                     <Input
                       id="time"
                       type="number"

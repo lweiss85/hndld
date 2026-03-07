@@ -17,13 +17,11 @@ import {
   FileText,
   Download,
   BarChart3,
-  AlertTriangle,
   ChevronLeft,
   ChevronRight,
-  Receipt,
-  Users,
   PieChart,
 } from "lucide-react";
+import { IconAlert, IconSpending, IconReferrals } from "@/components/icons/hndld-icons";
 import { cn } from "@/lib/utils";
 import { PageTransition } from "@/components/juice";
 
@@ -190,7 +188,7 @@ export default function Reports() {
               <Card>
                 <CardContent className="p-4">
                   <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
-                    <Receipt className="h-3.5 w-3.5" aria-hidden="true" />
+                    <IconSpending size={14} aria-hidden="true" />
                     Transactions
                   </div>
                   <p className="text-xl font-display font-medium">
@@ -216,7 +214,7 @@ export default function Reports() {
               )}>
                 <CardContent className="p-4">
                   <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
-                    <AlertTriangle className="h-3.5 w-3.5 text-amber-600" aria-hidden="true" />
+                    <IconAlert size={14} className="text-amber-600" aria-hidden="true" />
                     1099 Vendors
                   </div>
                   <p className="text-xl font-display font-medium">
@@ -358,7 +356,7 @@ export default function Reports() {
               <Card className="border-amber-200 dark:border-amber-800">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium flex items-center gap-2 text-amber-700 dark:text-amber-400">
-                    <AlertTriangle className="h-4 w-4" aria-hidden="true" />
+                    <IconAlert size={16} aria-hidden="true" />
                     1099 Reporting — Vendors Paid $600+
                   </CardTitle>
                 </CardHeader>
@@ -392,7 +390,7 @@ export default function Reports() {
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium flex items-center gap-2">
-                  <Users className="h-4 w-4" aria-hidden="true" />
+                  <IconReferrals size={16} aria-hidden="true" />
                   Top Vendors
                 </CardTitle>
               </CardHeader>

@@ -4,17 +4,16 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { 
   MessageSquarePlus, 
-  CheckCircle2, 
   Calendar,
   Bell,
   ChevronRight,
-  Clock,
   Sparkles,
   Camera,
   CreditCard,
   CalendarDays,
   Heart
 } from "lucide-react";
+import { IconComplete, IconClock } from "@/components/icons/hndld-icons";
 import { motion, AnimatePresence } from "framer-motion";
 import { format, isToday, isTomorrow, isThisWeek, formatDistanceToNow } from "date-fns";
 import type { Task, Approval, CalendarEvent, Update, SpendingItem } from "@shared/schema";
@@ -172,7 +171,7 @@ function TimeReturnedCard({ impact }: { impact: ImpactMetrics }) {
   return (
     <InsightCard className="relative overflow-visible">
       <div className="flex items-center gap-2 mb-3">
-        <Clock className="w-5 h-5 text-primary" aria-hidden="true" />
+        <IconClock size={20} className="text-primary" aria-hidden="true" />
         <h3 className="font-semibold text-foreground">Time Returned</h3>
         <Badge variant="secondary" className="text-[10px] ml-auto">
           <Sparkles className="w-3 h-3 mr-1" aria-hidden="true" />
@@ -673,7 +672,7 @@ export default function ThisWeek() {
                         className="flex items-center gap-3 py-2.5 border-b border-border/50 last:border-0"
                         data-testid={`update-row-${update.id}`}
                       >
-                        <CheckCircle2 className="w-4 h-4 text-success shrink-0" aria-hidden="true" />
+                        <IconComplete size={16} className="text-success shrink-0" aria-hidden="true" />
                         <p className="text-sm text-foreground truncate flex-1">{update.text}</p>
                         <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" aria-hidden="true" />
                       </div>

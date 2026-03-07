@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Sparkles, Send, Clock, MapPin, Check, X, Tag, AlertTriangle } from "lucide-react";
+import { Send, MapPin, Check, X, Tag } from "lucide-react";
+import { IconSparkle, IconClock, IconAlert } from "@/components/icons/hndld-icons";
 import { apiRequest } from "@/lib/queryClient";
 import { cn } from "@/lib/utils";
 import { format, parseISO } from "date-fns";
@@ -133,9 +134,9 @@ export function SmartRequestInput({
         />
         <div className="absolute right-2 top-2">
           {parseMutation.isPending ? (
-            <Sparkles className="h-5 w-5 text-violet-500 animate-pulse" aria-hidden="true" />
+            <IconSparkle size={20} className="text-violet-500 animate-pulse" aria-hidden="true" />
           ) : (
-            <Sparkles className="h-5 w-5 text-muted-foreground/40" aria-hidden="true" />
+            <IconSparkle size={20} className="text-muted-foreground/40" aria-hidden="true" />
           )}
         </div>
       </div>
@@ -166,7 +167,7 @@ export function SmartRequestInput({
               </div>
               {parsed.usedAI && (
                 <Badge variant="outline" className="shrink-0 text-xs border-violet-300 text-violet-600 dark:border-violet-700 dark:text-violet-400">
-                  <Sparkles className="h-3 w-3 mr-1" aria-hidden="true" />
+                  <IconSparkle size={12} className="mr-1" aria-hidden="true" />
                   AI
                 </Badge>
               )}
@@ -178,12 +179,12 @@ export function SmartRequestInput({
                 {parsed.category}
               </Badge>
               <Badge className={cn("text-xs", URGENCY_STYLES[parsed.urgency])}>
-                <AlertTriangle className="h-3 w-3 mr-1" aria-hidden="true" />
+                <IconAlert size={12} className="mr-1" aria-hidden="true" />
                 {parsed.urgency}
               </Badge>
               {parsed.suggestedDueDate && (
                 <Badge variant="outline" className="text-xs">
-                  <Clock className="h-3 w-3 mr-1" aria-hidden="true" />
+                  <IconClock size={12} className="mr-1" aria-hidden="true" />
                   {format(parseISO(parsed.suggestedDueDate), "MMM d")}
                 </Badge>
               )}

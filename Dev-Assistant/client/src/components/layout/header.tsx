@@ -13,7 +13,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Moon, Sun, LogOut, UserCircle, CreditCard, BarChart3, AlertTriangle, MessageCircle, Send, FolderOpen, Building2, Store, CalendarCheck, Search, ArrowLeftRight, Bell, Check, Repeat } from "lucide-react";
+import { Moon, Sun, LogOut, UserCircle, BarChart3, Send, FolderOpen, Store, CalendarCheck, Search, ArrowLeftRight, Bell, Check, Repeat } from "lucide-react";
+import { IconSpending, IconAlert, IconMessages, IconHome } from "@/components/icons/hndld-icons";
 import { useActiveServiceType, ServiceType } from "@/hooks/use-active-service-type";
 import { GlobalSearchDialog } from "@/components/global-search";
 import { Link, useLocation } from "wouter";
@@ -234,7 +235,7 @@ export function Header() {
                 </Link>
                 <Link href="/messages">
                   <DropdownMenuItem className="gap-2 cursor-pointer" data-testid="menu-item-messages">
-                    <MessageCircle className="h-4 w-4" />
+                    <IconMessages size={16} />
                     Messages
                   </DropdownMenuItem>
                 </Link>
@@ -249,7 +250,7 @@ export function Header() {
                     </Link>
                     <Link href="/house">
                       <DropdownMenuItem className="gap-2 cursor-pointer">
-                        <Building2 className="h-4 w-4" />
+                        <IconHome size={16} />
                         House Profile
                       </DropdownMenuItem>
                     </Link>
@@ -265,7 +266,7 @@ export function Header() {
 
                 <Link href="/emergency">
                   <DropdownMenuItem className="gap-2 cursor-pointer" data-testid="menu-item-emergency">
-                    <AlertTriangle className="h-4 w-4" />
+                    <IconAlert size={16} />
                     Emergency
                   </DropdownMenuItem>
                 </Link>
@@ -290,7 +291,7 @@ export function Header() {
                 {activeRole === "ASSISTANT" && (
                   <Link href="/billing">
                     <DropdownMenuItem className="gap-2 cursor-pointer" data-testid="menu-item-billing">
-                      <CreditCard className="h-4 w-4" />
+                      <IconSpending size={16} />
                       Billing
                     </DropdownMenuItem>
                   </Link>

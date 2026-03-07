@@ -1,6 +1,7 @@
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Search, X, FileText, CheckSquare, Users, Settings, ArrowRight } from "lucide-react";
+import { Search, X, FileText, ArrowRight } from "lucide-react";
+import { IconTasks, IconReferrals, IconSettings } from "@/components/icons/hndld-icons";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -25,10 +26,10 @@ interface SearchResults {
 }
 
 const filterOptions = [
-  { id: "tasks", label: "Tasks", icon: CheckSquare },
+  { id: "tasks", label: "Tasks", icon: IconTasks },
   { id: "updates", label: "Updates", icon: FileText },
-  { id: "vendors", label: "Vendors", icon: Users },
-  { id: "preferences", label: "Preferences", icon: Settings },
+  { id: "vendors", label: "Vendors", icon: IconReferrals },
+  { id: "preferences", label: "Preferences", icon: IconSettings },
 ];
 
 export function GlobalSearchTrigger() {
@@ -204,7 +205,7 @@ export function GlobalSearchDialog({ open, onOpenChange }: GlobalSearchDialogPro
               {results.tasks.length > 0 && (
                 <SearchResultSection
                   title="Tasks"
-                  icon={CheckSquare}
+                  icon={IconTasks}
                   items={results.tasks}
                   onItemClick={(item) => handleResultClick("tasks", item)}
                   renderItem={(task: Task) => (
@@ -236,7 +237,7 @@ export function GlobalSearchDialog({ open, onOpenChange }: GlobalSearchDialogPro
               {results.vendors.length > 0 && (
                 <SearchResultSection
                   title="Vendors"
-                  icon={Users}
+                  icon={IconReferrals}
                   items={results.vendors}
                   onItemClick={(item) => handleResultClick("vendors", item)}
                   renderItem={(vendor: Vendor) => (
@@ -253,7 +254,7 @@ export function GlobalSearchDialog({ open, onOpenChange }: GlobalSearchDialogPro
               {results.preferences.length > 0 && (
                 <SearchResultSection
                   title="Preferences"
-                  icon={Settings}
+                  icon={IconSettings}
                   items={results.preferences}
                   onItemClick={(item) => handleResultClick("preferences", item)}
                   renderItem={(pref: Preference) => (
@@ -274,7 +275,7 @@ export function GlobalSearchDialog({ open, onOpenChange }: GlobalSearchDialogPro
 
 interface SearchResultSectionProps<T> {
   title: string;
-  icon: typeof Search;
+  icon: React.ComponentType<{ className?: string }>;
   items: T[];
   onItemClick: (item: T) => void;
   renderItem: (item: T) => JSX.Element;

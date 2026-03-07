@@ -24,12 +24,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Phone, 
   Plus, 
-  AlertTriangle,
-  User,
   Trash2,
   Edit2,
   FileText
 } from "lucide-react";
+import { IconAlert, IconProfile } from "@/components/icons/hndld-icons";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useUser } from "@/lib/user-context";
@@ -191,7 +190,7 @@ export default function Emergency() {
             Contacts
           </TabsTrigger>
           <TabsTrigger value="protocols" className="flex-1" data-testid="tab-protocols">
-            <AlertTriangle aria-hidden="true" className="h-4 w-4 mr-2" />
+            <IconAlert size={16} className="mr-2" aria-hidden="true" />
             Protocols
           </TabsTrigger>
         </TabsList>
@@ -227,7 +226,7 @@ export default function Emergency() {
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex items-start gap-3">
                         <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
-                          <User aria-hidden="true" className="h-5 w-5 text-muted-foreground" />
+                          <IconProfile size={20} className="text-muted-foreground" aria-hidden="true" />
                         </div>
                         <div>
                           <div className="flex items-center gap-2">
@@ -305,7 +304,7 @@ export default function Emergency() {
                 <Card key={protocol.id} data-testid={`card-protocol-${protocol.id}`}>
                   <CardHeader className="pb-2">
                     <CardTitle className="text-lg flex items-center gap-2">
-                      <AlertTriangle aria-hidden="true" className="h-5 w-5 text-amber-500" />
+                      <IconAlert size={20} className="text-amber-500" aria-hidden="true" />
                       {protocol.title}
                     </CardTitle>
                     <CardDescription>{protocol.description}</CardDescription>

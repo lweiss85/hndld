@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from "react";
-import { Check, Clock } from "lucide-react";
+import { Check } from "lucide-react";
+import { IconClock } from "@/components/icons/hndld-icons";
 import { cn } from "@/lib/utils";
 
 function usePrefersReducedMotion() {
@@ -175,7 +176,7 @@ export function SwipeRow({
         >
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium whitespace-nowrap">{leftLabel}</span>
-            <Clock className={cn("w-5 h-5", leftProgress >= 1 && "scale-110")} style={{ transition: "transform 0.15s ease-out" }} />
+            <IconClock size={20} className={cn(leftProgress >= 1 && "scale-110")} style={{ transition: "transform 0.15s ease-out" }} />
           </div>
         </div>
       )}

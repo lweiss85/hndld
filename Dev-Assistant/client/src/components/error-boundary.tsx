@@ -1,6 +1,7 @@
 import React, { Component, ErrorInfo, ReactNode } from "react";
 import * as Sentry from "@sentry/react";
-import { AlertTriangle, RefreshCw, Home, Bug } from "lucide-react";
+import { RefreshCw, Bug } from "lucide-react";
+import { IconAlert, IconHome } from "@/components/icons/hndld-icons";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -152,7 +153,7 @@ function ErrorFallback({
       <Card className="max-w-md w-full shadow-luxury-lg">
         <CardHeader className="text-center pb-2">
           <div className="mx-auto w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center mb-4">
-            <AlertTriangle className="w-8 h-8 text-destructive" />
+            <IconAlert size={32} className="text-destructive" />
           </div>
           <CardTitle className="text-xl">Something went wrong</CardTitle>
           <CardDescription className="text-muted-foreground">
@@ -203,7 +204,7 @@ function ErrorFallback({
               Try Again
             </Button>
             <Button onClick={handleGoHome} variant="default" className="flex-1">
-              <Home className="w-4 h-4 mr-2" />
+              <IconHome size={16} className="mr-2" />
               Go Home
             </Button>
           </div>
@@ -254,7 +255,7 @@ export class InlineErrorBoundary extends Component<
     if (this.state.hasError) {
       return (
         <div className="flex items-center gap-2 p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
-          <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+          <IconAlert size={16} className="flex-shrink-0" />
           <span>{this.props.fallbackMessage || "Something went wrong"}</span>
           <Button
             variant="ghost"

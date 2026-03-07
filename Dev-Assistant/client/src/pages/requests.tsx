@@ -23,14 +23,11 @@ import {
 } from "@/components/ui/select";
 import { 
   Plus, 
-  Clock, 
-  MessageSquare,
   Tag,
-  AlertTriangle,
-  CheckCircle2,
   X,
   Image as ImageIcon
 } from "lucide-react";
+import { IconClock, IconAlert, IconComplete } from "@/components/icons/hndld-icons";
 import { format } from "date-fns";
 import { DateTimePicker } from "@/components/date-time-picker";
 import type { Request as RequestType, InsertRequest } from "@shared/schema";
@@ -189,7 +186,7 @@ export default function Requests() {
       </Button>
 
       <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/50 rounded-lg px-4 py-3">
-        <Clock className="h-4 w-4 text-primary shrink-0" aria-hidden="true" />
+        <IconClock size={16} className="text-primary shrink-0" aria-hidden="true" />
         <span>Your assistant typically responds within <span className="font-medium text-foreground">2 hours</span> during business hours</span>
       </div>
 
@@ -250,7 +247,7 @@ export default function Requests() {
           {(requests?.filter(r => r.taskId).length ?? 0) > 0 && (
             <div className="space-y-3">
               <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-success" aria-hidden="true" />
+                <IconComplete size={16} className="text-success" aria-hidden="true" />
                 Accepted
               </h2>
               {requests?.filter(r => r.taskId).map((request) => (
@@ -258,7 +255,7 @@ export default function Requests() {
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-start gap-3 flex-1 min-w-0">
-                        <CheckCircle2 className="h-5 w-5 text-success shrink-0 mt-0.5" aria-hidden="true" />
+                        <IconComplete size={20} className="text-success shrink-0 mt-0.5" aria-hidden="true" />
                         <div className="flex-1 min-w-0">
                           <h3 className="font-medium">{request.title}</h3>
                           {request.description && (
@@ -340,7 +337,7 @@ export default function Requests() {
                     onClick={() => setNewRequest({ ...newRequest, urgency: level.value as any })}
                     data-testid={`button-urgency-${level.value.toLowerCase()}`}
                   >
-                    {level.value === "HIGH" && <AlertTriangle className="h-3 w-3 mr-1" aria-hidden="true" />}
+                    {level.value === "HIGH" && <IconAlert size={12} className="mr-1" aria-hidden="true" />}
                     {level.label}
                   </Button>
                 ))}

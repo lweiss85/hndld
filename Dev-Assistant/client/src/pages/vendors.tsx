@@ -17,15 +17,12 @@ import {
 import { 
   Plus, 
   Phone, 
-  Mail,
-  User,
   Building,
   Search,
-  Star,
   Share2,
-  Users,
   Shield,
 } from "lucide-react";
+import { IconMessages, IconProfile, IconRatings, IconReferrals } from "@/components/icons/hndld-icons";
 import type { Vendor, InsertVendor } from "@shared/schema";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -70,9 +67,9 @@ function StarRating({ rating, onRate, interactive = false }: { rating: number; o
             interactive ? "cursor-pointer hover:text-amber-400" : "cursor-default"
           )}
         >
-          <Star
+          <IconRatings
+            size={16}
             className={cn(
-              "h-4 w-4",
               star <= rating ? "fill-amber-400 text-amber-400" : "text-muted-foreground/30"
             )}
           />
@@ -97,7 +94,7 @@ function NetworkReviews({ vendorId }: { vendorId: string }) {
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <h4 className="text-sm font-medium flex items-center gap-1.5">
-          <Users className="h-4 w-4 text-muted-foreground" />
+          <IconReferrals size={16} className="text-muted-foreground" />
           Network Reviews
         </h4>
         <div className="flex items-center gap-1.5">
@@ -292,7 +289,7 @@ export default function Vendors() {
                   <CardContent className="p-4">
                     <div className="flex items-start gap-3">
                       <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                        <User aria-hidden="true" className="h-5 w-5 text-primary" />
+                        <IconProfile size={20} aria-hidden="true" className="text-primary" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <h3 className="font-medium">{vendor.name}</h3>
@@ -305,7 +302,7 @@ export default function Vendors() {
                           )}
                           {vendor.email && (
                             <span className="flex items-center gap-1">
-                              <Mail aria-hidden="true" className="h-3 w-3" />
+                              <IconMessages size={12} aria-hidden="true" />
                               {vendor.email}
                             </span>
                           )}
@@ -419,7 +416,7 @@ export default function Vendors() {
                   className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
                   aria-label={`Email ${selectedVendor.name} at ${selectedVendor.email}`}
                 >
-                  <Mail aria-hidden="true" className="h-5 w-5 text-muted-foreground" />
+                  <IconMessages size={20} aria-hidden="true" className="text-muted-foreground" />
                   <span>{selectedVendor.email}</span>
                 </a>
               )}
@@ -443,7 +440,7 @@ export default function Vendors() {
                       setShowReviewDialog(true);
                     }}
                   >
-                    <Star className="h-4 w-4 mr-1" />
+                    <IconRatings size={16} className="mr-1" />
                     Review
                   </Button>
                   <Button
@@ -476,7 +473,7 @@ export default function Vendors() {
                     }}
                     disabled={acceptedConnections.length === 0}
                   >
-                    <Users className="h-4 w-4 mr-1" />
+                    <IconReferrals size={16} className="mr-1" />
                     Refer
                   </Button>
                 </div>

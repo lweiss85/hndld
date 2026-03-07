@@ -4,15 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { 
-  Calendar as CalendarIcon, 
   RefreshCw, 
   MapPin,
-  Clock,
   Plus,
-  CheckCircle,
   ExternalLink,
   Info
 } from "lucide-react";
+import { IconSchedule, IconClock, IconComplete } from "@/components/icons/hndld-icons";
 import { format, isToday, isTomorrow, startOfWeek, addDays, isSameDay } from "date-fns";
 import type { CalendarEvent } from "@shared/schema";
 import { queryClient, apiRequest } from "@/lib/queryClient";
@@ -133,7 +131,7 @@ export default function Calendar() {
           <Card className="bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800">
             <CardContent className="p-4">
               <div className="flex items-center gap-2 text-sm">
-                <CheckCircle aria-hidden="true" className="h-4 w-4 text-green-600 dark:text-green-400" />
+                <IconComplete size={16} className="text-green-600 dark:text-green-400" aria-hidden="true" />
                 <span className="text-green-700 dark:text-green-300">
                   Google Calendar connected. Events sync automatically.
                 </span>
@@ -144,7 +142,7 @@ export default function Calendar() {
           <Card className="bg-muted/30">
             <CardContent className="p-4">
               <div className="flex items-center gap-2 text-sm">
-                <CalendarIcon aria-hidden="true" className="h-4 w-4 text-muted-foreground" />
+                <IconSchedule size={16} className="text-muted-foreground" aria-hidden="true" />
                 <span className="text-muted-foreground">
                   Connect Google Calendar to sync your events
                 </span>
@@ -233,7 +231,7 @@ export default function Calendar() {
                                   <h3 className="font-medium">{event.title}</h3>
                                   <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground flex-wrap">
                                     <span className="flex items-center gap-1">
-                                      <Clock aria-hidden="true" className="h-3 w-3" />
+                                      <IconClock size={12} aria-hidden="true" />
                                       {format(new Date(event.startAt), "h:mm a")}
                                       {event.endAt && ` - ${format(new Date(event.endAt), "h:mm a")}`}
                                     </span>
@@ -276,7 +274,7 @@ export default function Calendar() {
           {events?.length === 0 && (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
-                <CalendarIcon aria-hidden="true" className="h-8 w-8 text-muted-foreground" />
+                <IconSchedule size={32} className="text-muted-foreground" aria-hidden="true" />
               </div>
               <h3 className="font-display text-xl font-light tracking-tight text-foreground mb-1.5">Your schedule is open</h3>
               <p className="text-sm text-muted-foreground max-w-[300px] leading-relaxed mb-4">

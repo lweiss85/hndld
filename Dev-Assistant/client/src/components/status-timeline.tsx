@@ -1,4 +1,5 @@
-import { Check, Circle, Clock, Loader2 } from "lucide-react";
+import { Check, Circle, Loader2 } from "lucide-react";
+import { IconClock } from "@/components/icons/hndld-icons";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 
@@ -61,7 +62,7 @@ export function StatusTimeline({ steps, className, compact = false }: StatusTime
               )}
               {step.timestamp && (
                 <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
-                  <Clock className="h-3 w-3" />
+                  <IconClock size={12} />
                   {formatDistanceToNow(new Date(step.timestamp), { addSuffix: true })}
                 </p>
               )}

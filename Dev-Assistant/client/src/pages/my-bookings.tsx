@@ -14,14 +14,11 @@ import {
   ChevronDown,
   ChevronUp,
   Send,
-  Calendar,
-  User,
   Tag,
   XCircle,
-  CheckCircle2,
-  MessageSquare,
   Inbox,
 } from "lucide-react";
+import { IconSchedule, IconProfile, IconComplete, IconMessages } from "@/components/icons/hndld-icons";
 
 interface BookingRequest {
   id: string;
@@ -90,7 +87,7 @@ function BookingMessages({ bookingId }: { bookingId: string }) {
   return (
     <div className="mt-3 pt-3 border-t border-border space-y-3">
       <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
-        <MessageSquare className="h-3.5 w-3.5" />
+        <IconMessages size={14} />
         Messages
       </h4>
 
@@ -200,14 +197,14 @@ function BookingCard({ booking }: { booking: BookingRequest }) {
             </h3>
             {booking.providerName && (
               <p className="text-sm text-muted-foreground flex items-center gap-1.5">
-                <User className="h-3.5 w-3.5" />
+                <IconProfile size={14} />
                 {booking.providerName}
               </p>
             )}
             <div className="flex items-center gap-3 text-xs text-muted-foreground">
               {booking.requestedDate && (
                 <span className="flex items-center gap-1">
-                  <Calendar className="h-3 w-3" />
+                  <IconSchedule size={12} />
                   {format(new Date(booking.requestedDate), "MMM d, yyyy")}
                 </span>
               )}
@@ -241,7 +238,7 @@ function BookingCard({ booking }: { booking: BookingRequest }) {
                   disabled={confirmMutation.isPending}
                   className="bg-primary hover:bg-primary/90 text-primary-foreground"
                 >
-                  <CheckCircle2 className="h-3.5 w-3.5 mr-1.5" />
+                  <IconComplete size={14} className="mr-1.5" />
                   Confirm Booking
                 </Button>
               )}

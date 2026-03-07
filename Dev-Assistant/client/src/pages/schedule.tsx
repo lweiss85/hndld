@@ -4,13 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { 
-  CalendarDays, 
-  CheckCircle2, 
-  Star,
   ChevronRight,
   Plus,
-  Sparkles
 } from "lucide-react";
+import { IconSchedule, IconRatings, IconSparkle, IconComplete } from "@/components/icons/hndld-icons";
 import { format, isPast } from "date-fns";
 import { Link } from "wouter";
 import { PageTransition, StaggeredList } from "@/components/juice";
@@ -108,7 +105,7 @@ export default function Schedule() {
                   </p>
                 </div>
                 <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center">
-                  <CalendarDays className="h-8 w-8 text-primary" />
+                  <IconSchedule size={32} className="text-primary" />
                 </div>
               </div>
               
@@ -121,7 +118,7 @@ export default function Schedule() {
               <div className="flex gap-2 mt-4">
                 <Button asChild className="flex-1">
                   <Link href="/addons">
-                    <Sparkles className="h-4 w-4 mr-2" />
+                    <IconSparkle size={16} className="mr-2" />
                     Add Services
                   </Link>
                 </Button>
@@ -131,7 +128,7 @@ export default function Schedule() {
         ) : (
           <Card>
             <CardContent className="p-6 text-center">
-              <CalendarDays className="h-12 w-12 mx-auto mb-3 text-muted-foreground/50" />
+              <IconSchedule size={48} className="mx-auto mb-3 text-muted-foreground/50" />
               <h3 className="font-medium mb-1">No upcoming cleanings</h3>
               <p className="text-sm text-muted-foreground mb-4">
                 Request a cleaning to get started
@@ -177,7 +174,7 @@ export default function Schedule() {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
-                          <CalendarDays className="h-5 w-5 text-muted-foreground" />
+                          <IconSchedule size={20} className="text-muted-foreground" />
                         </div>
                         <div>
                           <p className="font-medium" aria-label={format(new Date(visit.scheduledAt), "EEEE, MMMM do")}>
@@ -209,7 +206,7 @@ export default function Schedule() {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-                          <CheckCircle2 className="h-5 w-5 text-green-600" />
+                          <IconComplete size={20} className="text-green-600" />
                         </div>
                         <div>
                           <p className="font-medium" aria-label={format(new Date(visit.scheduledAt), "EEEE, MMMM do, yyyy")}>
@@ -218,7 +215,7 @@ export default function Schedule() {
                           <div className="flex items-center gap-2 text-sm text-muted-foreground">
                             {visit.rating && (
                               <span className="flex items-center gap-1">
-                                <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+                                <IconRatings size={12} className="fill-amber-400 text-amber-400" />
                                 {visit.rating}
                               </span>
                             )}

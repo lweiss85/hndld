@@ -7,7 +7,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, versionedUrl } from "@/lib/queryClient";
-import { Home, Users, CheckCircle, XCircle, Clock } from "lucide-react";
+import { XCircle } from "lucide-react";
+import { IconHome, IconReferrals, IconComplete, IconClock } from "@/components/icons/hndld-icons";
 
 export default function JoinPage() {
   const { token } = useParams<{ token: string }>();
@@ -77,7 +78,7 @@ export default function JoinPage() {
               onClick={() => setLocation("/")}
               data-testid="button-go-home"
             >
-              <Home className="h-4 w-4 mr-2" />
+              <IconHome size={16} className="mr-2" />
               Go Home
             </Button>
           </CardContent>
@@ -91,7 +92,7 @@ export default function JoinPage() {
       <div className="min-h-screen flex items-center justify-center bg-background p-4">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
-            <CheckCircle className="h-12 w-12 text-emerald-500 mx-auto mb-4" />
+            <IconComplete size={48} className="text-emerald-500 mx-auto mb-4" />
             <CardTitle>Welcome!</CardTitle>
             <CardDescription>
               You've successfully joined {inviteInfo?.householdName}. Redirecting...
@@ -107,7 +108,7 @@ export default function JoinPage() {
       <div className="min-h-screen flex items-center justify-center bg-background p-4">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
-            <Users className="h-12 w-12 text-primary mx-auto mb-4" />
+            <IconReferrals size={48} className="text-primary mx-auto mb-4" />
             <CardTitle>Join {inviteInfo?.householdName}</CardTitle>
             <CardDescription>
               You've been invited to join as a {inviteInfo?.role?.toLowerCase()}.
@@ -132,7 +133,7 @@ export default function JoinPage() {
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <Users className="h-12 w-12 text-primary mx-auto mb-4" />
+          <IconReferrals size={48} className="text-primary mx-auto mb-4" />
           <CardTitle>Join {inviteInfo?.householdName}</CardTitle>
           <CardDescription>
             You've been invited to join as a <span className="font-medium">{inviteInfo?.role?.toLowerCase()}</span>.
@@ -140,7 +141,7 @@ export default function JoinPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Clock className="h-4 w-4" />
+            <IconClock size={16} />
             <span>Expires: {inviteInfo?.expiresAt ? new Date(inviteInfo.expiresAt).toLocaleDateString() : "N/A"}</span>
           </div>
           

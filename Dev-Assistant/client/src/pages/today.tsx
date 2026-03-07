@@ -5,18 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { 
-  Clock, 
   MapPin, 
-  CheckCircle2,
   Circle,
   Plus,
-  Calendar,
-  MessageSquare,
   ArrowRight,
-  AlertTriangle,
   Play,
   MoreVertical
 } from "lucide-react";
+import { IconClock, IconSchedule, IconMessages, IconAlert, IconComplete } from "@/components/icons/hndld-icons";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -242,7 +238,7 @@ export default function Today() {
         {pendingRequests.length > 0 && (
           <div className="space-y-2">
             <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-              <MessageSquare className="h-4 w-4" aria-hidden="true" />
+              <IconMessages size={16} aria-hidden="true" />
               Incoming Requests
               <Badge variant="secondary" className="ml-1">{pendingRequests.length}</Badge>
             </h2>
@@ -253,7 +249,7 @@ export default function Today() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
                           {request.urgency === "HIGH" && (
-                            <AlertTriangle className="h-4 w-4 text-destructive" aria-hidden="true" />
+                            <IconAlert size={16} className="text-destructive" aria-hidden="true" />
                           )}
                           <h3 className="font-medium">{request.title}</h3>
                         </div>
@@ -291,14 +287,14 @@ export default function Today() {
 
         <div className="space-y-1">
           <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-            <Clock className="h-4 w-4" aria-hidden="true" />
+            <IconClock size={16} aria-hidden="true" />
             Timeline
           </h2>
           
           {timelineItems.length === 0 ? (
             <Card>
               <CardContent className="p-6 text-center">
-                <Calendar className="h-8 w-8 text-muted-foreground mx-auto mb-2" aria-hidden="true" />
+                <IconSchedule size={32} className="text-muted-foreground mx-auto mb-2" aria-hidden="true" />
                 <p className="text-sm text-muted-foreground">
                   No scheduled items for today
                 </p>
@@ -376,7 +372,7 @@ export default function Today() {
                                   aria-label="Mark as done"
                                   data-testid={`button-done-${item.id}`}
                                 >
-                                  <CheckCircle2 className="h-5 w-5" aria-hidden="true" />
+                                  <IconComplete size={20} aria-hidden="true" />
                                 </Button>
                                 
                                 {item.status !== "IN_PROGRESS" && (
@@ -405,19 +401,19 @@ export default function Today() {
                                     <DropdownMenuItem onClick={() => {
                                       updateTaskMutation.mutate({ id: item.id, dueAt: setHours(new Date(), 17) });
                                     }}>
-                                      <Clock className="h-4 w-4 mr-2" aria-hidden="true" />
+                                      <IconClock size={16} className="mr-2" aria-hidden="true" />
                                       Move to 5pm
                                     </DropdownMenuItem>
                                     <DropdownMenuItem onClick={() => {
                                       updateTaskMutation.mutate({ id: item.id, dueAt: setHours(addDays(new Date(), 1), 9) });
                                     }}>
-                                      <Calendar className="h-4 w-4 mr-2" aria-hidden="true" />
+                                      <IconSchedule size={16} className="mr-2" aria-hidden="true" />
                                       Move to tomorrow
                                     </DropdownMenuItem>
                                     <DropdownMenuItem onClick={() => {
                                       updateTaskMutation.mutate({ id: item.id, status: "WAITING_ON_CLIENT" });
                                     }}>
-                                      <Clock className="h-4 w-4 mr-2" aria-hidden="true" />
+                                      <IconClock size={16} className="mr-2" aria-hidden="true" />
                                       Mark waiting
                                     </DropdownMenuItem>
                                   </DropdownMenuContent>
@@ -426,7 +422,7 @@ export default function Today() {
                             )}
                             
                             {item.type === "task" && item.status === "DONE" && (
-                              <CheckCircle2 className="h-5 w-5 text-green-500" aria-hidden="true" />
+                              <IconComplete size={20} className="text-green-500" aria-hidden="true" />
                             )}
                           </div>
                       </ActionCard>

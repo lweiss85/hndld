@@ -1,8 +1,10 @@
+import React from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { 
-  MessageSquare, ShoppingCart, Car, Wrench, Calendar, Gift, 
-  Home, Utensils, Dog, Baby, Sparkles, AlertCircle, Plus
+  ShoppingCart, Car, Wrench, Gift, 
+  Utensils, Dog, Baby, AlertCircle, Plus
 } from "lucide-react";
+import { IconMessages, IconSchedule, IconHome, IconSparkle } from "@/components/icons/hndld-icons";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -10,18 +12,18 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { QuickRequestTemplate } from "@shared/schema";
 
-const iconMap: Record<string, typeof MessageSquare> = {
-  MessageSquare,
+const iconMap: Record<string, React.FC<{ className?: string; size?: number }>> = {
+  MessageSquare: IconMessages,
   ShoppingCart,
   Car,
   Wrench,
-  Calendar,
+  Calendar: IconSchedule,
   Gift,
-  Home,
+  Home: IconHome,
   Utensils,
   Dog,
   Baby,
-  Sparkles,
+  Sparkles: IconSparkle,
   AlertCircle,
   Plus,
 };
@@ -92,14 +94,14 @@ export function QuickRequestButtons({ onRequestCreated }: QuickRequestButtonsPro
     <Card>
       <CardHeader className="pb-3">
         <CardTitle className="text-lg flex items-center gap-2">
-          <Sparkles className="h-5 w-5 text-primary" />
+          <IconSparkle size={20} className="text-primary" />
           Quick Requests
         </CardTitle>
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-2 gap-3">
           {templates.map((template) => {
-            const Icon = iconMap[template.icon || "MessageSquare"] || MessageSquare;
+            const Icon = iconMap[template.icon || "MessageSquare"] || IconMessages;
             return (
               <Button
                 key={template.id}

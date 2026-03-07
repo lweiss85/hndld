@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Home, Building2 } from "lucide-react";
+import { IconHome } from "@/components/icons/hndld-icons";
 
 interface PropertyOption {
   id: string;
@@ -70,19 +70,19 @@ export function PropertySwitcher() {
       onValueChange={(v) => setSelectedPropertyId(v === "all" ? null : v)}
     >
       <SelectTrigger className="h-8 text-xs w-auto min-w-[140px] gap-1.5 border-border/50">
-        <Home className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+        <IconHome size={14} className="text-muted-foreground shrink-0" />
         <SelectValue placeholder="All Properties" />
       </SelectTrigger>
       <SelectContent>
         <SelectItem value="all">
           <span className="flex items-center gap-1.5">
-            <Building2 className="w-3.5 h-3.5" /> All Properties
+            <IconHome size={14} /> All Properties
           </span>
         </SelectItem>
         {properties.map(p => (
           <SelectItem key={p.id} value={p.id}>
             <span className="flex items-center gap-1.5">
-              <Home className="w-3.5 h-3.5" /> {p.name}
+              <IconHome size={14} /> {p.name}
               {p.isPrimary && <span className="text-[10px] text-amber-600">(Primary)</span>}
             </span>
           </SelectItem>

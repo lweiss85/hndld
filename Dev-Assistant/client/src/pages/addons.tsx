@@ -16,12 +16,10 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { 
-  Sparkles, 
   Plus, 
-  Clock, 
-  CalendarDays,
   PenLine,
 } from "lucide-react";
+import { IconSparkle, IconClock, IconSchedule } from "@/components/icons/hndld-icons";
 import { format } from "date-fns";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -190,7 +188,7 @@ export default function Addons() {
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <CalendarDays className="h-5 w-5 text-primary" />
+                  <IconSchedule size={20} className="text-primary" />
                 </div>
                 <div className="flex-1">
                   <p className="font-medium">Next Cleaning</p>
@@ -214,7 +212,7 @@ export default function Addons() {
                   <CardContent className="p-3">
                     <div className="flex items-center justify-between gap-3">
                       <div className="flex items-center gap-2">
-                        <Clock className="h-4 w-4 text-amber-600" />
+                        <IconClock size={16} className="text-amber-600" />
                         <span className="font-medium text-sm">{addon.title.replace("Add-on: ", "")}</span>
                       </div>
                       <div className="flex items-center gap-2">
@@ -233,7 +231,7 @@ export default function Addons() {
 
         <div className="space-y-3">
           <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-            <Sparkles className="h-4 w-4" />
+            <IconSparkle size={16} />
             Available Add-ons
           </h2>
           <div className="grid grid-cols-2 gap-3">
@@ -254,7 +252,7 @@ export default function Addons() {
                       <span className="text-lg font-bold text-primary">{formatPrice(addon.priceInCents)}</span>
                       {addon.estimatedMinutes && (
                         <span className="text-xs text-muted-foreground flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
+                          <IconClock size={12} />
                           {addon.estimatedMinutes}m
                         </span>
                       )}

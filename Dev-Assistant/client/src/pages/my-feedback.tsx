@@ -5,15 +5,13 @@ import {
   Bug,
   Lightbulb,
   MessageCircle,
-  AlertCircle,
   Heart,
-  Clock,
-  CheckCircle2,
   Circle,
   Loader2,
   Send,
   ChevronRight,
 } from "lucide-react";
+import { IconAlert, IconClock, IconComplete } from "@/components/icons/hndld-icons";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useLocation } from "wouter";
@@ -22,7 +20,7 @@ const TYPE_META: Record<string, { icon: typeof Bug; label: string; color: string
   BUG: { icon: Bug, label: "Bug", color: "text-red-500" },
   FEATURE_REQUEST: { icon: Lightbulb, label: "Feature", color: "text-amber-500" },
   GENERAL: { icon: MessageCircle, label: "General", color: "text-blue-500" },
-  COMPLAINT: { icon: AlertCircle, label: "Complaint", color: "text-orange-500" },
+  COMPLAINT: { icon: IconAlert, label: "Complaint", color: "text-orange-500" },
   PRAISE: { icon: Heart, label: "Praise", color: "text-pink-500" },
 };
 

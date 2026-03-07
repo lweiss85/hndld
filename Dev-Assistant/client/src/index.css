@@ -868,6 +868,28 @@ select:focus-visible {
   box-shadow: 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--hndld-gold-400));
 }
 
+/* hndld Icon Interaction Animations */
+.hndld-icon-interactive {
+  transition: transform 200ms cubic-bezier(0.32, 0.72, 0, 1),
+              opacity 200ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.hndld-icon-interactive:hover {
+  transform: scale(1.05);
+}
+
+.hndld-icon-interactive:active {
+  transform: scale(0.95);
+}
+
+.hndld-nav-icon {
+  transition: transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.hndld-nav-icon.active {
+  transform: scale(1.1);
+}
+
 /* High contrast mode support */
 @media (prefers-contrast: more) {
   :root {

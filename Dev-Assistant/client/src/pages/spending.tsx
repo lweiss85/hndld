@@ -24,18 +24,13 @@ import {
   Plus, 
   DollarSign, 
   TrendingUp,
-  Receipt,
-  CreditCard,
   Check,
-  Clock,
   Send,
-  CheckCircle2,
   MoreVertical,
   Copy,
-  FileText,
-  Sparkles,
-  Settings
+  FileText
 } from "lucide-react";
+import { IconSpending, IconClock, IconSparkle, IconSettings, IconComplete } from "@/components/icons/hndld-icons";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -223,14 +218,14 @@ function ClientSpendingView() {
 
       <div className="space-y-3">
         <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-          <Clock className="h-4 w-4" aria-hidden="true" />
+          <IconClock size={16} aria-hidden="true" />
           Waiting on you
         </h2>
         
         {waitingItems.length === 0 ? (
           <Card>
             <CardContent className="p-6 text-center">
-              <Sparkles className="h-8 w-8 text-muted-foreground mx-auto mb-2" aria-hidden="true" />
+              <IconSparkle size={32} className="text-muted-foreground mx-auto mb-2" aria-hidden="true" />
               <p className="text-muted-foreground">All set. Nothing needs your attention.</p>
             </CardContent>
           </Card>
@@ -271,7 +266,7 @@ function ClientSpendingView() {
                         onClick={() => openPaySheet(item)}
                         data-testid={`button-pay-${item.id}`}
                       >
-                        <CreditCard className="h-4 w-4 mr-1" aria-hidden="true" />
+                        <IconSpending size={16} className="mr-1" aria-hidden="true" />
                         Pay now
                       </Button>
                     )}
@@ -286,7 +281,7 @@ function ClientSpendingView() {
       {paymentSentItems.length > 0 && (
         <div className="space-y-3">
           <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-            <Clock className="h-4 w-4" aria-hidden="true" />
+            <IconClock size={16} aria-hidden="true" />
             Being reconciled
           </h2>
           
@@ -321,7 +316,7 @@ function ClientSpendingView() {
 
       <div className="space-y-3">
         <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-          <Receipt className="h-4 w-4" aria-hidden="true" />
+          <IconSpending size={16} aria-hidden="true" />
           Recent receipts
         </h2>
         
@@ -339,7 +334,7 @@ function ClientSpendingView() {
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-3 min-w-0 flex-1">
                     <div className="w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center shrink-0">
-                      <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400" aria-hidden="true" />
+                      <IconComplete size={20} className="text-green-600 dark:text-green-400" aria-hidden="true" />
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
@@ -382,7 +377,7 @@ function ClientSpendingView() {
 
       <div className="space-y-3">
         <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-          <CreditCard className="h-4 w-4" aria-hidden="true" />
+          <IconSpending size={16} aria-hidden="true" />
           Invoice History
         </h2>
         
@@ -586,7 +581,7 @@ function AssistantSpendingView() {
         <div className="flex items-center gap-2">
           <Link href="/payment-profile">
             <Button variant="ghost" size="icon" aria-label="Payment settings" data-testid="button-payment-settings">
-              <Settings className="h-5 w-5" aria-hidden="true" />
+              <IconSettings size={20} aria-hidden="true" />
             </Button>
           </Link>
           <Button 
@@ -595,7 +590,7 @@ function AssistantSpendingView() {
             onClick={() => setShowReceiptScanner(true)} 
             data-testid="button-scan-receipt"
           >
-            <Receipt className="h-4 w-4 mr-1" aria-hidden="true" />
+            <IconSpending size={16} className="mr-1" aria-hidden="true" />
             Scan
           </Button>
           <Button 
@@ -619,7 +614,7 @@ function AssistantSpendingView() {
           <CardContent className="p-4">
             <div className="flex items-start gap-3">
               <div className="p-2 rounded-full bg-amber-100 dark:bg-amber-800 shrink-0">
-                <CreditCard className="h-5 w-5 text-amber-600 dark:text-amber-400" aria-hidden="true" />
+                <IconSpending size={20} className="text-amber-600 dark:text-amber-400" aria-hidden="true" />
               </div>
               <div className="flex-1 min-w-0">
                 <h3 className="font-medium">Set up payment methods</h3>
@@ -710,11 +705,11 @@ function AssistantSpendingView() {
                     <div className="flex items-center gap-3 min-w-0 flex-1">
                       <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center shrink-0">
                         {isReconciled ? (
-                          <CheckCircle2 className="h-5 w-5 text-green-600" aria-hidden="true" />
+                          <IconComplete size={20} className="text-green-600" aria-hidden="true" />
                         ) : isPaymentSent ? (
                           <Check className="h-5 w-5 text-blue-500" aria-hidden="true" />
                         ) : isNeedsReimbursement ? (
-                          <Clock className="h-5 w-5 text-amber-500" aria-hidden="true" />
+                          <IconClock size={20} className="text-amber-500" aria-hidden="true" />
                         ) : (
                           <DollarSign className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
                         )}
@@ -774,7 +769,7 @@ function AssistantSpendingView() {
                             onClick={() => markReconciled(item)}
                             data-testid={`menu-mark-reconciled-${item.id}`}
                           >
-                            <CheckCircle2 className="h-4 w-4 mr-2" aria-hidden="true" />
+                            <IconComplete size={16} className="mr-2" aria-hidden="true" />
                             Mark Reconciled
                           </DropdownMenuItem>
                         )}
@@ -783,7 +778,7 @@ function AssistantSpendingView() {
                             onClick={() => openPaySheet(item)}
                             data-testid={`menu-view-pay-${item.id}`}
                           >
-                            <CreditCard className="h-4 w-4 mr-2" aria-hidden="true" />
+                            <IconSpending size={16} className="mr-2" aria-hidden="true" />
                             View Pay Options
                           </DropdownMenuItem>
                         )}

@@ -8,8 +8,9 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { 
-  MessageCircle, Send, Plus, ArrowLeft, User, Mic, MicOff, Loader2
+  Send, Plus, ArrowLeft, Mic, MicOff, Loader2
 } from "lucide-react";
+import { IconMessages, IconProfile } from "@/components/icons/hndld-icons";
 import { formatDistanceToNow } from "date-fns";
 import { queryClient, apiRequest, versionedUrl } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -74,7 +75,7 @@ function ConversationsList({
             >
               <CardContent className="p-4 flex items-center gap-4">
                 <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
-                  <MessageCircle aria-hidden="true" className="h-5 w-5 text-muted-foreground" />
+                  <IconMessages size={20} className="text-muted-foreground" aria-hidden="true" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-medium truncate">
@@ -286,7 +287,7 @@ function MessageThread({
                 data-testid={`message-${msg.id}`}
               >
                 <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
-                  <User aria-hidden="true" className="h-4 w-4 text-muted-foreground" />
+                  <IconProfile size={16} className="text-muted-foreground" aria-hidden="true" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">

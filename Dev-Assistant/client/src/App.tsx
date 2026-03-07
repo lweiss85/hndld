@@ -67,6 +67,7 @@ const Inventory = lazy(() => import("@/pages/inventory"));
 const Marketplace = lazy(() => import("@/pages/marketplace"));
 const ProviderDetail = lazy(() => import("@/pages/provider-detail"));
 const MyBookings = lazy(() => import("@/pages/my-bookings"));
+const IconGallery = lazy(() => import("@/pages/dev/icon-gallery"));
 
 function LoadingScreen() {
   return (
@@ -138,6 +139,7 @@ function ClientRouter() {
         <Route path="/marketplace/:slug" component={ProviderDetail} />
         <Route path="/my-bookings" component={MyBookings} />
         <Route path="/provider" component={ProviderPortal} />
+        <Route path="/dev/icons" component={IconGallery} />
         <Route component={NotFound} />
       </Switch>
     </Suspense>
@@ -186,6 +188,7 @@ function AssistantRouter() {
         <Route path="/marketplace/:slug" component={ProviderDetail} />
         <Route path="/my-bookings" component={MyBookings} />
         <Route path="/provider" component={ProviderPortal} />
+        <Route path="/dev/icons" component={IconGallery} />
         <Route component={NotFound} />
       </Switch>
     </Suspense>

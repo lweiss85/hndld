@@ -2,7 +2,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MessageSquare, Receipt, CheckCircle2 } from "lucide-react";
+import { IconMessages, IconSpending, IconComplete } from "@/components/icons/hndld-icons";
 import { formatDistanceToNow } from "date-fns";
 import type { Update, Comment } from "@shared/schema";
 import { QuickReactions } from "@/components/quick-reactions";
@@ -216,7 +216,7 @@ export function UpdateCard({ update, onCommentClick }: UpdateCardProps) {
 
             {!showReceiptThumb && receipts.length > 0 && (
               <div className="flex items-center gap-2 mt-3 p-2 rounded-md bg-muted/50">
-                <Receipt className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                <IconSpending size={16} className="text-muted-foreground" aria-hidden="true" />
                 <span className="text-xs text-muted-foreground">
                   {receipts.length} receipt(s) attached
                 </span>
@@ -236,7 +236,7 @@ export function UpdateCard({ update, onCommentClick }: UpdateCardProps) {
                 aria-label="View comments"
                 data-testid="button-comments"
               >
-                <MessageSquare className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                <IconMessages size={16} className="text-muted-foreground" aria-hidden="true" />
                 {update.comments?.length || 0}
               </Button>
             </div>

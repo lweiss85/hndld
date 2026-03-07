@@ -5,15 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { 
-  Clock, 
   MapPin, 
-  CheckCircle2,
   Circle,
   Play,
   Key,
   Eye,
   EyeOff,
 } from "lucide-react";
+import { IconComplete, IconClock } from "@/components/icons/hndld-icons";
 import { format, isToday } from "date-fns";
 import { triggerHaptic } from "@/components/juice";
 import type { Task, CalendarEvent, HouseholdSettings } from "@shared/schema";
@@ -224,7 +223,7 @@ export default function StaffToday() {
         {sortedTasks.length === 0 ? (
           <Card className="border-dashed">
             <CardContent className="pt-6 text-center">
-              <CheckCircle2 className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
+              <IconComplete size={48} className="mx-auto text-muted-foreground/50 mb-4" />
               <p className="text-muted-foreground">No jobs for today</p>
               <p className="text-sm text-muted-foreground/70 mt-1">
                 You're all caught up!
@@ -254,7 +253,7 @@ export default function StaffToday() {
                       className="mt-0.5 flex-shrink-0"
                     >
                       {task.status === "IN_PROGRESS" ? (
-                        <CheckCircle2 className="h-6 w-6 text-warning" />
+                        <IconComplete size={24} className="text-warning" />
                       ) : (
                         <Circle className="h-6 w-6 text-muted-foreground" />
                       )}
@@ -276,7 +275,7 @@ export default function StaffToday() {
                       <div className="flex items-center gap-4 text-xs text-muted-foreground">
                         {task.dueAt && (
                           <span className="flex items-center gap-1">
-                            <Clock className="h-3 w-3" />
+                            <IconClock size={12} />
                             {format(new Date(task.dueAt), "h:mm a")}
                           </span>
                         )}
@@ -288,7 +287,7 @@ export default function StaffToday() {
                         )}
                         {task.estimatedMinutes && (
                           <span className="flex items-center gap-1">
-                            <Clock className="h-3 w-3" />
+                            <IconClock size={12} />
                             ~{task.estimatedMinutes} min
                           </span>
                         )}

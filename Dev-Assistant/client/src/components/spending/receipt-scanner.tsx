@@ -17,7 +17,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Camera, Upload, Loader2, CheckCircle2, X, ScanLine } from "lucide-react";
+import { Camera, Upload, Loader2, X, ScanLine } from "lucide-react";
+import { IconComplete } from "@/components/icons/hndld-icons";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { triggerHaptic } from "@/components/juice";
@@ -269,7 +270,7 @@ export function ReceiptScanner({ open, onOpenChange }: ReceiptScannerProps) {
 
             {scanResult.extracted.confidence > 0 && (
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <CheckCircle2 className="h-3 w-3 text-green-500" aria-hidden="true" />
+                <IconComplete size={12} className="text-green-500" aria-hidden="true" />
                 {Math.round(scanResult.extracted.confidence * 100)}% confident
               </div>
             )}
@@ -368,7 +369,7 @@ export function ReceiptScanner({ open, onOpenChange }: ReceiptScannerProps) {
                 {confirmMutation.isPending ? (
                   <Loader2 className="h-4 w-4 mr-1 animate-spin" />
                 ) : (
-                  <CheckCircle2 className="h-4 w-4 mr-1" aria-hidden="true" />
+                  <IconComplete size={16} className="mr-1" aria-hidden="true" />
                 )}
                 Add to Spending
               </Button>

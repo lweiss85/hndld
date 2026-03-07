@@ -4,22 +4,20 @@ import { useUser } from "@/lib/user-context";
 import { usePendingInvoices } from "@/hooks/usePendingInvoices";
 import { useActiveServiceType } from "@/hooks/use-active-service-type";
 import { motion } from "framer-motion";
-import { 
-  Calendar, 
-  CheckSquare, 
-  ClipboardList, 
-  Home, 
-  Building2, 
-  Clock,
-  Inbox,
-  Mail,
-  Receipt,
-  CreditCard,
-  Briefcase,
-  MoreHorizontal,
-  CalendarDays,
-  Sparkles
-} from "lucide-react";
+import { MoreHorizontal } from "lucide-react";
+import {
+  IconHome,
+  IconSchedule,
+  IconMessages,
+  IconProfile,
+  IconSpending,
+  IconTasks,
+  IconClock,
+  IconSparkle,
+  IconSettings,
+  IconComplete,
+  type HndldIconProps,
+} from "@/components/icons/hndld-icons";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -27,37 +25,37 @@ import { PayNowSheet } from "@/components/pay-now-sheet";
 
 interface NavItem {
   path: string;
-  icon: React.ReactNode;
+  icon: React.FC<HndldIconProps>;
   label: string;
 }
 
 const clientTabs: NavItem[] = [
-  { path: "/", icon: <Home className="h-5 w-5" aria-hidden="true" />, label: "Home" },
-  { path: "/updates", icon: <Inbox className="h-5 w-5" aria-hidden="true" />, label: "Inbox" },
-  { path: "/approvals", icon: <CheckSquare className="h-5 w-5" aria-hidden="true" />, label: "Approve" },
-  { path: "/pay", icon: <CreditCard className="h-5 w-5" aria-hidden="true" />, label: "Pay" },
+  { path: "/", icon: IconHome, label: "Home" },
+  { path: "/updates", icon: IconMessages, label: "Inbox" },
+  { path: "/approvals", icon: IconComplete, label: "Approve" },
+  { path: "/pay", icon: IconSpending, label: "Pay" },
 ];
 
 const cleaningClientTabs: NavItem[] = [
-  { path: "/", icon: <Home className="h-5 w-5" aria-hidden="true" />, label: "Home" },
-  { path: "/schedule", icon: <CalendarDays className="h-5 w-5" aria-hidden="true" />, label: "Visits" },
-  { path: "/addons", icon: <Sparkles className="h-5 w-5" aria-hidden="true" />, label: "Add-ons" },
-  { path: "/pay", icon: <CreditCard className="h-5 w-5" aria-hidden="true" />, label: "Pay" },
+  { path: "/", icon: IconHome, label: "Home" },
+  { path: "/schedule", icon: IconSchedule, label: "Visits" },
+  { path: "/addons", icon: IconSparkle, label: "Add-ons" },
+  { path: "/pay", icon: IconSpending, label: "Pay" },
 ];
 
 const assistantTabs: NavItem[] = [
-  { path: "/", icon: <Clock className="h-5 w-5" aria-hidden="true" />, label: "Today" },
-  { path: "/tasks", icon: <ClipboardList className="h-5 w-5" aria-hidden="true" />, label: "Tasks" },
-  { path: "/calendar", icon: <Calendar className="h-5 w-5" aria-hidden="true" />, label: "Calendar" },
-  { path: "/spending", icon: <Receipt className="h-5 w-5" aria-hidden="true" />, label: "Money" },
-  { path: "/house", icon: <Building2 className="h-5 w-5" aria-hidden="true" />, label: "House" },
+  { path: "/", icon: IconClock, label: "Today" },
+  { path: "/tasks", icon: IconTasks, label: "Tasks" },
+  { path: "/calendar", icon: IconSchedule, label: "Calendar" },
+  { path: "/spending", icon: IconSpending, label: "Money" },
+  { path: "/house", icon: IconHome, label: "House" },
 ];
 
 const staffTabs: NavItem[] = [
-  { path: "/", icon: <Clock className="h-5 w-5" aria-hidden="true" />, label: "Today" },
-  { path: "/jobs", icon: <Briefcase className="h-5 w-5" aria-hidden="true" />, label: "Jobs" },
-  { path: "/updates", icon: <Inbox className="h-5 w-5" aria-hidden="true" />, label: "Updates" },
-  { path: "/more", icon: <MoreHorizontal className="h-5 w-5" aria-hidden="true" />, label: "More" },
+  { path: "/", icon: IconClock, label: "Today" },
+  { path: "/jobs", icon: IconTasks, label: "Jobs" },
+  { path: "/updates", icon: IconMessages, label: "Updates" },
+  { path: "/more", icon: IconSettings, label: "More" },
 ];
 
 export function BottomNav() {
@@ -134,6 +132,7 @@ export function BottomNav() {
           {tabs.map((tab) => {
             const isActive = location === tab.path || 
               (tab.path !== "/" && location.startsWith(tab.path));
+            const TabIcon = tab.icon;
             
             return (
               <button
@@ -155,10 +154,15 @@ export function BottomNav() {
                   />
                 )}
                 <span className={cn(
-                  "relative z-10 transition-all duration-200",
-                  isActive ? "text-foreground scale-105" : "text-muted-foreground/60"
+                  "relative z-10 hndld-nav-icon",
+                  isActive && "active"
                 )}>
-                  {tab.icon}
+                  <TabIcon
+                    size={20}
+                    accentColor={isActive ? "#C9A96E" : "currentColor"}
+                    className={isActive ? "text-foreground" : "text-muted-foreground/60"}
+                    aria-hidden="true"
+                  />
                 </span>
                 <span className={cn(
                   "relative z-10 text-[10px] whitespace-nowrap mt-0.5",

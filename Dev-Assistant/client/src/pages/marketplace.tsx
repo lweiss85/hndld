@@ -13,7 +13,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, Star, User, MapPin } from "lucide-react";
+import { Search, MapPin } from "lucide-react";
+import { IconRatings, IconProfile } from "@/components/icons/hndld-icons";
 import { cn } from "@/lib/utils";
 
 const CATEGORIES = [
@@ -75,12 +76,13 @@ function StarRating({ rating }: { rating: number }) {
   return (
     <div className="flex gap-0.5">
       {[1, 2, 3, 4, 5].map((star) => (
-        <Star
+        <IconRatings
           key={star}
+          size={14}
+          accentColor={star <= Math.round(rating) ? "#C9A96E" : "transparent"}
           className={cn(
-            "h-3.5 w-3.5",
             star <= Math.round(rating)
-              ? "fill-hndld-gold-500 text-hndld-gold-500"
+              ? "text-hndld-gold-500"
               : "text-primary/15"
           )}
         />
@@ -132,7 +134,7 @@ function ProviderCard({ provider, sponsored = false }: { provider: MarketplacePr
               />
             ) : (
               <div className="h-14 w-14 rounded-full bg-primary/5 flex items-center justify-center shrink-0">
-                <User className="h-7 w-7 text-primary/30" />
+                <IconProfile size={28} className="text-primary/30" />
               </div>
             )}
             <div className="flex-1 min-w-0">

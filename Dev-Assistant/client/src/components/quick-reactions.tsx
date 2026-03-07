@@ -1,6 +1,7 @@
-import { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, HelpCircle, RefreshCw, Heart, Bookmark, Sparkles } from "lucide-react";
+import { Check, HelpCircle, RefreshCw, Bookmark } from "lucide-react";
+import { IconCare, IconSparkle } from "@/components/icons/hndld-icons";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -16,7 +17,7 @@ type ReactionType = "LOOKS_GOOD" | "NEED_DETAILS" | "PLEASE_ADJUST" | "LOVE_IT" 
 
 interface ReactionConfig {
   type: ReactionType;
-  icon: typeof Check;
+  icon: React.ComponentType<{ className?: string }>;
   label: string;
   shortLabel: string;
   needsNote?: boolean;
@@ -26,7 +27,7 @@ const REACTIONS: ReactionConfig[] = [
   { type: "LOOKS_GOOD", icon: Check, label: "Looks Good", shortLabel: "Good" },
   { type: "NEED_DETAILS", icon: HelpCircle, label: "Need Details", shortLabel: "Details", needsNote: true },
   { type: "PLEASE_ADJUST", icon: RefreshCw, label: "Please Adjust", shortLabel: "Adjust", needsNote: true },
-  { type: "LOVE_IT", icon: Heart, label: "Love It", shortLabel: "Love" },
+  { type: "LOVE_IT", icon: IconCare, label: "Love It", shortLabel: "Love" },
   { type: "SAVE_THIS", icon: Bookmark, label: "Save This", shortLabel: "Save" },
 ];
 
@@ -172,9 +173,10 @@ export function QuickReactions({ entityType, entityId, compact = false }: QuickR
               </Tooltip>
               
               {reaction.type === "LOVE_IT" && floatingHearts.map((heartId) => (
-                <Heart 
+                <IconCare 
                   key={heartId}
-                  className="absolute left-1/2 top-0 -translate-x-1/2 h-4 w-4 fill-red-500 text-red-500 animate-float-up pointer-events-none"
+                  size={16}
+                  className="absolute left-1/2 top-0 -translate-x-1/2 fill-red-500 text-red-500 animate-float-up pointer-events-none"
                 />
               ))}
             </div>

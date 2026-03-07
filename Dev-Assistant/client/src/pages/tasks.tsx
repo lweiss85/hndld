@@ -25,10 +25,8 @@ import {
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Plus, 
-  Clock, 
   MapPin,
   Tag,
-  CheckCircle2,
   Circle,
   X,
   Play,
@@ -45,13 +43,13 @@ import {
   Wrench,
   Settings,
   Flame,
-  AlertTriangle,
   HelpCircle,
   Repeat,
   Camera,
   Loader2,
   XCircle,
 } from "lucide-react";
+import { IconComplete, IconClock, IconAlert } from "@/components/icons/hndld-icons";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -576,7 +574,7 @@ export default function Tasks() {
           onClick={() => setOverdueFilter(!overdueFilter)}
           data-testid="filter-overdue"
         >
-          <AlertTriangle className="h-4 w-4 mr-1" aria-hidden="true" />
+          <IconAlert size={16} className="mr-1" aria-hidden="true" />
           Overdue
         </Button>
         
@@ -628,7 +626,7 @@ export default function Tasks() {
                           }}
                         >
                           {task.status === "DONE" ? (
-                            <CheckCircle2 className="h-5 w-5 text-success" aria-hidden="true" />
+                            <IconComplete size={20} className="text-success" aria-hidden="true" />
                           ) : (
                             <Circle className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
                           )}
@@ -654,7 +652,7 @@ export default function Tasks() {
                             </Badge>
                             {task.dueAt && (
                               <span className="text-xs text-muted-foreground flex items-center gap-1">
-                                <Clock className="h-3 w-3" aria-hidden="true" />
+                                <IconClock size={12} aria-hidden="true" />
                                 {format(new Date(task.dueAt), "MMM d, h:mm a")}
                               </span>
                             )}
@@ -666,7 +664,7 @@ export default function Tasks() {
                             )}
                             {task.estimatedMinutes && (
                               <Badge variant="secondary" className="text-xs">
-                                <Clock className="h-3 w-3 mr-1" aria-hidden="true" />
+                                <IconClock size={12} className="mr-1" aria-hidden="true" />
                                 {task.estimatedMinutes < 60 ? `${task.estimatedMinutes}m` : `${task.estimatedMinutes / 60}h`}
                               </Badge>
                             )}
@@ -746,7 +744,7 @@ export default function Tasks() {
                                   }}
                                   data-testid={`button-complete-${task.id}`}
                                 >
-                                  <CheckCircle2 className="h-4 w-4 mr-1" aria-hidden="true" />
+                                  <IconComplete size={16} className="mr-1" aria-hidden="true" />
                                   Complete
                                 </Button>
                               )}
@@ -766,7 +764,7 @@ export default function Tasks() {
                     onSelect={() => completeTaskMutation.mutate(task.id)}
                     data-testid={`context-done-${task.id}`}
                   >
-                    <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
+                    <IconComplete size={16} aria-hidden="true" />
                     Mark as Done
                   </ContextMenu.Item>
                   

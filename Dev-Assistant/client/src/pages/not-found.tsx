@@ -1,5 +1,5 @@
 import { Card, CardContent } from "@/components/ui/card";
-import { AlertCircle } from "lucide-react";
+import { IconAlert } from "@/components/icons/hndld-icons";
 
 export default function NotFound() {
   return (
@@ -7,7 +7,7 @@ export default function NotFound() {
       <Card className="w-full max-w-md mx-4">
         <CardContent className="pt-6">
           <div className="flex mb-4 gap-2">
-            <AlertCircle className="h-8 w-8 text-destructive" />
+            <IconAlert size={32} className="text-destructive" />
             <h1 className="font-display text-3xl font-light tracking-tight text-foreground">404 Page Not Found</h1>
           </div>
 

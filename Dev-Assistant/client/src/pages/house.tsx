@@ -2,7 +2,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { 
-  Building2, 
   Key, 
   Wifi, 
   Thermometer,
@@ -11,9 +10,9 @@ import {
   Plus,
   BookOpen,
   ChevronRight,
-  Users,
   FolderOpen
 } from "lucide-react";
+import { IconHome, IconReferrals } from "@/components/icons/hndld-icons";
 import { useUser } from "@/lib/user-context";
 
 const HOUSE_SECTIONS = [
@@ -66,7 +65,7 @@ export default function House() {
         <CardContent className="p-6">
           <div className="flex items-center gap-4">
             <div className="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center">
-              <Building2 aria-hidden="true" className="h-7 w-7 text-primary" />
+              <IconHome size={28} className="text-primary" aria-hidden="true" />
             </div>
             <div>
               <h2 className="font-semibold text-lg" data-testid="text-household-name">My Household</h2>
@@ -152,7 +151,7 @@ export default function House() {
             <CardContent className="p-4">
               <div className="flex items-center gap-4">
                 <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center shrink-0">
-                  <Users aria-hidden="true" className="h-5 w-5 text-muted-foreground" />
+                  <IconReferrals size={20} className="text-muted-foreground" aria-hidden="true" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <h3 className="font-medium">Organizations</h3>
