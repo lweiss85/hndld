@@ -1,0 +1,496 @@
+# Replit Agent Prompt: Predictive Home Maintenance Intelligence System
+
+You are a senior full-stack engineer working in the hndld app (React + TypeScript + Tailwind + Express + Drizzle ORM + PostgreSQL). This is a luxury household management platform.
+
+## OBJECTIVE
+
+Build a **Predictive Home Maintenance Intelligence** system that analyzes household inventory (appliances, HVAC, water heaters, etc.), predicts service needs and replacements, generates proactive notifications, and connects users to consumables/service providers through the marketplace. This is the killer feature that makes hndld indispensable daily.
+
+Work ONLY in existing files. Do NOT create new pages. Do NOT break existing functionality. Follow the existing code patterns exactly.
+
+---
+
+## CONTEXT: EXISTING CODE YOU MUST USE
+
+### Schema (shared/schema.ts)
+The following tables already exist — DO NOT recreate them:
+
+- `inventoryItems` — has `name`, `category` (APPLIANCE/HVAC/PLUMBING/ELECTRICAL/etc.), `brand`, `model`, `purchaseDate`, `warrantyExpires`, `warrantyType`, `warrantyProvider`, `lastServiceDate`, `nextServiceDue`, `serviceIntervalDays`, `householdId`
+- `inventoryServiceHistory` — has `itemId`, `serviceDate`, `serviceType`, `description`, `vendorId`, `cost`
+- `inventoryEvents` — has `inventoryItemId`, `eventType` (FAILURE/ROUTINE_MAINTENANCE/REPAIR/PART_REPLACED/etc.), `eventDate`, `failureCategory`, `failureDescription`, `applianceAgeYears`, `itemBrand`, `itemModel`, `itemCategory`, `householdClimateZone`, `totalCostCents`, `partsReplaced` (jsonb), `wasPreventable`
+- `householdDetails` — has `hvacType`, `hvacAgeYears`, `waterHeaterType`, `waterHeaterAgeYears`, `roofType`, `roofAgeYears`, `climateZone`, `squareFootage`, `consentToAnonymizedAnalytics`
+- `proactiveInsights` — has `householdId`, `type` (REMINDER/SUGGESTION/ALERT/OPPORTUNITY), `priority` (LOW/MEDIUM/HIGH), `title`, `body`, `actionLabel`, `actionUrl`, `isDismissed`, `metadata` (jsonb)
+- `householdInsights` — has `householdId`, `category` (uses `insightCategoryEnum`), `title`, `summary`, `confidence`, `data` (jsonb), `isActive`, `isDismissed`
+- `learnedPreferences` — has `householdId`, `category`, `key`, `value`, `confidence`
+- `providerProfiles` / `serviceProviders` / `marketplaceReviews` — marketplace tables
+
+### Existing insight category enum values in `insightCategoryEnum`:
+`MAINTENANCE_PREDICTION`, `SPENDING_ANOMALY`, `HOUSEHOLD_PATTERN`, `CALENDAR_SUGGESTION`, `VENDOR_PERFORMANCE`, `PEOPLE_BIRTHDAY`, `PEOPLE_DIETARY`, `VENDOR_RATINGS`, `VENDOR_FAVORITES`, `SERVICE_COSTS`, `SERVICE_HISTORY`, `SCHEDULE_CLEANING`, `SCHEDULE_PATTERNS`, `SCHEDULE_PREDICTIONS`
+
+### Services you must integrate with:
+- `server/services/ai-agent.ts` — has `gatherHouseholdContext()`, `generateProactiveInsights()`, `runProactiveAgent()`. Uses `ProactiveInsight` interface with type/priority/title/body/actionLabel/actionUrl/metadata
+- `server/services/home-intelligence.ts` — has `analyzeMaintenancePredictions()`, `generateAllInsights()`, `getInsights()`. Uses `InsightResult` interface with category/title/summary/confidence/data
+- `server/services/aggregate-analytics.ts` — has `getApplianceLifespanAnalytics()` which computes avg/median lifespan, percentiles, failure-by-age buckets, brand comparison, and reliability scores across the network. Uses k-anonymity gating and consent filters. Also has `getMaintenanceCostBenchmarks()` and `getSeasonalDemandPatterns()`
+- `server/services/ai-provider.ts` — has `generateCompletion({ messages, maxTokens, temperature })`, `getActiveProvider()`, `isDemoMode()`
+- `server/services/data-capture.ts` — has `captureInventoryEvent()` for logging events
+- `server/services/scheduler.ts` — uses `node-cron` for scheduled jobs. Already runs `runProactiveAgent()` on a cron schedule
+- `server/routes/inventory.ts` — has GET `/inventory/alerts/warranties` and GET `/inventory/alerts/maintenance`
+
+### Client Components:
+- `client/src/components/proactive-insights.tsx` — renders ProactiveInsight cards. Uses `/api/ai/insights` endpoint. Has INSIGHT_ICONS mapping (REMINDER→Bell, SUGGESTION→Lightbulb, ALERT→AlertTriangle, OPPORTUNITY→Gift) and PRIORITY_STYLES
+- `client/src/pages/inventory.tsx` — 1412-line inventory management page with list/detail views, add/edit forms, service history
+- `client/src/pages/insights.tsx` — renders household insights from `/api/insights`
+
+---
+
+## IMPLEMENTATION TASKS
+
+### TASK 1: Add `insight_category` enum values for appliance intelligence
+
+In `shared/schema.ts`, add these values to the existing `insightCategoryEnum`:
+
+```
+"APPLIANCE_LIFESPAN", "CONSUMABLE_REMINDER", "WARRANTY_ACTION", "REPLACEMENT_FORECAST"
+```
+
+### TASK 2: Add consumables knowledge base table
+
+In `shared/schema.ts`, add a new table `appliance_consumables`:
+
+```typescript
+export const applianceConsumables = pgTable("appliance_consumables", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  // Match criteria
+  applianceCategory: varchar("appliance_category", { length: 50 }).notNull(), // HVAC, APPLIANCE, PLUMBING, etc.
+  applianceBrand: varchar("appliance_brand", { length: 100 }), // null = universal
+  applianceModel: varchar("appliance_model", { length: 100 }), // null = brand-wide
+  // Consumable info
+  consumableName: varchar("consumable_name", { length: 200 }).notNull(), // "HVAC Air Filter"
+  consumableDescription: text("consumable_description"),
+  consumablePartNumber: varchar("consumable_part_number", { length: 100 }),
+  consumableSize: varchar("consumable_size", { length: 100 }), // "20x25x1 MERV 11"
+  defaultIntervalDays: integer("default_interval_days").notNull(), // 90 for HVAC filters
+  // Marketplace / affiliate
+  searchQuery: varchar("search_query", { length: 200 }), // pre-built marketplace search
+  estimatedCostCents: integer("estimated_cost_cents"),
+  affiliateUrl: text("affiliate_url"),
+  // Metadata
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  index("consumables_category_idx").on(table.applianceCategory),
+  index("consumables_brand_idx").on(table.applianceBrand),
+]);
+```
+
+Also add a household-specific consumable tracking table:
+
+```typescript
+export const householdConsumableTracking = pgTable("household_consumable_tracking", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  householdId: varchar("household_id").references(() => households.id).notNull(),
+  inventoryItemId: varchar("inventory_item_id").references(() => inventoryItems.id).notNull(),
+  consumableId: varchar("consumable_id").references(() => applianceConsumables.id).notNull(),
+  lastReplacedDate: date("last_replaced_date"),
+  customIntervalDays: integer("custom_interval_days"), // override default
+  nextDueDate: date("next_due_date"),
+  autoRemind: boolean("auto_remind").default(true).notNull(),
+  reminderDaysBefore: integer("reminder_days_before").default(7),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  index("consumable_tracking_household_idx").on(table.householdId),
+  index("consumable_tracking_item_idx").on(table.inventoryItemId),
+  index("consumable_tracking_due_idx").on(table.nextDueDate),
+]);
+```
+
+Export the types for both tables.
+
+### TASK 3: Create predictive maintenance service
+
+Create a new file `server/services/predictive-maintenance.ts`. This is the core intelligence engine. Follow the exact patterns used in `home-intelligence.ts` — return `InsightResult[]` from every analysis function.
+
+```typescript
+import { db } from "../db";
+import {
+  inventoryItems, inventoryServiceHistory, inventoryEvents,
+  householdDetails, applianceConsumables, householdConsumableTracking,
+  providerProfiles, serviceProviders,
+} from "@shared/schema";
+import { eq, and, gte, lte, desc, sql, lt, isNull, or, ilike } from "drizzle-orm";
+import { addDays, differenceInDays, differenceInYears, format, subDays } from "date-fns";
+import { getApplianceLifespanAnalytics, getMaintenanceCostBenchmarks } from "./aggregate-analytics";
+import { generateCompletion, isDemoMode, getActiveProvider } from "./ai-provider";
+import logger from "../lib/logger";
+
+interface InsightResult {
+  category: string;
+  title: string;
+  summary: string;
+  confidence: number;
+  data: Record<string, unknown>;
+}
+```
+
+Implement these functions:
+
+#### 3a. `analyzeApplianceLifecycle(householdId: string): Promise<InsightResult[]>`
+
+For each active inventory item in the household:
+1. Calculate current age from `purchaseDate`
+2. Look up the item's category (HVAC, APPLIANCE, etc.) in the network aggregate data using `getApplianceLifespanAnalytics(item.category, { brand: item.brand, region })` from `aggregate-analytics.ts`
+3. If the aggregate returns data (meets k-anonymity), compare the item's age to the network median lifespan
+4. Generate insights at these thresholds:
+   - **Item age > 80% of median lifespan** → category `REPLACEMENT_FORECAST`, confidence 70-85. Title: `"Your [brand] [name] is approaching end of life"`. Summary explains age vs. network average, estimated remaining years, and suggests budgeting for replacement. Include `estimatedReplacementYear`, `networkMedianLifespan`, `currentAgeYears`, `estimatedReplacementCostCents` in data.
+   - **Item age > 100% of median lifespan** → category `REPLACEMENT_FORECAST`, confidence 85-95. Title: `"[name] is past typical lifespan — plan replacement"`. Higher urgency messaging. Include marketplace search link in data: `actionUrl: "/marketplace?category=HVAC&search=water+heater"`.
+   - **Item age within 10-30% of median AND has failure patterns from network for its age bucket** → category `APPLIANCE_LIFESPAN`, confidence 60-75. Title: `"Heads up: [category] units like yours often need [common failure] around this age"`. Proactive prevention suggestion.
+5. If aggregate data is insufficient (doesn't meet k-anonymity), fall back to industry-standard lifespan estimates:
+
+```typescript
+const INDUSTRY_LIFESPANS: Record<string, { avgYears: number; description: string }> = {
+  "HVAC": { avgYears: 15, description: "HVAC system" },
+  "APPLIANCE:water_heater": { avgYears: 12, description: "water heater" },
+  "APPLIANCE:refrigerator": { avgYears: 14, description: "refrigerator" },
+  "APPLIANCE:dishwasher": { avgYears: 10, description: "dishwasher" },
+  "APPLIANCE:washer": { avgYears: 11, description: "washing machine" },
+  "APPLIANCE:dryer": { avgYears: 13, description: "dryer" },
+  "APPLIANCE:oven": { avgYears: 15, description: "oven/range" },
+  "PLUMBING:water_softener": { avgYears: 12, description: "water softener" },
+  "ELECTRICAL:garage_door": { avgYears: 15, description: "garage door opener" },
+  "OUTDOOR:deck": { avgYears: 20, description: "deck" },
+};
+```
+
+Use the item's `category` and attempt to match on the item `name` (lowercase contains check) for sub-category matching.
+
+#### 3b. `analyzeConsumableNeeds(householdId: string): Promise<InsightResult[]>`
+
+1. Query `householdConsumableTracking` joined with `applianceConsumables` and `inventoryItems` for this household
+2. For each tracked consumable, calculate days until `nextDueDate`
+3. Generate insights:
+   - **Due within 7 days** → category `CONSUMABLE_REMINDER`, confidence 90, priority HIGH equivalent. Title: `"Time to replace [consumableName] for your [itemName]"`. Summary: `"Your [brand] [model] [consumableSize] filter is due [in X days / this week / today]. [If not stocked, order one through hndld →]"`. Include `actionUrl` linking to marketplace search or affiliate URL. Include `consumableSize`, `partNumber`, `estimatedCost`, `daysDue`, `inventoryItemId` in data.
+   - **Due within 14-30 days** → confidence 80, MEDIUM priority. Gentler reminder: `"Your [consumableName] is due in [X] days — check if you have a replacement ready"`.
+   - **Overdue (past nextDueDate)** → confidence 95, HIGH priority. `"[consumableName] replacement is [X days] overdue"`. Stronger action language.
+4. Also: For inventory items that have `serviceIntervalDays` set but are NOT yet tracked in `householdConsumableTracking`, auto-match against `applianceConsumables` by category+brand. Generate a one-time SUGGESTION insight: `"We can track [consumable] replacements for your [item] — want to set up reminders?"` with `actionUrl: "/inventory/[itemId]"`.
+
+#### 3c. `analyzeWarrantyActions(householdId: string): Promise<InsightResult[]>`
+
+1. Query inventory items where `warrantyExpires` is within 90 days from now
+2. For items expiring within 30 days → category `WARRANTY_ACTION`, confidence 90. Title: `"Warranty on your [name] expires [date]"`. Summary suggests: check for any issues to claim before expiry, consider extended warranty, document current condition with photos.
+3. For items where warranty just expired (within last 30 days) AND the item's age is approaching the network failure zone → category `WARRANTY_ACTION`, confidence 75. Summary: `"Your warranty just ended and [item] is entering its most failure-prone years. Consider a home warranty or setting aside a repair fund."`. Include estimated replacement cost from network data if available.
+4. For items with active warranties that have had recent service events with `wasWarrantyService = false` that could have been warranty-covered → category `WARRANTY_ACTION`, confidence 65. `"Your recent [service type] on [item] might have been covered by your active warranty. Check with [warrantyProvider]."`.
+
+#### 3d. `generateAIPredictiveInsight(householdId: string, items: InventoryItem[], householdDetail: HouseholdDetail | null): Promise<InsightResult | null>`
+
+Only call this if `getActiveProvider() !== "NONE"`. Use `generateCompletion()` with this pattern:
+
+```typescript
+const prompt = `You are a home maintenance expert. Based on this household's appliance inventory and local conditions, identify the single most important maintenance action they should take in the next 30 days.
+
+Household: ${householdDetail?.climateZone || "unknown"} climate zone, ${householdDetail?.squareFootage || "unknown"} sq ft, built ${householdDetail?.yearBuilt || "unknown"}
+HVAC: ${householdDetail?.hvacType || "unknown"} type, ${householdDetail?.hvacAgeYears || "unknown"} years old
+Water Heater: ${householdDetail?.waterHeaterType || "unknown"}, ${householdDetail?.waterHeaterAgeYears || "unknown"} years old
+Roof: ${householdDetail?.roofType || "unknown"}, ${householdDetail?.roofAgeYears || "unknown"} years old
+Current month: ${format(new Date(), "MMMM")}
+
+Appliances: ${JSON.stringify(items.slice(0, 15).map(i => ({
+  name: i.name, category: i.category, brand: i.brand,
+  ageYears: i.purchaseDate ? differenceInYears(new Date(), new Date(i.purchaseDate)) : null,
+  lastService: i.lastServiceDate, nextServiceDue: i.nextServiceDue,
+})))}
+
+Return ONLY valid JSON: { "title": "short title", "summary": "1-2 sentence actionable recommendation", "confidence": 60-85, "relatedItemName": "item name or null", "urgency": "low/medium/high" }`;
+```
+
+Parse the result and return as an InsightResult with category `MAINTENANCE_PREDICTION`.
+
+#### 3e. `generateAllPredictiveInsights(householdId: string): Promise<InsightResult[]>`
+
+Orchestrate all the above with `Promise.all` and safe error handling (same pattern as `generateAllInsights` in `home-intelligence.ts`):
+
+```typescript
+export async function generateAllPredictiveInsights(householdId: string): Promise<InsightResult[]> {
+  const safeRun = (name: string, fn: () => Promise<InsightResult[]>) =>
+    fn().catch(e => {
+      logger.error(`[PredictiveMaintenance] ${name} failed`, {
+        error: e instanceof Error ? e.message : String(e), householdId,
+      });
+      return [] as InsightResult[];
+    });
+
+  const [lifecycle, consumables, warranty] = await Promise.all([
+    safeRun("Lifecycle", () => analyzeApplianceLifecycle(householdId)),
+    safeRun("Consumables", () => analyzeConsumableNeeds(householdId)),
+    safeRun("Warranty", () => analyzeWarrantyActions(householdId)),
+  ]);
+
+  const combined = [...lifecycle, ...consumables, ...warranty];
+
+  // AI insight only if under 8 insights and AI is available
+  if (combined.length < 8 && getActiveProvider() !== "NONE") {
+    try {
+      const items = await db.select().from(inventoryItems)
+        .where(and(eq(inventoryItems.householdId, householdId), eq(inventoryItems.isActive, true)));
+      const [detail] = await db.select().from(householdDetails)
+        .where(eq(householdDetails.householdId, householdId)).limit(1);
+      const aiInsight = await generateAIPredictiveInsight(householdId, items, detail || null);
+      if (aiInsight) combined.push(aiInsight);
+    } catch (e) {
+      logger.error("[PredictiveMaintenance] AI insight failed", {
+        error: e instanceof Error ? e.message : String(e), householdId,
+      });
+    }
+  }
+
+  return combined.sort((a, b) => b.confidence - a.confidence);
+}
+```
+
+### TASK 4: Wire predictive maintenance into existing systems
+
+#### 4a. Integrate into `server/services/home-intelligence.ts`
+
+In `generateAllInsights()`, add predictive maintenance to the `Promise.all` array:
+
+```typescript
+import { generateAllPredictiveInsights } from "./predictive-maintenance";
+```
+
+Add to the destructured result:
+```typescript
+const [maintenance, spending, patterns, calendar, vendorPerf,
+  peopleConn, vendorConn, serviceConn, scheduleConn,
+  predictiveMaint, // NEW
+] = await Promise.all([
+  // ...existing...
+  safeRun("PredictiveMaintenance", () => generateAllPredictiveInsights(householdId)), // NEW
+]);
+```
+
+Add `...predictiveMaint` to the return spread.
+
+#### 4b. Integrate into `server/services/ai-agent.ts`
+
+Expand the `HouseholdContext` interface to add:
+
+```typescript
+inventory: {
+  maintenanceDueSoon: Array<{ id: string; name: string; brand: string | null; nextServiceDue: string; daysUntil: number }>;
+  warrantyExpiringSoon: Array<{ id: string; name: string; warrantyExpires: string; daysUntil: number }>;
+  agingAppliances: Array<{ id: string; name: string; brand: string | null; category: string; ageYears: number }>;
+  overdueConsumables: Array<{ itemName: string; consumableName: string; daysOverdue: number }>;
+};
+```
+
+In `gatherHouseholdContext()`, add inventory queries in the existing `Promise.all`:
+
+```typescript
+const thirtyDaysFromNow = addDays(today, 30);
+const ninetyDaysFromNow = addDays(today, 90);
+
+// Add these to the existing Promise.all array:
+const maintenanceDueSoon = await db.select().from(inventoryItems).where(
+  and(
+    eq(inventoryItems.householdId, householdId),
+    eq(inventoryItems.isActive, true),
+    lte(inventoryItems.nextServiceDue, thirtyDaysFromNow.toISOString().split("T")[0])
+  )
+);
+
+const warrantyExpiring = await db.select().from(inventoryItems).where(
+  and(
+    eq(inventoryItems.householdId, householdId),
+    eq(inventoryItems.isActive, true),
+    gte(inventoryItems.warrantyExpires, today.toISOString().split("T")[0]),
+    lte(inventoryItems.warrantyExpires, ninetyDaysFromNow.toISOString().split("T")[0])
+  )
+);
+
+const allActiveItems = await db.select().from(inventoryItems).where(
+  and(eq(inventoryItems.householdId, householdId), eq(inventoryItems.isActive, true))
+);
+
+const overdueConsumables = await db.select({
+  itemName: inventoryItems.name,
+  consumableName: applianceConsumables.consumableName,
+  nextDueDate: householdConsumableTracking.nextDueDate,
+}).from(householdConsumableTracking)
+  .innerJoin(inventoryItems, eq(householdConsumableTracking.inventoryItemId, inventoryItems.id))
+  .innerJoin(applianceConsumables, eq(householdConsumableTracking.consumableId, applianceConsumables.id))
+  .where(
+    and(
+      eq(householdConsumableTracking.householdId, householdId),
+      lt(householdConsumableTracking.nextDueDate, today.toISOString().split("T")[0]),
+      eq(householdConsumableTracking.autoRemind, true)
+    )
+  );
+```
+
+Then populate the `inventory` field on the returned context object.
+
+In `generateProactiveInsights()`, add maintenance-specific insight generation AFTER the existing insight blocks:
+
+```typescript
+// Maintenance due soon
+for (const item of context.inventory.maintenanceDueSoon.slice(0, 3)) {
+  const urgency = item.daysUntil <= 0 ? "HIGH" : item.daysUntil <= 7 ? "MEDIUM" : "LOW";
+  const timeText = item.daysUntil <= 0 ? `${Math.abs(item.daysUntil)} days overdue`
+    : item.daysUntil <= 1 ? "tomorrow"
+    : `in ${item.daysUntil} days`;
+  insights.push({
+    type: "ALERT",
+    priority: urgency,
+    title: `Service due ${timeText}: ${item.name}`,
+    body: item.brand
+      ? `Your ${item.brand} ${item.name} maintenance is ${timeText}. Schedule a service visit to keep it running well.`
+      : `${item.name} maintenance is ${timeText}.`,
+    actionLabel: "View Item",
+    actionUrl: `/inventory?id=${item.id}`,
+    metadata: { insightType: "maintenance_due", inventoryItemId: item.id },
+  });
+}
+
+// Overdue consumables (the "buy a filter" moment)
+for (const c of context.inventory.overdueConsumables.slice(0, 2)) {
+  insights.push({
+    type: "REMINDER",
+    priority: "MEDIUM",
+    title: `Replace ${c.consumableName} for ${c.itemName}`,
+    body: `This replacement is ${c.daysOverdue} days overdue. Check if you have one on hand — if not, find one in the marketplace.`,
+    actionLabel: "Find Replacement",
+    actionUrl: `/marketplace?search=${encodeURIComponent(c.consumableName)}`,
+    metadata: { insightType: "consumable_overdue" },
+  });
+}
+
+// Warranty expiring
+for (const item of context.inventory.warrantyExpiringSoon.slice(0, 2)) {
+  if (item.daysUntil <= 30) {
+    insights.push({
+      type: "ALERT",
+      priority: item.daysUntil <= 7 ? "HIGH" : "MEDIUM",
+      title: `Warranty expires ${item.daysUntil <= 1 ? "tomorrow" : `in ${item.daysUntil} days`}: ${item.name}`,
+      body: "Check for any issues to report before coverage ends. Document the current condition with photos.",
+      actionLabel: "View Warranty",
+      actionUrl: `/inventory?id=${item.id}`,
+      metadata: { insightType: "warranty_expiring", inventoryItemId: item.id },
+    });
+  }
+}
+```
+
+### TASK 5: Seed the consumables knowledge base
+
+Create a seed script `server/seeds/consumables.ts` that inserts common consumable records. Run it once on startup if the table is empty.
+
+```typescript
+const COMMON_CONSUMABLES = [
+  { applianceCategory: "HVAC", consumableName: "HVAC Air Filter", consumableDescription: "Standard air filter replacement", consumableSize: "Check unit for size (common: 16x25x1, 20x25x1, 20x20x1)", defaultIntervalDays: 90, searchQuery: "HVAC air filter", estimatedCostCents: 2500 },
+  { applianceCategory: "HVAC", consumableName: "Humidifier Filter/Pad", consumableDescription: "Whole-house humidifier filter or water pad", defaultIntervalDays: 180, searchQuery: "humidifier filter pad", estimatedCostCents: 2000 },
+  { applianceCategory: "APPLIANCE", applianceBrand: null, consumableName: "Refrigerator Water Filter", consumableDescription: "Built-in water/ice dispenser filter", defaultIntervalDays: 180, searchQuery: "refrigerator water filter", estimatedCostCents: 3500 },
+  { applianceCategory: "APPLIANCE", consumableName: "Dishwasher Filter Cleaning", consumableDescription: "Clean or replace dishwasher drain filter", defaultIntervalDays: 30, searchQuery: "dishwasher cleaner", estimatedCostCents: 1000 },
+  { applianceCategory: "APPLIANCE", consumableName: "Dryer Vent Cleaning", consumableDescription: "Professional lint/vent cleaning to prevent fire hazard", defaultIntervalDays: 365, searchQuery: "dryer vent cleaning service", estimatedCostCents: 15000 },
+  { applianceCategory: "PLUMBING", consumableName: "Water Softener Salt", consumableDescription: "Salt for water softener brine tank", defaultIntervalDays: 60, searchQuery: "water softener salt", estimatedCostCents: 1500 },
+  { applianceCategory: "PLUMBING", consumableName: "Water Heater Flush", consumableDescription: "Drain and flush sediment from tank water heater", defaultIntervalDays: 365, searchQuery: "water heater flush service", estimatedCostCents: 15000 },
+  { applianceCategory: "OUTDOOR", consumableName: "Lawn Mower Blade Sharpening", consumableDescription: "Sharpen or replace mower blades for clean cut", defaultIntervalDays: 180, searchQuery: "lawn mower blade sharpening", estimatedCostCents: 3000 },
+  { applianceCategory: "HVAC", consumableName: "HVAC Coil Cleaning", consumableDescription: "Professional evaporator/condenser coil cleaning", defaultIntervalDays: 365, searchQuery: "HVAC coil cleaning service", estimatedCostCents: 20000 },
+  { applianceCategory: "ELECTRICAL", consumableName: "Smoke Detector Batteries", consumableDescription: "Replace 9V or AA batteries in smoke/CO detectors", defaultIntervalDays: 180, searchQuery: "smoke detector batteries", estimatedCostCents: 1500 },
+  { applianceCategory: "ELECTRICAL", consumableName: "Smoke Detector Replacement", consumableDescription: "Replace smoke detectors per NFPA guidelines (10 year lifespan)", defaultIntervalDays: 3650, searchQuery: "smoke detector", estimatedCostCents: 3000 },
+  { applianceCategory: "APPLIANCE", consumableName: "Garbage Disposal Cleaning", consumableDescription: "Deep clean with ice, salt, and citrus or cleaning pods", defaultIntervalDays: 30, searchQuery: "garbage disposal cleaner", estimatedCostCents: 800 },
+  { applianceCategory: "PLUMBING", consumableName: "Whole-House Water Filter", consumableDescription: "Replace sediment or carbon filter cartridge", defaultIntervalDays: 90, searchQuery: "whole house water filter cartridge", estimatedCostCents: 4000 },
+  { applianceCategory: "OUTDOOR", consumableName: "Gutter Cleaning", consumableDescription: "Clear gutters and downspouts of debris", defaultIntervalDays: 180, searchQuery: "gutter cleaning service", estimatedCostCents: 20000 },
+];
+```
+
+In `server/routes.ts`, call the seed function once during startup (check if `applianceConsumables` table is empty first).
+
+### TASK 6: Add inventory prediction API routes
+
+In `server/routes/inventory.ts`, add these new endpoints:
+
+#### GET `/inventory/predictions`
+Returns the predictive maintenance insights for the household. Calls `generateAllPredictiveInsights(householdId)` from the new service. Response shape:
+```json
+{
+  "predictions": InsightResult[],
+  "meta": { "count": number, "generatedAt": string }
+}
+```
+
+#### GET `/inventory/:id/health`
+Returns a health assessment for a single inventory item:
+- Current age and percentage of expected lifespan consumed
+- Network comparison data (if available from aggregate analytics)
+- Upcoming maintenance/consumable due dates
+- Service history summary (total cost, last service date, number of services)
+- Risk level: "good" | "monitor" | "plan_replacement" | "replace_soon"
+
+```json
+{
+  "item": InventoryItem,
+  "health": {
+    "ageYears": number,
+    "expectedLifespanYears": number,
+    "lifespanPercentUsed": number,
+    "riskLevel": "good" | "monitor" | "plan_replacement" | "replace_soon",
+    "networkComparison": {
+      "medianLifespan": number,
+      "reliabilityScore": number,
+      "brandRank": string
+    } | null,
+    "upcomingMaintenance": Array<{ name: string; dueDate: string; daysUntil: number }>,
+    "serviceHistorySummary": {
+      "totalServices": number,
+      "totalCostCents": number,
+      "lastServiceDate": string | null
+    },
+    "warrantyStatus": "active" | "expiring_soon" | "expired" | "none"
+  }
+}
+```
+
+#### POST `/inventory/:id/consumables/track`
+Body: `{ consumableId: string, lastReplacedDate?: string, customIntervalDays?: number }`
+Creates a `householdConsumableTracking` record. Calculates `nextDueDate` from `lastReplacedDate` + interval.
+
+#### GET `/inventory/:id/consumables`
+Returns consumables associated with this item (matched from `applianceConsumables` by category+brand, plus any already tracked in `householdConsumableTracking`).
+
+### TASK 7: Add predictive maintenance UI to inventory page
+
+In `client/src/pages/inventory.tsx`, add a **"Home Health"** section at the TOP of the page (before the item list) that appears when the user has inventory items. This section shows:
+
+1. **Health summary cards** — a horizontal scrollable row of compact cards, one per item that has a risk level of "monitor" or worse. Each card shows: item name, an icon for the category, age, a colored indicator (green/amber/red) based on risk level, and tapping navigates to the item detail.
+
+2. **Active alerts** — below the health cards, render any `CONSUMABLE_REMINDER`, `WARRANTY_ACTION`, or `REPLACEMENT_FORECAST` insights from `/api/inventory/predictions` using the existing card patterns from the page (match the existing visual style with `Badge`, `Card`, etc.). Each alert has a dismiss button and an action button (links to marketplace or item detail).
+
+Use the hndld design system: `LuxuryCard` pattern, ink navy text, champagne accents on health indicators, the existing icon set, and Framer Motion `animate-fade-in-up` for entrance.
+
+Query `/api/inventory/predictions` alongside the existing inventory queries. Use `useQuery` with `staleTime: 1000 * 60 * 10` (10 min cache).
+
+### TASK 8: Add "Track Consumable" UI to item detail view
+
+In the item detail view within `client/src/pages/inventory.tsx`, add a **"Consumables & Supplies"** section below the service history. This section:
+
+1. Fetches `/api/inventory/:id/consumables` to show matched consumables
+2. For untracked consumables, shows a "Start tracking" button that POSTs to `/api/inventory/:id/consumables/track`
+3. For tracked consumables, shows the next due date, a "Mark as replaced" button (which updates `lastReplacedDate` to today and recalculates `nextDueDate`), and a "Buy replacement" button linking to marketplace
+
+Use `Sheet` (bottom sheet) from the existing UI components for the "Mark as replaced" confirmation flow.
+
+---
+
+## CRITICAL RULES
+
+1. **DO NOT modify any existing table schemas** — only ADD new tables and enum values
+2. **DO NOT create new pages or routes files** — add to existing files
+3. **Follow the exact TypeScript patterns** already in the codebase — use `isAuthenticated`, `householdContextMiddleware`, the error handling pattern with `logger.error`, and the response shapes
+4. **All database queries must be household-scoped** — always filter by `householdId`
+5. **Use the existing design system** — porcelain/ink navy/champagne gold, rounded-2xl cards, p-5 to p-6 padding, the existing Badge/Card/Button components, framer-motion animations
+6. **AI calls must degrade gracefully** — always check `getActiveProvider() !== "NONE"` and provide non-AI fallbacks using the `INDUSTRY_LIFESPANS` lookup and static interval logic
+7. **Aggregate analytics calls must handle k-anonymity failures** — when `getApplianceLifespanAnalytics` returns `data: null` (insufficient network data), fall back to industry averages
+8. **Run `npm run check` after all changes** — fix any TypeScript errors before finishing
+9. **Do NOT install new packages** — everything needed is already in `package.json`
+10. **Test the new endpoints manually** — ensure `/api/inventory/predictions` returns valid JSON for a household with inventory items

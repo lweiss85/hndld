@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import { useLocation } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
 
@@ -635,6 +636,7 @@ function ItemDetail({
   onBack: () => void;
 }) {
   const queryClient = useQueryClient();
+  const [, navigate] = useLocation();
   const [showServiceDialog, setShowServiceDialog] = useState(false);
 
   const { data, isLoading } = useQuery({
@@ -642,6 +644,45 @@ function ItemDetail({
     queryFn: async () => {
       const res = await apiRequest("GET", `/api/v1/inventory/${itemId}`);
       return res.json();
+    },
+  });
+
+  const { data: itemHealth } = useQuery({
+    queryKey: ["/api/v1/inventory", itemId, "health"],
+    queryFn: async () => {
+      const res = await apiRequest("GET", `/api/v1/inventory/${itemId}/health`);
+      return res.json();
+    },
+    enabled: !!itemId,
+  });
+
+  const { data: consumablesData } = useQuery({
+    queryKey: ["/api/v1/inventory", itemId, "consumables"],
+    queryFn: async () => {
+      const res = await apiRequest("GET", `/api/v1/inventory/${itemId}/consumables`);
+      return res.json();
+    },
+    enabled: !!itemId,
+  });
+
+  const trackConsumableMutation = useMutation({
+    mutationFn: async (data: { consumableId: string }) => {
+      const res = await apiRequest("POST", `/api/v1/inventory/${itemId}/consumables/track`, data);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/v1/inventory", itemId, "consumables"] });
+    },
+  });
+
+  const markReplacedMutation = useMutation({
+    mutationFn: async (trackingId: string) => {
+      const res = await apiRequest("PATCH", `/api/v1/inventory/consumables/tracking/${trackingId}/replace`);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/v1/inventory", itemId, "consumables"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/v1/inventory/predictions"] });
     },
   });
 
@@ -700,6 +741,41 @@ function ItemDetail({
       </div>
 
       <div className="p-4 space-y-4 max-w-lg mx-auto">
+        {itemHealth?.health && (
+          <Card className="border-0 shadow-[0_2px_8px_rgba(26,29,46,0.04)] bg-card">
+            <CardContent className="p-4">
+              <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3">Health Assessment</h3>
+              <div className="flex items-center gap-4">
+                <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
+                  itemHealth.health.riskLevel === 'good' ? 'bg-emerald-50 text-emerald-600' :
+                  itemHealth.health.riskLevel === 'monitor' ? 'bg-amber-50 text-amber-600' :
+                  itemHealth.health.riskLevel === 'plan_replacement' ? 'bg-orange-50 text-orange-600' :
+                  'bg-red-50 text-red-600'
+                }`}>
+                  <span className="text-lg font-data font-semibold">{itemHealth.health.lifespanPercentUsed}%</span>
+                </div>
+                <div className="flex-1">
+                  <p className="font-medium text-sm">
+                    {itemHealth.health.riskLevel === 'good' ? 'Good condition' :
+                     itemHealth.health.riskLevel === 'monitor' ? 'Worth monitoring' :
+                     itemHealth.health.riskLevel === 'plan_replacement' ? 'Plan replacement' :
+                     'Replace soon'}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {itemHealth.health.ageYears}y old · Expected lifespan: {itemHealth.health.expectedLifespanYears}y
+                    {itemHealth.health.warrantyStatus !== 'none' && ` · Warranty: ${itemHealth.health.warrantyStatus.replace('_', ' ')}`}
+                  </p>
+                </div>
+              </div>
+              {itemHealth.health.serviceHistorySummary?.totalServices > 0 && (
+                <p className="text-xs text-muted-foreground mt-2">
+                  {itemHealth.health.serviceHistorySummary.totalServices} service records · Total cost: ${(itemHealth.health.serviceHistorySummary.totalCostCents / 100).toFixed(0)}
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
         <div className="bg-card rounded-xl p-4 space-y-3">
           <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
             Details
@@ -911,6 +987,82 @@ function ItemDetail({
           )}
         </div>
 
+        {consumablesData && (consumablesData.tracked?.length > 0 || consumablesData.available?.length > 0) && (
+          <div className="bg-card rounded-xl p-4">
+            <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3">Consumables & Supplies</h3>
+            <div className="space-y-3">
+              {consumablesData.tracked?.map((item: any) => {
+                const daysUntil = item.tracking.nextDueDate
+                  ? Math.ceil((new Date(item.tracking.nextDueDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+                  : null;
+                const isOverdue = daysUntil !== null && daysUntil < 0;
+                const isDueSoon = daysUntil !== null && daysUntil <= 7;
+                return (
+                  <div key={item.tracking.id} className={`rounded-lg border p-3 ${isOverdue ? 'border-red-200 bg-red-50/50' : isDueSoon ? 'border-amber-200 bg-amber-50/50' : 'border-border'}`}>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-sm">{item.consumableName}</p>
+                        {item.consumableSize && <p className="text-xs text-muted-foreground">{item.consumableSize}</p>}
+                        <p className={`text-xs mt-1 ${isOverdue ? 'text-red-600 font-medium' : isDueSoon ? 'text-amber-600' : 'text-muted-foreground'}`}>
+                          {daysUntil === null ? 'No due date set' :
+                           isOverdue ? `${Math.abs(daysUntil)} days overdue` :
+                           daysUntil === 0 ? 'Due today' :
+                           daysUntil === 1 ? 'Due tomorrow' :
+                           `Due in ${daysUntil} days`}
+                        </p>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-xs h-8"
+                          disabled={markReplacedMutation.isPending}
+                          onClick={() => markReplacedMutation.mutate(item.tracking.id)}
+                        >
+                          Replaced
+                        </Button>
+                        {item.searchQuery && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-xs h-8"
+                            onClick={() => navigate(`/marketplace?search=${encodeURIComponent(item.searchQuery)}`)}
+                          >
+                            Buy
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+              {consumablesData.available?.map((consumable: any) => (
+                <div key={consumable.id} className="rounded-lg border border-dashed border-border p-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm">{consumable.consumableName}</p>
+                      <p className="text-xs text-muted-foreground">{consumable.consumableDescription}</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Every {consumable.defaultIntervalDays} days
+                        {consumable.estimatedCostCents ? ` · ~$${(consumable.estimatedCostCents / 100).toFixed(0)}` : ''}
+                      </p>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-xs h-8 shrink-0"
+                      disabled={trackConsumableMutation.isPending}
+                      onClick={() => trackConsumableMutation.mutate({ consumableId: consumable.id })}
+                    >
+                      Track
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {item.isActive && (
           <Button
             variant="outline"
@@ -1006,6 +1158,16 @@ export default function InventoryPage() {
       return res.json();
     },
     enabled: viewTab === "insurance",
+  });
+
+  const { data: predictionsData } = useQuery({
+    queryKey: ["/api/v1/inventory/predictions"],
+    queryFn: async () => {
+      const res = await apiRequest("GET", "/api/v1/inventory/predictions");
+      return res.json();
+    },
+    staleTime: 1000 * 60 * 10,
+    enabled: !selectedItemId && viewTab === "items",
   });
 
   if (selectedItemId) {
@@ -1127,6 +1289,59 @@ export default function InventoryPage() {
                   {label}
                 </button>
               ))}
+            </div>
+          )}
+
+          {predictionsData?.predictions?.length > 0 && (
+            <div className="px-4 mb-4 space-y-3">
+              <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Home Health</h2>
+              <div className="space-y-2">
+                {predictionsData.predictions.slice(0, 5).map((prediction: any, i: number) => {
+                  const isUrgent = prediction.confidence >= 90;
+                  const isWarning = prediction.confidence >= 75;
+                  return (
+                    <Card key={i} className={`border-0 shadow-[0_2px_8px_rgba(26,29,46,0.04)] ${isUrgent ? 'border-l-2 border-l-red-400' : isWarning ? 'border-l-2 border-l-amber-400' : 'border-l-2 border-l-emerald-400'}`}>
+                      <CardContent className="p-4">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <Badge variant="outline" className={`text-[10px] ${
+                                prediction.category === 'REPLACEMENT_FORECAST' ? 'border-red-200 text-red-600 bg-red-50' :
+                                prediction.category === 'WARRANTY_ACTION' ? 'border-amber-200 text-amber-600 bg-amber-50' :
+                                prediction.category === 'CONSUMABLE_REMINDER' ? 'border-blue-200 text-blue-600 bg-blue-50' :
+                                'border-emerald-200 text-emerald-600 bg-emerald-50'
+                              }`}>
+                                {prediction.category?.replace(/_/g, ' ')}
+                              </Badge>
+                              <span className="text-[10px] text-muted-foreground">{prediction.confidence}% confidence</span>
+                            </div>
+                            <p className="font-medium text-sm">{prediction.title}</p>
+                            <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{prediction.summary}</p>
+                          </div>
+                          {prediction.data?.actionUrl && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="shrink-0 text-xs"
+                              onClick={() => {
+                                const url = prediction.data.actionUrl as string;
+                                if (url.startsWith('/inventory?id=')) {
+                                  setSelectedItemId(url.split('id=')[1]);
+                                } else {
+                                  navigate(url);
+                                }
+                              }}
+                            >
+                              View
+                              <ChevronRight className="h-3 w-3 ml-1" />
+                            </Button>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
             </div>
           )}
 

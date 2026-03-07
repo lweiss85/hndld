@@ -15,6 +15,7 @@ import { cache } from "./lib/cache";
 import { getPoolStats } from "./db";
 import { startScheduledBackups, startAccountDeletionScheduler, startDocumentExpiryAlerts, startBudgetAlertScheduler, startGuestAccessExpiryScheduler } from "./services/scheduler";
 import { runMomentsAutomation } from "./routes/helpers";
+import { seedConsumables } from "./seeds/consumables";
 import householdRoutes from "./routes/households";
 import inviteRoutes from "./routes/invites";
 import fileRoutes from "./routes/files";
@@ -170,6 +171,8 @@ export async function registerRoutes(
   startGuestAccessExpiryScheduler();
 
   metrics.startDailyLog();
+
+  seedConsumables();
 
   return httpServer;
 }

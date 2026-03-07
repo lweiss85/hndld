@@ -2,9 +2,10 @@ import { db } from "../db";
 import { storage } from "../storage";
 import { 
   tasks, importantDates, calendarEvents, spendingItems, 
-  proactiveInsights, taskPatterns, households
+  proactiveInsights, taskPatterns, households,
+  inventoryItems, applianceConsumables, householdConsumableTracking,
 } from "@shared/schema";
-import { eq, and, gte, lte, desc, sql } from "drizzle-orm";
+import { eq, and, gte, lte, lt, desc, sql } from "drizzle-orm";
 import { 
   addDays, subDays, differenceInDays, differenceInMinutes, 
   startOfDay, endOfDay, format, isWithinInterval, getDay, getHours,
@@ -48,6 +49,12 @@ interface HouseholdContext {
     busiestDay: string;
     averageTasksPerWeek: number;
   };
+  inventory: {
+    maintenanceDueSoon: Array<{ id: string; name: string; brand: string | null; nextServiceDue: string; daysUntil: number }>;
+    warrantyExpiringSoon: Array<{ id: string; name: string; warrantyExpires: string; daysUntil: number }>;
+    agingAppliances: Array<{ id: string; name: string; brand: string | null; category: string; ageYears: number }>;
+    overdueConsumables: Array<{ itemName: string; consumableName: string; daysOverdue: number }>;
+  };
 }
 
 export async function gatherHouseholdContext(householdId: string): Promise<HouseholdContext> {
@@ -56,7 +63,10 @@ export async function gatherHouseholdContext(householdId: string): Promise<House
   const tomorrow = addDays(today, 1);
   const weekFromNow = addDays(today, 7);
 
-  const [allTasks, allDates, allEvents, pendingSpending] = await Promise.all([
+  const thirtyDaysFromNow = addDays(today, 30);
+  const ninetyDaysFromNow = addDays(today, 90);
+
+  const [allTasks, allDates, allEvents, pendingSpending, maintenanceDueSoon, warrantyExpiring, allActiveItems, overdueConsumablesRaw] = await Promise.all([
     storage.getTasks(householdId),
     storage.getImportantDates(householdId),
     storage.getCalendarEvents(householdId),
@@ -66,6 +76,38 @@ export async function gatherHouseholdContext(householdId: string): Promise<House
         eq(spendingItems.status, "NEEDS_APPROVAL")
       )
     ),
+    db.select().from(inventoryItems).where(
+      and(
+        eq(inventoryItems.householdId, householdId),
+        eq(inventoryItems.isActive, true),
+        lte(inventoryItems.nextServiceDue, thirtyDaysFromNow.toISOString().split("T")[0])
+      )
+    ).catch(() => [] as Array<typeof inventoryItems.$inferSelect>),
+    db.select().from(inventoryItems).where(
+      and(
+        eq(inventoryItems.householdId, householdId),
+        eq(inventoryItems.isActive, true),
+        gte(inventoryItems.warrantyExpires, today.toISOString().split("T")[0]),
+        lte(inventoryItems.warrantyExpires, ninetyDaysFromNow.toISOString().split("T")[0])
+      )
+    ).catch(() => [] as Array<typeof inventoryItems.$inferSelect>),
+    db.select().from(inventoryItems).where(
+      and(eq(inventoryItems.householdId, householdId), eq(inventoryItems.isActive, true))
+    ).catch(() => [] as Array<typeof inventoryItems.$inferSelect>),
+    db.select({
+      itemName: inventoryItems.name,
+      consumableName: applianceConsumables.consumableName,
+      nextDueDate: householdConsumableTracking.nextDueDate,
+    }).from(householdConsumableTracking)
+      .innerJoin(inventoryItems, eq(householdConsumableTracking.inventoryItemId, inventoryItems.id))
+      .innerJoin(applianceConsumables, eq(householdConsumableTracking.consumableId, applianceConsumables.id))
+      .where(
+        and(
+          eq(householdConsumableTracking.householdId, householdId),
+          lt(householdConsumableTracking.nextDueDate, today.toISOString().split("T")[0]),
+          eq(householdConsumableTracking.autoRemind, true)
+        )
+      ).catch(() => [] as Array<{ itemName: string; consumableName: string; nextDueDate: string | null }>),
   ]);
 
   const activeTasks = allTasks.filter(t => t.status !== "DONE" && t.status !== "CANCELLED");
@@ -160,6 +202,42 @@ export async function gatherHouseholdContext(householdId: string): Promise<House
       busiestDay: "Monday",
       averageTasksPerWeek: 0,
     },
+    inventory: {
+      maintenanceDueSoon: maintenanceDueSoon
+        .filter(i => i.nextServiceDue)
+        .map(i => ({
+          id: i.id,
+          name: i.name,
+          brand: i.brand,
+          nextServiceDue: i.nextServiceDue!,
+          daysUntil: differenceInDays(new Date(i.nextServiceDue!), today),
+        }))
+        .sort((a, b) => a.daysUntil - b.daysUntil),
+      warrantyExpiringSoon: warrantyExpiring
+        .filter(i => i.warrantyExpires)
+        .map(i => ({
+          id: i.id,
+          name: i.name,
+          warrantyExpires: i.warrantyExpires!,
+          daysUntil: differenceInDays(new Date(i.warrantyExpires!), today),
+        }))
+        .sort((a, b) => a.daysUntil - b.daysUntil),
+      agingAppliances: allActiveItems
+        .filter(i => i.purchaseDate)
+        .map(i => {
+          const ageYears = Math.floor(differenceInDays(now, new Date(i.purchaseDate!)) / 365);
+          return { id: i.id, name: i.name, brand: i.brand, category: i.category, ageYears };
+        })
+        .filter(i => i.ageYears >= 5)
+        .sort((a, b) => b.ageYears - a.ageYears),
+      overdueConsumables: overdueConsumablesRaw
+        .filter(c => c.nextDueDate)
+        .map(c => ({
+          itemName: c.itemName,
+          consumableName: c.consumableName,
+          daysOverdue: differenceInDays(today, new Date(c.nextDueDate!)),
+        })),
+    },
   };
 }
 
@@ -235,6 +313,50 @@ export async function generateProactiveInsights(
         body: `This has been waiting for client input for ${daysSince} days. Should I send a reminder?`,
         actionLabel: "View Task",
         actionUrl: `/tasks?id=${task.id}`,
+      });
+    }
+  }
+
+  for (const item of context.inventory.maintenanceDueSoon.slice(0, 3)) {
+    const urgency = item.daysUntil <= 0 ? "HIGH" : item.daysUntil <= 7 ? "MEDIUM" : "LOW";
+    const timeText = item.daysUntil <= 0 ? `${Math.abs(item.daysUntil)} days overdue`
+      : item.daysUntil <= 1 ? "tomorrow"
+      : `in ${item.daysUntil} days`;
+    insights.push({
+      type: "ALERT",
+      priority: urgency,
+      title: `Service due ${timeText}: ${item.name}`,
+      body: item.brand
+        ? `Your ${item.brand} ${item.name} maintenance is ${timeText}. Schedule a service visit to keep it running well.`
+        : `${item.name} maintenance is ${timeText}.`,
+      actionLabel: "View Item",
+      actionUrl: `/inventory?id=${item.id}`,
+      metadata: { insightType: "maintenance_due", inventoryItemId: item.id },
+    });
+  }
+
+  for (const c of context.inventory.overdueConsumables.slice(0, 2)) {
+    insights.push({
+      type: "REMINDER",
+      priority: "MEDIUM",
+      title: `Replace ${c.consumableName} for ${c.itemName}`,
+      body: `This replacement is ${c.daysOverdue} days overdue. Check if you have one on hand — if not, find one in the marketplace.`,
+      actionLabel: "Find Replacement",
+      actionUrl: `/marketplace?search=${encodeURIComponent(c.consumableName)}`,
+      metadata: { insightType: "consumable_overdue" },
+    });
+  }
+
+  for (const item of context.inventory.warrantyExpiringSoon.slice(0, 2)) {
+    if (item.daysUntil <= 30) {
+      insights.push({
+        type: "ALERT",
+        priority: item.daysUntil <= 7 ? "HIGH" : "MEDIUM",
+        title: `Warranty expires ${item.daysUntil <= 1 ? "tomorrow" : `in ${item.daysUntil} days`}: ${item.name}`,
+        body: "Check for any issues to report before coverage ends. Document the current condition with photos.",
+        actionLabel: "View Warranty",
+        actionUrl: `/inventory?id=${item.id}`,
+        metadata: { insightType: "warranty_expiring", inventoryItemId: item.id },
       });
     }
   }

@@ -12,6 +12,7 @@ import {
   analyzeServiceConnections,
   analyzeScheduleConnections,
 } from "./home-intelligence-connections";
+import { generateAllPredictiveInsights } from "./predictive-maintenance";
 import logger from "../lib/logger";
 
 interface InsightResult {
@@ -458,6 +459,7 @@ export async function generateAllInsights(householdId: string): Promise<InsightR
   const [
     maintenance, spending, patterns, calendar, vendorPerf,
     peopleConn, vendorConn, serviceConn, scheduleConn,
+    predictiveMaint,
   ] = await Promise.all([
     safeRun("Maintenance", () => analyzeMaintenancePredictions(householdId)),
     safeRun("Spending", () => detectSpendingAnomalies(householdId)),
@@ -468,11 +470,13 @@ export async function generateAllInsights(householdId: string): Promise<InsightR
     safeRun("VendorConnections", () => analyzeVendorConnections(householdId)),
     safeRun("Service", () => analyzeServiceConnections(householdId)),
     safeRun("Schedule", () => analyzeScheduleConnections(householdId)),
+    safeRun("PredictiveMaintenance", () => generateAllPredictiveInsights(householdId)),
   ]);
 
   return [
     ...maintenance, ...spending, ...patterns, ...calendar, ...vendorPerf,
     ...peopleConn, ...vendorConn, ...serviceConn, ...scheduleConn,
+    ...predictiveMaint,
   ].sort((a, b) => b.confidence - a.confidence);
 }
 

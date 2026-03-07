@@ -1380,6 +1380,10 @@ export const insightCategoryEnum = pgEnum("insight_category", [
   "SCHEDULE_CLEANING",
   "SCHEDULE_PATTERNS",
   "SCHEDULE_PREDICTIONS",
+  "APPLIANCE_LIFESPAN",
+  "CONSUMABLE_REMINDER",
+  "WARRANTY_ACTION",
+  "REPLACEMENT_FORECAST",
 ]);
 
 export const householdInsights = pgTable("household_insights", {
@@ -2678,3 +2682,47 @@ export type InsertServiceQualityRating = typeof serviceQualityRatings.$inferInse
 export type DataPartner = typeof dataPartners.$inferSelect;
 export type InsertDataPartner = typeof dataPartners.$inferInsert;
 export type DataApiLog = typeof dataApiLogs.$inferSelect;
+
+export const applianceConsumables = pgTable("appliance_consumables", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  applianceCategory: varchar("appliance_category", { length: 50 }).notNull(),
+  applianceBrand: varchar("appliance_brand", { length: 100 }),
+  applianceModel: varchar("appliance_model", { length: 100 }),
+  consumableName: varchar("consumable_name", { length: 200 }).notNull(),
+  consumableDescription: text("consumable_description"),
+  consumablePartNumber: varchar("consumable_part_number", { length: 100 }),
+  consumableSize: varchar("consumable_size", { length: 100 }),
+  defaultIntervalDays: integer("default_interval_days").notNull(),
+  searchQuery: varchar("search_query", { length: 200 }),
+  estimatedCostCents: integer("estimated_cost_cents"),
+  affiliateUrl: text("affiliate_url"),
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  index("consumables_category_idx").on(table.applianceCategory),
+  index("consumables_brand_idx").on(table.applianceBrand),
+]);
+
+export const householdConsumableTracking = pgTable("household_consumable_tracking", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  householdId: varchar("household_id").references(() => households.id).notNull(),
+  inventoryItemId: varchar("inventory_item_id").references(() => inventoryItems.id).notNull(),
+  consumableId: varchar("consumable_id").references(() => applianceConsumables.id).notNull(),
+  lastReplacedDate: date("last_replaced_date"),
+  customIntervalDays: integer("custom_interval_days"),
+  nextDueDate: date("next_due_date"),
+  autoRemind: boolean("auto_remind").default(true).notNull(),
+  reminderDaysBefore: integer("reminder_days_before").default(7),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  index("consumable_tracking_household_idx").on(table.householdId),
+  index("consumable_tracking_item_idx").on(table.inventoryItemId),
+  index("consumable_tracking_due_idx").on(table.nextDueDate),
+]);
+
+export type ApplianceConsumable = typeof applianceConsumables.$inferSelect;
+export type InsertApplianceConsumable = typeof applianceConsumables.$inferInsert;
+export type HouseholdConsumableTracking = typeof householdConsumableTracking.$inferSelect;
+export type InsertHouseholdConsumableTracking = typeof householdConsumableTracking.$inferInsert;
