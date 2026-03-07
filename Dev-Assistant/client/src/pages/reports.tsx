@@ -294,7 +294,7 @@ export default function Reports() {
               <CardContent className="space-y-2">
                 {report.byCategory.length === 0 ? (
                   <p className="text-sm text-muted-foreground py-4 text-center">
-                    No spending data for {selectedYear}
+                    No spending data recorded for {selectedYear}.
                   </p>
                 ) : (
                   report.byCategory.map((cat) => {

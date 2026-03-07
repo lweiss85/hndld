@@ -157,7 +157,7 @@ export default function StaffUpdates() {
           <Card className="border-dashed">
             <CardContent className="pt-6 text-center">
               <MessageSquare className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
-              <p className="text-muted-foreground">No updates yet</p>
+              <p className="text-sm text-muted-foreground leading-relaxed">New updates and conversations will appear here.</p>
               <p className="text-sm text-muted-foreground/70 mt-1">
                 Post an update to share what you're working on
               </p>

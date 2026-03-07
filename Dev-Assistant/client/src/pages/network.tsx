@@ -255,7 +255,7 @@ function ConnectionsTab() {
           <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
             <Users className="h-8 w-8 text-muted-foreground" />
           </div>
-          <h3 className="font-medium text-lg mb-1">No connections yet</h3>
+          <h3 className="font-display text-xl font-light tracking-tight text-foreground mb-1.5">No connections yet</h3>
           <p className="text-sm text-muted-foreground mb-4">
             Connect with other households to share vendors, referrals, and group deals
           </p>
@@ -423,7 +423,7 @@ function ReferralsTab() {
           <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
             <Share2 className="h-8 w-8 text-muted-foreground" />
           </div>
-          <h3 className="font-medium text-lg mb-1">No referrals yet</h3>
+          <h3 className="font-display text-xl font-light tracking-tight text-foreground mb-1.5">No referrals yet</h3>
           <p className="text-sm text-muted-foreground">
             Share vendors from your Vendors page to send referrals to connected households
           </p>
@@ -552,7 +552,7 @@ function GroupBuysTab() {
           <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
             <ShoppingCart className="h-8 w-8 text-muted-foreground" />
           </div>
-          <h3 className="font-medium text-lg mb-1">No group deals yet</h3>
+          <h3 className="font-display text-xl font-light tracking-tight text-foreground mb-1.5">No group deals yet</h3>
           <p className="text-sm text-muted-foreground mb-4">
             Create a group deal to get better pricing with connected households
           </p>

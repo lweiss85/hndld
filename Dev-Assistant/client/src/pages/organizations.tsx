@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { HandledIllustration } from "@/components/illustrations";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -281,8 +282,8 @@ function OrganizationCard({ org }: { org: Organization }) {
             {isLoading ? (
               <div className="text-center py-4 text-muted-foreground">Loading households...</div>
             ) : households.length === 0 ? (
-              <div className="text-center py-4 text-muted-foreground">
-                No households yet. Add your first household to get started.
+              <div className="text-center py-6 text-sm text-muted-foreground leading-relaxed">
+                Your households will appear here.
               </div>
             ) : (
               <div className="space-y-2">
@@ -353,16 +354,14 @@ export default function Organizations() {
       {isLoading ? (
         <div className="text-center py-8 text-muted-foreground">Loading organizations...</div>
       ) : organizations.length === 0 ? (
-        <Card>
-          <CardContent className="p-8 text-center">
-            <Building2 className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-            <h3 className="font-semibold text-lg mb-2">No Organizations Yet</h3>
-            <p className="text-muted-foreground mb-4">
-              Create your first organization to manage multiple households under one umbrella.
-            </p>
-            <CreateOrganizationDialog />
-          </CardContent>
-        </Card>
+        <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
+          <HandledIllustration size={56} className="mb-5 opacity-40" />
+          <h3 className="font-display text-xl font-light tracking-tight text-foreground mb-1.5">No organizations yet</h3>
+          <p className="text-sm text-muted-foreground max-w-[300px] leading-relaxed mb-5">
+            Create an organization to manage multiple households.
+          </p>
+          <CreateOrganizationDialog />
+        </div>
       ) : (
         <div className="space-y-4">
           {organizations.map((org) => (

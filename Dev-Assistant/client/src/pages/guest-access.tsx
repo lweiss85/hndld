@@ -182,7 +182,7 @@ export default function GuestAccessPage() {
           <Card>
             <CardContent className="py-12 text-center">
               <UserPlus className="h-10 w-10 mx-auto mb-3 text-muted-foreground" />
-              <p className="text-muted-foreground mb-4">No guest access set up yet</p>
+              <p className="text-sm text-muted-foreground leading-relaxed mb-4">Guest access links will be managed here.</p>
               <p className="text-sm text-muted-foreground mb-4">
                 Invite house sitters, contractors, or temporary help with time-limited access
               </p>

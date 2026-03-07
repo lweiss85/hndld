@@ -213,11 +213,9 @@ export default function Calendar() {
                 </h2>
                 
                 {dayEvents.length === 0 ? (
-                  <Card>
-                    <CardContent className="p-4 text-center text-sm text-muted-foreground">
-                      No events scheduled
-                    </CardContent>
-                  </Card>
+                  <div className="py-6 px-4 text-center">
+                    <p className="text-sm text-muted-foreground leading-relaxed">No appointments scheduled.</p>
+                  </div>
                 ) : (
                   <div className="space-y-2">
                     {dayEvents.map((event) => (
@@ -280,11 +278,11 @@ export default function Calendar() {
               <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
                 <CalendarIcon aria-hidden="true" className="h-8 w-8 text-muted-foreground" />
               </div>
-              <h3 className="font-medium text-lg mb-1">No calendar events</h3>
-              <p className="text-sm text-muted-foreground max-w-xs mb-4">
+              <h3 className="font-display text-xl font-light tracking-tight text-foreground mb-1.5">Your schedule is open</h3>
+              <p className="text-sm text-muted-foreground max-w-[300px] leading-relaxed mb-4">
                 {isConnected 
-                  ? "No upcoming events found. Tap Sync to refresh."
-                  : "Connect your Google Calendar to see events here"}
+                  ? "Upcoming plans and appointments will show here."
+                  : "Connect your Google Calendar to see events here."}
               </p>
               {!isConnected && (
                 <p className="text-xs text-muted-foreground max-w-xs">

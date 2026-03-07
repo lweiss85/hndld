@@ -520,9 +520,9 @@ function PeopleTab({ people, isAssistant }: { people: Person[]; isAssistant: boo
           <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
             <User className="h-8 w-8 text-muted-foreground" />
           </div>
-          <h3 className="font-medium text-lg mb-1">No people added</h3>
+          <h3 className="font-display text-lg font-light tracking-tight text-foreground mb-1">No people added</h3>
           <p className="text-sm text-muted-foreground">
-            {isAssistant ? "Add household members and pets" : "No household members have been added yet"}
+            {isAssistant ? "Add household members and pets" : "Household members will appear here."}
           </p>
         </div>
       )}
@@ -723,9 +723,9 @@ function PreferencesTab({ preferences, isAssistant }: { preferences: Preference[
           <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
             <Heart className="h-8 w-8 text-muted-foreground" />
           </div>
-          <h3 className="font-medium text-lg mb-1">No preferences added</h3>
+          <h3 className="font-display text-lg font-light tracking-tight text-foreground mb-1">No preferences added</h3>
           <p className="text-sm text-muted-foreground">
-            {isAssistant ? "Add household preferences" : "No preferences have been added yet"}
+            {isAssistant ? "Add household preferences" : "Household preferences will appear here."}
           </p>
         </div>
       )}
@@ -937,9 +937,9 @@ function ImportantDatesTab({ dates, people, isAssistant }: { dates: ImportantDat
           <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
             <Calendar className="h-8 w-8 text-muted-foreground" />
           </div>
-          <h3 className="font-medium text-lg mb-1">No important dates</h3>
+          <h3 className="font-display text-lg font-light tracking-tight text-foreground mb-1">No important dates</h3>
           <p className="text-sm text-muted-foreground">
-            {isAssistant ? "Add birthdays, anniversaries, and more" : "No dates have been added yet"}
+            {isAssistant ? "Add birthdays, anniversaries, and more" : "Important dates will appear here."}
           </p>
         </div>
       )}
@@ -1138,9 +1138,9 @@ function LocationsTab({ locations, isAssistant }: { locations: HouseholdLocation
           <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
             <MapPin className="h-8 w-8 text-muted-foreground" />
           </div>
-          <h3 className="font-medium text-lg mb-1">No locations added</h3>
+          <h3 className="font-display text-lg font-light tracking-tight text-foreground mb-1">No locations added</h3>
           <p className="text-sm text-muted-foreground">
-            {isAssistant ? "Add schools, clinics, and other places" : "No locations have been added yet"}
+            {isAssistant ? "Add schools, clinics, and other places" : "Saved locations will appear here."}
           </p>
         </div>
       )}
@@ -1382,9 +1382,9 @@ function AccessTab({ items, isAssistant }: { items: AccessItem[]; isAssistant: b
           <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
             <Shield className="h-8 w-8 text-muted-foreground" />
           </div>
-          <h3 className="font-medium text-lg mb-1">No access items</h3>
+          <h3 className="font-display text-lg font-light tracking-tight text-foreground mb-1">No access items</h3>
           <p className="text-sm text-muted-foreground">
-            {isAssistant ? "Add WiFi passwords, alarm codes, etc." : "No access items have been added yet"}
+            {isAssistant ? "Add WiFi passwords, alarm codes, etc." : "Access credentials will appear here."}
           </p>
         </div>
       )}

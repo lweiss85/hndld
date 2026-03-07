@@ -296,23 +296,21 @@ interface EmptyStateProps {
 
 export function EmptyState({ illustration, title, description, action, className }: EmptyStateProps) {
   return (
-    <div className={cn("flex flex-col items-center justify-center py-12 text-center", className)}>
+    <div className={cn("flex flex-col items-center justify-center py-16 px-6 text-center", className)}>
       {illustration && (
-        <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
-          <div className="w-8 h-8 text-muted-foreground">
-            {illustration}
-          </div>
+        <div className="mb-5 text-muted-foreground/40">
+          {illustration}
         </div>
       )}
-      <h3 className="font-medium text-lg mb-1">{title}</h3>
+      <h3 className="font-display text-xl font-light tracking-tight text-foreground mb-1.5">{title}</h3>
       {description && (
-        <p className="text-sm text-muted-foreground max-w-[280px]">{description}</p>
+        <p className="text-sm text-muted-foreground max-w-[300px] leading-relaxed">{description}</p>
       )}
       {action && (
         action.href ? (
           <Link 
             href={action.href} 
-            className="mt-4 text-sm font-medium text-primary hover:underline"
+            className="mt-5 text-sm font-medium text-primary hover:underline tracking-wide"
             data-testid="empty-state-action"
           >
             {action.label}
@@ -320,7 +318,7 @@ export function EmptyState({ illustration, title, description, action, className
         ) : action.onClick ? (
           <button 
             onClick={action.onClick}
-            className="mt-4 text-sm font-medium text-primary hover:underline"
+            className="mt-5 text-sm font-medium text-primary hover:underline tracking-wide"
             data-testid="empty-state-action"
           >
             {action.label}

@@ -263,7 +263,7 @@ export default function AutomationsPage() {
           <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-ink-navy/5 dark:bg-porcelain/5 flex items-center justify-center">
             <Zap className="w-8 h-8 text-ink-navy/30 dark:text-porcelain/30" />
           </div>
-          <h3 className="text-lg font-medium text-ink-navy dark:text-porcelain mb-2">No automations yet</h3>
+          <h3 className="font-display text-xl font-light tracking-tight text-foreground mb-1.5">No automations yet</h3>
           <p className="text-sm text-ink-navy/50 dark:text-porcelain/50 mb-6">
             Create your first automation to streamline household operations
           </p>
@@ -722,7 +722,7 @@ function RunHistory({ automationId, automationName, onBack }: { automationId: st
         ) : runs.length === 0 ? (
           <div className="text-center py-12">
             <History className="w-8 h-8 mx-auto mb-3 text-ink-navy/30 dark:text-porcelain/30" />
-            <p className="text-sm text-ink-navy/50 dark:text-porcelain/50">No runs yet</p>
+            <p className="text-sm text-muted-foreground">No activity recorded yet.</p>
           </div>
         ) : (
           runs.map((run) => (

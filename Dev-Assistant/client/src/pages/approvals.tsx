@@ -245,13 +245,11 @@ export default function Approvals() {
       )}
 
       {pendingApprovals.length === 0 && pastApprovals.length === 0 ? (
-        <HeroCard className="py-12">
-          <div className="flex flex-col items-center justify-center text-center">
-            <HandledIllustration size={64} className="mb-3" />
-            <p className="font-medium">All caught up.</p>
-            <p className="font-display italic text-muted-foreground" style={{ fontSize: "15px" }}>Everything's hndld.</p>
-          </div>
-        </HeroCard>
+        <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
+          <HandledIllustration size={56} className="mb-5 opacity-40" />
+          <h3 className="font-display text-xl font-light tracking-tight text-foreground mb-1.5">Nothing needs your attention</h3>
+          <p className="text-sm text-muted-foreground max-w-[300px] leading-relaxed">Everything awaiting review has been handled.</p>
+        </div>
       ) : (
         <div className="space-y-6">
           {pendingApprovals.length > 0 && (
@@ -280,13 +278,11 @@ export default function Approvals() {
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.3 }}
                       >
-                        <HeroCard className="py-12">
-                          <div className="flex flex-col items-center justify-center text-center">
-                            <HandledIllustration size={64} className="mb-3" />
-                            <p className="font-medium">All caught up.</p>
-                            <p className="font-display italic text-muted-foreground" style={{ fontSize: "15px" }}>Everything's hndld.</p>
-                          </div>
-                        </HeroCard>
+                        <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
+                          <HandledIllustration size={56} className="mb-5 opacity-40" />
+                          <h3 className="font-display text-xl font-light tracking-tight text-foreground mb-1.5">Nothing needs your attention</h3>
+                          <p className="text-sm text-muted-foreground max-w-[300px] leading-relaxed">Everything awaiting review has been handled.</p>
+                        </div>
                       </motion.div>
                     ) : null}
                   </AnimatePresence>
@@ -452,7 +448,7 @@ export default function Approvals() {
               </h4>
               <div className="space-y-2 mb-3">
                 {selectedApproval?.comments?.length === 0 && (
-                  <p className="text-sm text-muted-foreground">No comments yet</p>
+                  <p className="text-sm text-muted-foreground">No comments yet. Share your thoughts.</p>
                 )}
                 {selectedApproval?.comments?.map((comment) => (
                   <div key={comment.id} className="p-2 rounded-md bg-muted/50 text-sm">

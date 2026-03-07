@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import { HandledIllustration } from "@/components/illustrations";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -265,15 +266,13 @@ export default function Files() {
       </div>
 
       {filteredFiles.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-            <File aria-hidden="true" className="h-12 w-12 text-muted-foreground mb-4" />
-            <p className="text-muted-foreground">No files yet</p>
-            <p className="text-sm text-muted-foreground">
-              Upload receipts, documents, and photos
-            </p>
-          </CardContent>
-        </Card>
+        <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
+          <HandledIllustration size={56} className="mb-5 opacity-40" />
+          <h3 className="font-display text-xl font-light tracking-tight text-foreground mb-1.5">No files uploaded</h3>
+          <p className="text-sm text-muted-foreground max-w-[300px] leading-relaxed">
+            Receipts, documents, and photos will appear here.
+          </p>
+        </div>
       ) : viewMode === "grid" ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3" aria-label="Files grid" role="region">
           {filteredFiles.map((file) => {

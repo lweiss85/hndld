@@ -371,12 +371,10 @@ export default function SmartLocksPage() {
               </div>
 
               {codes.length === 0 ? (
-                <Card className="border-dashed">
-                  <CardContent className="py-8 text-center">
-                    <Key className="w-8 h-8 text-muted-foreground/40 mx-auto mb-2" />
-                    <p className="text-sm text-muted-foreground">No access codes yet</p>
-                  </CardContent>
-                </Card>
+                <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
+                  <h3 className="font-display text-xl font-light tracking-tight text-foreground mb-1.5">No access codes</h3>
+                  <p className="text-sm text-muted-foreground max-w-[300px] leading-relaxed">Codes and credentials will appear here.</p>
+                </div>
               ) : (
                 codes.map(code => (
                   <Card key={code.id}>
@@ -472,12 +470,10 @@ export default function SmartLocksPage() {
           {tab === "activity" && (
             <div className="space-y-1">
               {activity.length === 0 ? (
-                <Card className="border-dashed">
-                  <CardContent className="py-8 text-center">
-                    <Activity className="w-8 h-8 text-muted-foreground/40 mx-auto mb-2" />
-                    <p className="text-sm text-muted-foreground">No activity recorded yet</p>
-                  </CardContent>
-                </Card>
+                <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
+                  <h3 className="font-display text-xl font-light tracking-tight text-foreground mb-1.5">No activity recorded</h3>
+                  <p className="text-sm text-muted-foreground max-w-[300px] leading-relaxed">Lock and access activity will show here.</p>
+                </div>
               ) : (
                 activity.map((entry, idx) => (
                   <div

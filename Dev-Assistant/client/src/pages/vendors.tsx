@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { HandledIllustration } from "@/components/illustrations";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -267,13 +268,11 @@ export default function Vendors() {
       </div>
 
       {filteredVendors?.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-12 text-center">
-          <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
-            <Building aria-hidden="true" className="h-8 w-8 text-muted-foreground" />
-          </div>
-          <h3 className="font-medium text-lg mb-1">No vendors yet</h3>
-          <p className="text-sm text-muted-foreground">
-            Add your household service providers
+        <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
+          <HandledIllustration size={56} className="mb-5 opacity-40" />
+          <h3 className="font-display text-xl font-light tracking-tight text-foreground mb-1.5">No vendors on file</h3>
+          <p className="text-sm text-muted-foreground max-w-[300px] leading-relaxed">
+            Your household service providers will be listed here.
           </p>
         </div>
       ) : (

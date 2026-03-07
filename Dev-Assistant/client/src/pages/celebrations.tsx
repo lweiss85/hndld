@@ -412,7 +412,7 @@ export default function CelebrationsPage() {
             <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mb-4">
               <Sparkles className="h-8 w-8 text-muted-foreground" />
             </div>
-            <h3 className="font-semibold mb-1">No celebrations yet</h3>
+            <h3 className="font-display text-xl font-light tracking-tight text-foreground mb-1.5">No celebrations yet</h3>
             <p className="text-sm text-muted-foreground max-w-[240px]">
               As you use hndld, we'll celebrate your milestones and suggest seasonal prep.
             </p>

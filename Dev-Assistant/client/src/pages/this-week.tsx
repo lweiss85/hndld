@@ -351,8 +351,8 @@ function CleaningOverview() {
             ) : (
               <EmptyState
                 illustration={<CalendarIllustration className="w-full h-full" />}
-                title="No upcoming visits"
-                description="You're all set for now"
+                title="Your schedule is open"
+                description="Upcoming plans and appointments will show here."
               />
             )}
           </LuxuryCard>
@@ -614,8 +614,8 @@ export default function ThisWeek() {
                 {priorityTasks.length === 0 ? (
                   <EmptyState
                     illustration={<CheckmarkIllustration className="w-full h-full" />}
-                    title="Nothing urgent today."
-                    description="You're in a good spot."
+                    title="Your day is clear"
+                    description="Nothing is pending at the moment."
                   />
                 ) : (
                   <StaggeredList>
@@ -641,8 +641,8 @@ export default function ThisWeek() {
                 {upcomingEvents.length === 0 ? (
                   <EmptyState
                     illustration={<CalendarIllustration className="w-full h-full" />}
-                    title="No events this week."
-                    description="Enjoy the calm."
+                    title="Your schedule is open"
+                    description="Upcoming plans and appointments will show here."
                   />
                 ) : (
                   <StaggeredList>

@@ -255,7 +255,7 @@ export default function StaffJobs() {
             {completedTasks.length === 0 ? (
               <Card className="border-dashed">
                 <CardContent className="pt-6 text-center">
-                  <p className="text-muted-foreground">No completed jobs yet</p>
+                  <p className="text-sm text-muted-foreground leading-relaxed">Completed jobs will appear here.</p>
                 </CardContent>
               </Card>
             ) : (

@@ -305,10 +305,10 @@ export default function MarketplacePage() {
                 <div className="w-16 h-16 rounded-full bg-primary/5 flex items-center justify-center mb-4">
                   <Search className="h-7 w-7 text-primary/25" />
                 </div>
-                <h3 className="font-semibold text-foreground text-lg mb-1">
+                <h3 className="font-display text-xl font-light tracking-tight text-foreground mb-1.5">
                   No providers found
                 </h3>
-                <p className="text-sm text-muted-foreground max-w-xs">
+                <p className="text-sm text-muted-foreground max-w-[300px] leading-relaxed">
                   Try adjusting your filters or search to find the right service provider.
                 </p>
               </div>

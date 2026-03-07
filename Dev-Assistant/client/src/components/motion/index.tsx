@@ -270,22 +270,22 @@ export const EmptyState = ({ icon, title, description, action }: EmptyStateProps
   const prefersReducedMotion = useReducedMotion();
   return (
     <motion.div
-      className="flex flex-col items-center justify-center py-16 px-4 text-center"
+      className="flex flex-col items-center justify-center py-16 px-6 text-center"
       initial={prefersReducedMotion ? false : { opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: prefersReducedMotion ? 0 : 0.5 }}
     >
       <motion.div
-        className="w-24 h-24 rounded-full bg-[hsl(var(--hndld-ink-100))] flex items-center justify-center mb-6 text-[hsl(var(--hndld-ink-600))]"
-        animate={prefersReducedMotion ? {} : { y: [0, -5, 0] }}
-        transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+        className="mb-5 text-muted-foreground/40"
+        animate={prefersReducedMotion ? {} : { y: [0, -4, 0] }}
+        transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
         style={{ willChange: prefersReducedMotion ? "auto" : "transform" }}
       >
         {icon}
       </motion.div>
       
-      <h3 className="text-xl font-semibold mb-2">{title}</h3>
-      <p className="text-muted-foreground max-w-xs mb-6">{description}</p>
+      <h3 className="font-display text-xl font-light tracking-tight text-foreground mb-1.5">{title}</h3>
+      <p className="text-sm text-muted-foreground max-w-[300px] leading-relaxed mb-6">{description}</p>
       
       {action && (
         <HndldButton onClick={action.onClick}>

@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { HandledIllustration } from "@/components/illustrations";
 import {
   ArrowLeft,
   Plus,
@@ -410,14 +411,13 @@ export default function DocumentsPage() {
 
       <div className="px-4 py-3 space-y-4">
         {Object.keys(grouped).length === 0 ? (
-          <div className="text-center py-16 space-y-3">
-            <div className="w-14 h-14 rounded-full bg-muted flex items-center justify-center mx-auto">
-              <FileText className="h-7 w-7 text-muted-foreground" />
-            </div>
-            <p className="text-muted-foreground text-sm">No documents tracked yet</p>
+          <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
+            <HandledIllustration size={56} className="mb-5 opacity-40" />
+            <h3 className="font-display text-xl font-light tracking-tight text-foreground mb-1.5">No documents on file</h3>
+            <p className="text-sm text-muted-foreground max-w-[300px] leading-relaxed mb-5">Policies, warranties, and records will be kept here.</p>
             <Button variant="outline" size="sm" onClick={() => setShowForm(true)}>
               <Plus className="h-4 w-4 mr-1" />
-              Add your first document
+              Add document
             </Button>
           </div>
         ) : (

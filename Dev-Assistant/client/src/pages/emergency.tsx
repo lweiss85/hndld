@@ -215,13 +215,10 @@ export default function Emergency() {
           )}
 
           {sortedContacts.length === 0 ? (
-            <Card>
-              <CardContent className="py-8 text-center">
-                <Phone aria-hidden="true" className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                <p className="text-muted-foreground">No emergency contacts yet</p>
-                <p className="text-sm text-muted-foreground">Add important contacts for quick access</p>
-              </CardContent>
-            </Card>
+            <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
+              <h3 className="font-display text-xl font-light tracking-tight text-foreground mb-1.5">No emergency contacts</h3>
+              <p className="text-sm text-muted-foreground max-w-[300px] leading-relaxed">Important contacts will be listed here for quick access.</p>
+            </div>
           ) : (
             <StaggeredList className="space-y-3" aria-label="Emergency contacts list">
               {sortedContacts.map((contact) => (
@@ -298,13 +295,10 @@ export default function Emergency() {
           )}
 
           {(!protocols || protocols.length === 0) ? (
-            <Card>
-              <CardContent className="py-8 text-center">
-                <FileText aria-hidden="true" className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                <p className="text-muted-foreground">No emergency protocols yet</p>
-                <p className="text-sm text-muted-foreground">Create step-by-step guides for emergencies</p>
-              </CardContent>
-            </Card>
+            <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
+              <h3 className="font-display text-xl font-light tracking-tight text-foreground mb-1.5">No protocols defined</h3>
+              <p className="text-sm text-muted-foreground max-w-[300px] leading-relaxed">Step-by-step emergency guides will appear here.</p>
+            </div>
           ) : (
             <div className="space-y-3" aria-label="Emergency protocols list" role="region">
               {protocols.map((protocol) => (

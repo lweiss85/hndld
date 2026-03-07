@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { HandledIllustration } from "@/components/illustrations";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -389,12 +390,11 @@ function ClientSpendingView() {
           const invoices = spending?.filter(s => s.kind === "INVOICE") || [];
           if (invoices.length === 0) {
             return (
-              <Card>
-                <CardContent className="p-6 text-center">
-                  <CreditCard className="h-8 w-8 text-muted-foreground mx-auto mb-2 opacity-50" aria-hidden="true" />
-                  <p className="text-muted-foreground text-sm">No invoices yet</p>
-                </CardContent>
-              </Card>
+              <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
+                <HandledIllustration size={56} className="mb-5 opacity-40" />
+                <h3 className="font-display text-xl font-light tracking-tight text-foreground mb-1.5">No expenses to review</h3>
+                <p className="text-sm text-muted-foreground max-w-[300px] leading-relaxed">New spending and reimbursements will appear here.</p>
+              </div>
             );
           }
           return invoices.slice(0, 5).map((invoice) => (
@@ -691,12 +691,11 @@ function AssistantSpendingView() {
           Recent Expenses
         </h2>
         {spending?.length === 0 ? (
-          <Card>
-            <CardContent className="p-6 text-center">
-              <Receipt className="h-8 w-8 text-muted-foreground mx-auto mb-2" aria-hidden="true" />
-              <p className="text-sm text-muted-foreground">No expenses recorded yet</p>
-            </CardContent>
-          </Card>
+          <div className="flex flex-col items-center justify-center py-12 px-6 text-center">
+            <HandledIllustration size={48} className="mb-4 opacity-40" />
+            <h3 className="font-display text-lg font-light tracking-tight text-foreground mb-1">No expenses to review</h3>
+            <p className="text-sm text-muted-foreground max-w-[300px] leading-relaxed">New spending and reimbursements will appear here.</p>
+          </div>
         ) : (
           spending?.slice(0, 10).map((item) => {
             const isReconciled = item.status === "RECONCILED";

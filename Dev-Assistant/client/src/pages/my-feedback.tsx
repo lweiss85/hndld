@@ -225,7 +225,7 @@ export default function MyFeedbackPage() {
             <div className="w-14 h-14 rounded-full bg-muted flex items-center justify-center mx-auto">
               <MessageCircle className="h-7 w-7 text-muted-foreground" />
             </div>
-            <p className="text-muted-foreground text-sm">No feedback submitted yet</p>
+            <p className="text-sm text-muted-foreground leading-relaxed">No feedback submitted yet.</p>
             <p className="text-xs text-muted-foreground">
               Use the feedback button to share your thoughts
             </p>

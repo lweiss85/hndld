@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { HandledIllustration } from "@/components/illustrations";
 import {
   ArrowLeft,
   Plus,
@@ -874,7 +875,7 @@ function ItemDetail({
           </div>
 
           {serviceHistory.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No service records yet</p>
+            <p className="text-sm text-muted-foreground leading-relaxed">Service records will appear here.</p>
           ) : (
             <div className="space-y-3">
               {serviceHistory.map((record) => (
@@ -1134,13 +1135,11 @@ export default function InventoryPage() {
               <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
             </div>
           ) : items.length === 0 ? (
-            <div className="text-center py-20 px-4">
-              <Package className="w-12 h-12 text-muted-foreground/50 mx-auto mb-3" />
-              <p className="text-muted-foreground mb-1">
-                No items yet
-              </p>
-              <p className="text-sm text-muted-foreground">
-                Add your first inventory item to start tracking
+            <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
+              <HandledIllustration size={56} className="mb-5 opacity-40" />
+              <h3 className="font-display text-xl font-light tracking-tight text-foreground mb-1.5">No items tracked</h3>
+              <p className="text-sm text-muted-foreground max-w-[300px] leading-relaxed">
+                Appliances, furnishings, and household items will be catalogued here.
               </p>
             </div>
           ) : viewMode === "list" ? (

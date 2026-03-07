@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { HandledIllustration } from "@/components/illustrations";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -139,18 +140,16 @@ export default function PropertiesPage() {
       </div>
 
       {properties.length === 0 ? (
-        <Card className="border-dashed">
-          <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-            <Home className="w-12 h-12 text-muted-foreground/40 mb-3" />
-            <h3 className="font-medium text-foreground mb-1">No properties yet</h3>
-            <p className="text-sm text-muted-foreground mb-4 max-w-xs">
-              Add your homes to manage tasks, vendors, and access across multiple properties.
-            </p>
-            <Button size="sm" onClick={() => setShowAddForm(true)}>
-              <Plus className="w-4 h-4 mr-1.5" /> Add Your First Property
-            </Button>
-          </CardContent>
-        </Card>
+        <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
+          <HandledIllustration size={56} className="mb-5 opacity-40" />
+          <h3 className="font-display text-xl font-light tracking-tight text-foreground mb-1.5">No properties added</h3>
+          <p className="text-sm text-muted-foreground max-w-[300px] leading-relaxed mb-5">
+            Your homes and properties will be managed here.
+          </p>
+          <Button size="sm" onClick={() => setShowAddForm(true)}>
+            <Plus className="w-4 h-4 mr-1.5" /> Add property
+          </Button>
+        </div>
       ) : (
         <div className="space-y-3">
           {properties.map(property => {

@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import { HandledIllustration } from "@/components/illustrations";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -48,21 +49,20 @@ function ConversationsList({
       </div>
 
       {conversations.length === 0 ? (
-        <Card className="text-center py-8">
-          <CardContent>
-            <MessageCircle aria-hidden="true" className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
-            <p className="text-muted-foreground">No conversations yet</p>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="mt-4"
-              onClick={onCreate}
-              data-testid="button-start-conversation"
-            >
-              Start a conversation
-            </Button>
-          </CardContent>
-        </Card>
+        <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
+          <HandledIllustration size={56} className="mb-5 opacity-40" />
+          <h3 className="font-display text-xl font-light tracking-tight text-foreground mb-1.5">You're all caught up</h3>
+          <p className="text-sm text-muted-foreground max-w-[300px] leading-relaxed">New updates and conversations will appear here.</p>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="mt-5"
+            onClick={onCreate}
+            data-testid="button-start-conversation"
+          >
+            Start a conversation
+          </Button>
+        </div>
       ) : (
         <StaggeredList className="space-y-2" aria-label="Conversations list">
           {conversations.map((convo) => (
@@ -83,7 +83,7 @@ function ConversationsList({
                   <p className="text-sm text-muted-foreground">
                     {convo.lastMessageAt 
                       ? formatDistanceToNow(new Date(convo.lastMessageAt), { addSuffix: true })
-                      : "No messages yet"
+                      : "Awaiting first message"
                     }
                   </p>
                 </div>
@@ -273,8 +273,9 @@ function MessageThread({
 
       <ScrollArea className="flex-1 py-4">
         {messages?.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">
-            <p>No messages yet. Start the conversation!</p>
+          <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
+            <h3 className="font-display text-xl font-light tracking-tight text-foreground mb-1.5">You're all caught up</h3>
+            <p className="text-sm text-muted-foreground leading-relaxed">New updates and conversations will appear here.</p>
           </div>
         ) : (
           <div className="space-y-4" aria-label="Message thread" role="region">

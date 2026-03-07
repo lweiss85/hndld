@@ -222,7 +222,7 @@ export default function ManageAddons() {
           <Card className="border-dashed">
             <CardContent className="py-12 text-center">
               <Sparkles className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
-              <h3 className="font-medium mb-2">No add-on services yet</h3>
+              <h3 className="font-display text-lg font-light tracking-tight text-foreground mb-1.5">No add-on services yet</h3>
               <p className="text-sm text-muted-foreground mb-4">
                 Create add-on services that clients can request with their cleanings
               </p>

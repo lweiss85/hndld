@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { HandledIllustration } from "@/components/illustrations";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -424,7 +425,7 @@ export default function Playbooks() {
 
               {(!playbookDetail?.steps || playbookDetail.steps.length === 0) && (
                 <p className="text-sm text-muted-foreground text-center py-8">
-                  No steps defined yet. Click edit to add steps.
+                  Steps will appear here once added.
                 </p>
               )}
             </div>
@@ -448,19 +449,17 @@ export default function Playbooks() {
       </div>
 
       {!playbooks || playbooks.length === 0 ? (
-        <Card>
-          <CardContent className="py-12 text-center">
-            <BookOpen className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-            <h3 className="text-lg font-medium mb-2">No Playbooks Yet</h3>
-            <p className="text-sm text-muted-foreground mb-4">
-              Create your first playbook to document household procedures
-            </p>
-            <Button onClick={() => setShowCreateDialog(true)} data-testid="button-create-first-playbook">
-              <Plus className="h-4 w-4 mr-2" />
-              Create Playbook
-            </Button>
-          </CardContent>
-        </Card>
+        <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
+          <HandledIllustration size={56} className="mb-5 opacity-40" />
+          <h3 className="font-display text-xl font-light tracking-tight text-foreground mb-1.5">No playbooks yet</h3>
+          <p className="text-sm text-muted-foreground max-w-[300px] leading-relaxed mb-5">
+            Standard procedures for your household will be kept here.
+          </p>
+          <Button onClick={() => setShowCreateDialog(true)} data-testid="button-create-first-playbook">
+            <Plus className="h-4 w-4 mr-2" />
+            Create Playbook
+          </Button>
+        </div>
       ) : (
         <div className="space-y-3">
           {playbooks.map((playbook) => (

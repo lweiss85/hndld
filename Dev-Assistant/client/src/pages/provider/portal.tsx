@@ -374,7 +374,7 @@ function ClientsView() {
         <Card className="border-dashed">
           <CardContent className="p-8 text-center">
             <Users className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-            <p className="text-sm text-muted-foreground">No clients yet</p>
+            <p className="text-sm text-muted-foreground leading-relaxed">Your clients will appear here.</p>
             <p className="text-xs text-muted-foreground mt-1">Link a household to start managing their services</p>
           </CardContent>
         </Card>
@@ -581,7 +581,7 @@ function StaffView() {
         <Card className="border-dashed">
           <CardContent className="p-8 text-center">
             <Briefcase className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-            <p className="text-sm text-muted-foreground">No staff members yet</p>
+            <p className="text-sm text-muted-foreground leading-relaxed">Staff members will be listed here.</p>
           </CardContent>
         </Card>
       ) : (

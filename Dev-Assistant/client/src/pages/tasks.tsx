@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import { HandledIllustration } from "@/components/illustrations";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -591,13 +592,11 @@ export default function Tasks() {
       </div>
 
       {filteredTasks?.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-12 text-center">
-          <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
-            <CheckCircle2 className="h-8 w-8 text-muted-foreground" aria-hidden="true" />
-          </div>
-          <h3 className="font-medium text-lg mb-1">No tasks</h3>
-          <p className="text-sm text-muted-foreground">
-            Create a new task to get started
+        <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
+          <HandledIllustration size={56} className="mb-5 opacity-40" />
+          <h3 className="font-display text-xl font-light tracking-tight text-foreground mb-1.5">Your day is clear</h3>
+          <p className="text-sm text-muted-foreground max-w-[300px] leading-relaxed">
+            Nothing is pending at the moment.
           </p>
         </div>
       ) : (

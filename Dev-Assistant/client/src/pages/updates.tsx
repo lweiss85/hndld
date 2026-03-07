@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { HandledIllustration } from "@/components/illustrations";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -158,13 +159,11 @@ export default function Updates() {
       </div>
 
       {updates?.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-12 text-center">
-          <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
-            <MessageSquare className="h-8 w-8 text-muted-foreground" aria-hidden="true" />
-          </div>
-          <h3 className="font-medium text-lg mb-1">No updates yet</h3>
-          <p className="text-sm text-muted-foreground">
-            Updates from your assistant will appear here
+        <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
+          <HandledIllustration size={56} className="mb-5 opacity-40" />
+          <h3 className="font-display text-xl font-light tracking-tight text-foreground mb-1.5">You're all caught up</h3>
+          <p className="text-sm text-muted-foreground max-w-[300px] leading-relaxed">
+            New updates and conversations will appear here.
           </p>
         </div>
       ) : (
@@ -188,7 +187,7 @@ export default function Updates() {
           <div className="space-y-3">
             {selectedUpdate?.comments?.length === 0 && (
               <p className="text-sm text-muted-foreground text-center py-4">
-                No comments yet. Be the first to comment!
+                No comments yet. Share your thoughts.
               </p>
             )}
             {selectedUpdate?.comments?.map((comment) => (

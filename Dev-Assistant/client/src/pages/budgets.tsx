@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { HandledIllustration } from "@/components/illustrations";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -244,15 +245,14 @@ export default function Budgets() {
         {isLoading ? (
           <div className="text-center py-12 text-muted-foreground">Loading budgets...</div>
         ) : budgetStatuses.length === 0 ? (
-          <Card>
-            <CardContent className="py-12 text-center">
-              <DollarSign className="h-10 w-10 mx-auto mb-3 text-muted-foreground" />
-              <p className="text-muted-foreground mb-4">No budgets set up yet</p>
-              <Button onClick={() => setShowForm(true)}>
-                <Plus className="h-4 w-4 mr-1" /> Create Your First Budget
-              </Button>
-            </CardContent>
-          </Card>
+          <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
+            <HandledIllustration size={56} className="mb-5 opacity-40" />
+            <h3 className="font-display text-xl font-light tracking-tight text-foreground mb-1.5">No budgets set</h3>
+            <p className="text-sm text-muted-foreground max-w-[300px] leading-relaxed mb-5">Spending limits and budget categories will be tracked here.</p>
+            <Button onClick={() => setShowForm(true)}>
+              <Plus className="h-4 w-4 mr-1" /> Create budget
+            </Button>
+          </div>
         ) : (
           <div className="space-y-3">
             {budgetStatuses.map((budget) => (

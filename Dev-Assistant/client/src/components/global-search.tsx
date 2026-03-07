@@ -185,9 +185,10 @@ export function GlobalSearchDialog({ open, onOpenChange }: GlobalSearchDialogPro
           )}
 
           {showEmptyState && (
-            <div className="p-8 text-center">
-              <Search className="h-12 w-12 text-muted-foreground/50 mx-auto mb-3" aria-hidden="true" />
-              <p className="text-muted-foreground">No results found for "{query}"</p>
+            <div className="flex flex-col items-center justify-center py-12 px-6 text-center">
+              <Search className="h-8 w-8 text-muted-foreground/30 mb-4" aria-hidden="true" />
+              <h3 className="font-display text-lg font-light tracking-tight text-foreground mb-1">No results found</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed">Try a different search term for "{query}".</p>
             </div>
           )}
 

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { HandledIllustration } from "@/components/illustrations";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -113,7 +114,7 @@ function BookingMessages({ bookingId }: { bookingId: string }) {
           ))}
         </div>
       ) : (
-        <p className="text-sm text-muted-foreground">No messages yet</p>
+        <p className="text-sm text-muted-foreground leading-relaxed">New updates and conversations will appear here.</p>
       )}
 
       <div className="flex gap-2">
@@ -320,19 +321,17 @@ export default function MyBookingsPage() {
         </Tabs>
 
         {filtered.length === 0 ? (
-          <Card className="rounded-2xl border-border bg-card/80">
-            <CardContent className="flex flex-col items-center justify-center py-16 text-center">
-              <Inbox className="w-12 h-12 mb-3 text-primary/25" />
-              <p className="font-medium text-foreground">
-                No bookings found
-              </p>
-              <p className="text-sm mt-1 text-muted-foreground">
-                {activeTab === "all"
-                  ? "You haven't made any booking requests yet."
-                  : `No ${activeTab} bookings right now.`}
-              </p>
-            </CardContent>
-          </Card>
+          <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
+            <HandledIllustration size={56} className="mb-5 opacity-40" />
+            <h3 className="font-display text-xl font-light tracking-tight text-foreground mb-1.5">
+              No bookings found
+            </h3>
+            <p className="text-sm text-muted-foreground max-w-[300px] leading-relaxed">
+              {activeTab === "all"
+                ? "Your booking requests will appear here."
+                : `No ${activeTab} bookings at the moment.`}
+            </p>
+          </div>
         ) : (
           <div className="space-y-3">
             {filtered.map((booking) => (
