@@ -3,6 +3,7 @@ import {
   people, vendors, tasks, preferences, calendarEvents,
   importantDates, spendingItems, learnedPreferences,
   cleaningVisits, householdLocations,
+  propertyRooms, properties, inventoryItems,
 } from "@shared/schema";
 import { eq, and, gte, desc, sql } from "drizzle-orm";
 import { subDays, format } from "date-fns";
@@ -11,7 +12,7 @@ import logger from "../lib/logger";
 
 interface GraphNode {
   id: string;
-  type: "person" | "vendor" | "task" | "preference" | "event" | "spending" | "location" | "date";
+  type: "person" | "vendor" | "task" | "preference" | "event" | "spending" | "location" | "date" | "room" | "inventory";
   label: string;
   attributes: Record<string, unknown>;
 }
@@ -63,6 +64,16 @@ export async function buildHouseholdGraph(householdId: string): Promise<Househol
       and(eq(cleaningVisits.householdId, householdId), gte(cleaningVisits.scheduledAt, sixMonthsAgo))
     ).orderBy(desc(cleaningVisits.scheduledAt)).limit(100),
     db.select().from(learnedPreferences).where(eq(learnedPreferences.householdId, householdId)),
+  ]);
+
+  const [
+    householdProperties,
+    householdRooms,
+    householdInventory,
+  ] = await Promise.all([
+    db.select().from(properties).where(and(eq(properties.householdId, householdId), eq(properties.isActive, true))),
+    db.select().from(propertyRooms).where(and(eq(propertyRooms.householdId, householdId), eq(propertyRooms.isActive, true))),
+    db.select().from(inventoryItems).where(and(eq(inventoryItems.householdId, householdId), eq(inventoryItems.isActive, true))),
   ]);
 
   const nodes: GraphNode[] = [];
@@ -249,6 +260,93 @@ export async function buildHouseholdGraph(householdId: string): Promise<Househol
     }
   }
 
+  for (const prop of householdProperties) {
+    nodes.push({
+      id: `location:property:${prop.id}`,
+      type: "location",
+      label: prop.name,
+      attributes: {
+        propertyType: prop.type,
+        address: prop.address,
+        city: prop.city,
+        state: prop.state,
+        squareFootage: prop.squareFootage,
+        yearBuilt: prop.yearBuilt,
+      },
+    });
+  }
+
+  for (const room of householdRooms) {
+    nodes.push({
+      id: `room:${room.id}`,
+      type: "room",
+      label: room.name,
+      attributes: {
+        roomType: room.roomType,
+        floor: room.floor,
+        flooringType: room.flooringType,
+        cleaningPriority: room.cleaningPriority,
+        estimatedCleanMinutes: room.estimatedCleanMinutes,
+        specialInstructions: room.specialInstructions,
+        propertyId: room.propertyId,
+      },
+    });
+
+    const prop = householdProperties.find(p => p.id === room.propertyId);
+    if (prop) {
+      edges.push({
+        from: `room:${room.id}`,
+        to: `location:property:${prop.id}`,
+        relation: "in_property",
+        metadata: { propertyName: prop.name },
+      });
+    }
+  }
+
+  for (const inv of householdInventory) {
+    nodes.push({
+      id: `inventory:${inv.id}`,
+      type: "inventory",
+      label: inv.name,
+      attributes: {
+        category: inv.category,
+        brand: inv.brand,
+        model: inv.model,
+        location: inv.location,
+        purchaseDate: inv.purchaseDate,
+        warrantyExpires: inv.warrantyExpires,
+      },
+    });
+
+    if (inv.location) {
+      const matchedRoom = householdRooms.find(r =>
+        r.name.toLowerCase() === inv.location!.toLowerCase() ||
+        inv.location!.toLowerCase().includes(r.name.toLowerCase())
+      );
+      if (matchedRoom) {
+        edges.push({
+          from: `inventory:${inv.id}`,
+          to: `room:${matchedRoom.id}`,
+          relation: "located_in",
+        });
+      }
+    }
+  }
+
+  for (const pref of householdPrefs) {
+    const roomIds = (pref.appliesToRooms as string[]) || [];
+    for (const roomId of roomIds) {
+      const matchedRoom = householdRooms.find(r => r.id === roomId);
+      if (matchedRoom) {
+        edges.push({
+          from: `pref:${pref.id}`,
+          to: `room:${matchedRoom.id}`,
+          relation: "applies_to_room",
+        });
+      }
+    }
+  }
+
   const cleaningVendors = householdVendors.filter(vn =>
     vn.category?.toLowerCase().includes("clean")
   );
@@ -317,6 +415,8 @@ export async function buildHouseholdGraph(householdId: string): Promise<Househol
     `${recentSpending.length} spending items`,
     `${locations.length} locations`,
     `${dates.length} important dates`,
+    `${householdRooms.length} rooms`,
+    `${householdInventory.length} inventory items`,
     `${edges.length} relationships`,
   ].join(", ");
 
@@ -341,6 +441,8 @@ function graphToContext(graph: HouseholdGraph): string {
     spending: "Spending & Expenses",
     location: "Locations",
     date: "Important Dates",
+    room: "Rooms",
+    inventory: "Inventory Items",
   };
 
   for (const [type, label] of Object.entries(typeLabels)) {

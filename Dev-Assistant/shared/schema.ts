@@ -40,6 +40,61 @@ export const spendingKindEnum = pgEnum("spending_kind", ["REIMBURSEMENT", "INVOI
 export const serviceTypeEnum = pgEnum("service_type", ["CLEANING", "PA"]);
 export const serviceRoleEnum = pgEnum("service_role", ["CLIENT", "PROVIDER"]);
 
+// Property room enums
+export const roomTypeEnum = pgEnum("room_type", [
+  "KITCHEN", "BATHROOM", "BEDROOM", "LIVING_ROOM", "DINING_ROOM",
+  "OFFICE", "GARAGE", "LAUNDRY", "CLOSET", "HALLWAY",
+  "BASEMENT", "ATTIC", "PATIO", "DECK", "MUDROOM",
+  "PLAYROOM", "GUEST_ROOM", "MASTER_SUITE", "OUTDOOR", "OTHER"
+]);
+
+export const flooringTypeEnum = pgEnum("flooring_type", [
+  "HARDWOOD", "TILE", "CARPET", "LAMINATE", "VINYL",
+  "CONCRETE", "STONE", "MARBLE", "MIXED", "OTHER"
+]);
+
+// Playbook step enums
+export const stepActionTypeEnum = pgEnum("step_action_type", [
+  "CLEAN", "INSPECT", "RESTOCK", "ORGANIZE", "REPAIR",
+  "SANITIZE", "VACUUM", "MOP", "DUST", "WASH",
+  "REPORT", "PHOTOGRAPH", "CUSTOM"
+]);
+
+export const verificationMethodEnum = pgEnum("verification_method", [
+  "PHOTO_BEFORE_AFTER", "PHOTO_AFTER", "CHECKLIST", "VISUAL_INSPECT", "NONE"
+]);
+
+// Preference constraint enums
+export const constraintTypeEnum = pgEnum("constraint_type", [
+  "PRODUCT_RESTRICTION", "PRODUCT_PREFERENCE", "SCHEDULE_CONSTRAINT",
+  "ACCESS_RULE", "SURFACE_RULE", "NOISE_RULE", "SCENT_RULE",
+  "TEMPERATURE_RULE", "PET_RULE", "CHILD_RULE", "OTHER"
+]);
+
+// Service photo enums
+export const servicePhotoTypeEnum = pgEnum("service_photo_type", [
+  "BEFORE", "AFTER", "ISSUE", "PROGRESS", "VERIFICATION"
+]);
+
+// Execution event enums
+export const executionEventTypeEnum = pgEnum("execution_event_type", [
+  "ARRIVED", "STARTED_ROOM", "COMPLETED_ROOM", "STARTED_STEP",
+  "COMPLETED_STEP", "PAUSED", "RESUMED", "ISSUE_FOUND",
+  "SUPPLY_NEEDED", "PHOTO_TAKEN", "CHECKLIST_ITEM_DONE",
+  "DEPARTED", "CUSTOM"
+]);
+
+export const executorTypeEnum = pgEnum("executor_type", ["HUMAN", "ROBOT", "HYBRID"]);
+
+// Task verification enums
+export const taskVerificationStatusEnum = pgEnum("task_verification_status", [
+  "PENDING", "PASSED", "FAILED", "SKIPPED", "NEEDS_REVIEW"
+]);
+
+export const verifierTypeEnum = pgEnum("verifier_type", [
+  "PROVIDER_SELF", "CLIENT_REVIEW", "AI_VISION", "ROBOT_SENSOR", "MANAGER_REVIEW"
+]);
+
 // Organizations (multi-tenancy parent)
 export const organizations = pgTable("organizations", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -362,6 +417,20 @@ export const preferences = pgTable("preferences", {
   createdByUserId: varchar("created_by_user_id"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+  constraintType: constraintTypeEnum("constraint_type"),
+  // constraintValue shapes by constraintType:
+  // PRODUCT_RESTRICTION: { blocked: string[], reason?: string }
+  // PRODUCT_PREFERENCE: { preferred: string[], scent?: string, brand?: string }
+  // SCHEDULE_CONSTRAINT: { noServiceBefore?: string, noServiceAfter?: string, blackoutDays?: string[] }
+  // NOISE_RULE: { quietHours?: { start: string, end: string }, maxLevel?: "silent"|"quiet"|"moderate"|"any", reason?: string }
+  // SURFACE_RULE: { surface: string, allowedProducts?: string[], blockedProducts?: string[], method?: string }
+  // PET_RULE: { petType: string, instructions: string, roomRestrictions?: string[] }
+  // CHILD_RULE: { childAge?: number, instructions: string, safetyNotes?: string }
+  constraintValue: jsonb("constraint_value").$type<Record<string, unknown>>().default({}),
+  appliesToRooms: jsonb("applies_to_rooms").$type<string[]>().default([]),
+  appliesToServices: jsonb("applies_to_services").$type<string[]>().default([]),
+  severity: varchar("severity", { length: 10 }).default("soft"),
+  source: varchar("preference_source", { length: 20 }).default("explicit"),
 });
 
 // Important Dates (birthdays, anniversaries, holidays, etc.)
@@ -499,6 +568,15 @@ export const playbookSteps = pgTable("playbook_steps", {
   description: text("description"),
   estimatedMinutes: integer("estimated_minutes"),
   isOptional: boolean("is_optional").default(false).notNull(),
+  actionType: stepActionTypeEnum("action_type"),
+  roomId: varchar("room_id").references(() => propertyRooms.id),
+  targetSurface: varchar("target_surface", { length: 100 }),
+  toolsRequired: jsonb("tools_required").$type<string[]>().default([]),
+  verificationMethod: verificationMethodEnum("verification_method").default("NONE"),
+  acceptanceCriteria: text("acceptance_criteria"),
+  safetyConstraints: jsonb("safety_constraints").$type<string[]>().default([]),
+  dependsOnSteps: jsonb("depends_on_steps").$type<number[]>().default([]),
+  isParallelizable: boolean("is_parallelizable").default(false),
 });
 
 // Audit Log (trust layer for tracking all changes)
@@ -1886,6 +1964,7 @@ export const automationTriggerEnum = pgEnum("automation_trigger", [
   "SPENDING_CREATED",
   "CALENDAR_EVENT_SOON",
   "GUEST_ACCESS_STARTED", "GUEST_ACCESS_ENDED",
+  "VERIFICATION_FAILED", "VERIFICATION_PASSED", "ALL_VERIFICATIONS_COMPLETE",
 ]);
 
 export const automationActionEnum = pgEnum("automation_action", [
@@ -2726,3 +2805,133 @@ export type ApplianceConsumable = typeof applianceConsumables.$inferSelect;
 export type InsertApplianceConsumable = typeof applianceConsumables.$inferInsert;
 export type HouseholdConsumableTracking = typeof householdConsumableTracking.$inferSelect;
 export type InsertHouseholdConsumableTracking = typeof householdConsumableTracking.$inferInsert;
+
+// Property Rooms (spatial structure for properties)
+export const propertyRooms = pgTable("property_rooms", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  propertyId: varchar("property_id").references(() => properties.id, { onDelete: "cascade" }).notNull(),
+  householdId: varchar("household_id").references(() => households.id).notNull(),
+  name: varchar("name", { length: 100 }).notNull(),
+  roomType: roomTypeEnum("room_type").notNull(),
+  floor: integer("floor").default(1),
+  approximateSqFt: integer("approximate_sq_ft"),
+  flooringType: flooringTypeEnum("flooring_type"),
+  surfaceNotes: text("surface_notes"),
+  cleaningPriority: integer("cleaning_priority").default(3),
+  specialInstructions: text("special_instructions"),
+  skipDays: jsonb("skip_days").$type<string[]>().default([]),
+  estimatedCleanMinutes: integer("estimated_clean_minutes"),
+  photoUrls: jsonb("photo_urls").$type<string[]>().default([]),
+  isActive: boolean("is_active").default(true).notNull(),
+  sortOrder: integer("sort_order").default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  index("property_rooms_property_idx").on(table.propertyId),
+  index("property_rooms_household_idx").on(table.householdId),
+  index("property_rooms_type_idx").on(table.roomType),
+]);
+
+export type PropertyRoom = typeof propertyRooms.$inferSelect;
+export type InsertPropertyRoom = typeof propertyRooms.$inferInsert;
+
+// Service Visit Photos (structured, room-tagged, scoreable photos)
+export const serviceVisitPhotos = pgTable("service_visit_photos", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  householdId: varchar("household_id").references(() => households.id).notNull(),
+  relatedEntityType: varchar("related_entity_type", { length: 30 }).notNull(),
+  relatedEntityId: varchar("related_entity_id").notNull(),
+  photoUrl: text("photo_url").notNull(),
+  thumbnailUrl: text("thumbnail_url"),
+  photoType: servicePhotoTypeEnum("photo_type").notNull(),
+  roomId: varchar("room_id").references(() => propertyRooms.id),
+  caption: text("caption"),
+  tags: jsonb("tags").$type<string[]>().default([]),
+  qualityScore: integer("quality_score"),
+  flaggedIssues: jsonb("flagged_issues").$type<{
+    type: string;
+    description: string;
+    severity: "low" | "medium" | "high";
+  }[]>().default([]),
+  capturedAt: timestamp("captured_at").defaultNow().notNull(),
+  capturedBy: varchar("captured_by"),
+  executorType: varchar("executor_type", { length: 20 }).default("HUMAN"),
+  metadata: jsonb("metadata").$type<{
+    width?: number;
+    height?: number;
+    deviceType?: string;
+    gpsLat?: number;
+    gpsLng?: number;
+  }>().default({}),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("service_photos_household_idx").on(table.householdId),
+  index("service_photos_entity_idx").on(table.relatedEntityType, table.relatedEntityId),
+  index("service_photos_room_idx").on(table.roomId),
+  index("service_photos_type_idx").on(table.photoType),
+  index("service_photos_quality_idx").on(table.qualityScore),
+]);
+
+export type ServiceVisitPhoto = typeof serviceVisitPhotos.$inferSelect;
+export type InsertServiceVisitPhoto = typeof serviceVisitPhotos.$inferInsert;
+
+// Service Execution Events (room/step-level time tracking)
+export const serviceExecutionEvents = pgTable("service_execution_events", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  householdId: varchar("household_id").references(() => households.id).notNull(),
+  relatedEntityType: varchar("related_entity_type", { length: 30 }).notNull(),
+  relatedEntityId: varchar("related_entity_id").notNull(),
+  eventType: executionEventTypeEnum("event_type").notNull(),
+  roomId: varchar("room_id").references(() => propertyRooms.id),
+  playbookStepId: varchar("playbook_step_id").references(() => playbookSteps.id),
+  timestamp: timestamp("timestamp").defaultNow().notNull(),
+  durationSeconds: integer("duration_seconds"),
+  notes: text("notes"),
+  metadata: jsonb("metadata").$type<Record<string, unknown>>().default({}),
+  executorType: executorTypeEnum("executor_type").default("HUMAN").notNull(),
+  executorId: varchar("executor_id"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("exec_events_household_idx").on(table.householdId),
+  index("exec_events_entity_idx").on(table.relatedEntityType, table.relatedEntityId),
+  index("exec_events_room_idx").on(table.roomId),
+  index("exec_events_type_idx").on(table.eventType),
+  index("exec_events_timestamp_idx").on(table.timestamp),
+  index("exec_events_executor_idx").on(table.executorType),
+]);
+
+export type ServiceExecutionEvent = typeof serviceExecutionEvents.$inferSelect;
+export type InsertServiceExecutionEvent = typeof serviceExecutionEvents.$inferInsert;
+
+// Task Verifications (outcome verification per step/room)
+export const taskVerifications = pgTable("task_verifications", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  householdId: varchar("household_id").references(() => households.id).notNull(),
+  relatedEntityType: varchar("related_entity_type", { length: 30 }).notNull(),
+  relatedEntityId: varchar("related_entity_id").notNull(),
+  playbookStepId: varchar("playbook_step_id").references(() => playbookSteps.id),
+  roomId: varchar("room_id").references(() => propertyRooms.id),
+  verificationType: verificationMethodEnum("verification_type").notNull(),
+  status: taskVerificationStatusEnum("status").default("PENDING").notNull(),
+  score: integer("score"),
+  beforePhotoId: varchar("before_photo_id").references(() => serviceVisitPhotos.id),
+  afterPhotoId: varchar("after_photo_id").references(() => serviceVisitPhotos.id),
+  acceptanceCriteria: text("acceptance_criteria"),
+  verifiedBy: varchar("verified_by"),
+  verifierType: verifierTypeEnum("verifier_type").default("PROVIDER_SELF").notNull(),
+  verifiedAt: timestamp("verified_at"),
+  notes: text("notes"),
+  failureReason: text("failure_reason"),
+  metadata: jsonb("metadata").$type<Record<string, unknown>>().default({}),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  index("verifications_household_idx").on(table.householdId),
+  index("verifications_entity_idx").on(table.relatedEntityType, table.relatedEntityId),
+  index("verifications_status_idx").on(table.status),
+  index("verifications_room_idx").on(table.roomId),
+  index("verifications_step_idx").on(table.playbookStepId),
+]);
+
+export type TaskVerification = typeof taskVerifications.$inferSelect;
+export type InsertTaskVerification = typeof taskVerifications.$inferInsert;

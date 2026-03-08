@@ -1,0 +1,666 @@
+# Replit Agent Prompt: Robotics-Ready Home Intelligence Data Layer
+
+You are a senior full-stack engineer working in the hndld app (React + TypeScript + Tailwind + Express + Drizzle ORM + PostgreSQL). This is a luxury household management platform for cleaning services, personal assistants, and home concierge businesses.
+
+## OBJECTIVE
+
+Add seven data structures and features that make the platform more useful for human service providers TODAY while simultaneously creating machine-readable data that robot and AI systems can consume in the future. Every addition must improve the current human user experience — nothing is "robot-only."
+
+Work ONLY in existing files unless creating a new service or route file. Do NOT break existing functionality. Follow existing code patterns exactly.
+
+---
+
+## CONTEXT: KEY EXISTING CODE
+
+### Schema location: `shared/schema.ts` (2680 lines, 101 tables, 66 enums)
+
+**Tables you'll reference (DO NOT modify these):**
+- `properties` — has `householdId`, `name`, `type`, `address`, `squareFootage`, `bedrooms`, `bathrooms`, `yearBuilt`, `photoUrls`, `settings` (jsonb), `accessInstructions`, `alarmCode`, `wifiPassword`
+- `playbooks` — has `householdId`, `title`, `description`, `category`, `icon`, `isActive`, `createdBy`
+- `playbookSteps` — has `playbookId`, `stepNumber`, `title`, `description`, `estimatedMinutes`, `isOptional`
+- `cleaningVisits` — has `householdId`, `scheduledAt`, `completedAt`, `status`, `rating`, `feedback`, `cleanerName`, `beforePhotos` (jsonb string[]), `afterPhotos` (jsonb string[]), `addonsRequested`, `totalPriceInCents`, `propertyId`
+- `preferences` — has `householdId`, `category` (FOOD_DRINK/PANTRY/GIFTS_FLOWERS/HOME/COMMUNICATION/OTHER), `key`, `value`, `tags` (jsonb), `isNoGo` (boolean)
+- `learnedPreferences` — has `householdId`, `category`, `key`, `value`, `confidence` (low/medium/high), `source` (explicit/inferred/pattern), `useCount`
+- `inventoryItems` — has `name`, `category`, `location`, `brand`, `model`, `photoUrls`, `householdId`
+- `householdDetails` — has `hvacType`, `climateZone`, `squareFootage`, full property details
+- `automations` — trigger/condition/action pipeline with `automationTriggerEnum` and `automationActionEnum`
+- `serviceQualityRatings` — 6 rating dimensions + issue tracking + highlights/improvements
+- `smartLocks` — provider, accessToken, lock/unlock integration
+- `accessItems` — codes, wifi, alarm, with `isSensitive` and `isEncrypted` flags
+- `accessItemGrants` — time-limited access grants per user
+
+**Existing enums you'll extend:**
+- `automationTriggerEnum` — has SMART_LOCK_UNLOCK, CLEANING_STARTED, CLEANING_COMPLETED, TASK_CREATED, TASK_COMPLETED, etc.
+- `automationActionEnum` — has SEND_NOTIFICATION, CREATE_TASK, LOCK_DOOR, UNLOCK_DOOR, TRIGGER_WEBHOOK, etc.
+- `insightCategoryEnum` — has MAINTENANCE_PREDICTION, SPENDING_ANOMALY, HOUSEHOLD_PATTERN, etc.
+- `preferenceCategoryEnum` — has FOOD_DRINK, PANTRY, GIFTS_FLOWERS, HOME, COMMUNICATION, OTHER
+- `auditLogEntityTypeEnum` — has TASK, APPROVAL, UPDATE, REQUEST, VENDOR, SPENDING, etc.
+
+**Services you'll integrate with:**
+- `server/services/home-intelligence.ts` — `generateAllInsights()` orchestrates all insight analyzers in `Promise.all`. Returns `InsightResult[]` with `{ category, title, summary, confidence, data }`
+- `server/services/ai-agent.ts` — `gatherHouseholdContext()` builds context for proactive insights, `generateProactiveInsights()` creates notifications
+- `server/services/ai-provider.ts` — `generateCompletion({ messages, maxTokens, temperature })`, `getActiveProvider()`, `isDemoMode()`
+- `server/services/knowledge-graph.ts` — `buildHouseholdGraph()` creates graph with nodes (person/vendor/task/preference/event/spending/location/date) and edges
+- `server/services/automation-engine.ts` — `processTrigger({ type, householdId, propertyId, data })` matches and executes automations
+- `server/services/data-capture.ts` — captures anonymized events for aggregate analytics
+- `server/services/scheduler.ts` — node-cron scheduled jobs
+- `server/services/aggregate-analytics.ts` — k-anonymity gated analytics with consent filters, cache layer
+
+**Routes:**
+- Registration pattern: `registerXxxRoutes(v1)` in `server/routes.ts` (lines 118-155)
+- Auth pattern: `isAuthenticated` + `householdContextMiddleware` on every route
+- Data API: registered on `app` (not `v1`), uses Bearer token auth via `authenticatePartner` middleware
+
+**Client pages:**
+- `client/src/pages/playbooks.tsx` (605 lines) — playbook list + step editor
+- `client/src/pages/automations.tsx` (835 lines) — automation builder
+- `client/src/pages/inventory.tsx` (1412 lines) — inventory management with detail views
+
+---
+
+## IMPLEMENTATION TASKS
+
+### TASK 1: Property Rooms
+
+Add a `property_rooms` table to `shared/schema.ts`. This gives providers room-by-room service plans and creates spatial structure for future automation.
+
+#### 1a. Schema additions in `shared/schema.ts`
+
+Add enums and table AFTER the existing `properties` table and its indexes:
+
+```typescript
+export const roomTypeEnum = pgEnum("room_type", [
+  "KITCHEN", "BATHROOM", "BEDROOM", "LIVING_ROOM", "DINING_ROOM",
+  "OFFICE", "GARAGE", "LAUNDRY", "CLOSET", "HALLWAY",
+  "BASEMENT", "ATTIC", "PATIO", "DECK", "MUDROOM",
+  "PLAYROOM", "GUEST_ROOM", "MASTER_SUITE", "OUTDOOR", "OTHER"
+]);
+
+export const flooringTypeEnum = pgEnum("flooring_type", [
+  "HARDWOOD", "TILE", "CARPET", "LAMINATE", "VINYL",
+  "CONCRETE", "STONE", "MARBLE", "MIXED", "OTHER"
+]);
+
+export const propertyRooms = pgTable("property_rooms", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  propertyId: varchar("property_id").references(() => properties.id, { onDelete: "cascade" }).notNull(),
+  householdId: varchar("household_id").references(() => households.id).notNull(),
+  name: varchar("name", { length: 100 }).notNull(),
+  roomType: roomTypeEnum("room_type").notNull(),
+  floor: integer("floor").default(1),
+  approximateSqFt: integer("approximate_sq_ft"),
+  flooringType: flooringTypeEnum("flooring_type"),
+  surfaceNotes: text("surface_notes"), // "marble counters, stainless appliances"
+  cleaningPriority: integer("cleaning_priority").default(3), // 1-5, 5 = highest
+  specialInstructions: text("special_instructions"),
+  skipDays: jsonb("skip_days").$type<string[]>().default([]), // ["Wednesday", "Sunday"]
+  estimatedCleanMinutes: integer("estimated_clean_minutes"),
+  photoUrls: jsonb("photo_urls").$type<string[]>().default([]),
+  isActive: boolean("is_active").default(true).notNull(),
+  sortOrder: integer("sort_order").default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  index("property_rooms_property_idx").on(table.propertyId),
+  index("property_rooms_household_idx").on(table.householdId),
+  index("property_rooms_type_idx").on(table.roomType),
+]);
+
+export type PropertyRoom = typeof propertyRooms.$inferSelect;
+export type InsertPropertyRoom = typeof propertyRooms.$inferInsert;
+```
+
+#### 1b. API routes
+
+Create `server/routes/property-rooms.ts`:
+
+- `GET /properties/:propertyId/rooms` — list all rooms for a property (household-scoped)
+- `POST /properties/:propertyId/rooms` — create a room
+- `PATCH /properties/:propertyId/rooms/:roomId` — update a room
+- `DELETE /properties/:propertyId/rooms/:roomId` — soft delete (set isActive=false)
+- `PUT /properties/:propertyId/rooms/reorder` — accepts `{ roomIds: string[] }` and updates `sortOrder`
+
+Register in `server/routes.ts` with the standard pattern:
+```typescript
+import { registerPropertyRoomRoutes } from "./routes/property-rooms";
+// Add after registerPropertyRoutes(v1):
+registerPropertyRoomRoutes(v1);
+```
+
+#### 1c. Client UI
+
+In `client/src/pages/properties.tsx`, add a "Rooms" section to the property detail view. Show rooms as a sortable list of cards, each displaying: room name, type badge, floor, flooring type, cleaning priority (shown as 1-5 dots or small bar), estimated minutes, and special instructions (truncated). Include "Add Room" button that opens a Sheet/Dialog form. Match the existing card style (rounded-2xl, p-5, border-border/50).
+
+---
+
+### TASK 2: Structured Playbook Steps
+
+Evolve playbook steps from free-text to structured, machine-readable task definitions while keeping them human-friendly.
+
+#### 2a. Schema additions in `shared/schema.ts`
+
+Add enums and new columns. Because Drizzle uses `db:push`, we can add columns to the existing `playbookSteps` table:
+
+```typescript
+export const stepActionTypeEnum = pgEnum("step_action_type", [
+  "CLEAN", "INSPECT", "RESTOCK", "ORGANIZE", "REPAIR",
+  "SANITIZE", "VACUUM", "MOP", "DUST", "WASH",
+  "REPORT", "PHOTOGRAPH", "CUSTOM"
+]);
+
+export const verificationMethodEnum = pgEnum("verification_method", [
+  "PHOTO_BEFORE_AFTER", "PHOTO_AFTER", "CHECKLIST", "VISUAL_INSPECT", "NONE"
+]);
+```
+
+Add these columns to the EXISTING `playbookSteps` table (add them after `isOptional`):
+
+```typescript
+  actionType: stepActionTypeEnum("action_type"),
+  roomId: varchar("room_id").references(() => propertyRooms.id),
+  targetSurface: varchar("target_surface", { length: 100 }), // "countertops", "floors", "windows"
+  toolsRequired: jsonb("tools_required").$type<string[]>().default([]),
+  verificationMethod: verificationMethodEnum("verification_method").default("NONE"),
+  acceptanceCriteria: text("acceptance_criteria"),
+  safetyConstraints: jsonb("safety_constraints").$type<string[]>().default([]),
+  dependsOnSteps: jsonb("depends_on_steps").$type<number[]>().default([]), // step numbers
+  isParallelizable: boolean("is_parallelizable").default(false),
+```
+
+#### 2b. Update playbook steps UI
+
+In `client/src/pages/playbooks.tsx`, enhance the step editor form to include the new fields. Organize them in collapsible sections so existing users aren't overwhelmed:
+
+**Always visible:** title, description, estimatedMinutes, isOptional (existing), actionType (new dropdown), roomId (new dropdown — populated from property rooms)
+
+**"Details" collapsible section:** targetSurface (text input), toolsRequired (tag input — type and press enter to add tags), verificationMethod (dropdown)
+
+**"Advanced" collapsible section:** acceptanceCriteria (textarea), safetyConstraints (tag input), dependsOnSteps (multi-select of other step numbers), isParallelizable (switch)
+
+Use the existing `Collapsible` component from `@/components/ui/collapsible`.
+
+---
+
+### TASK 3: Photo Tagging and Quality Scoring
+
+Replace flat photo arrays with structured, room-tagged, scoreable photo records.
+
+#### 3a. Schema additions in `shared/schema.ts`
+
+```typescript
+export const servicePhotoTypeEnum = pgEnum("service_photo_type", [
+  "BEFORE", "AFTER", "ISSUE", "PROGRESS", "VERIFICATION"
+]);
+
+export const serviceVisitPhotos = pgTable("service_visit_photos", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  householdId: varchar("household_id").references(() => households.id).notNull(),
+  // Polymorphic — can link to cleaning visits, tasks, or future service types
+  relatedEntityType: varchar("related_entity_type", { length: 30 }).notNull(), // "CLEANING_VISIT" | "TASK"
+  relatedEntityId: varchar("related_entity_id").notNull(),
+  photoUrl: text("photo_url").notNull(),
+  thumbnailUrl: text("thumbnail_url"),
+  photoType: servicePhotoTypeEnum("photo_type").notNull(),
+  roomId: varchar("room_id").references(() => propertyRooms.id),
+  caption: text("caption"),
+  tags: jsonb("tags").$type<string[]>().default([]),
+  qualityScore: integer("quality_score"), // 0-100, nullable until scored
+  flaggedIssues: jsonb("flagged_issues").$type<{
+    type: string;
+    description: string;
+    severity: "low" | "medium" | "high";
+  }[]>().default([]),
+  capturedAt: timestamp("captured_at").defaultNow().notNull(),
+  capturedBy: varchar("captured_by"), // userId or "AI" or future "ROBOT"
+  executorType: varchar("executor_type", { length: 20 }).default("HUMAN"), // "HUMAN" | "ROBOT" | "AI_GENERATED"
+  metadata: jsonb("metadata").$type<{
+    width?: number;
+    height?: number;
+    deviceType?: string;
+    gpsLat?: number;
+    gpsLng?: number;
+  }>().default({}),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("service_photos_household_idx").on(table.householdId),
+  index("service_photos_entity_idx").on(table.relatedEntityType, table.relatedEntityId),
+  index("service_photos_room_idx").on(table.roomId),
+  index("service_photos_type_idx").on(table.photoType),
+  index("service_photos_quality_idx").on(table.qualityScore),
+]);
+
+export type ServiceVisitPhoto = typeof serviceVisitPhotos.$inferSelect;
+export type InsertServiceVisitPhoto = typeof serviceVisitPhotos.$inferInsert;
+```
+
+#### 3b. API routes
+
+Create `server/routes/service-photos.ts`:
+
+- `POST /service-photos` — upload a tagged photo. Body: `{ relatedEntityType, relatedEntityId, photoType, roomId?, caption?, tags? }` + file upload via multer. Generate thumbnail using `sharp` (already in package.json). Save to storage provider.
+- `GET /service-photos?entityType=CLEANING_VISIT&entityId=xxx` — list photos for a service entity, grouped by room and type
+- `PATCH /service-photos/:id` — update caption, tags, quality score, flagged issues
+- `GET /service-photos/pairs?entityId=xxx` — return matched before/after photo pairs for a visit, grouped by room. Match by `roomId` — BEFORE photo in room X paired with AFTER photo in room X.
+
+Register in `server/routes.ts`.
+
+#### 3c. Update cleaning visit flow
+
+In the cleaning visit detail view (within `client/src/pages/schedule.tsx` or wherever the visit detail renders), replace the simple photo gallery with a room-organized photo view. Show before/after pairs side by side per room. Include a quality score indicator (if set) and any flagged issues with severity badges.
+
+Add a "Capture Photo" button that uses the existing `PhotoCapture` component (`client/src/components/photo-capture.tsx`) but now also asks for: photo type (Before/After/Issue), room (dropdown from property rooms), and optional caption.
+
+---
+
+### TASK 4: Structured Preference Constraints
+
+Add machine-readable constraint structures alongside the existing human-readable preferences.
+
+#### 4a. Schema additions in `shared/schema.ts`
+
+Add a new enum and new columns to the EXISTING `preferences` table:
+
+```typescript
+export const constraintTypeEnum = pgEnum("constraint_type", [
+  "PRODUCT_RESTRICTION", "PRODUCT_PREFERENCE", "SCHEDULE_CONSTRAINT",
+  "ACCESS_RULE", "SURFACE_RULE", "NOISE_RULE", "SCENT_RULE",
+  "TEMPERATURE_RULE", "PET_RULE", "CHILD_RULE", "OTHER"
+]);
+```
+
+Add these columns to the existing `preferences` table (after `updatedAt`):
+
+```typescript
+  constraintType: constraintTypeEnum("constraint_type"),
+  constraintValue: jsonb("constraint_value").$type<Record<string, unknown>>().default({}),
+  appliesToRooms: jsonb("applies_to_rooms").$type<string[]>().default([]), // room IDs, empty = all rooms
+  appliesToServices: jsonb("applies_to_services").$type<string[]>().default([]), // service types, empty = all
+  severity: varchar("severity", { length: 10 }).default("soft"), // "hard" | "soft"
+  source: varchar("preference_source", { length: 20 }).default("explicit"), // "explicit" | "inferred" | "imported"
+```
+
+The `constraintValue` jsonb stores typed data per `constraintType`. Document the shapes in a code comment:
+
+```typescript
+// constraintValue shapes by constraintType:
+// PRODUCT_RESTRICTION: { blocked: string[], reason?: string }
+// PRODUCT_PREFERENCE: { preferred: string[], scent?: string, brand?: string }
+// SCHEDULE_CONSTRAINT: { noServiceBefore?: string, noServiceAfter?: string, blackoutDays?: string[] }
+// NOISE_RULE: { quietHours?: { start: string, end: string }, maxLevel?: "silent"|"quiet"|"moderate"|"any", reason?: string }
+// SURFACE_RULE: { surface: string, allowedProducts?: string[], blockedProducts?: string[], method?: string }
+// PET_RULE: { petType: string, instructions: string, roomRestrictions?: string[] }
+// CHILD_RULE: { childAge?: number, instructions: string, safetyNotes?: string }
+```
+
+#### 4b. Update preferences UI
+
+In the household vault / preferences section (within `client/src/pages/house.tsx`), enhance the "Add Preference" form:
+
+After the user enters the free-text `key` and `value` (keep these as-is), show an OPTIONAL "Structure this preference" section that auto-suggests a `constraintType` based on keywords in the `key`/`value` fields. For example:
+- If value contains "no" + a product name → suggest PRODUCT_RESTRICTION
+- If value contains "prefer" or "only use" → suggest PRODUCT_PREFERENCE  
+- If value mentions times or days → suggest SCHEDULE_CONSTRAINT
+- If value mentions "quiet" or "noise" → suggest NOISE_RULE
+
+When a constraintType is selected, show the relevant structured fields for that type. The structured data is saved alongside the free text — never replacing it.
+
+Keep the `isNoGo` toggle visible. When `isNoGo` is true, auto-set `severity: "hard"`.
+
+---
+
+### TASK 5: Service Execution Events (Time Tracking)
+
+Track what happens during a service visit at the room/step level.
+
+#### 5a. Schema additions in `shared/schema.ts`
+
+```typescript
+export const executionEventTypeEnum = pgEnum("execution_event_type", [
+  "ARRIVED", "STARTED_ROOM", "COMPLETED_ROOM", "STARTED_STEP",
+  "COMPLETED_STEP", "PAUSED", "RESUMED", "ISSUE_FOUND",
+  "SUPPLY_NEEDED", "PHOTO_TAKEN", "CHECKLIST_ITEM_DONE",
+  "DEPARTED", "CUSTOM"
+]);
+
+export const executorTypeEnum = pgEnum("executor_type", ["HUMAN", "ROBOT", "HYBRID"]);
+
+export const serviceExecutionEvents = pgTable("service_execution_events", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  householdId: varchar("household_id").references(() => households.id).notNull(),
+  // Link to the service being performed
+  relatedEntityType: varchar("related_entity_type", { length: 30 }).notNull(), // "CLEANING_VISIT" | "TASK"
+  relatedEntityId: varchar("related_entity_id").notNull(),
+  eventType: executionEventTypeEnum("event_type").notNull(),
+  roomId: varchar("room_id").references(() => propertyRooms.id),
+  playbookStepId: varchar("playbook_step_id").references(() => playbookSteps.id),
+  timestamp: timestamp("timestamp").defaultNow().notNull(),
+  durationSeconds: integer("duration_seconds"), // time spent on this event/room/step
+  notes: text("notes"),
+  metadata: jsonb("metadata").$type<Record<string, unknown>>().default({}),
+  executorType: executorTypeEnum("executor_type").default("HUMAN").notNull(),
+  executorId: varchar("executor_id"), // userId or robot identifier
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("exec_events_household_idx").on(table.householdId),
+  index("exec_events_entity_idx").on(table.relatedEntityType, table.relatedEntityId),
+  index("exec_events_room_idx").on(table.roomId),
+  index("exec_events_type_idx").on(table.eventType),
+  index("exec_events_timestamp_idx").on(table.timestamp),
+  index("exec_events_executor_idx").on(table.executorType),
+]);
+
+export type ServiceExecutionEvent = typeof serviceExecutionEvents.$inferSelect;
+export type InsertServiceExecutionEvent = typeof serviceExecutionEvents.$inferInsert;
+```
+
+#### 5b. API routes
+
+Create `server/routes/service-execution.ts`:
+
+- `POST /service-execution/events` — log an execution event. Body: `{ relatedEntityType, relatedEntityId, eventType, roomId?, playbookStepId?, notes?, durationSeconds? }`
+- `GET /service-execution/events?entityType=CLEANING_VISIT&entityId=xxx` — get full event timeline for a visit
+- `GET /service-execution/summary?entityType=CLEANING_VISIT&entityId=xxx` — aggregated summary: total duration, time per room, time per step, arrival-to-departure time
+- `GET /service-execution/analytics?householdId=xxx&period=90d` — room-level time analytics: average minutes per room type across visits, trends, outliers
+
+Register in `server/routes.ts`.
+
+#### 5c. Provider time tracking UI
+
+In `client/src/pages/staff/today.tsx` (the provider's daily view), add a **live tracking mode** for active visits:
+
+When a provider starts a visit, show a timer interface with room cards. Tapping a room card starts the timer for that room (logs `STARTED_ROOM` event). Tapping again stops it (logs `COMPLETED_ROOM` with duration). Show running total at the top.
+
+Include quick-action buttons: "Issue Found" (opens a notes sheet + photo capture), "Supply Needed" (logs event + optional marketplace link), "Take Photo" (triggers PhotoCapture component with auto-filled entity context).
+
+At the end of the visit, show a summary: time per room, total duration, photos taken, issues flagged. This becomes the visit report.
+
+Use Framer Motion for the timer animations. Match the existing staff page styling.
+
+---
+
+### TASK 6: Household Context API
+
+Create a structured, versioned endpoint that exports the complete household service context — the "briefing packet" for any service provider (human or machine).
+
+#### 6a. Create `server/routes/household-context.ts`
+
+Single endpoint:
+
+`GET /household-context/:householdId`
+
+Requires `isAuthenticated` + `householdContextMiddleware`. The requesting user must have access to the household (enforce via existing middleware).
+
+Response shape:
+
+```typescript
+interface HouseholdContextResponse {
+  version: "1.0";
+  generatedAt: string; // ISO timestamp
+  property: {
+    id: string;
+    name: string;
+    type: string;
+    address: string | null;
+    squareFootage: number | null;
+    yearBuilt: number | null;
+    rooms: Array<{
+      id: string;
+      name: string;
+      roomType: string;
+      floor: number;
+      flooringType: string | null;
+      cleaningPriority: number;
+      specialInstructions: string | null;
+      skipDays: string[];
+      estimatedCleanMinutes: number | null;
+    }>;
+    access: {
+      instructions: string | null;
+      hasAlarmCode: boolean; // don't expose actual code here
+      hasWifi: boolean;
+      lockCount: number;
+    };
+  } | null;
+  people: Array<{
+    name: string;
+    role: string;
+    allergies: string[];
+    dietaryRules: string[];
+  }>;
+  constraints: {
+    hard: Array<{
+      type: string;
+      description: string; // the human-readable key+value
+      constraintType: string | null;
+      constraintValue: Record<string, unknown>;
+      appliesToRooms: string[];
+    }>;
+    soft: Array<{
+      type: string;
+      description: string;
+      constraintType: string | null;
+      constraintValue: Record<string, unknown>;
+      appliesToRooms: string[];
+    }>;
+  };
+  inventory: Array<{
+    name: string;
+    category: string;
+    location: string | null;
+    roomId: string | null; // if we can match by location name
+    brand: string | null;
+    lastServiceDate: string | null;
+    nextServiceDue: string | null;
+    condition: "good" | "aging" | "needs_attention" | "unknown";
+  }>;
+  serviceHistory: {
+    totalVisits: number;
+    averageRating: number | null;
+    lastVisitDate: string | null;
+    commonIssues: string[];
+    averageDurationMinutes: number | null;
+  };
+  activePlaybook: {
+    id: string;
+    title: string;
+    steps: Array<{
+      stepNumber: number;
+      title: string;
+      description: string | null;
+      actionType: string | null;
+      roomId: string | null;
+      roomName: string | null;
+      toolsRequired: string[];
+      verificationMethod: string | null;
+      acceptanceCriteria: string | null;
+      safetyConstraints: string[];
+      estimatedMinutes: number | null;
+    }>;
+  } | null;
+  automations: Array<{
+    name: string;
+    trigger: string;
+    actions: string[];
+    isEnabled: boolean;
+  }>;
+}
+```
+
+Implementation: Query `properties` + `propertyRooms` for the property, `people` for household members, `preferences` for constraints (split by `isNoGo` or `severity`), `inventoryItems` for equipment, `cleaningVisits` for service history (aggregate last 90 days), the first active `playbook` with its `playbookSteps` joined to `propertyRooms`, and `automations` for active rules.
+
+For inventory `condition`, derive from: item age vs expected lifespan → "good" (< 60%), "aging" (60-85%), "needs_attention" (> 85%), "unknown" (no purchase date).
+
+Register in `server/routes.ts`.
+
+#### 6b. Add to Knowledge Graph
+
+In `server/services/knowledge-graph.ts`, in the `buildHouseholdGraph()` function, add room nodes from `propertyRooms`:
+
+```typescript
+const rooms = await db.select().from(propertyRooms)
+  .where(eq(propertyRooms.householdId, householdId));
+
+for (const room of rooms) {
+  nodes.push({
+    id: `room:${room.id}`,
+    type: "location", // reuse existing type
+    label: room.name,
+    attributes: {
+      roomType: room.roomType,
+      floor: room.floor,
+      flooringType: room.flooringType,
+      cleaningPriority: room.cleaningPriority,
+      specialInstructions: room.specialInstructions,
+      estimatedCleanMinutes: room.estimatedCleanMinutes,
+    },
+  });
+}
+```
+
+Add edges between rooms and inventory items where `inventoryItems.location` matches `room.name` (case-insensitive). Also add edges between rooms and preferences where `appliesToRooms` contains the room ID.
+
+---
+
+### TASK 7: Outcome Verification System
+
+Add per-step, per-room verification that tracks whether service work meets the defined acceptance criteria.
+
+#### 7a. Schema additions in `shared/schema.ts`
+
+```typescript
+export const verificationStatusEnum = pgEnum("verification_status", [
+  "PENDING", "PASSED", "FAILED", "SKIPPED", "NEEDS_REVIEW"
+]);
+
+export const verifierTypeEnum = pgEnum("verifier_type", [
+  "PROVIDER_SELF", "CLIENT_REVIEW", "AI_VISION", "ROBOT_SENSOR", "MANAGER_REVIEW"
+]);
+
+export const taskVerifications = pgTable("task_verifications", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  householdId: varchar("household_id").references(() => households.id).notNull(),
+  relatedEntityType: varchar("related_entity_type", { length: 30 }).notNull(),
+  relatedEntityId: varchar("related_entity_id").notNull(),
+  playbookStepId: varchar("playbook_step_id").references(() => playbookSteps.id),
+  roomId: varchar("room_id").references(() => propertyRooms.id),
+  verificationType: verificationMethodEnum("verification_type").notNull(),
+  status: verificationStatusEnum("status").default("PENDING").notNull(),
+  score: integer("score"), // 0-100
+  beforePhotoId: varchar("before_photo_id").references(() => serviceVisitPhotos.id),
+  afterPhotoId: varchar("after_photo_id").references(() => serviceVisitPhotos.id),
+  acceptanceCriteria: text("acceptance_criteria"), // copied from playbook step at time of verification
+  verifiedBy: varchar("verified_by"), // userId, "AI", or "ROBOT_SENSOR"
+  verifierType: verifierTypeEnum("verifier_type").default("PROVIDER_SELF").notNull(),
+  verifiedAt: timestamp("verified_at"),
+  notes: text("notes"),
+  failureReason: text("failure_reason"),
+  metadata: jsonb("metadata").$type<Record<string, unknown>>().default({}),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  index("verifications_household_idx").on(table.householdId),
+  index("verifications_entity_idx").on(table.relatedEntityType, table.relatedEntityId),
+  index("verifications_status_idx").on(table.status),
+  index("verifications_room_idx").on(table.roomId),
+  index("verifications_step_idx").on(table.playbookStepId),
+]);
+
+export type TaskVerification = typeof taskVerifications.$inferSelect;
+export type InsertTaskVerification = typeof taskVerifications.$inferInsert;
+```
+
+#### 7b. API routes
+
+Create `server/routes/verifications.ts`:
+
+- `POST /verifications` — create a verification record. When a provider takes an "after" photo for a step that has `verificationMethod: PHOTO_BEFORE_AFTER`, auto-create a verification in `PENDING` status with the before/after photo IDs linked.
+- `GET /verifications?entityType=CLEANING_VISIT&entityId=xxx` — list all verifications for a visit
+- `PATCH /verifications/:id` — update status (PASSED/FAILED), score, notes, failure reason. Used by clients reviewing the work.
+- `GET /verifications/summary?entityId=xxx` — pass/fail counts, average score, failed items with reasons
+
+Register in `server/routes.ts`.
+
+#### 7c. Wire into automation engine
+
+In `server/services/automation-engine.ts`, add support for a new trigger. First add to `automationTriggerEnum` in `shared/schema.ts`:
+
+```
+"VERIFICATION_FAILED", "VERIFICATION_PASSED", "ALL_VERIFICATIONS_COMPLETE"
+```
+
+When a verification is updated to `FAILED`, call `processTrigger({ type: "VERIFICATION_FAILED", householdId, data: { verificationId, roomId, stepTitle, failureReason } })` from the PATCH route. This lets users set up automations like "When a verification fails → Send notification to client with photo."
+
+When ALL verifications for a visit are either PASSED or SKIPPED, fire `ALL_VERIFICATIONS_COMPLETE` trigger. This can auto-complete the cleaning visit or send a completion report.
+
+#### 7d. Client verification review UI
+
+In the client-facing visit detail (the view that shows after a cleaning visit is completed), add a "Quality Review" section:
+
+Show each verification as a card with: room name, step title, before/after photo pair (side by side), current status badge (PENDING = gray, PASSED = green, FAILED = red). For PENDING items, show "Approve" (sets PASSED) and "Flag Issue" (opens dialog for failure reason, sets FAILED) buttons.
+
+Show an overall score at the top: "X of Y checks passed" with a progress bar.
+
+---
+
+### TASK 8: Data API Endpoint for Service Analytics
+
+Add a new anonymized endpoint to the existing data API that serves aggregate service execution data for robotics and analytics partners.
+
+In `server/routes/data-api.ts`, add to the existing endpoint list in `TIER_CONFIG`:
+
+- Add `"/service-execution-benchmarks"` to PROFESSIONAL and ENTERPRISE tiers
+- Add `"/room-cleaning-benchmarks"` to PROFESSIONAL and ENTERPRISE tiers
+
+Then implement two new route handlers within the existing data API router (after the existing endpoint handlers):
+
+**GET `/data/v1/service-execution-benchmarks`**
+Query params: `serviceCategory`, `region`, `homeType`
+Returns aggregated (k-anonymity gated, consent-filtered) execution time data:
+```json
+{
+  "data": {
+    "averageTotalMinutes": number,
+    "averageMinutesByRoomType": { "KITCHEN": number, "BATHROOM": number, ... },
+    "timeDistribution": { "under30min": number, "30to60min": number, ... },
+    "commonIssueCategories": [{ "category": string, "frequency": number }],
+    "verificationPassRate": number
+  },
+  "metadata": { "sampleSize": number, "meetsKAnonymity": boolean, ... }
+}
+```
+
+**GET `/data/v1/room-cleaning-benchmarks`**
+Query params: `roomType`, `flooringType`, `region`
+Returns room-specific benchmarks:
+```json
+{
+  "data": {
+    "averageMinutes": number,
+    "medianMinutes": number,
+    "minutesByFlooringType": { "HARDWOOD": number, "TILE": number, ... },
+    "commonIssuesByRoomType": [{ "issue": string, "percentage": number }],
+    "qualityScoreDistribution": { "excellent": number, "good": number, "fair": number, "poor": number }
+  },
+  "metadata": { ... }
+}
+```
+
+Use the same patterns from the existing aggregate analytics functions: consent filter via `consentFilter()`, k-anonymity check, in-memory cache with TTL, and `logAggregationQuery()` for observability.
+
+---
+
+## CRITICAL RULES
+
+1. **DO NOT modify existing column definitions** — only ADD new columns and tables
+2. **Every new table must have `householdId` with FK and index** — data isolation is non-negotiable
+3. **Follow exact existing patterns:**
+   - Routes: `isAuthenticated` + `householdContextMiddleware`, try/catch with `logger.error`, response shapes matching existing endpoints
+   - Schema: use `sql\`gen_random_uuid()\`` for PKs, `timestamp("created_at").defaultNow().notNull()`, indexes on all FK columns
+   - Client: `useQuery`/`useMutation` with `@tanstack/react-query`, existing UI components, hndld design system
+4. **All new enums must be exported** and all new types must have `$inferSelect` / `$inferInsert` type exports
+5. **The data API endpoints must use consent filters** — only aggregate data from households where `consentToAnonymizedAnalytics = true`
+6. **Photo uploads must use the existing multer + sharp pipeline** from `server/services/storage-provider.ts`
+7. **Keep free-text fields alongside structured fields** — never remove human-readable data in favor of machine-readable. Both coexist.
+8. **New automation triggers must be added to the existing enum** — do not create a separate enum
+9. **Run `npm run check` after all changes** — fix any TypeScript errors
+10. **Do NOT install new packages** — everything needed is already in `package.json`

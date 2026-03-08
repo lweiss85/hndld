@@ -41,8 +41,15 @@ import {
   Package,
   Eye,
   EyeOff,
-  Bell
+  Bell,
+  ChevronDown,
+  Sparkles
 } from "lucide-react";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { PushNotificationToggle } from "@/components/push-notification-toggle";
 import { ReplayTourButton } from "@/components/onboarding/replay-tour-button";
 import { useTheme } from "@/lib/theme-provider";
@@ -104,6 +111,31 @@ const ACCESS_CATEGORIES = [
   { value: "GARAGE", label: "Garage" },
   { value: "OTHER", label: "Other" },
 ];
+
+const CONSTRAINT_TYPES = [
+  { value: "PRODUCT_RESTRICTION", label: "Product Restriction", keywords: ["no ", "never", "don't use", "allergic", "avoid", "banned", "toxic"] },
+  { value: "PRODUCT_PREFERENCE", label: "Product Preference", keywords: ["prefer", "only use", "brand", "organic", "scent", "favorite"] },
+  { value: "SCHEDULE_CONSTRAINT", label: "Schedule Constraint", keywords: ["before", "after", "morning", "evening", "time", "day", "weekday", "weekend"] },
+  { value: "ACCESS_RULE", label: "Access Rule", keywords: ["lock", "key", "code", "gate", "entry", "door", "alarm"] },
+  { value: "SURFACE_RULE", label: "Surface Rule", keywords: ["surface", "countertop", "marble", "granite", "wood", "hardwood", "floor"] },
+  { value: "NOISE_RULE", label: "Noise Rule", keywords: ["quiet", "noise", "loud", "silent", "nap", "sleeping", "sound"] },
+  { value: "SCENT_RULE", label: "Scent Rule", keywords: ["scent", "fragrance", "smell", "unscented", "perfume", "aroma"] },
+  { value: "TEMPERATURE_RULE", label: "Temperature Rule", keywords: ["temperature", "thermostat", "heat", "cool", "warm", "cold", "degrees"] },
+  { value: "PET_RULE", label: "Pet Rule", keywords: ["pet", "dog", "cat", "animal", "bird", "fish"] },
+  { value: "CHILD_RULE", label: "Child Rule", keywords: ["child", "kid", "baby", "toddler", "nursery", "playroom", "safety"] },
+  { value: "OTHER", label: "Other", keywords: [] },
+];
+
+function suggestConstraintType(text: string): string | null {
+  const lower = text.toLowerCase();
+  for (const ct of CONSTRAINT_TYPES) {
+    if (ct.value === "OTHER") continue;
+    if (ct.keywords.some(kw => lower.includes(kw))) {
+      return ct.value;
+    }
+  }
+  return null;
+}
 
 function ProfileSkeleton() {
   return (
@@ -596,15 +628,331 @@ function PeopleTab({ people, isAssistant }: { people: Person[]; isAssistant: boo
   );
 }
 
+function ConstraintFields({ constraintType, constraintValue, onChange }: {
+  constraintType: string;
+  constraintValue: Record<string, unknown>;
+  onChange: (value: Record<string, unknown>) => void;
+}) {
+  const update = (key: string, val: unknown) => onChange({ ...constraintValue, [key]: val });
+
+  switch (constraintType) {
+    case "PRODUCT_RESTRICTION":
+      return (
+        <div className="space-y-3">
+          <div>
+            <Label className="text-xs">Blocked products (comma-separated)</Label>
+            <Input
+              value={((constraintValue.blocked as string[]) || []).join(", ")}
+              onChange={(e) => update("blocked", e.target.value.split(",").map(s => s.trim()).filter(Boolean))}
+              placeholder="Bleach, Ammonia"
+              data-testid="input-constraint-blocked"
+            />
+          </div>
+          <div>
+            <Label className="text-xs">Reason</Label>
+            <Input
+              value={(constraintValue.reason as string) || ""}
+              onChange={(e) => update("reason", e.target.value)}
+              placeholder="Allergic reaction"
+              data-testid="input-constraint-reason"
+            />
+          </div>
+        </div>
+      );
+    case "PRODUCT_PREFERENCE":
+      return (
+        <div className="space-y-3">
+          <div>
+            <Label className="text-xs">Preferred products (comma-separated)</Label>
+            <Input
+              value={((constraintValue.preferred as string[]) || []).join(", ")}
+              onChange={(e) => update("preferred", e.target.value.split(",").map(s => s.trim()).filter(Boolean))}
+              placeholder="Method, Mrs. Meyer's"
+              data-testid="input-constraint-preferred"
+            />
+          </div>
+          <div>
+            <Label className="text-xs">Brand</Label>
+            <Input
+              value={(constraintValue.brand as string) || ""}
+              onChange={(e) => update("brand", e.target.value)}
+              placeholder="Mrs. Meyer's"
+            />
+          </div>
+          <div>
+            <Label className="text-xs">Scent</Label>
+            <Input
+              value={(constraintValue.scent as string) || ""}
+              onChange={(e) => update("scent", e.target.value)}
+              placeholder="Lavender"
+            />
+          </div>
+        </div>
+      );
+    case "SCHEDULE_CONSTRAINT":
+      return (
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <Label className="text-xs">No service before</Label>
+              <Input
+                type="time"
+                value={(constraintValue.noServiceBefore as string) || ""}
+                onChange={(e) => update("noServiceBefore", e.target.value)}
+                data-testid="input-constraint-no-before"
+              />
+            </div>
+            <div>
+              <Label className="text-xs">No service after</Label>
+              <Input
+                type="time"
+                value={(constraintValue.noServiceAfter as string) || ""}
+                onChange={(e) => update("noServiceAfter", e.target.value)}
+                data-testid="input-constraint-no-after"
+              />
+            </div>
+          </div>
+          <div>
+            <Label className="text-xs">Blackout days (comma-separated)</Label>
+            <Input
+              value={((constraintValue.blackoutDays as string[]) || []).join(", ")}
+              onChange={(e) => update("blackoutDays", e.target.value.split(",").map(s => s.trim()).filter(Boolean))}
+              placeholder="Monday, Wednesday"
+            />
+          </div>
+        </div>
+      );
+    case "NOISE_RULE":
+      return (
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <Label className="text-xs">Quiet hours start</Label>
+              <Input
+                type="time"
+                value={((constraintValue.quietHours as Record<string, string>) || {}).start || ""}
+                onChange={(e) => update("quietHours", { ...((constraintValue.quietHours as Record<string, string>) || {}), start: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label className="text-xs">Quiet hours end</Label>
+              <Input
+                type="time"
+                value={((constraintValue.quietHours as Record<string, string>) || {}).end || ""}
+                onChange={(e) => update("quietHours", { ...((constraintValue.quietHours as Record<string, string>) || {}), end: e.target.value })}
+              />
+            </div>
+          </div>
+          <div>
+            <Label className="text-xs">Max noise level</Label>
+            <Select
+              value={(constraintValue.maxLevel as string) || "any"}
+              onValueChange={(v) => update("maxLevel", v)}
+            >
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="silent">Silent</SelectItem>
+                <SelectItem value="quiet">Quiet</SelectItem>
+                <SelectItem value="moderate">Moderate</SelectItem>
+                <SelectItem value="any">Any</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label className="text-xs">Reason</Label>
+            <Input
+              value={(constraintValue.reason as string) || ""}
+              onChange={(e) => update("reason", e.target.value)}
+              placeholder="Baby napping"
+            />
+          </div>
+        </div>
+      );
+    case "SURFACE_RULE":
+      return (
+        <div className="space-y-3">
+          <div>
+            <Label className="text-xs">Surface type</Label>
+            <Input
+              value={(constraintValue.surface as string) || ""}
+              onChange={(e) => update("surface", e.target.value)}
+              placeholder="Marble countertops"
+              data-testid="input-constraint-surface"
+            />
+          </div>
+          <div>
+            <Label className="text-xs">Allowed products (comma-separated)</Label>
+            <Input
+              value={((constraintValue.allowedProducts as string[]) || []).join(", ")}
+              onChange={(e) => update("allowedProducts", e.target.value.split(",").map(s => s.trim()).filter(Boolean))}
+              placeholder="Stone cleaner, pH neutral"
+            />
+          </div>
+          <div>
+            <Label className="text-xs">Blocked products (comma-separated)</Label>
+            <Input
+              value={((constraintValue.blockedProducts as string[]) || []).join(", ")}
+              onChange={(e) => update("blockedProducts", e.target.value.split(",").map(s => s.trim()).filter(Boolean))}
+              placeholder="Vinegar, Abrasive cleaners"
+            />
+          </div>
+          <div>
+            <Label className="text-xs">Cleaning method</Label>
+            <Input
+              value={(constraintValue.method as string) || ""}
+              onChange={(e) => update("method", e.target.value)}
+              placeholder="Wipe gently with soft cloth"
+            />
+          </div>
+        </div>
+      );
+    case "PET_RULE":
+      return (
+        <div className="space-y-3">
+          <div>
+            <Label className="text-xs">Pet type</Label>
+            <Input
+              value={(constraintValue.petType as string) || ""}
+              onChange={(e) => update("petType", e.target.value)}
+              placeholder="Dog"
+              data-testid="input-constraint-pet-type"
+            />
+          </div>
+          <div>
+            <Label className="text-xs">Instructions</Label>
+            <Textarea
+              value={(constraintValue.instructions as string) || ""}
+              onChange={(e) => update("instructions", e.target.value)}
+              placeholder="Keep garage door closed, dog may escape"
+              rows={2}
+            />
+          </div>
+          <div>
+            <Label className="text-xs">Room restrictions (comma-separated)</Label>
+            <Input
+              value={((constraintValue.roomRestrictions as string[]) || []).join(", ")}
+              onChange={(e) => update("roomRestrictions", e.target.value.split(",").map(s => s.trim()).filter(Boolean))}
+              placeholder="Kitchen, Nursery"
+            />
+          </div>
+        </div>
+      );
+    case "CHILD_RULE":
+      return (
+        <div className="space-y-3">
+          <div>
+            <Label className="text-xs">Child age</Label>
+            <Input
+              type="number"
+              value={(constraintValue.childAge as number) || ""}
+              onChange={(e) => update("childAge", e.target.value ? parseInt(e.target.value) : undefined)}
+              placeholder="3"
+              data-testid="input-constraint-child-age"
+            />
+          </div>
+          <div>
+            <Label className="text-xs">Instructions</Label>
+            <Textarea
+              value={(constraintValue.instructions as string) || ""}
+              onChange={(e) => update("instructions", e.target.value)}
+              placeholder="Use child-safe cleaning products only"
+              rows={2}
+            />
+          </div>
+          <div>
+            <Label className="text-xs">Safety notes</Label>
+            <Input
+              value={(constraintValue.safetyNotes as string) || ""}
+              onChange={(e) => update("safetyNotes", e.target.value)}
+              placeholder="Keep all chemicals in locked cabinet"
+            />
+          </div>
+        </div>
+      );
+    case "SCENT_RULE":
+      return (
+        <div className="space-y-3">
+          <div>
+            <Label className="text-xs">Preferred scent</Label>
+            <Input
+              value={(constraintValue.scent as string) || ""}
+              onChange={(e) => update("scent", e.target.value)}
+              placeholder="Unscented"
+            />
+          </div>
+          <div>
+            <Label className="text-xs">Reason</Label>
+            <Input
+              value={(constraintValue.reason as string) || ""}
+              onChange={(e) => update("reason", e.target.value)}
+              placeholder="Fragrance sensitivity"
+            />
+          </div>
+        </div>
+      );
+    case "TEMPERATURE_RULE":
+      return (
+        <div className="space-y-3">
+          <div>
+            <Label className="text-xs">Target temperature (°F)</Label>
+            <Input
+              type="number"
+              value={(constraintValue.targetTemp as number) || ""}
+              onChange={(e) => update("targetTemp", e.target.value ? parseInt(e.target.value) : undefined)}
+              placeholder="72"
+            />
+          </div>
+          <div>
+            <Label className="text-xs">Instructions</Label>
+            <Input
+              value={(constraintValue.instructions as string) || ""}
+              onChange={(e) => update("instructions", e.target.value)}
+              placeholder="Don't adjust thermostat below 68°F"
+            />
+          </div>
+        </div>
+      );
+    case "ACCESS_RULE":
+      return (
+        <div className="space-y-3">
+          <div>
+            <Label className="text-xs">Access point</Label>
+            <Input
+              value={(constraintValue.accessPoint as string) || ""}
+              onChange={(e) => update("accessPoint", e.target.value)}
+              placeholder="Front gate"
+            />
+          </div>
+          <div>
+            <Label className="text-xs">Instructions</Label>
+            <Textarea
+              value={(constraintValue.instructions as string) || ""}
+              onChange={(e) => update("instructions", e.target.value)}
+              placeholder="Always re-lock after entry"
+              rows={2}
+            />
+          </div>
+        </div>
+      );
+    default:
+      return null;
+  }
+}
+
 function PreferencesTab({ preferences, isAssistant }: { preferences: Preference[]; isAssistant: boolean }) {
   const { toast } = useToast();
   const [showDialog, setShowDialog] = useState(false);
   const [editingPreference, setEditingPreference] = useState<Preference | null>(null);
+  const [showStructured, setShowStructured] = useState(false);
+  const [suggestedType, setSuggestedType] = useState<string | null>(null);
   const [formData, setFormData] = useState<Partial<InsertPreference>>({
     category: "FOOD_DRINK",
     key: "",
     value: "",
     isNoGo: false,
+    constraintType: undefined,
+    constraintValue: {},
+    severity: "soft",
   });
 
   const createMutation = useMutation({
@@ -638,26 +986,63 @@ function PreferencesTab({ preferences, isAssistant }: { preferences: Preference[
 
   const resetForm = () => {
     setEditingPreference(null);
-    setFormData({ category: "FOOD_DRINK", key: "", value: "", isNoGo: false });
+    setShowStructured(false);
+    setSuggestedType(null);
+    setFormData({ category: "FOOD_DRINK", key: "", value: "", isNoGo: false, constraintType: undefined, constraintValue: {}, severity: "soft" });
   };
 
   const openEdit = (pref: Preference) => {
     setEditingPreference(pref);
+    const hasConstraint = !!pref.constraintType;
+    setShowStructured(hasConstraint);
+    setSuggestedType(null);
     setFormData({
       category: pref.category,
       key: pref.key,
       value: pref.value,
       isNoGo: pref.isNoGo,
+      constraintType: pref.constraintType as typeof formData.constraintType,
+      constraintValue: (pref.constraintValue as Record<string, unknown>) || {},
+      severity: pref.severity || "soft",
     });
     setShowDialog(true);
   };
 
+  const handleTextChange = (field: "key" | "value", val: string) => {
+    const newData = { ...formData, [field]: val };
+    setFormData(newData);
+    const combined = `${newData.key || ""} ${newData.value || ""}`;
+    const suggestion = suggestConstraintType(combined);
+    setSuggestedType(suggestion);
+  };
+
+  const handleNoGoChange = (checked: boolean) => {
+    setFormData({
+      ...formData,
+      isNoGo: checked,
+      severity: checked ? "hard" : formData.severity,
+    });
+  };
+
+  const handleConstraintTypeChange = (value: string) => {
+    setFormData({
+      ...formData,
+      constraintType: value === "none" ? undefined : value as typeof formData.constraintType,
+      constraintValue: value === "none" ? {} : formData.constraintValue || {},
+    });
+  };
+
   const handleSubmit = () => {
     if (!formData.key || !formData.value) return;
+    const submitData = { ...formData };
+    if (!showStructured) {
+      submitData.constraintType = undefined;
+      submitData.constraintValue = {};
+    }
     if (editingPreference) {
-      updateMutation.mutate({ id: editingPreference.id, ...formData });
+      updateMutation.mutate({ id: editingPreference.id, ...submitData });
     } else {
-      createMutation.mutate(formData);
+      createMutation.mutate(submitData);
     }
   };
 
@@ -697,6 +1082,11 @@ function PreferencesTab({ preferences, isAssistant }: { preferences: Preference[
                         {pref.isNoGo && (
                           <Badge variant="destructive" className="text-xs">No-Go</Badge>
                         )}
+                        {pref.constraintType && (
+                          <Badge variant="secondary" className="text-xs">
+                            {CONSTRAINT_TYPES.find(ct => ct.value === pref.constraintType)?.label || pref.constraintType}
+                          </Badge>
+                        )}
                       </div>
                       <p className="text-sm text-muted-foreground mt-1">{pref.value}</p>
                     </div>
@@ -731,7 +1121,7 @@ function PreferencesTab({ preferences, isAssistant }: { preferences: Preference[
       )}
 
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingPreference ? "Edit Preference" : "Add Preference"}</DialogTitle>
           </DialogHeader>
@@ -740,7 +1130,7 @@ function PreferencesTab({ preferences, isAssistant }: { preferences: Preference[
               <Label>Category</Label>
               <Select
                 value={formData.category || "FOOD_DRINK"}
-                onValueChange={(value) => setFormData({ ...formData, category: value as any })}
+                onValueChange={(value) => setFormData({ ...formData, category: value as typeof formData.category })}
               >
                 <SelectTrigger data-testid="select-preference-category">
                   <SelectValue />
@@ -756,7 +1146,7 @@ function PreferencesTab({ preferences, isAssistant }: { preferences: Preference[
               <Label>Name</Label>
               <Input
                 value={formData.key || ""}
-                onChange={(e) => setFormData({ ...formData, key: e.target.value })}
+                onChange={(e) => handleTextChange("key", e.target.value)}
                 placeholder="Coffee brand"
                 data-testid="input-preference-key"
               />
@@ -765,7 +1155,7 @@ function PreferencesTab({ preferences, isAssistant }: { preferences: Preference[
               <Label>Details</Label>
               <Textarea
                 value={formData.value || ""}
-                onChange={(e) => setFormData({ ...formData, value: e.target.value })}
+                onChange={(e) => handleTextChange("value", e.target.value)}
                 placeholder="Only buy organic, fair-trade"
                 rows={2}
                 data-testid="input-preference-value"
@@ -774,11 +1164,92 @@ function PreferencesTab({ preferences, isAssistant }: { preferences: Preference[
             <div className="flex items-center gap-2">
               <Switch
                 checked={formData.isNoGo || false}
-                onCheckedChange={(checked) => setFormData({ ...formData, isNoGo: checked })}
+                onCheckedChange={handleNoGoChange}
                 data-testid="switch-preference-nogo"
               />
               <Label>Mark as No-Go (never buy/do)</Label>
             </div>
+
+            <Collapsible open={showStructured} onOpenChange={setShowStructured}>
+              <CollapsibleTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full justify-between text-muted-foreground hover:text-foreground"
+                  data-testid="button-toggle-structured"
+                >
+                  <span className="flex items-center gap-2">
+                    <Sparkles className="h-4 w-4" />
+                    Structure this preference
+                  </span>
+                  <ChevronDown className={cn("h-4 w-4 transition-transform", showStructured && "rotate-180")} />
+                </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="space-y-4 pt-2">
+                {suggestedType && !formData.constraintType && (
+                  <div className="flex items-center gap-2 p-2 rounded-md bg-primary/5 border border-primary/10">
+                    <Sparkles className="h-3.5 w-3.5 text-primary shrink-0" />
+                    <span className="text-xs text-muted-foreground flex-1">
+                      Suggested: <strong>{CONSTRAINT_TYPES.find(ct => ct.value === suggestedType)?.label}</strong>
+                    </span>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-6 text-xs"
+                      onClick={() => handleConstraintTypeChange(suggestedType)}
+                      data-testid="button-apply-suggestion"
+                    >
+                      Apply
+                    </Button>
+                  </div>
+                )}
+
+                <div>
+                  <Label className="text-xs">Constraint Type</Label>
+                  <Select
+                    value={formData.constraintType || "none"}
+                    onValueChange={handleConstraintTypeChange}
+                  >
+                    <SelectTrigger data-testid="select-constraint-type">
+                      <SelectValue placeholder="Select type..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">None</SelectItem>
+                      {CONSTRAINT_TYPES.map((ct) => (
+                        <SelectItem key={ct.value} value={ct.value}>{ct.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {formData.constraintType && (
+                  <ConstraintFields
+                    constraintType={formData.constraintType}
+                    constraintValue={(formData.constraintValue as Record<string, unknown>) || {}}
+                    onChange={(val) => setFormData({ ...formData, constraintValue: val })}
+                  />
+                )}
+
+                <div>
+                  <Label className="text-xs">Severity</Label>
+                  <Select
+                    value={formData.severity || "soft"}
+                    onValueChange={(v) => setFormData({ ...formData, severity: v })}
+                  >
+                    <SelectTrigger data-testid="select-severity">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="soft">Soft (preferred)</SelectItem>
+                      <SelectItem value="hard">Hard (required)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {formData.isNoGo && formData.severity === "hard" && (
+                    <p className="text-xs text-muted-foreground mt-1">Auto-set to hard because this is a No-Go preference</p>
+                  )}
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowDialog(false)}>Cancel</Button>

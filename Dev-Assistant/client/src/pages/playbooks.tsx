@@ -7,6 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Switch } from "@/components/ui/switch";
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 import {
   Dialog,
   DialogContent,
@@ -26,13 +28,16 @@ import {
   BookOpen,
   ListChecks,
   ChevronRight,
+  ChevronDown,
   X,
   GripVertical,
   Edit2,
   Trash2,
-  ArrowLeft
+  ArrowLeft,
+  Settings2,
+  Wrench
 } from "lucide-react";
-import type { Playbook, PlaybookStep } from "@shared/schema";
+import type { Playbook, PlaybookStep, PropertyRoom } from "@shared/schema";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
@@ -47,6 +52,30 @@ const CATEGORIES = [
   { value: "OTHER", label: "Other" },
 ];
 
+const ACTION_TYPES = [
+  { value: "CLEAN", label: "Clean" },
+  { value: "INSPECT", label: "Inspect" },
+  { value: "RESTOCK", label: "Restock" },
+  { value: "ORGANIZE", label: "Organize" },
+  { value: "REPAIR", label: "Repair" },
+  { value: "SANITIZE", label: "Sanitize" },
+  { value: "VACUUM", label: "Vacuum" },
+  { value: "MOP", label: "Mop" },
+  { value: "DUST", label: "Dust" },
+  { value: "WASH", label: "Wash" },
+  { value: "REPORT", label: "Report" },
+  { value: "PHOTOGRAPH", label: "Photograph" },
+  { value: "CUSTOM", label: "Custom" },
+];
+
+const VERIFICATION_METHODS = [
+  { value: "NONE", label: "None" },
+  { value: "PHOTO_BEFORE_AFTER", label: "Photo (Before & After)" },
+  { value: "PHOTO_AFTER", label: "Photo (After)" },
+  { value: "CHECKLIST", label: "Checklist" },
+  { value: "VISUAL_INSPECT", label: "Visual Inspection" },
+];
+
 interface PlaybookWithSteps extends Playbook {
   steps?: PlaybookStep[];
 }
@@ -55,6 +84,289 @@ interface StepInput {
   title: string;
   description: string | null;
   estimatedMinutes: number | null;
+  actionType: string | null;
+  roomId: string | null;
+  targetSurface: string | null;
+  toolsRequired: string[];
+  verificationMethod: string | null;
+  acceptanceCriteria: string | null;
+  safetyConstraints: string[];
+  dependsOnSteps: number[];
+  isParallelizable: boolean;
+}
+
+function createEmptyStep(): StepInput {
+  return {
+    title: "",
+    description: null,
+    estimatedMinutes: null,
+    actionType: null,
+    roomId: null,
+    targetSurface: null,
+    toolsRequired: [],
+    verificationMethod: null,
+    acceptanceCriteria: null,
+    safetyConstraints: [],
+    dependsOnSteps: [],
+    isParallelizable: false,
+  };
+}
+
+function TagInput({ value, onChange, placeholder }: { value: string[]; onChange: (v: string[]) => void; placeholder?: string }) {
+  const [inputValue, setInputValue] = useState("");
+
+  const addTag = () => {
+    const trimmed = inputValue.trim();
+    if (trimmed && !value.includes(trimmed)) {
+      onChange([...value, trimmed]);
+      setInputValue("");
+    }
+  };
+
+  return (
+    <div className="space-y-1.5">
+      <div className="flex flex-wrap gap-1.5">
+        {value.map((tag, i) => (
+          <Badge key={i} variant="secondary" className="gap-1 pr-1">
+            {tag}
+            <button
+              type="button"
+              onClick={() => onChange(value.filter((_, idx) => idx !== i))}
+              className="ml-0.5 rounded-full hover:bg-muted p-0.5"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          </Badge>
+        ))}
+      </div>
+      <div className="flex gap-1.5">
+        <Input
+          value={inputValue}
+          onChange={(e) => setInputValue(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              addTag();
+            }
+          }}
+          placeholder={placeholder}
+          className="flex-1"
+        />
+        <Button type="button" variant="outline" size="sm" onClick={addTag} disabled={!inputValue.trim()}>
+          Add
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function StepEditor({
+  step,
+  index,
+  totalSteps,
+  rooms,
+  onUpdate,
+  onRemove,
+  testIdPrefix,
+}: {
+  step: StepInput;
+  index: number;
+  totalSteps: number;
+  rooms: PropertyRoom[];
+  onUpdate: (updates: Partial<StepInput>) => void;
+  onRemove: () => void;
+  testIdPrefix: string;
+}) {
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [advancedOpen, setAdvancedOpen] = useState(false);
+
+  return (
+    <Card className="relative">
+      <CardContent className="p-3 space-y-2">
+        <div className="flex items-center gap-2">
+          <GripVertical className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm font-medium text-muted-foreground min-w-[24px]">
+            {index + 1}.
+          </span>
+          <Input
+            value={step.title}
+            onChange={(e) => onUpdate({ title: e.target.value })}
+            placeholder="Step title"
+            className="flex-1"
+            data-testid={`${testIdPrefix}-title-${index}`}
+          />
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onRemove}
+            data-testid={`button-remove-${testIdPrefix.replace("input-", "")}-${index}`}
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+
+        <Input
+          value={step.description || ""}
+          onChange={(e) => onUpdate({ description: e.target.value || null })}
+          placeholder="Additional details (optional)"
+          className="ml-8"
+          data-testid={`${testIdPrefix}-description-${index}`}
+        />
+
+        <div className="ml-8 flex flex-wrap gap-2">
+          <Input
+            type="number"
+            value={step.estimatedMinutes || ""}
+            onChange={(e) => onUpdate({ estimatedMinutes: e.target.value ? parseInt(e.target.value) : null })}
+            placeholder="Minutes"
+            className="w-28"
+            data-testid={`${testIdPrefix}-minutes-${index}`}
+          />
+
+          <Select
+            value={step.actionType || ""}
+            onValueChange={(v) => onUpdate({ actionType: v || null })}
+          >
+            <SelectTrigger className="w-36" data-testid={`select-step-action-${index}`}>
+              <SelectValue placeholder="Action type" />
+            </SelectTrigger>
+            <SelectContent>
+              {ACTION_TYPES.map((a) => (
+                <SelectItem key={a.value} value={a.value}>{a.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select
+            value={step.roomId || ""}
+            onValueChange={(v) => onUpdate({ roomId: v || null })}
+          >
+            <SelectTrigger className="w-40" data-testid={`select-step-room-${index}`}>
+              <SelectValue placeholder="Room" />
+            </SelectTrigger>
+            <SelectContent>
+              {rooms.length === 0 ? (
+                <SelectItem value="_none" disabled>No rooms configured</SelectItem>
+              ) : (
+                rooms.map((r) => (
+                  <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
+                ))
+              )}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="ml-8 space-y-1">
+          <Collapsible open={detailsOpen} onOpenChange={setDetailsOpen}>
+            <CollapsibleTrigger asChild>
+              <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground h-7 px-2">
+                <Wrench className="h-3.5 w-3.5" />
+                Details
+                <ChevronDown className={`h-3.5 w-3.5 transition-transform ${detailsOpen ? "rotate-180" : ""}`} />
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="space-y-2 pt-2">
+              <div className="space-y-1">
+                <label className="text-xs text-muted-foreground">Target Surface</label>
+                <Input
+                  value={step.targetSurface || ""}
+                  onChange={(e) => onUpdate({ targetSurface: e.target.value || null })}
+                  placeholder="e.g., Granite countertop, Glass shower door"
+                  data-testid={`input-step-surface-${index}`}
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs text-muted-foreground">Tools Required</label>
+                <TagInput
+                  value={step.toolsRequired}
+                  onChange={(v) => onUpdate({ toolsRequired: v })}
+                  placeholder="Add a tool and press Enter"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs text-muted-foreground">Verification Method</label>
+                <Select
+                  value={step.verificationMethod || "NONE"}
+                  onValueChange={(v) => onUpdate({ verificationMethod: v === "NONE" ? null : v })}
+                >
+                  <SelectTrigger data-testid={`select-step-verification-${index}`}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {VERIFICATION_METHODS.map((m) => (
+                      <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
+
+          <Collapsible open={advancedOpen} onOpenChange={setAdvancedOpen}>
+            <CollapsibleTrigger asChild>
+              <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground h-7 px-2">
+                <Settings2 className="h-3.5 w-3.5" />
+                Advanced
+                <ChevronDown className={`h-3.5 w-3.5 transition-transform ${advancedOpen ? "rotate-180" : ""}`} />
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="space-y-2 pt-2">
+              <div className="space-y-1">
+                <label className="text-xs text-muted-foreground">Acceptance Criteria</label>
+                <Textarea
+                  value={step.acceptanceCriteria || ""}
+                  onChange={(e) => onUpdate({ acceptanceCriteria: e.target.value || null })}
+                  placeholder="What must be true for this step to be considered done?"
+                  rows={2}
+                  data-testid={`input-step-criteria-${index}`}
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs text-muted-foreground">Safety Constraints</label>
+                <TagInput
+                  value={step.safetyConstraints}
+                  onChange={(v) => onUpdate({ safetyConstraints: v })}
+                  placeholder="Add safety constraint and press Enter"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs text-muted-foreground">Depends on Steps</label>
+                <div className="flex flex-wrap gap-1.5">
+                  {Array.from({ length: totalSteps }, (_, i) => i).filter(i => i !== index).map((i) => (
+                    <Button
+                      key={i}
+                      type="button"
+                      variant={step.dependsOnSteps.includes(i + 1) ? "default" : "outline"}
+                      size="sm"
+                      className="h-7 w-7 p-0"
+                      onClick={() => {
+                        const stepNum = i + 1;
+                        if (step.dependsOnSteps.includes(stepNum)) {
+                          onUpdate({ dependsOnSteps: step.dependsOnSteps.filter(s => s !== stepNum) });
+                        } else {
+                          onUpdate({ dependsOnSteps: [...step.dependsOnSteps, stepNum] });
+                        }
+                      }}
+                    >
+                      {i + 1}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Switch
+                  checked={step.isParallelizable}
+                  onCheckedChange={(v) => onUpdate({ isParallelizable: v })}
+                  data-testid={`switch-step-parallel-${index}`}
+                />
+                <label className="text-xs text-muted-foreground">Can run in parallel</label>
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
+        </div>
+      </CardContent>
+    </Card>
+  );
 }
 
 function PlaybooksSkeleton() {
@@ -89,6 +401,27 @@ export default function Playbooks() {
     queryKey: ["/api/playbooks", selectedPlaybook?.id],
     enabled: !!selectedPlaybook?.id,
   });
+
+  const { data: allRooms } = useQuery<PropertyRoom[]>({
+    queryKey: ["/api/v1/property-rooms-all"],
+    queryFn: async () => {
+      const res = await apiRequest("GET", "/api/v1/properties");
+      const data = await res.json();
+      const propertyList = data.properties || [];
+      const rooms: PropertyRoom[] = [];
+      for (const prop of propertyList) {
+        try {
+          const roomRes = await apiRequest("GET", `/api/v1/properties/${prop.id}/rooms`);
+          const roomData = await roomRes.json();
+          const roomList = roomData.rooms || [];
+          rooms.push(...roomList);
+        } catch {}
+      }
+      return rooms;
+    },
+  });
+
+  const rooms = allRooms || [];
 
   const createPlaybookMutation = useMutation({
     mutationFn: async (data: { title: string; description: string; category: string; steps: StepInput[] }) => {
@@ -161,7 +494,7 @@ export default function Playbooks() {
   };
 
   const addStep = () => {
-    setNewSteps([...newSteps, { title: "", description: null, estimatedMinutes: null }]);
+    setNewSteps([...newSteps, createEmptyStep()]);
   };
 
   const removeStep = (index: number) => {
@@ -203,6 +536,15 @@ export default function Playbooks() {
         title: s.title,
         description: s.description,
         estimatedMinutes: s.estimatedMinutes,
+        actionType: s.actionType || null,
+        roomId: s.roomId || null,
+        targetSurface: s.targetSurface || null,
+        toolsRequired: (s.toolsRequired as string[]) || [],
+        verificationMethod: s.verificationMethod || null,
+        acceptanceCriteria: s.acceptanceCriteria || null,
+        safetyConstraints: (s.safetyConstraints as string[]) || [],
+        dependsOnSteps: (s.dependsOnSteps as number[]) || [],
+        isParallelizable: s.isParallelizable || false,
       })));
       setIsEditing(true);
     }
@@ -312,48 +654,16 @@ export default function Playbooks() {
               </div>
 
               {newSteps.map((step, index) => (
-                <Card key={index} className="relative">
-                  <CardContent className="p-3 space-y-2">
-                    <div className="flex items-center gap-2">
-                      <GripVertical className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm font-medium text-muted-foreground min-w-[24px]">
-                        {index + 1}.
-                      </span>
-                      <Input
-                        value={step.title}
-                        onChange={(e) => updateStep(index, { title: e.target.value })}
-                        placeholder="Step title"
-                        className="flex-1"
-                        data-testid={`input-step-title-${index}`}
-                      />
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => removeStep(index)}
-                        data-testid={`button-remove-step-${index}`}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                    <Input
-                      value={step.description || ""}
-                      onChange={(e) => updateStep(index, { description: e.target.value || null })}
-                      placeholder="Additional details (optional)"
-                      className="ml-8"
-                      data-testid={`input-step-description-${index}`}
-                    />
-                    <div className="ml-8">
-                      <Input
-                        type="number"
-                        value={step.estimatedMinutes || ""}
-                        onChange={(e) => updateStep(index, { estimatedMinutes: e.target.value ? parseInt(e.target.value) : null })}
-                        placeholder="Minutes (optional)"
-                        className="w-32"
-                        data-testid={`input-step-minutes-${index}`}
-                      />
-                    </div>
-                  </CardContent>
-                </Card>
+                <StepEditor
+                  key={index}
+                  step={step}
+                  index={index}
+                  totalSteps={newSteps.length}
+                  rooms={rooms}
+                  onUpdate={(updates) => updateStep(index, updates)}
+                  onRemove={() => removeStep(index)}
+                  testIdPrefix="input-step"
+                />
               ))}
             </div>
 
@@ -412,10 +722,36 @@ export default function Playbooks() {
                         {step.description && (
                           <p className="text-sm text-muted-foreground mt-1">{step.description}</p>
                         )}
-                        {step.estimatedMinutes && (
-                          <Badge variant="outline" className="mt-2">
-                            {step.estimatedMinutes} min
-                          </Badge>
+                        <div className="flex flex-wrap gap-1.5 mt-2">
+                          {step.estimatedMinutes && (
+                            <Badge variant="outline">
+                              {step.estimatedMinutes} min
+                            </Badge>
+                          )}
+                          {step.actionType && (
+                            <Badge variant="secondary">
+                              {ACTION_TYPES.find(a => a.value === step.actionType)?.label || step.actionType}
+                            </Badge>
+                          )}
+                          {step.roomId && (
+                            <Badge variant="secondary">
+                              {rooms.find(r => r.id === step.roomId)?.name || "Room"}
+                            </Badge>
+                          )}
+                          {step.verificationMethod && step.verificationMethod !== "NONE" && (
+                            <Badge variant="outline">
+                              {VERIFICATION_METHODS.find(m => m.value === step.verificationMethod)?.label}
+                            </Badge>
+                          )}
+                          {step.isParallelizable && (
+                            <Badge variant="outline">Parallelizable</Badge>
+                          )}
+                        </div>
+                        {step.targetSurface && (
+                          <p className="text-xs text-muted-foreground mt-1">Surface: {step.targetSurface}</p>
+                        )}
+                        {step.toolsRequired && (step.toolsRequired as string[]).length > 0 && (
+                          <p className="text-xs text-muted-foreground mt-0.5">Tools: {(step.toolsRequired as string[]).join(", ")}</p>
                         )}
                       </div>
                     </div>
@@ -548,33 +884,16 @@ export default function Playbooks() {
               </div>
 
               {newSteps.map((step, index) => (
-                <div key={index} className="flex items-start gap-2 p-3 border rounded-md">
-                  <span className="text-sm font-medium text-muted-foreground min-w-[24px] mt-2">
-                    {index + 1}.
-                  </span>
-                  <div className="flex-1 space-y-2">
-                    <Input
-                      value={step.title}
-                      onChange={(e) => updateStep(index, { title: e.target.value })}
-                      placeholder="Step title"
-                      data-testid={`input-new-step-title-${index}`}
-                    />
-                    <Input
-                      value={step.description || ""}
-                      onChange={(e) => updateStep(index, { description: e.target.value || null })}
-                      placeholder="Details (optional)"
-                      data-testid={`input-new-step-description-${index}`}
-                    />
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => removeStep(index)}
-                    data-testid={`button-remove-new-step-${index}`}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
+                <StepEditor
+                  key={index}
+                  step={step}
+                  index={index}
+                  totalSteps={newSteps.length}
+                  rooms={rooms}
+                  onUpdate={(updates) => updateStep(index, updates)}
+                  onRemove={() => removeStep(index)}
+                  testIdPrefix="input-new-step"
+                />
               ))}
             </div>
           </div>

@@ -1,7 +1,7 @@
 import { db } from "../db";
 import {
   inventoryEvents, vendorPricing, serviceQualityRatings,
-  spendingItems, householdDetails,
+  spendingItems, householdDetails, serviceExecutionEvents, propertyRooms,
 } from "@shared/schema";
 import { eq, and, gte, lte, sql, count, avg, min, max, inArray } from "drizzle-orm";
 import logger from "../lib/logger";
@@ -73,6 +73,12 @@ interface VendorPricingStatsRow { avg_price: string; min_price: string; max_pric
 interface ServiceQualityStatsRow { avg_overall: string; avg_quality: string; avg_value: string; total: string; recommended: string; with_issues: string; issues_resolved: string; promoters: string; detractors: string; nps_responses: string }
 interface SpendingStatsRow { avg_amount: string; total_amount: string; total: string }
 interface YoyStatsRow { this_year: string; last_year: string }
+interface ExecEventStatsRow { avg_duration: string; p25_duration: string; p50_duration: string; p75_duration: string; p90_duration: string; total: string }
+interface ExecEventByTypeRow { event_type: string; avg_duration: string; cnt: string }
+interface ExecByExecutorRow { executor_type: string; avg_duration: string; cnt: string }
+interface RoomCleaningStatsRow { avg_minutes: string; p25_minutes: string; p50_minutes: string; p75_minutes: string; total: string }
+interface RoomTypeCleaningRow { room_type: string; avg_minutes: string; avg_sqft: string; cnt: string }
+interface FlooringCleaningRow { flooring_type: string; avg_minutes: string; cnt: string }
 
 function rows<T>(result: unknown): T[] {
   if (Array.isArray(result)) return result;
@@ -827,6 +833,256 @@ export async function getSeasonalDemandPatterns(
       data: null,
       metadata: { sampleSize: 0, meetsKAnonymity: false, kThreshold: k, queryTimeMs: Date.now() - startTime, cached: false },
       filters: { serviceCategory, region },
+    };
+  }
+}
+
+// ─── 7. Service Execution Benchmarks ─────────────────────────
+
+export async function getServiceExecutionBenchmarks(
+  filters?: { eventType?: string; executorType?: string; region?: string },
+  options?: AggregationOptions
+): Promise<AggregationResult<{
+  avgDurationSeconds: number;
+  medianDurationSeconds: number;
+  percentile25: number;
+  percentile75: number;
+  percentile90: number;
+  totalEvents: number;
+  byEventType: { eventType: string; avgDuration: number; count: number }[];
+  byExecutorType: { executorType: string; avgDuration: number; count: number }[];
+}>> {
+  const k = options?.kAnonymity ?? DEFAULT_K_ANONYMITY;
+  const cacheKey = options?.cacheKey ?? `service-execution-benchmarks:${JSON.stringify(filters || {})}`;
+  const cached = getCached<ReturnType<typeof getServiceExecutionBenchmarks> extends Promise<AggregationResult<infer U>> ? U : never>(cacheKey);
+  if (cached.hit) return cached.result;
+
+  const startTime = Date.now();
+
+  try {
+    const conditions: ReturnType<typeof sql>[] = [
+      sql`${serviceExecutionEvents.durationSeconds} IS NOT NULL`,
+      consentFilter(sql`${serviceExecutionEvents.householdId}`),
+    ];
+
+    if (filters?.eventType) conditions.push(sql`${serviceExecutionEvents.eventType} = ${filters.eventType}`);
+    if (filters?.executorType) conditions.push(sql`${serviceExecutionEvents.executorType} = ${filters.executorType}`);
+    if (filters?.region) {
+      conditions.push(sql`${serviceExecutionEvents.householdId} IN (
+        SELECT household_id FROM household_details WHERE region = ${filters.region}
+      )`);
+    }
+
+    const whereClause = sql.join(conditions, sql` AND `);
+
+    const stats = firstRow<ExecEventStatsRow>(await db.execute(sql`
+      SELECT
+        AVG(duration_seconds) as avg_duration,
+        PERCENTILE_CONT(0.25) WITHIN GROUP (ORDER BY duration_seconds) as p25_duration,
+        PERCENTILE_CONT(0.50) WITHIN GROUP (ORDER BY duration_seconds) as p50_duration,
+        PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY duration_seconds) as p75_duration,
+        PERCENTILE_CONT(0.90) WITHIN GROUP (ORDER BY duration_seconds) as p90_duration,
+        COUNT(*) as total
+      FROM service_execution_events
+      WHERE ${whereClause}
+    `));
+
+    const sampleSize = Number(stats.total || 0);
+    const queryTimeMs = Date.now() - startTime;
+
+    if (sampleSize < k) {
+      const result: AggregationResult<null> = {
+        data: null,
+        metadata: { sampleSize, meetsKAnonymity: false, kThreshold: k, queryTimeMs, cached: false },
+        filters: { ...filters },
+      };
+      logAggregationQuery("service-execution-benchmarks", { ...filters }, queryTimeMs, sampleSize);
+      return result;
+    }
+
+    const byEventType = rows<ExecEventByTypeRow>(await db.execute(sql`
+      SELECT
+        event_type,
+        AVG(duration_seconds)::integer as avg_duration,
+        COUNT(*) as cnt
+      FROM service_execution_events
+      WHERE ${whereClause}
+      GROUP BY 1
+      HAVING COUNT(*) >= ${k}
+      ORDER BY avg_duration DESC
+    `));
+
+    const byExecutorType = rows<ExecByExecutorRow>(await db.execute(sql`
+      SELECT
+        executor_type,
+        AVG(duration_seconds)::integer as avg_duration,
+        COUNT(*) as cnt
+      FROM service_execution_events
+      WHERE ${whereClause}
+      GROUP BY 1
+      HAVING COUNT(*) >= ${k}
+      ORDER BY avg_duration DESC
+    `));
+
+    const result = {
+      data: {
+        avgDurationSeconds: Math.round(Number(stats.avg_duration || 0)),
+        medianDurationSeconds: Math.round(Number(stats.p50_duration || 0)),
+        percentile25: Math.round(Number(stats.p25_duration || 0)),
+        percentile75: Math.round(Number(stats.p75_duration || 0)),
+        percentile90: Math.round(Number(stats.p90_duration || 0)),
+        totalEvents: sampleSize,
+        byEventType: byEventType.map(e => ({
+          eventType: e.event_type,
+          avgDuration: Number(e.avg_duration),
+          count: Number(e.cnt),
+        })),
+        byExecutorType: byExecutorType.map(e => ({
+          executorType: e.executor_type,
+          avgDuration: Number(e.avg_duration),
+          count: Number(e.cnt),
+        })),
+      },
+      metadata: { sampleSize, meetsKAnonymity: true, kThreshold: k, queryTimeMs: Date.now() - startTime, cached: false },
+      filters: { ...filters },
+    };
+
+    setCache(cacheKey, result, options?.cacheTtl ?? CACHE_TTL_SECONDS);
+    logAggregationQuery("service-execution-benchmarks", { ...filters }, Date.now() - startTime, sampleSize);
+    return result;
+  } catch (error: unknown) {
+    logger.error("getServiceExecutionBenchmarks error", {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return {
+      data: null,
+      metadata: { sampleSize: 0, meetsKAnonymity: false, kThreshold: k, queryTimeMs: Date.now() - startTime, cached: false },
+      filters: { ...filters },
+    };
+  }
+}
+
+// ─── 8. Room Cleaning Benchmarks ─────────────────────────────
+
+export async function getRoomCleaningBenchmarks(
+  filters?: { roomType?: string; flooringType?: string; region?: string },
+  options?: AggregationOptions
+): Promise<AggregationResult<{
+  avgCleaningMinutes: number;
+  medianCleaningMinutes: number;
+  percentile25: number;
+  percentile75: number;
+  totalRooms: number;
+  byRoomType: { roomType: string; avgMinutes: number; avgSqFt: number; count: number }[];
+  byFlooringType: { flooringType: string; avgMinutes: number; count: number }[];
+}>> {
+  const k = options?.kAnonymity ?? DEFAULT_K_ANONYMITY;
+  const cacheKey = options?.cacheKey ?? `room-cleaning-benchmarks:${JSON.stringify(filters || {})}`;
+  const cached = getCached<ReturnType<typeof getRoomCleaningBenchmarks> extends Promise<AggregationResult<infer U>> ? U : never>(cacheKey);
+  if (cached.hit) return cached.result;
+
+  const startTime = Date.now();
+
+  try {
+    const conditions: ReturnType<typeof sql>[] = [
+      sql`${propertyRooms.estimatedCleanMinutes} IS NOT NULL`,
+      sql`${propertyRooms.isActive} = true`,
+      consentFilter(sql`${propertyRooms.householdId}`),
+    ];
+
+    if (filters?.roomType) conditions.push(sql`${propertyRooms.roomType} = ${filters.roomType}`);
+    if (filters?.flooringType) conditions.push(sql`${propertyRooms.flooringType} = ${filters.flooringType}`);
+    if (filters?.region) {
+      conditions.push(sql`${propertyRooms.householdId} IN (
+        SELECT household_id FROM household_details WHERE region = ${filters.region}
+      )`);
+    }
+
+    const whereClause = sql.join(conditions, sql` AND `);
+
+    const stats = firstRow<RoomCleaningStatsRow>(await db.execute(sql`
+      SELECT
+        AVG(estimated_clean_minutes) as avg_minutes,
+        PERCENTILE_CONT(0.25) WITHIN GROUP (ORDER BY estimated_clean_minutes) as p25_minutes,
+        PERCENTILE_CONT(0.50) WITHIN GROUP (ORDER BY estimated_clean_minutes) as p50_minutes,
+        PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY estimated_clean_minutes) as p75_minutes,
+        COUNT(*) as total
+      FROM property_rooms
+      WHERE ${whereClause}
+    `));
+
+    const sampleSize = Number(stats.total || 0);
+    const queryTimeMs = Date.now() - startTime;
+
+    if (sampleSize < k) {
+      const result: AggregationResult<null> = {
+        data: null,
+        metadata: { sampleSize, meetsKAnonymity: false, kThreshold: k, queryTimeMs, cached: false },
+        filters: { ...filters },
+      };
+      logAggregationQuery("room-cleaning-benchmarks", { ...filters }, queryTimeMs, sampleSize);
+      return result;
+    }
+
+    const byRoomType = rows<RoomTypeCleaningRow>(await db.execute(sql`
+      SELECT
+        room_type,
+        AVG(estimated_clean_minutes)::integer as avg_minutes,
+        AVG(approximate_sq_ft)::integer as avg_sqft,
+        COUNT(*) as cnt
+      FROM property_rooms
+      WHERE ${whereClause}
+      GROUP BY 1
+      HAVING COUNT(*) >= ${k}
+      ORDER BY avg_minutes DESC
+    `));
+
+    const byFlooringType = rows<FlooringCleaningRow>(await db.execute(sql`
+      SELECT
+        flooring_type,
+        AVG(estimated_clean_minutes)::integer as avg_minutes,
+        COUNT(*) as cnt
+      FROM property_rooms
+      WHERE ${whereClause} AND flooring_type IS NOT NULL
+      GROUP BY 1
+      HAVING COUNT(*) >= ${k}
+      ORDER BY avg_minutes DESC
+    `));
+
+    const result = {
+      data: {
+        avgCleaningMinutes: Number(Number(stats.avg_minutes || 0).toFixed(1)),
+        medianCleaningMinutes: Math.round(Number(stats.p50_minutes || 0)),
+        percentile25: Math.round(Number(stats.p25_minutes || 0)),
+        percentile75: Math.round(Number(stats.p75_minutes || 0)),
+        totalRooms: sampleSize,
+        byRoomType: byRoomType.map(r => ({
+          roomType: r.room_type,
+          avgMinutes: Number(r.avg_minutes),
+          avgSqFt: Number(r.avg_sqft || 0),
+          count: Number(r.cnt),
+        })),
+        byFlooringType: byFlooringType.map(f => ({
+          flooringType: f.flooring_type,
+          avgMinutes: Number(f.avg_minutes),
+          count: Number(f.cnt),
+        })),
+      },
+      metadata: { sampleSize, meetsKAnonymity: true, kThreshold: k, queryTimeMs: Date.now() - startTime, cached: false },
+      filters: { ...filters },
+    };
+
+    setCache(cacheKey, result, options?.cacheTtl ?? CACHE_TTL_SECONDS);
+    logAggregationQuery("room-cleaning-benchmarks", { ...filters }, Date.now() - startTime, sampleSize);
+    return result;
+  } catch (error: unknown) {
+    logger.error("getRoomCleaningBenchmarks error", {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return {
+      data: null,
+      metadata: { sampleSize: 0, meetsKAnonymity: false, kThreshold: k, queryTimeMs: Date.now() - startTime, cached: false },
+      filters: { ...filters },
     };
   }
 }

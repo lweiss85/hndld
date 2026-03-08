@@ -11,6 +11,8 @@ import {
   getSeasonalDemandPatterns,
   getServiceQualityBenchmarks,
   getHomeOperatingCostBenchmarks,
+  getServiceExecutionBenchmarks,
+  getRoomCleaningBenchmarks,
 } from "../services/aggregate-analytics";
 import logger from "../lib/logger";
 import type { DataPartner } from "@shared/schema";
@@ -25,7 +27,7 @@ const TIER_CONFIG: Record<string, { endpoints: string[]; maxResultsPerRequest: n
     maxResultsPerRequest: 500,
   },
   PROFESSIONAL: {
-    endpoints: ["/appliance-lifespan", "/vendor-pricing", "/service-quality", "/home-operating-costs", "/seasonal-demand"],
+    endpoints: ["/appliance-lifespan", "/vendor-pricing", "/service-quality", "/home-operating-costs", "/seasonal-demand", "/service-execution-benchmarks", "/room-cleaning-benchmarks"],
     maxResultsPerRequest: 2000,
   },
   ENTERPRISE: {
@@ -474,6 +476,68 @@ router.get("/maintenance-costs", async (req: DataApiRequest, res: Response) => {
   }
 });
 
+router.get("/service-execution-benchmarks", async (req: DataApiRequest, res: Response) => {
+  try {
+    const { eventType, executorType, region } = req.query;
+
+    const result = await getServiceExecutionBenchmarks({
+      eventType: eventType as string | undefined,
+      executorType: executorType as string | undefined,
+      region: region as string | undefined,
+    });
+
+    if (!result.metadata.meetsKAnonymity) {
+      await logRequest(req, 404, result.metadata.sampleSize, "INSUFFICIENT_DATA");
+      return res.status(404).json({
+        error: "Insufficient data",
+        message: "Not enough records to provide anonymized results",
+        sampleSize: result.metadata.sampleSize,
+        minimumRequired: result.metadata.kThreshold,
+      });
+    }
+
+    await logRequest(req, 200, result.metadata.sampleSize);
+    res.json(result);
+  } catch (error: unknown) {
+    logger.error("Service execution benchmarks API error", {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    await logRequest(req, 500, 0, "INTERNAL_ERROR", error instanceof Error ? error.message : "Unknown");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.get("/room-cleaning-benchmarks", async (req: DataApiRequest, res: Response) => {
+  try {
+    const { roomType, flooringType, region } = req.query;
+
+    const result = await getRoomCleaningBenchmarks({
+      roomType: roomType as string | undefined,
+      flooringType: flooringType as string | undefined,
+      region: region as string | undefined,
+    });
+
+    if (!result.metadata.meetsKAnonymity) {
+      await logRequest(req, 404, result.metadata.sampleSize, "INSUFFICIENT_DATA");
+      return res.status(404).json({
+        error: "Insufficient data",
+        message: "Not enough records to provide anonymized results",
+        sampleSize: result.metadata.sampleSize,
+        minimumRequired: result.metadata.kThreshold,
+      });
+    }
+
+    await logRequest(req, 200, result.metadata.sampleSize);
+    res.json(result);
+  } catch (error: unknown) {
+    logger.error("Room cleaning benchmarks API error", {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    await logRequest(req, 500, 0, "INTERNAL_ERROR", error instanceof Error ? error.message : "Unknown");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 router.get("/usage", async (req: DataApiRequest, res: Response) => {
   const partner = req.dataPartner;
   if (!partner) return res.status(401).json({ error: "Unauthorized" });
@@ -515,6 +579,8 @@ router.get("/available-endpoints", async (req: DataApiRequest, res: Response) =>
     { path: "/home-operating-costs", description: "Home operating cost benchmarks with monthly trends" },
     { path: "/seasonal-demand", description: "Seasonal demand patterns with year-over-year growth" },
     { path: "/maintenance-costs", description: "Maintenance cost benchmarks by category" },
+    { path: "/service-execution-benchmarks", description: "Service execution duration benchmarks by event type and executor" },
+    { path: "/room-cleaning-benchmarks", description: "Room cleaning time benchmarks by room type and flooring" },
   ];
 
   const available = allEndpoints.map(ep => ({

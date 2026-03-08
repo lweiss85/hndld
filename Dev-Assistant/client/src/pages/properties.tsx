@@ -15,7 +15,8 @@ import { apiRequest } from "@/lib/queryClient";
 import {
   Home, Plus, MapPin, Star, Building2, Palmtree, Key as KeyIcon,
   Wifi, Lock, ClipboardList, Users, ChevronRight, Trash2,
-  Eye, EyeOff, Bed, Bath, Ruler, CalendarDays, ArrowLeft
+  Eye, EyeOff, Bed, Bath, Ruler, CalendarDays, ArrowLeft,
+  DoorOpen, Clock, AlertTriangle, Pencil, GripVertical
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -47,6 +48,80 @@ interface PropertyItem {
     vendors: number;
     locks: number;
   };
+}
+
+interface RoomItem {
+  id: string;
+  propertyId: string;
+  householdId: string;
+  name: string;
+  roomType: string;
+  floor: number | null;
+  approximateSqFt: number | null;
+  flooringType: string | null;
+  surfaceNotes: string | null;
+  cleaningPriority: number | null;
+  specialInstructions: string | null;
+  skipDays: string[] | null;
+  estimatedCleanMinutes: number | null;
+  photoUrls: string[] | null;
+  isActive: boolean;
+  sortOrder: number | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+const ROOM_TYPES = [
+  { value: "KITCHEN", label: "Kitchen" },
+  { value: "BATHROOM", label: "Bathroom" },
+  { value: "BEDROOM", label: "Bedroom" },
+  { value: "LIVING_ROOM", label: "Living Room" },
+  { value: "DINING_ROOM", label: "Dining Room" },
+  { value: "OFFICE", label: "Office" },
+  { value: "GARAGE", label: "Garage" },
+  { value: "LAUNDRY", label: "Laundry" },
+  { value: "CLOSET", label: "Closet" },
+  { value: "HALLWAY", label: "Hallway" },
+  { value: "BASEMENT", label: "Basement" },
+  { value: "ATTIC", label: "Attic" },
+  { value: "PATIO", label: "Patio" },
+  { value: "DECK", label: "Deck" },
+  { value: "MUDROOM", label: "Mudroom" },
+  { value: "PLAYROOM", label: "Playroom" },
+  { value: "GUEST_ROOM", label: "Guest Room" },
+  { value: "MASTER_SUITE", label: "Master Suite" },
+  { value: "OUTDOOR", label: "Outdoor" },
+  { value: "OTHER", label: "Other" },
+];
+
+const FLOORING_TYPES = [
+  { value: "HARDWOOD", label: "Hardwood" },
+  { value: "TILE", label: "Tile" },
+  { value: "CARPET", label: "Carpet" },
+  { value: "LAMINATE", label: "Laminate" },
+  { value: "VINYL", label: "Vinyl" },
+  { value: "CONCRETE", label: "Concrete" },
+  { value: "STONE", label: "Stone" },
+  { value: "MARBLE", label: "Marble" },
+  { value: "MIXED", label: "Mixed" },
+  { value: "OTHER", label: "Other" },
+];
+
+function getRoomTypeLabel(type: string) {
+  return ROOM_TYPES.find(t => t.value === type)?.label || type;
+}
+
+function getFlooringLabel(type: string) {
+  return FLOORING_TYPES.find(t => t.value === type)?.label || type;
+}
+
+function getPriorityLabel(priority: number | null) {
+  if (!priority) return null;
+  if (priority <= 1) return { label: "Critical", color: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" };
+  if (priority <= 2) return { label: "High", color: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400" };
+  if (priority <= 3) return { label: "Normal", color: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" };
+  if (priority <= 4) return { label: "Low", color: "bg-gray-100 text-gray-700 dark:bg-gray-800/50 dark:text-gray-400" };
+  return { label: "Minimal", color: "bg-gray-50 text-gray-500 dark:bg-gray-800/30 dark:text-gray-500" };
 }
 
 const PROPERTY_TYPES = [
@@ -224,17 +299,33 @@ function PropertyDetail({ propertyId, onBack, onDelete }: { propertyId: string; 
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [showSensitive, setShowSensitive] = useState(false);
+  const [showAddRoom, setShowAddRoom] = useState(false);
+  const [editingRoom, setEditingRoom] = useState<RoomItem | null>(null);
 
   const { data } = useQuery<{ property: PropertyItem }>({
     queryKey: [`/api/v1/properties/${propertyId}`, showSensitive ? "sensitive" : "masked"],
     queryFn: () => fetch(`/api/v1/properties/${propertyId}${showSensitive ? "?sensitive=true" : ""}`, { credentials: "include" }).then(r => r.json()),
   });
 
+  const { data: roomsData, isLoading: roomsLoading } = useQuery<{ rooms: RoomItem[] }>({
+    queryKey: [`/api/v1/properties/${propertyId}/rooms`],
+  });
+
+  const rooms = roomsData?.rooms || [];
+
   const setPrimaryMutation = useMutation({
     mutationFn: () => apiRequest("POST", `/api/v1/properties/${propertyId}/set-primary`),
     onSuccess: () => {
       toast({ title: "Set as primary property" });
       queryClient.invalidateQueries({ queryKey: ["/api/v1/properties"] });
+    },
+  });
+
+  const deleteRoomMutation = useMutation({
+    mutationFn: (roomId: string) => apiRequest("DELETE", `/api/v1/properties/${propertyId}/rooms/${roomId}`),
+    onSuccess: () => {
+      toast({ title: "Room removed" });
+      queryClient.invalidateQueries({ queryKey: [`/api/v1/properties/${propertyId}/rooms`] });
     },
   });
 
@@ -346,6 +437,143 @@ function PropertyDetail({ propertyId, onBack, onDelete }: { propertyId: string; 
         <CardContent className="p-4">
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-sm font-medium text-foreground flex items-center gap-1.5">
+              <DoorOpen className="w-4 h-4" /> Rooms
+            </h3>
+            <Dialog open={showAddRoom} onOpenChange={setShowAddRoom}>
+              <DialogTrigger asChild>
+                <Button size="sm" variant="outline" className="gap-1 text-xs h-7">
+                  <Plus className="w-3.5 h-3.5" /> Add Room
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-h-[85vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>Add Room</DialogTitle>
+                </DialogHeader>
+                <RoomForm
+                  propertyId={propertyId}
+                  onSuccess={() => {
+                    setShowAddRoom(false);
+                    queryClient.invalidateQueries({ queryKey: [`/api/v1/properties/${propertyId}/rooms`] });
+                  }}
+                />
+              </DialogContent>
+            </Dialog>
+          </div>
+          {roomsLoading ? (
+            <div className="space-y-2">
+              {[1, 2].map(i => <div key={i} className="h-20 bg-muted animate-pulse rounded-xl" />)}
+            </div>
+          ) : rooms.length === 0 ? (
+            <div className="text-center py-6">
+              <DoorOpen className="w-8 h-8 text-muted-foreground/40 mx-auto mb-2" />
+              <p className="text-sm text-muted-foreground">No rooms added yet</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Add rooms to track cleaning details per area</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {rooms.map(room => {
+                const priorityInfo = getPriorityLabel(room.cleaningPriority);
+                return (
+                  <div
+                    key={room.id}
+                    className="border rounded-xl p-3 hover:bg-accent/50 transition-colors"
+                  >
+                    <div className="flex items-start gap-2">
+                      <GripVertical className="w-4 h-4 text-muted-foreground/40 mt-0.5 shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-medium text-sm text-foreground">{room.name}</span>
+                          <Badge variant="secondary" className="text-[10px]">
+                            {getRoomTypeLabel(room.roomType)}
+                          </Badge>
+                          {priorityInfo && (
+                            <Badge className={cn("text-[10px]", priorityInfo.color)}>
+                              {priorityInfo.label}
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-3 mt-1 flex-wrap">
+                          {room.floor !== null && (
+                            <span className="text-xs text-muted-foreground">
+                              Floor {room.floor}
+                            </span>
+                          )}
+                          {room.flooringType && (
+                            <span className="text-xs text-muted-foreground">
+                              {getFlooringLabel(room.flooringType)}
+                            </span>
+                          )}
+                          {room.estimatedCleanMinutes && (
+                            <span className="text-xs text-muted-foreground flex items-center gap-0.5">
+                              <Clock className="w-3 h-3" /> {room.estimatedCleanMinutes} min
+                            </span>
+                          )}
+                          {room.approximateSqFt && (
+                            <span className="text-xs text-muted-foreground">
+                              {room.approximateSqFt} sq ft
+                            </span>
+                          )}
+                        </div>
+                        {room.specialInstructions && (
+                          <p className="text-xs text-muted-foreground mt-1 flex items-start gap-1">
+                            <AlertTriangle className="w-3 h-3 mt-0.5 shrink-0 text-amber-500" />
+                            <span className="line-clamp-2">{room.specialInstructions}</span>
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex gap-1 shrink-0">
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-7 w-7"
+                          onClick={() => setEditingRoom(room)}
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-7 w-7 text-destructive"
+                          onClick={() => {
+                            if (confirm(`Remove "${room.name}"?`)) {
+                              deleteRoomMutation.mutate(room.id);
+                            }
+                          }}
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Dialog open={!!editingRoom} onOpenChange={(open) => { if (!open) setEditingRoom(null); }}>
+        <DialogContent className="max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Room</DialogTitle>
+          </DialogHeader>
+          {editingRoom && (
+            <RoomForm
+              propertyId={propertyId}
+              room={editingRoom}
+              onSuccess={() => {
+                setEditingRoom(null);
+                queryClient.invalidateQueries({ queryKey: [`/api/v1/properties/${propertyId}/rooms`] });
+              }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-medium text-foreground flex items-center gap-1.5">
               <KeyIcon className="w-4 h-4" /> Access Information
             </h3>
             <Button
@@ -387,6 +615,155 @@ function PropertyDetail({ propertyId, onBack, onDelete }: { propertyId: string; 
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+function RoomForm({ propertyId, room, onSuccess }: { propertyId: string; room?: RoomItem; onSuccess: () => void }) {
+  const { toast } = useToast();
+  const [submitting, setSubmitting] = useState(false);
+  const [form, setForm] = useState({
+    name: room?.name || "",
+    roomType: room?.roomType || "",
+    floor: room?.floor?.toString() || "1",
+    approximateSqFt: room?.approximateSqFt?.toString() || "",
+    flooringType: room?.flooringType || "",
+    cleaningPriority: room?.cleaningPriority?.toString() || "3",
+    specialInstructions: room?.specialInstructions || "",
+    estimatedCleanMinutes: room?.estimatedCleanMinutes?.toString() || "",
+    surfaceNotes: room?.surfaceNotes || "",
+  });
+
+  const update = (key: string, value: string) => setForm(prev => ({ ...prev, [key]: value }));
+  const isEditing = !!room;
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.name || !form.roomType) return;
+    setSubmitting(true);
+    try {
+      const payload = {
+        name: form.name,
+        roomType: form.roomType,
+        floor: form.floor ? parseInt(form.floor) : 1,
+        approximateSqFt: form.approximateSqFt ? parseInt(form.approximateSqFt) : undefined,
+        flooringType: form.flooringType || undefined,
+        cleaningPriority: form.cleaningPriority ? parseInt(form.cleaningPriority) : 3,
+        specialInstructions: form.specialInstructions || undefined,
+        estimatedCleanMinutes: form.estimatedCleanMinutes ? parseInt(form.estimatedCleanMinutes) : undefined,
+        surfaceNotes: form.surfaceNotes || undefined,
+      };
+
+      if (isEditing) {
+        await apiRequest("PATCH", `/api/v1/properties/${propertyId}/rooms/${room.id}`, payload);
+        toast({ title: "Room updated" });
+      } else {
+        await apiRequest("POST", `/api/v1/properties/${propertyId}/rooms`, payload);
+        toast({ title: "Room added" });
+      }
+      onSuccess();
+    } catch {
+      toast({ title: `Failed to ${isEditing ? "update" : "add"} room`, variant: "destructive" });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="space-y-2">
+        <Label>Room Name</Label>
+        <Input
+          placeholder="e.g. Master Bedroom, Kitchen"
+          value={form.name}
+          onChange={e => update("name", e.target.value)}
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label>Room Type</Label>
+        <Select value={form.roomType} onValueChange={v => update("roomType", v)}>
+          <SelectTrigger>
+            <SelectValue placeholder="Select type" />
+          </SelectTrigger>
+          <SelectContent>
+            {ROOM_TYPES.map(t => (
+              <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-2">
+          <Label>Floor</Label>
+          <Input type="number" value={form.floor} onChange={e => update("floor", e.target.value)} />
+        </div>
+        <div className="space-y-2">
+          <Label>Approx. Sq Ft</Label>
+          <Input type="number" value={form.approximateSqFt} onChange={e => update("approximateSqFt", e.target.value)} />
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label>Flooring Type</Label>
+        <Select value={form.flooringType} onValueChange={v => update("flooringType", v)}>
+          <SelectTrigger>
+            <SelectValue placeholder="Select flooring" />
+          </SelectTrigger>
+          <SelectContent>
+            {FLOORING_TYPES.map(t => (
+              <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-2">
+          <Label>Cleaning Priority (1-5)</Label>
+          <Select value={form.cleaningPriority} onValueChange={v => update("cleaningPriority", v)}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="1">1 - Critical</SelectItem>
+              <SelectItem value="2">2 - High</SelectItem>
+              <SelectItem value="3">3 - Normal</SelectItem>
+              <SelectItem value="4">4 - Low</SelectItem>
+              <SelectItem value="5">5 - Minimal</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-2">
+          <Label>Est. Clean Time (min)</Label>
+          <Input type="number" placeholder="e.g. 30" value={form.estimatedCleanMinutes} onChange={e => update("estimatedCleanMinutes", e.target.value)} />
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label>Special Instructions</Label>
+        <Textarea
+          placeholder="Any special notes for cleaning this room"
+          value={form.specialInstructions}
+          onChange={e => update("specialInstructions", e.target.value)}
+          rows={2}
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label>Surface Notes</Label>
+        <Textarea
+          placeholder="Details about surfaces, materials, or care requirements"
+          value={form.surfaceNotes}
+          onChange={e => update("surfaceNotes", e.target.value)}
+          rows={2}
+        />
+      </div>
+
+      <Button type="submit" className="w-full" disabled={!form.name || !form.roomType || submitting}>
+        {submitting ? (isEditing ? "Updating..." : "Adding...") : (isEditing ? "Update Room" : "Add Room")}
+      </Button>
+    </form>
   );
 }
 
