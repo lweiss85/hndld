@@ -26,6 +26,14 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { useLocation } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
 
@@ -638,6 +646,7 @@ function ItemDetail({
   const queryClient = useQueryClient();
   const [, navigate] = useLocation();
   const [showServiceDialog, setShowServiceDialog] = useState(false);
+  const [replaceConfirmItem, setReplaceConfirmItem] = useState<{ trackingId: string; name: string } | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ["/api/v1/inventory", itemId],
@@ -681,6 +690,7 @@ function ItemDetail({
       return res.json();
     },
     onSuccess: () => {
+      setReplaceConfirmItem(null);
       queryClient.invalidateQueries({ queryKey: ["/api/v1/inventory", itemId, "consumables"] });
       queryClient.invalidateQueries({ queryKey: ["/api/v1/inventory/predictions"] });
     },
@@ -1016,8 +1026,7 @@ function ItemDetail({
                           variant="outline"
                           size="sm"
                           className="text-xs h-8"
-                          disabled={markReplacedMutation.isPending}
-                          onClick={() => markReplacedMutation.mutate(item.tracking.id)}
+                          onClick={() => setReplaceConfirmItem({ trackingId: item.tracking.id, name: item.consumableName })}
                         >
                           Replaced
                         </Button>
@@ -1090,6 +1099,40 @@ function ItemDetail({
           }}
         />
       )}
+
+      <Sheet open={!!replaceConfirmItem} onOpenChange={(open) => !open && setReplaceConfirmItem(null)}>
+        <SheetContent side="bottom" className="rounded-t-2xl">
+          <SheetHeader>
+            <SheetTitle className="font-display text-lg font-light tracking-tight">Confirm Replacement</SheetTitle>
+            <SheetDescription className="text-sm text-muted-foreground">
+              Mark <span className="font-medium text-foreground">{replaceConfirmItem?.name}</span> as replaced today? The next due date will be recalculated automatically.
+            </SheetDescription>
+          </SheetHeader>
+          <SheetFooter className="mt-6 flex gap-3">
+            <Button
+              variant="outline"
+              className="flex-1"
+              onClick={() => setReplaceConfirmItem(null)}
+            >
+              Cancel
+            </Button>
+            <Button
+              className="flex-1"
+              disabled={markReplacedMutation.isPending}
+              onClick={() => {
+                if (replaceConfirmItem) {
+                  markReplacedMutation.mutate(replaceConfirmItem.trackingId);
+                }
+              }}
+            >
+              {markReplacedMutation.isPending ? (
+                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+              ) : null}
+              Confirm Replaced
+            </Button>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
@@ -1106,6 +1149,7 @@ export default function InventoryPage() {
   const [categoryFilter, setCategoryFilter] = useState("");
   const [showFilters, setShowFilters] = useState(false);
   const [viewMode, setViewMode] = useState<"grid" | "list">("list");
+  const [dismissedPredictions, setDismissedPredictions] = useState<Set<string>>(new Set());
 
   const { data: inventoryData, isLoading } = useQuery({
     queryKey: [
@@ -1292,58 +1336,124 @@ export default function InventoryPage() {
             </div>
           )}
 
-          {predictionsData?.predictions?.length > 0 && (
-            <div className="px-4 mb-4 space-y-3">
-              <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Home Health</h2>
-              <div className="space-y-2">
-                {predictionsData.predictions.slice(0, 5).map((prediction: any, i: number) => {
-                  const isUrgent = prediction.confidence >= 90;
-                  const isWarning = prediction.confidence >= 75;
-                  return (
-                    <Card key={i} className={`border-0 shadow-[0_2px_8px_rgba(26,29,46,0.04)] ${isUrgent ? 'border-l-2 border-l-red-400' : isWarning ? 'border-l-2 border-l-amber-400' : 'border-l-2 border-l-emerald-400'}`}>
-                      <CardContent className="p-4">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1">
-                              <Badge variant="outline" className={`text-[10px] ${
-                                prediction.category === 'REPLACEMENT_FORECAST' ? 'border-red-200 text-red-600 bg-red-50' :
-                                prediction.category === 'WARRANTY_ACTION' ? 'border-amber-200 text-amber-600 bg-amber-50' :
-                                prediction.category === 'CONSUMABLE_REMINDER' ? 'border-blue-200 text-blue-600 bg-blue-50' :
-                                'border-emerald-200 text-emerald-600 bg-emerald-50'
-                              }`}>
-                                {prediction.category?.replace(/_/g, ' ')}
-                              </Badge>
-                              <span className="text-[10px] text-muted-foreground">{prediction.confidence}% confidence</span>
+          {predictionsData?.predictions?.length > 0 && (() => {
+            const allPredictions: any[] = predictionsData.predictions;
+            const atRiskItems = allPredictions
+              .filter((p: any) => p.category === 'REPLACEMENT_FORECAST' || p.category === 'APPLIANCE_LIFESPAN')
+              .filter((p: any, i: number, arr: any[]) => arr.findIndex((x: any) => x.data?.inventoryItemId === p.data?.inventoryItemId) === i);
+            const visibleAlerts = allPredictions.filter((p: any) => {
+              const key = `${p.category}-${p.data?.inventoryItemId || ''}-${p.title}`;
+              return !dismissedPredictions.has(key);
+            });
+
+            return (
+              <div className="mb-4 space-y-4">
+                {atRiskItems.length > 0 && (
+                  <div>
+                    <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground px-4 mb-3">At-Risk Items</h2>
+                    <div className="flex gap-3 overflow-x-auto px-4 pb-2 scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}>
+                      {atRiskItems.map((item: any, i: number) => {
+                        const ageYears = Number(item.data?.currentAgeYears) || 0;
+                        const medianLifespan = Number(item.data?.networkMedianLifespan) || 12;
+                        const percent = medianLifespan > 0 ? Math.round((ageYears / medianLifespan) * 100) : item.confidence;
+                        const isHigh = percent >= 100;
+                        const isMedium = percent >= 80;
+                        return (
+                          <button
+                            key={i}
+                            className="flex-shrink-0 w-36 bg-card rounded-xl p-3 text-left shadow-[0_2px_8px_rgba(26,29,46,0.04)]"
+                            onClick={() => {
+                              if (item.data?.inventoryItemId) setSelectedItemId(item.data.inventoryItemId as string);
+                            }}
+                          >
+                            <div className={`w-10 h-10 rounded-lg flex items-center justify-center mb-2 ${
+                              isHigh ? 'bg-red-50 text-red-600' : isMedium ? 'bg-orange-50 text-orange-600' : 'bg-amber-50 text-amber-600'
+                            }`}>
+                              <span className="text-sm font-data font-semibold">{percent}%</span>
                             </div>
-                            <p className="font-medium text-sm">{prediction.title}</p>
-                            <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{prediction.summary}</p>
-                          </div>
-                          {prediction.data?.actionUrl && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="shrink-0 text-xs"
-                              onClick={() => {
-                                const url = prediction.data.actionUrl as string;
-                                if (url.startsWith('/inventory?id=')) {
-                                  setSelectedItemId(url.split('id=')[1]);
-                                } else {
-                                  navigate(url);
-                                }
-                              }}
-                            >
-                              View
-                              <ChevronRight className="h-3 w-3 ml-1" />
-                            </Button>
-                          )}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
+                            <p className="text-xs font-medium text-foreground truncate">{item.title.replace(/^Your\s+/i, '').split(' — ')[0].split(' is ')[0]}</p>
+                            <p className={`text-[10px] mt-0.5 ${isHigh ? 'text-red-600' : isMedium ? 'text-orange-600' : 'text-amber-600'}`}>
+                              {isHigh ? 'Replace soon' : isMedium ? 'Plan replacement' : 'Monitor'}
+                            </p>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {visibleAlerts.length > 0 && (
+                  <div className="px-4 space-y-3">
+                    <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Home Health</h2>
+                    <div className="space-y-2">
+                      {visibleAlerts.slice(0, 5).map((prediction: any, i: number) => {
+                        const isUrgent = prediction.confidence >= 90;
+                        const isWarning = prediction.confidence >= 75;
+                        const predKey = `${prediction.category}-${prediction.data?.inventoryItemId || ''}-${prediction.title}`;
+                        return (
+                          <Card key={i} className={`border-0 shadow-[0_2px_8px_rgba(26,29,46,0.04)] ${isUrgent ? 'border-l-2 border-l-red-400' : isWarning ? 'border-l-2 border-l-amber-400' : 'border-l-2 border-l-emerald-400'}`}>
+                            <CardContent className="p-4">
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <Badge variant="outline" className={`text-[10px] ${
+                                      prediction.category === 'REPLACEMENT_FORECAST' ? 'border-red-200 text-red-600 bg-red-50' :
+                                      prediction.category === 'WARRANTY_ACTION' ? 'border-amber-200 text-amber-600 bg-amber-50' :
+                                      prediction.category === 'CONSUMABLE_REMINDER' ? 'border-blue-200 text-blue-600 bg-blue-50' :
+                                      'border-emerald-200 text-emerald-600 bg-emerald-50'
+                                    }`}>
+                                      {prediction.category?.replace(/_/g, ' ')}
+                                    </Badge>
+                                    <span className="text-[10px] text-muted-foreground">{prediction.confidence}%</span>
+                                  </div>
+                                  <p className="font-medium text-sm">{prediction.title}</p>
+                                  <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{prediction.summary}</p>
+                                </div>
+                                <div className="flex flex-col gap-1 shrink-0">
+                                  {prediction.data?.actionUrl && (
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="text-xs h-7 px-2"
+                                      onClick={() => {
+                                        const url = prediction.data.actionUrl as string;
+                                        if (url.startsWith('/inventory?id=')) {
+                                          setSelectedItemId(url.split('id=')[1]);
+                                        } else {
+                                          navigate(url);
+                                        }
+                                      }}
+                                    >
+                                      View
+                                      <ChevronRight className="h-3 w-3 ml-1" />
+                                    </Button>
+                                  )}
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="text-xs h-7 px-2 text-muted-foreground hover:text-foreground"
+                                    onClick={() => {
+                                      setDismissedPredictions(prev => {
+                                        const next = new Set(prev);
+                                        next.add(predKey);
+                                        return next;
+                                      });
+                                    }}
+                                  >
+                                    <X className="h-3 w-3" />
+                                  </Button>
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {isLoading ? (
             <div className="flex items-center justify-center py-20">
