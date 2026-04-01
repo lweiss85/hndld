@@ -244,10 +244,10 @@ export default function ProviderDetailPage() {
           <img
             src={provider.coverPhoto}
             alt=""
-            className="w-full h-48 object-cover"
+            className="w-full h-56 object-cover"
           />
         ) : (
-          <div className="w-full h-48 bg-gradient-to-br from-primary via-primary/80 to-primary/50" />
+          <div className="w-full h-56 bg-gradient-to-br from-primary/95 via-primary/70 to-hndld-gold-500/30" />
         )}
         <button
           onClick={() => navigate("/marketplace")}
@@ -451,13 +451,15 @@ export default function ProviderDetailPage() {
         )}
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 p-4 border-t border-border bg-background">
-        <Button
-          className="w-full h-12 text-base font-semibold rounded-xl bg-primary text-primary-foreground hover:bg-primary/90"
-          onClick={() => setShowBookingDialog(true)}
-        >
-          Request Booking
-        </Button>
+      <div className="fixed bottom-0 left-0 right-0 p-4 border-t border-border/30 bg-background/90 backdrop-blur-xl">
+        <div className="max-w-lg mx-auto">
+          <Button
+            className="w-full h-12 text-base font-medium rounded-full bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/15"
+            onClick={() => setShowBookingDialog(true)}
+          >
+            Request Booking
+          </Button>
+        </div>
       </div>
 
       <Dialog open={showBookingDialog} onOpenChange={setShowBookingDialog}>

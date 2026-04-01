@@ -95,7 +95,10 @@ export const verifierTypeEnum = pgEnum("verifier_type", [
   "PROVIDER_SELF", "CLIENT_REVIEW", "AI_VISION", "ROBOT_SENSOR", "MANAGER_REVIEW"
 ]);
 
-// Organizations (multi-tenancy parent)
+/**
+ * Top-level tenant container. An assistant can have one organization that manages multiple households.
+ * Sits above households in the multi-tenancy hierarchy: Organization → Household → User.
+ */
 export const organizations = pgTable("organizations", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull(),

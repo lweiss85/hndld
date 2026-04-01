@@ -1,0 +1,104 @@
+You are a senior engineer adding documentation comments to an existing Drizzle ORM schema file. Your ONLY job is to add TypeScript comments above tables and non-obvious columns. Do NOT change any code, types, defaults, or table structures. Only add comments.
+
+## Instructions
+
+Open `shared/schema.ts` and add clear, concise JSDoc comments above each table and above any columns whose purpose is not immediately obvious from the name.
+
+## Comment Style
+
+Use this format:
+
+```typescript
+/** 
+ * Tracks household tasks with full lifecycle management.
+ * Status flow: INBOX → PLANNED → IN_PROGRESS → WAITING_ON_CLIENT → DONE / CANCELLED
+ */
+export const tasks = pgTable("tasks", {
+  // ... existing columns unchanged
+});
+```
+
+For non-obvious columns, add inline comments:
+
+```typescript
+  /** Estimated minutes this task saves the client (used for ROI reporting) */
+  estimatedMinutesSaved: integer("estimated_minutes_saved"),
+```
+
+## Table Descriptions to Add
+
+Here are the descriptions for each table group. Add these as comments above the relevant tables:
+
+### Core Multi-Tenancy
+- `organizations` — Top-level tenant container. An assistant can have one organization that manages multiple households.
+- `households` — Individual household unit. All data is scoped to a household. Has address, timezone, preferences.
+- `userProfiles` — Links a user to a household with a role (ASSISTANT, CLIENT, STAFF). A user can belong to multiple households.
+- `users` — Auth user records. Currently from Replit Auth (will migrate to Clerk).
+- `sessions` — Server-side session storage for authentication (connect-pg-simple).
+
+### Task Management
+- `tasks` — Main task records. Status flow: INBOX → PLANNED → IN_PROGRESS → WAITING_ON_CLIENT → DONE / CANCELLED. Supports recurring tasks, priority levels, time estimates, and service type scoping (CLEANING or PA).
+- `taskChecklistItems` — Subtasks/checklist items within a task. Ordered, individually completable.
+- `taskTemplates` — Reusable task templates that can be instantiated into real tasks.
+- `taskPatterns` — Learned patterns from completed tasks: day-of-week, hour-of-day, average duration. Used by AI for scheduling suggestions.
+
+### Communication
+- `approvals` — Purchase or decision approvals with dollar amounts. Clients approve/decline items their assistant recommends.
+- `updates` — Status updates from assistant to client. Can include photos and categorized tags.
+- `requests` — Service requests from client to assistant. Natural language parsed by AI.
+- `comments` — Threaded comments on any entity (task, approval, update, request). Supports reactions.
+- `reactions` — Quick emoji reactions (LOOKS_GOOD, LOVE_IT, THANK_YOU, etc.) on comments and updates.
+
+### Financial
+- `spendingItems` — Individual expense records: amount, category, vendor, date, receipt. Scoped to household.
+- `invoices` — Generated invoices from assistant to client. HTML-rendered, supports Stripe integration.
+- `budgets` — Budget categories with monthly limits and tracking.
+- `subscriptions` — hndld platform subscription records (Stripe). Tracks the user's hndld billing tier.
+
+### Household Knowledge
+- `vendors` — Service providers (plumber, electrician, cleaner) associated with a household. Includes contact info, category, last service date.
+- `inventoryItems` — High-value household items: appliances, electronics, furniture. Tracks brand, model, serial number, warranty, purchase date, location in home.
+- `applianceConsumables` — Replacement parts for appliances (HVAC filters, water filters, etc.) with replacement intervals.
+- `importantDates` — Birthdays, anniversaries, policy renewals, etc. with reminder offset in days.
+- `peopleAndPets` — Family members, staff, and pets with details (allergies, medications, preferences).
+- `householdPreferences` — Key-value preferences for the household (cleaning products, temperature, dietary restrictions).
+
+### Security & Access
+- `accessItems` — Sensitive access info (WiFi passwords, alarm codes, gate codes). AES-256 encrypted, PIN-protected, audit-logged.
+- `guestAccess` — Time-limited, permission-scoped access for guests (babysitters, house sitters). Powers the handoff system.
+
+### AI & Intelligence
+- `learnedPreferences` — AI-learned preferences with confidence scores. Built up over time from user behavior.
+- `householdInsights` — AI-generated insights stored per household (spending anomalies, maintenance predictions, suggestions).
+- `analyticsEvents` — Event tracking: task completion, feature usage, session activity. Used for engagement analytics and data collection.
+- `proactiveInsights` — Generated proactive suggestions (maintenance alerts, replenishment reminders, seasonal tasks).
+
+### Data Platform
+- `dataPartners` — External data licensing partners with API keys, permissions, and rate limits.
+- `dataApiLogs` — API access logs for data partner requests.
+- `vendorPricing` — Aggregated vendor pricing data used for regional benchmarking.
+
+### Onboarding & Settings
+- `onboardingProgress` — Tracks onboarding completion across phases for each user-household pair.
+- `notificationSettings` — Per-user notification preferences (email, push, SMS) with per-category controls.
+
+### Provider / Marketplace (Professional Experience Only)
+- `providerProfiles` — Business profiles for service providers (cleaning companies, PAs).
+- `providerStaff` — Staff members under a provider.
+- `providerClients` — Client relationships for providers.
+- `bookingRequests` — Service booking requests from the marketplace.
+- `marketplaceReviews` — Reviews and ratings for providers.
+
+## CRITICAL RULES
+
+1. Do NOT modify any existing code — only add comments
+2. Do NOT rename tables, columns, or change types
+3. Do NOT add or remove any imports
+4. Do NOT restructure the file
+5. Keep comments concise — 1-2 lines for columns, 2-3 lines for tables
+6. If a column name is already self-explanatory (like `name`, `email`, `createdAt`), do NOT add a comment
+7. Save the file when done
+
+## Verification
+
+After adding comments, the app should run exactly the same as before (`npm run dev`). Comments don't affect runtime behavior.
