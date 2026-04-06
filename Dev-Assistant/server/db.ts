@@ -6,8 +6,9 @@ import { metrics } from "./lib/metrics";
 
 const { Pool } = pg;
 
-const SLOW_QUERY_THRESHOLD_MS = 100;
-const POOL_LOG_INTERVAL_MS = 60 * 1000;
+const SLOW_QUERY_THRESHOLD_MS = parseInt(process.env.SLOW_QUERY_THRESHOLD_MS || "100", 10);
+const POOL_LOG_INTERVAL_MS = parseInt(process.env.POOL_LOG_INTERVAL_MS || "60000", 10);
+const STATEMENT_TIMEOUT_MS = parseInt(process.env.DB_STATEMENT_TIMEOUT_MS || "30000", 10);
 
 if (!process.env.DATABASE_URL) {
   throw new Error(
@@ -17,9 +18,10 @@ if (!process.env.DATABASE_URL) {
 
 export const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  max: 20,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 5000,
+  max: parseInt(process.env.DB_POOL_MAX || "20", 10),
+  idleTimeoutMillis: parseInt(process.env.DB_IDLE_TIMEOUT_MS || "30000", 10),
+  connectionTimeoutMillis: parseInt(process.env.DB_CONNECTION_TIMEOUT_MS || "5000", 10),
+  statement_timeout: STATEMENT_TIMEOUT_MS,
 });
 
 const poolStats = {
@@ -74,7 +76,7 @@ export function getPoolStats() {
     total: pool.totalCount,
     idle: pool.idleCount,
     waiting,
-    max: 20,
+    max: parseInt(process.env.DB_POOL_MAX || "20", 10),
     utilization: pool.totalCount > 0
       ? Math.round(((pool.totalCount - pool.idleCount) / pool.totalCount) * 100)
       : 0,

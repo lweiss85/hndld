@@ -1301,7 +1301,7 @@ export function registerSpendingRoutes(app: Router) {
           storagePath,
           category: "DOCUMENT",
           tags: ["invoice", invoiceNumber],
-          description: `Invoice ${invoiceNumber} • ${title}`,
+          description: `Invoice ${invoiceNumber} • ${escapeHtml(title)}`,
         })
         .returning();
 
